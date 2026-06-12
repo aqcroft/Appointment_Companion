@@ -127,7 +127,7 @@ input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; border-radius
 
 /* ===== Detail table ===== */
 details summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--purple); padding: 4px 0; }
-table.detail { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.6rem; }
+table.detail { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.6rem; table-layout: fixed; }
 table.detail th { text-align: right; font-size: 11px; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 2px solid var(--line); }
 table.detail th:first-child, table.detail td:first-child { text-align: left; }
 table.detail td { padding: 7px 6px; text-align: right; border-bottom: 1px solid #f0edf7; }
@@ -169,6 +169,10 @@ table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); bo
 .sc-line .v { font-weight: 700; }
 .sc-line .v.good { color: var(--good); }
 .sc-line .v.bad { color: var(--bad); }
+table.detail s, .sc-line s { color: var(--muted); font-weight: 400; }
+.delta { font-weight: 700; margin-left: 4px; }
+.delta.good { color: var(--good); }
+.delta.bad { color: var(--bad); }
 .sc-line.sumrow { border-top: 1.5px solid var(--line); margin-top: 2px; }
 .sc-line.sumrow .k { font-weight: 700; }
 .sc-line.sumrow .v { font-weight: 800; color: var(--purple); }
@@ -179,6 +183,22 @@ table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); bo
 .sandwich-btn.on { opacity:1; }
 input.active-rate { border-color:var(--purple) !important; background:#f8f5ff !important; }
 label.active-tier { color:var(--purple); font-weight:700; }
+.basket-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 0.75rem; margin:0.2rem 0 0.7rem;
+  border:1px solid rgba(122,66,200,0.15); border-radius:10px;
+  background:rgba(122,66,200,0.03);
+}
+.basket-icons { display:flex; gap:9px; font-size:16px; }
+.basket-icon { position:relative; opacity:0.22; transition:opacity 0.15s; }
+.basket-icon.active { opacity:1; }
+.basket-icon.preview { opacity:0.75; }
+.basket-icon .sup { position:absolute; top:-6px; right:-8px; font-size:9px; line-height:1; }
+.basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
+.basket-hint-btn { font-size:15px; opacity:0.25; background:none; border:none; cursor:pointer; padding:2px 5px; border-radius:6px; transition:all 0.15s; line-height:1; }
+.basket-hint-btn.on { opacity:1; background:rgba(122,66,200,0.12); }
+
+.basket-icon.tappable { cursor:pointer; }
 
 .sc-maths { margin: 0.4rem 0 0.2rem; }
 .sc-maths summary { font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 5px 0; list-style-position: inside; }
@@ -206,7 +226,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
 <div class="wrap">
   <header>
     <h1>💰 Appointment Companion</h1>
-    <p>Capture today's costs · show the first-12-months benefit</p>
+    <p>Capture current costs - show the first 12 months with UW</p>
   </header>
 
   <!-- Customer & household -->
@@ -219,7 +239,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <button class="pill" id="pillTenant" type="button">🏘️ Tenant</button>
     </div>
     <div class="switchrow">
-      <span class="lbl">✅ Referred by an existing customer</span>
+      <span class="lbl">Referred by an existing customer</span>
       <span class="switch"><input type="checkbox" id="referralToggle"><span class="track"></span></span>
     </div>
   </div>
@@ -358,7 +378,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   </div>
 
   <!-- CASHBACK -->
-  <div class="card">
+  <div class="card" style="background:rgba(122,66,200,0.04); border-color:rgba(122,66,200,0.15);">
     <h2>💳 Cashback card</h2>
     <div class="switchrow">
       <span class="lbl">Include cashback card</span>
@@ -366,15 +386,16 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
     <div id="cashbackInner">
       <div class="field" style="margin-top: 0.5rem;">
-        <label>Monthly card spending — £<span id="spendDisplay">700</span>/m</label>
-        <input type="range" id="spendSlider" min="500" max="2500" value="700" step="50">
+        <label>Monthly card spending — £<span id="spendDisplay">1000</span>/m</label>
+        <input type="range" id="spendSlider" min="500" max="2500" value="1000" step="50">
       </div>
       <div class="cbchips">
         <div class="cbchip" data-cbtier="low"><div class="pct" id="cbLowPct">1% — shops cap</div><div class="amt">£<span id="cbLow">0</span></div><div class="yr">£<span id="cbLowYr">0</span>/yr</div></div>
-        <div class="cbchip used" data-cbtier="med"><div class="pct" id="cbMedPct">2.4% — blended ✓</div><div class="amt">£<span id="cbMed">0</span></div><div class="yr">£<span id="cbMedYr">0</span>/yr</div></div>
-        <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">3.8% — all retail</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
+        <div class="cbchip used" data-cbtier="med"><div class="pct" id="cbMedPct">Average earner¹ ✓</div><div class="amt">£<span id="cbMed">0</span></div><div class="yr">£<span id="cbMedYr">0</span>/yr</div></div>
+        <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">Top earners²</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
       </div>
-      <p class="sub" style="margin-top: 0.5rem;">Mixed-spend estimate (✓) is the one used in the headline. £3/m card fee, first 3 months free.</p>
+      <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
+      <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
     </div>
   </div>
 
@@ -410,33 +431,48 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <div class="who" id="scWho"></div>
       </div>
       <div class="sc-body">
-        <div class="sc-sec">Monthly savings</div>
-        <div class="sc-line" id="scEnergyRow"><span class="k">⚡🔥 Energy</span><span class="v" id="scEnergy">£0/m</span></div>
-        <div class="sc-line" id="scBbRow"><span class="k">🛜 Broadband</span><span class="v" id="scBb">£0/m</span></div>
-        <div class="sc-line" id="scMobRow"><span class="k">📱 Mobile</span><span class="v" id="scMob">£0/m</span></div>
-        <div class="sc-line sumrow"><span class="k" id="scYrSave">£0 first year savings</span><span class="v" id="scMoSave">£0/m</span></div>
+        <div class="basket-row" id="basketRow">
+          <div class="basket-icons">
+            <span class="basket-icon basket-icon-grouped" id="biEnergy" title="Energy">⚡🔥</span>
+            <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
+            <span class="basket-icon" id="biSim1" title="Mobile">📱</span>
+            <span class="basket-icon" id="biSim2" title="Mobile">📱</span>
+          </div>
+          <button type="button" id="basketHint" class="hidden basket-hint-btn">🥪</button>
+        </div>
+        <table class="detail">
+          <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <thead><tr><th></th><th>Current</th><th>UW</th><th>Saving</th></tr></thead>
+          <tbody>
+            <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
+          </tbody>
+        </table>
+        <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your direct debit from month 1, minus estimated cashback</p>
 
         <details class="sc-maths">
-          <summary>Show the breakdown</summary>
+          <summary>Show monthly breakdown</summary>
           <table class="detail">
-            <thead><tr><th>Service</th><th>Current</th><th>UW</th><th>Saving</th></tr></thead>
+            <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
             <tbody>
-              <tr id="scTblEnergyRow"><td>Energy</td><td id="scTblEnergyNow"></td><td id="scTblEnergyUw"></td><td id="scTblEnergySave"></td></tr>
-              <tr id="scTblBbRow"><td>Broadband</td><td id="scTblBbNow"></td><td id="scTblBbUw"></td><td id="scTblBbSave"></td></tr>
-              <tr id="scTblMobRow"><td>Mobile</td><td id="scTblMobNow"></td><td id="scTblMobUw"></td><td id="scTblMobSave"></td></tr>
-              <tr class="tot"><td>Total /m</td><td id="scTblTotNow"></td><td id="scTblTotUw"></td><td id="scTblTotSave"></td></tr>
+              <tr id="scEnergyRow"><td>⚡🔥 Energy</td><td id="scEnergyNow"></td><td id="scEnergyUw"></td><td id="scEnergySave"></td></tr>
+              <tr id="scBbRow"><td>🛜 Broadband</td><td id="scBbNow"></td><td id="scBbUw"></td><td id="scBbSave"></td></tr>
+              <tr id="scMobRow"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
+              <tr id="scCbRow"><td>💳 Cashback</td><td>&mdash;</td><td id="scCbUw"></td><td id="scCbSave"></td></tr>
+              <tr class="tot"><td>Total</td><td id="scBdTotNow"></td><td id="scBdTotUw"></td><td id="scBdTotSave"></td></tr>
+              <tr id="ddRow" class="hidden"><td>From month 7</td><td>&mdash;</td><td id="ddVal"></td><td>&mdash;</td></tr>
             </tbody>
           </table>
         </details>
 
-        <div class="sc-sec">Year-one benefits</div>
-        <div class="sc-line" id="scBbFreeRow"><span class="k">Free City Fibre</span><span class="v good" id="scBbFree">£0</span></div>
-        <div class="sc-line" id="scWelcomeRow"><span class="k">Cashback Welcome</span><span class="v good" id="scWelcome">£0</span></div>
-        <div class="sc-line" id="scReferralRow"><span class="k">Referral Welcome</span><span class="v good" id="scReferral">£0</span></div>
-        <div class="sc-line" id="scCashbackRow"><span class="k">Cashback (estimated)</span><span class="v good" id="scCashback">£0</span></div>
-        <div class="sc-line" id="scCashbackFeeRow"><span class="k">Cashback card fee</span><span class="v bad" id="scCashbackFee">−£36</span></div>
-        <div class="sc-line" id="scCardFeeRow"><span class="k">3 months free</span><span class="v good" id="scCardFee">£9</span></div>
-        <div class="sc-line" <div class="sc-line sumrow"><span class="k">Total</span><span class="v" id="scBenefitsTotal">£0</span></div>
+        <details class="sc-maths">
+          <summary>Show year-one benefits</summary>
+          <div class="sc-sec" style="margin-top:0.4rem;">Year-one benefits</div>
+          <div class="sc-line" id="scBbFreeRow"><span class="k">Free City Fibre</span><span class="v good" id="scBbFree">£0</span></div>
+          <div class="sc-line" id="scWelcomeRow"><span class="k">Cashback Welcome</span><span class="v good" id="scWelcome">£0</span></div>
+          <div class="sc-line" id="scReferralRow"><span class="k">Referral Welcome</span><span class="v good" id="scReferral">£0</span></div>
+          <div class="sc-line" id="scCardFeeRow"><span class="k">3 months free</span><span class="v good" id="scCardFee">£9</span></div>
+          <div class="sc-line sumrow"><span class="k">Total</span><span class="v" id="scBenefitsTotal">£0</span></div>
+        </details>
         <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
       </div>
       <p class="sc-note">Estimate based on today's prices and the figures discussed in this appointment. Not a formal quote.</p>
@@ -495,14 +531,17 @@ const CONFIG = {
 
   // Cashback card
   cashback: {
-    rateLow: 0.01,           // 1% — capped per month by service count below
-    rateMed: 0.024,          // 2.4% mixed spend — used in the headline calc
-    rateHigh: 0.038,         // 3.8% retail
-    lowMonthlyCaps: { 1: 5, 2: 10, 3: 10, 4: 15, 5: 15 }, // £ cap on the 1% scenario
+    rateLow: 0.01,           // 1% — capped per month by service count below (real T&Cs rate)
+    lowMonthlyCaps: { 1: 5, 2: 10, 3: 10, 4: 15, 5: 15 }, // £ cap on the 1% scenario (real T&Cs)
     lowCapDefault: 5,
+    // Average/Top-earner figures are real 2024 outcomes at the £1000/m reference spend,
+    // scaled proportionally — we don't know the underlying retail-rate mix, so we don't guess one.
+    referenceSpend: 1000,
+    referenceMedAnnual: 215,   // average active cardholder, 2024
+    referenceHighAnnual: 456,  // top 10% of active cardholders, 2024
     cardFeeMonthly: 3,
     freeMonths: 3,           // first 3 months' card fee free
-    slider: { min: 500, max: 2500, step: 50, default: 700 }
+    slider: { min: 500, max: 2500, step: 50, default: 1000 }
   },
 
   // UW mobile monthly prices. Position = order among INCLUDED SIMs (1st, 2nd…)
@@ -510,7 +549,7 @@ const CONFIG = {
     maxSims: 5,
     servicesCountedMax: 2,   // mobile contributes at most 2 to the service count
     plans: {
-      unlimitedMax: { label: "Unlimited", first: 23, extra: 5,  note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: free months 1–6, £10 months 7–12 (avg £5/m)" },
+      unlimitedMax: { label: "Unlimited", first: 23, extra: 5, extraM1to6: 0, extraM7to12: 10, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: free months 1–6, £10 months 7–12 (avg £5/m)" },
       essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }
       // bestOfBoth parked: avg £2.50/m relied on the customer downgrading after the free months — reinstate here if needed
 
@@ -535,6 +574,15 @@ const state = {
   splitGas: true,
   splitElec: true
 };
+
+let previewSim1 = false, previewSim2 = false, previewMode = false;
+function currentPreviewCount() {
+  const real = compute(0);
+  let n = 0;
+  if (previewSim1 && real.includedSimsCount < 1) n++;
+  if (previewSim2 && real.includedSimsCount < 2) n++;
+  return n;
+}
 
 /* ---------- service pills ---------- */
 document.querySelectorAll('[data-service]').forEach(btn => {
@@ -570,7 +618,7 @@ $('bundleRatesBtn').addEventListener('click', () => {
   calc();
 });
 
-const CB_LABELS = { low: '1% — shops cap', med: '2.4% — blended', high: '3.8% — all retail' };
+const CB_LABELS = { low: '1% — shops cap', med: 'Average earner¹', high: 'Top earners²' };
 document.querySelectorAll('[data-cbtier]').forEach(chip => {
   chip.addEventListener('click', () => {
     state.cbTier = chip.dataset.cbtier;
@@ -756,6 +804,20 @@ function priceSims(includedSims) {
   });
 }
 
+/* Real (non-averaged) per-period SIM pricing, for the direct-debit breakdown.
+   Additional Unlimited SIMs are £0 for months 1-6, £10 for months 7-12 — both
+   land on the same boundary as the City Fibre 6-months-free offer. */
+function priceSimsPeriod(includedSims, period) {
+  let unlimitedLeadTaken = false;
+  return includedSims.reduce((sum, s) => {
+    if (s.uwPlan === 'unlimitedMax') {
+      if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return sum + CONFIG.mobile.plans.unlimitedMax.first; }
+      return sum + (period === 'm1to6' ? CONFIG.mobile.plans.unlimitedMax.extraM1to6 : CONFIG.mobile.plans.unlimitedMax.extraM7to12);
+    }
+    return sum + CONFIG.mobile.plans.essentialMax.extra;
+  }, 0);
+}
+
 /* ---------- cashback ---------- */
 $('spendSlider').addEventListener('input', e => { $('spendDisplay').textContent = e.target.value; calc(); });
 $('includeCashback').addEventListener('change', e => {
@@ -777,9 +839,18 @@ function serviceCounts() {
   return count;
 }
 
-function compute() {
+function compute(previewSims = 0) {
   const cb = CONFIG.cashback;
-  const count = serviceCounts(); // computed early for bundle rate tier selection
+  // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
+  const energyOrBb = state.services.energy || state.services.broadband;
+  const includedSimsCount = state.services.mobile ? Object.values(state.sims).filter(s => s.include).length : 0;
+  const realMobileContribution = energyOrBb ? Math.min(includedSimsCount, CONFIG.mobile.servicesCountedMax) : 0;
+  const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
+  const baseCount = (state.services.energy ? 1 : 0) + (state.services.broadband ? 1 : 0) + realMobileContribution;
+  const maxPreview = baseCount <= 2 ? 1 : 0; // never preview a 2nd meal-deal SIM at once
+  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+  const count = baseCount + previewApplied;
 
   // --- current energy ---
   let currentEnergy = 0;
@@ -816,8 +887,10 @@ function compute() {
 
   // --- mobile ---
   let currentMob = 0, uwMob = 0, mobExit = 0;
+  let realSims = [];
   if (state.services.mobile) {
     const included = Object.entries(state.sims).filter(([, s]) => s.include);
+    realSims = included.map(([, s]) => s);
     const prices = priceSims(included.map(([, s]) => s));
     included.forEach(([key, s], idx) => {
       currentMob += s.monthlyCost;
@@ -834,6 +907,8 @@ function compute() {
       if (!state.sims[key].include) { const el = $('uwCost_' + key); if (el) el.textContent = '0'; }
     });
   }
+  // Card-preview meal deal SIMs: £0 current, Essentials rate UW
+  uwMob += previewApplied * CONFIG.mobile.plans.essentialMax.extra;
 
   const currentTotal = currentEnergy + currentBb + currentMob;
   const uwTotalBase = uwEnergy + uwBb + uwMob;
@@ -848,18 +923,33 @@ function compute() {
   const spend = parseInt($('spendSlider').value, 10) || cb.slider.default;
   const lowCap = cb.lowMonthlyCaps[count] || cb.lowCapDefault;
   const cbLow = Math.min(spend * cb.rateLow, lowCap);
-  const cbMed = spend * cb.rateMed;
-  const cbHigh = spend * cb.rateHigh;
+  const cbMed = (cb.referenceMedAnnual * (spend / cb.referenceSpend)) / 12;
+  const cbHigh = (cb.referenceHighAnnual * (spend / cb.referenceSpend)) / 12;
   const cbSelected = state.cbTier === 'low' ? cbLow : state.cbTier === 'high' ? cbHigh : cbMed;
   const cbMonthly = Math.round(cbSelected);
   const cbAnnual = Math.round(cbSelected * 12);
   const freeMonthsValue = cb.cardFeeMonthly * cb.freeMonths;   // £9
   const cardAnnualFee = cb.cardFeeMonthly * 12;                // £36
+  const cashbackNet = cbMonthly - cb.cardFeeMonthly; // direct-debit view: £3 fee always counted, waiver shown separately
 
   // --- 6 months free City Fibre (homeowner, must bundle with energy or mobile) ---
+  // --- direct-debit breakdown: months 1-6 vs months 7-12 ---
+  // City Fibre 6-months-free and the additional-Unlimited-SIM step both land on
+  // the same month-6/7 boundary, so this is at most two periods, never three.
+  const cityFibreActive = state.services.broadband && $('bbFreeMonthsToggle').checked &&
+                           (state.services.energy || mobilePresent);
+  const bb1to6 = cityFibreActive ? 0 : uwBb;
+  const bb7to12 = uwBb;
+  const previewMobCost = previewApplied * CONFIG.mobile.plans.essentialMax.extra;
+  const mob1to6 = priceSimsPeriod(realSims, 'm1to6') + previewMobCost;
+  const mob7to12 = priceSimsPeriod(realSims, 'm7to12') + previewMobCost;
+  const services1to6 = uwEnergy + bb1to6 + mob1to6;
+  const services7to12 = uwEnergy + bb7to12 + mob7to12;
+  const periodSplit = services1to6 !== services7to12;
+
   let bbFree = 0;
   if (state.services.broadband && $('bbFreeMonthsToggle').checked &&
-      (state.services.energy || state.services.mobile)) {
+      (state.services.energy || mobilePresent)) {
     const fm = CONFIG.broadband.freeMonths;
     // Use exact (unrounded) UW price for the free-months value
     // but account for April if it falls within the 6 free months
@@ -898,7 +988,8 @@ function compute() {
            currentTotal, uwTotalBase, monthlySaving,
            spend, cbLow, cbMed, cbHigh, cbMonthly, cbAnnual, freeMonthsValue, cardAnnualFee,
            count, welcome, referral, bbFree, exitFees, refunded, exitDeduction, year1, cbOn,
-           uwBb, mba, monthlySaving };
+           uwBb, mba, monthlySaving, availableSlots, previewApplied, includedSimsCount,
+           services1to6, services7to12, periodSplit, cashbackNet, bb1to6, mob1to6, maxPreview };
 }
 
 /* Every in-basket service needs BOTH sides of the comparison:
@@ -1016,17 +1107,17 @@ function calc() {
 
 /* ---------- share card ---------- */
 function saveLine(el, val) {
-  el.textContent = (val < 0 ? '−£' + money(Math.abs(val)) : '£' + money(val)) + '/m';
+  el.textContent = (val < 0 ? '−£' + money(Math.abs(val)) : '£' + money(val));
   el.classList.toggle('bad', val < 0);
   el.classList.toggle('good', val > 0);
 }
 
 function openCard() {
-  const r = compute();
+  const r0 = compute();
 
   // Every in-basket service needs both sides filled before the card opens
   document.querySelectorAll('input.err, button.err').forEach(el => el.classList.remove('err'));
-  const issues = validateInputs(r);
+  const issues = validateInputs(r0);
   if (issues.length) {
     issues.forEach(i => i.els.forEach(el => el.classList.add('err')));
     const firstEl = (issues.find(i => i.els.length) || {}).els;
@@ -1036,57 +1127,96 @@ function openCard() {
     }
     return;
   }
+  previewSim1 = false; previewSim2 = false; previewMode = false; // reset preview each time the card opens
+  renderCard(compute(0));
+  $('cardModal').classList.add('open');
+}
+
+function renderCard(r) {
+  const real = compute(0); // "before" figures, for preview before/after display
   const hero = Math.round(r.year1);
   $('scHero').textContent = (hero < 0 ? '−' : '') + Math.abs(hero).toLocaleString('en-GB');
   const nm = $('customerName').value.trim();
   $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
 
   // per-service monthly savings (only services in the basket)
-  $('scEnergyRow').classList.toggle('hidden', !state.services.energy);
-  $('scBbRow').classList.toggle('hidden', !state.services.broadband);
-  $('scMobRow').classList.toggle('hidden', !state.services.mobile);
-  saveLine($('scEnergy'), r.currentEnergy - r.uwEnergy);
-  saveLine($('scBb'), r.currentBb - r.uwBb);
   // Mobile: add 🥪 per meal deal SIM, amber colour when intentional net cost
   const mdSims = Object.values(state.sims).filter(s => s.include && s.mealDeal);
-  const mdEmoji = mdSims.length ? ' ' + '🥪'.repeat(mdSims.length) : '';
-  const mobKEl = $('scMobRow') && $('scMobRow').querySelector('.k');
-  if (mobKEl) mobKEl.textContent = '📱 Mobile' + mdEmoji;
-  const mobTblKEl = $('scTblMobRow') && $('scTblMobRow').querySelector('td');
-  if (mobTblKEl) mobTblKEl.textContent = 'Mobile' + mdEmoji;
-  const mobSaving = r.currentMob - r.uwMob;
-  saveLine($('scMob'), mobSaving);
-  if (mobSaving < 0 && mdSims.length) {
-    $('scMob').classList.remove('bad');
-    $('scMob').classList.add('neutral');
-  }
+  const totalMd = mdSims.length + r.previewApplied;
+  const mdEmoji = totalMd ? ' ' + '🥪'.repeat(totalMd) : '';
   const fmt = (v, suf) => (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)) + (suf || '');
-  $('scYrSave').textContent = fmt(r.monthlySaving * 12) + ' first year savings';
-  $('scMoSave').textContent = fmt(r.monthlySaving, '/m');
-  $('scMoSave').classList.toggle('good', r.monthlySaving > 0);
-  $('scMoSave').classList.toggle('bad', r.monthlySaving < 0);
+  const cashbackAdj = r.cbOn ? r.cashbackNet : 0;
+  const initialUwNet = r.services1to6 - cashbackAdj;     // "from month 1", net of cashback
+  const initialSaveNet = r.currentTotal - initialUwNet;
 
-  // maths table
-  $('scTblEnergyRow').classList.toggle('hidden', !state.services.energy);
-  $('scTblBbRow').classList.toggle('hidden', !state.services.broadband);
-  $('scTblMobRow').classList.toggle('hidden', !state.services.mobile);
-  $('scTblEnergyNow').textContent = fmt(r.currentEnergy); $('scTblEnergyUw').textContent = fmt(r.uwEnergy); $('scTblEnergySave').textContent = fmt(r.currentEnergy - r.uwEnergy);
-  $('scTblBbNow').textContent = fmt(r.currentBb);         $('scTblBbUw').textContent = fmt(r.uwBb);         $('scTblBbSave').textContent = fmt(r.currentBb - r.uwBb);
-  $('scTblMobNow').textContent = fmt(r.currentMob);       $('scTblMobUw').textContent = fmt(r.uwMob);       $('scTblMobSave').textContent = fmt(r.currentMob - r.uwMob);
-  $('scTblTotNow').textContent = fmt(r.currentTotal);     $('scTblTotUw').textContent = fmt(r.uwTotalBase); $('scTblTotSave').textContent = fmt(r.monthlySaving);
+  // Total monthly summary — the headline, directly under the hero
+  $('totNow').textContent = fmt(r.currentTotal);
+  $('totUw').textContent = fmt(initialUwNet) + '*';
+  $('totSave').textContent = fmt(initialSaveNet);
+  $('totSave').classList.toggle('good', initialSaveNet > 0);
+  $('totSave').classList.toggle('bad', initialSaveNet < 0);
+
+  // Monthly breakdown — months 1-6 figures, reconciles exactly to the row above
+  $('scEnergyRow').classList.toggle('hidden', !state.services.energy);
+  $('scBbRow').classList.toggle('hidden', !state.services.broadband);
+  $('scMobRow').classList.toggle('hidden', !(state.services.mobile || r.previewApplied > 0));
+  $('scCbRow').classList.toggle('hidden', !r.cbOn);
+
+  $('scEnergyNow').textContent = fmt(r.currentEnergy);
+  if (r.previewApplied > 0 && real.uwEnergy !== r.uwEnergy) {
+    const eDelta = r.uwEnergy - real.uwEnergy;
+    $('scEnergyUw').innerHTML = '<s>' + fmt(real.uwEnergy) + '</s><span class="delta ' + (eDelta < 0 ? 'good' : 'bad') + '">'
+      + (eDelta >= 0 ? '+' : '') + fmt(eDelta) + '</span>';
+  } else {
+    $('scEnergyUw').textContent = fmt(r.uwEnergy);
+  }
+  saveLine($('scEnergySave'), r.currentEnergy - r.uwEnergy);
+
+  $('scBbNow').textContent = fmt(r.currentBb);
+  $('scBbUw').textContent = fmt(r.bb1to6);
+  saveLine($('scBbSave'), r.currentBb - r.bb1to6);
+
+  $('scMobNow').textContent = fmt(r.currentMob);
+  $('scMobUw').textContent = fmt(r.mob1to6);
+  const mobSave1to6 = r.currentMob - r.mob1to6;
+  saveLine($('scMobSave'), mobSave1to6);
+  if (mobSave1to6 < 0 && totalMd > 0) {
+    $('scMobSave').classList.remove('bad');
+    $('scMobSave').classList.add('neutral');
+  }
+  const mobLabelEl = $('scMobRow') && $('scMobRow').querySelector('td');
+  if (mobLabelEl) mobLabelEl.textContent = '📱 Mobile' + mdEmoji;
+
+  if (r.cbOn) {
+    saveLine($('scCbUw'), -r.cashbackNet);
+    saveLine($('scCbSave'), r.cashbackNet);
+  }
+
+  $('scBdTotNow').textContent = fmt(r.currentTotal);
+  $('scBdTotUw').textContent = fmt(initialUwNet);
+  saveLine($('scBdTotSave'), initialSaveNet);
+
+  if (r.periodSplit) {
+    $('ddRow').classList.remove('hidden');
+    $('ddVal').textContent = fmt(r.services7to12 - cashbackAdj);
+  } else {
+    $('ddRow').classList.add('hidden');
+  }
 
   // upfront & year-one
   $('scBbFreeRow').classList.toggle('hidden', r.bbFree === 0);
-  $('scBbFree').textContent = '£' + money(r.bbFree);
+  $('scBbFree').textContent = '£' + Math.round(r.bbFree);
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
-  $('scWelcome').textContent = '£' + r.welcome;
+  if (r.previewApplied > 0 && real.welcome !== r.welcome) {
+    const wDelta = r.welcome - real.welcome;
+    $('scWelcome').innerHTML = '<s>£' + real.welcome + '</s><span class="delta ' + (wDelta > 0 ? 'good' : 'bad') + '">'
+      + (wDelta >= 0 ? '+' : '') + '£' + wDelta + '</span>';
+  } else {
+    $('scWelcome').textContent = '£' + r.welcome;
+  }
   $('scReferralRow').classList.toggle('hidden', r.referral === 0);
   $('scReferral').textContent = '£' + r.referral;
-  $('scCashbackRow').classList.toggle('hidden', !r.cbOn);
-  $('scCashbackFeeRow').classList.toggle('hidden', !r.cbOn);
   $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
-  $('scCashback').textContent = '£' + r.cbAnnual;
-  $('scCashbackFee').textContent = '−£' + r.cardAnnualFee;
   $('scCardFee').textContent = '+£' + r.freeMonthsValue;
   // Exit fees — info block below Total, not in benefits Total
   if (r.exitFees === 0) {
@@ -1107,8 +1237,9 @@ function openCard() {
   }
 
   // benefits total = everything in this section (hero = first-year savings + this)
+  // Cashback/fee are now reflected in the monthly Saving (net), x12 — not double-counted here
   const benefitsTotal = r.bbFree + r.welcome + r.referral
-    + (r.cbOn ? r.cbAnnual + r.freeMonthsValue - r.cardAnnualFee : 0);
+    + (r.cbOn ? r.freeMonthsValue : 0);
   $('scBenefitsTotal').textContent = fmt(benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
   $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
@@ -1117,12 +1248,65 @@ function openCard() {
   $('brandRole').textContent = CONFIG.partner.role;
   $('brandStrap').textContent = CONFIG.partner.strapline;
 
-  $('cardModal').classList.add('open');
+  // Basket row — reflects what's actually selected in the companion.
+  // Greyed mobile icons are directly tappable to preview a meal deal SIM.
+  const sim1On = real.includedSimsCount >= 1;
+  const sim2On = real.includedSimsCount >= 2;
+  const canPreview = real.availableSlots > 0 && real.maxPreview > 0;
+  if (!canPreview) { previewSim1 = false; previewSim2 = false; previewMode = false; }
+  $('basketHint').classList.toggle('hidden', !canPreview);
+  $('basketHint').classList.toggle('on', previewMode);
+
+  $('biEnergy').classList.toggle('active', state.services.energy);
+  $('biBroadband').classList.toggle('active', state.services.broadband);
+  $('biSim1').classList.toggle('active', sim1On);
+  $('biSim2').classList.toggle('active', sim2On);
+
+  document.querySelectorAll('.basket-icon .sup').forEach(el => el.remove());
+  document.querySelectorAll('.basket-icon').forEach(el => el.classList.remove('preview', 'tappable'));
+
+  const addSup = el => {
+    const sup = document.createElement('span');
+    sup.className = 'sup'; sup.textContent = '🥪';
+    el.appendChild(sup);
+  };
+  let tappableLeft = canPreview ? real.maxPreview : 0;
+  if (!sim1On && canPreview && previewMode && tappableLeft > 0) {
+    tappableLeft--;
+    $('biSim1').classList.add('tappable');
+    if (previewSim1) { $('biSim1').classList.add('preview'); addSup($('biSim1')); }
+  }
+  if (!sim2On && canPreview && previewMode && tappableLeft > 0) {
+    $('biSim2').classList.add('tappable');
+    if (previewSim2) { $('biSim2').classList.add('preview'); addSup($('biSim2')); }
+  }
 }
+
+// 🥪 toggles preview mode on/off — off by default, icon only
+$('basketHint').addEventListener('click', () => {
+  previewMode = !previewMode;
+  if (!previewMode) { previewSim1 = false; previewSim2 = false; }
+  renderCard(compute(currentPreviewCount()));
+});
+// In preview mode, tap a greyed mobile icon to add it to the basket preview — live recalc, no close
+$('biSim1').addEventListener('click', () => {
+  if (!previewMode) return;
+  const real = compute(0);
+  if (real.availableSlots === 0 || real.includedSimsCount >= 1) return;
+  previewSim1 = !previewSim1;
+  renderCard(compute(currentPreviewCount()));
+});
+$('biSim2').addEventListener('click', () => {
+  if (!previewMode) return;
+  const real = compute(0);
+  if (real.availableSlots === 0 || real.includedSimsCount >= 2) return;
+  previewSim2 = !previewSim2;
+  renderCard(compute(currentPreviewCount()));
+});
 $('openCardBtn').addEventListener('click', openCard);
-$('closeModalBtn').addEventListener('click', () => $('cardModal').classList.remove('open'));
-$('doneBtn').addEventListener('click', () => $('cardModal').classList.remove('open'));
-$('cardModal').addEventListener('click', e => { if (e.target.id === 'cardModal') $('cardModal').classList.remove('open'); });
+$('closeModalBtn').addEventListener('click', () => { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); });
+$('doneBtn').addEventListener('click', () => { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); });
+$('cardModal').addEventListener('click', e => { if (e.target.id === 'cardModal') { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); } });
 
 /* ---------- copy figures ---------- */
 $('copyBtn').addEventListener('click', () => {
@@ -1136,14 +1320,14 @@ $('copyBtn').addEventListener('click', () => {
   if (state.services.energy) lines.push('  Energy: £' + money(r.currentEnergy - r.uwEnergy) + '/m');
   if (state.services.broadband) lines.push('  Broadband: £' + money(r.currentBb - r.uwBb) + '/m');
   if (state.services.mobile) lines.push('  Mobile: £' + money(r.currentMob - r.uwMob) + '/m');
-  lines.push('  Total £' + money(r.monthlySaving) + '/m x 12 = £' + money(r.monthlySaving * 12));
+  if (r.cbOn) lines.push('  Cashback (net): £' + money(r.cashbackNet) + '/m');
+  const cfTotalSaveNet = r.monthlySaving + (r.cbOn ? r.cashbackNet : 0);
+  lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = £' + money(cfTotalSaveNet * 12));
   lines.push('');
   lines.push('Year-one benefits:');
   if (r.bbFree) lines.push('  Free City Fibre: £' + money(r.bbFree));
   if (r.welcome) lines.push('  Cashback Welcome: £' + r.welcome);
   if (r.referral) lines.push('  Referral Welcome: £' + r.referral);
-  if (r.cbOn) lines.push('  Cashback (estimated): £' + r.cbAnnual);
-  if (r.cbOn) lines.push('  Cashback card fee: −£' + r.cardAnnualFee);
   if (r.cbOn) lines.push('  3 months free: +£' + r.freeMonthsValue);
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
