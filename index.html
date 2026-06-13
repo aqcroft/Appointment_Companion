@@ -158,9 +158,14 @@ table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); bo
 .sharecard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
 .sc-hero { text-align: center; padding: 1.6rem 1rem 1.4rem; background: linear-gradient(150deg, var(--purple) 0%, var(--pink) 100%); color: white; }
 .sc-hero .eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.6px; opacity: 0.95; }
-.sc-hero .big { font-size: 54px; font-weight: 800; line-height: 1.05; margin: 0.25rem 0 0.15rem; letter-spacing: -1px; }
+.sc-hero .big { font-size: 54px; font-weight: 800; line-height: 1.05; margin: 0.25rem 0 0.15rem; letter-spacing: -1px; position:relative; display:inline-block; }
 .sc-hero .tag { font-size: 14px; font-weight: 600; opacity: 0.95; }
 .sc-hero .who { font-size: 12.5px; opacity: 0.85; margin-top: 0.4rem; }
+.sc-hero .hero-delta {
+  position:absolute; left:100%; top:50%; transform:translateY(-50%); margin-left:8px;
+  font-size:13px; font-weight:800; line-height:1; white-space:nowrap;
+  background:rgba(255,255,255,0.22); border-radius:999px; padding:4px 10px;
+}
 
 .sc-body { padding: 1rem 1.1rem 0.4rem; }
 .sc-sec { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0.6rem 0 0.35rem; }
@@ -169,8 +174,8 @@ table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); bo
 .sc-line .v { font-weight: 700; }
 .sc-line .v.good { color: var(--good); }
 .sc-line .v.bad { color: var(--bad); }
-table.detail s, .sc-line s { color: var(--muted); font-weight: 400; }
-.delta { font-weight: 700; margin-left: 4px; }
+table.detail s, .sc-line s { color: var(--muted); }
+.delta { font-weight: 500; margin-left: 4px; }
 .delta.good { color: var(--good); }
 .delta.bad { color: var(--bad); }
 .sc-line.sumrow { border-top: 1.5px solid var(--line); margin-top: 2px; }
@@ -179,6 +184,9 @@ table.detail s, .sc-line s { color: var(--muted); font-weight: 400; }
 .sc-line.sumrow .v.good { color: var(--good); }
 .sc-line.sumrow .v.bad { color: var(--bad); }
 .sc-line .v.neutral { color: #b08000; }
+table.detail td.good { color: var(--good); font-weight: 800; }
+table.detail td.bad { color: var(--bad); font-weight: 800; }
+table.detail td.neutral { color: #b08000; font-weight: 800; }
 .sandwich-btn { background:none; border:none; cursor:pointer; font-size:15px; padding:0 3px; opacity:0.45; vertical-align:middle; line-height:1; transition:opacity 0.15s; }
 .sandwich-btn.on { opacity:1; }
 input.active-rate { border-color:var(--purple) !important; background:#f8f5ff !important; }
@@ -189,16 +197,26 @@ label.active-tier { color:var(--purple); font-weight:700; }
   border:1px solid rgba(122,66,200,0.15); border-radius:10px;
   background:rgba(122,66,200,0.03);
 }
-.basket-icons { display:flex; gap:9px; font-size:16px; }
-.basket-icon { position:relative; opacity:0.22; transition:opacity 0.15s; }
-.basket-icon.active { opacity:1; }
-.basket-icon.preview { opacity:0.75; }
-.basket-icon .sup { position:absolute; top:-6px; right:-8px; font-size:9px; line-height:1; }
+.basket-icons { display:flex; gap:9px; font-size:16px; align-items:center; }
+.basket-icon { position:relative; opacity:1; transition: opacity 0.15s, border-color 0.15s; }
+.basket-icon.could { opacity:0.15; }
+.basket-icon.preview { opacity:0.9; border:1.5px dashed var(--purple); border-radius:6px; padding:1px 3px; }
+.basket-icon .sup { position:absolute; top:-6px; right:-6px; font-size:9px; line-height:1; }
 .basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
-.basket-hint-btn { font-size:15px; opacity:0.25; background:none; border:none; cursor:pointer; padding:2px 5px; border-radius:6px; transition:all 0.15s; line-height:1; }
-.basket-hint-btn.on { opacity:1; background:rgba(122,66,200,0.12); }
-
-.basket-icon.tappable { cursor:pointer; }
+.basket-count { font-size:11px; font-weight:700; color: var(--muted); white-space:nowrap; }
+.basket-count .arrow { color: var(--purple); font-weight:800; margin:0 1px; }
+.basket-add-btn {
+  display:flex; align-items:center; gap:6px; position:relative;
+  background:none; border:1.5px solid var(--purple); border-radius:999px;
+  padding:4px 10px; font-size:13px; line-height:1; cursor:pointer;
+  color:var(--purple); font-family:inherit; transition:all 0.15s;
+}
+.basket-add-btn .lbl { font-size:11px; font-weight:700; white-space:nowrap; }
+.basket-add-btn.on { background:var(--purple); color:white; }
+.basket-add-btn .icon-stack { position:relative; display:inline-block; width:1.3em; height:1.1em; font-size:15px; }
+.basket-add-btn .icon-stack .ic1, .basket-add-btn .icon-stack .ic2 { position:absolute; top:0; left:0; line-height:1; }
+.basket-add-btn .icon-stack .ic1 { transform: rotate(-6deg); z-index:2; }
+.basket-add-btn .icon-stack .ic2 { transform: rotate(10deg) translate(5px, 1px); z-index:1; opacity:0.85; }
 
 .sc-maths { margin: 0.4rem 0 0.2rem; }
 .sc-maths summary { font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 5px 0; list-style-position: inside; }
@@ -305,7 +323,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <div class="side uw">
         <span class="tag">UW quote</span>
         <div class="field money">
-          <label>Monthly cost (direct debit) <button type="button" id="bundleRatesBtn" class="sandwich-btn" title="Capture bundle rates at each service tier">🥪</button></label>
+          <label>Monthly cost <button type="button" id="bundleRatesBtn" class="sandwich-btn" title="Capture bundle rates at each service tier">🥪</button></label>
           <input type="number" id="uwEnergyMonthly" inputmode="numeric" placeholder="0">
         </div>
         <div id="bundleRatePanel" class="hidden" style="margin-top:0.4rem; padding:0.6rem; background:#faf7ff; border-radius:8px; border:1px solid var(--line);">
@@ -426,28 +444,43 @@ label.active-tier { color:var(--purple); font-weight:700; }
     <div class="sharecard" id="shareCard">
       <div class="sc-hero">
         <div class="eyebrow">Your first 12 months</div>
-        <div class="big">£<span id="scHero">0</span></div>
+        <div class="big">£<span id="scHero">0</span><span class="hero-delta hidden" id="scHeroDelta"></span></div>
         <div class="tag">better off with one UW bill</div>
         <div class="who" id="scWho"></div>
       </div>
       <div class="sc-body">
         <div class="basket-row" id="basketRow">
           <div class="basket-icons">
-            <span class="basket-icon basket-icon-grouped" id="biEnergy" title="Energy">⚡🔥</span>
+            <span class="basket-icon basket-icon-grouped hidden" id="biEnergy" title="Energy">⚡🔥</span>
             <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
-            <span class="basket-icon" id="biSim1" title="Mobile">📱</span>
-            <span class="basket-icon" id="biSim2" title="Mobile">📱</span>
+            <span class="basket-icon" id="biSim1" title="Mobile SIM">📱</span>
+            <span class="basket-icon" id="biSim2" title="Mobile SIM">📱</span>
           </div>
-          <button type="button" id="basketHint" class="hidden basket-hint-btn">🥪</button>
+          <div class="basket-count" id="basketCount">0 services</div>
+          <button type="button" id="biSimAdd" class="hidden basket-add-btn" title="Preview adding mobile SIM(s)">
+            <span class="icon-stack"><span class="ic1">📱</span><span class="ic2 hidden">📱</span></span>
+            <span class="lbl">try adding</span>
+          </button>
         </div>
         <table class="detail">
           <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
-          <thead><tr><th></th><th>Current</th><th>UW</th><th>Saving</th></tr></thead>
+          <thead><tr><th></th><th>Current</th><th>UW*</th><th>Saving</th></tr></thead>
           <tbody>
             <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
           </tbody>
         </table>
-        <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your direct debit from month 1, minus estimated cashback</p>
+        <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your monthly direct debit, minus estimated cashback</p>
+        <div class="sc-line sumrow" style="margin-top:0.5rem;">
+          <span class="k">Service savings over 12 months</span>
+          <span class="v" id="annualServiceSavings">£0</span>
+        </div>
+        <div class="sc-line sumrow">
+          <span class="k">Year-one benefits</span>
+          <span class="v" id="scBenefitsTotal">£0</span>
+        </div>
+        <div id="scEnergyNoteRow" class="hidden" style="font-size:11px; color:#7a6000; font-weight:600; padding:6px 0 0;">
+          💡 Add energy quotes to see more savings — tap 🥪 on the main page
+        </div>
 
         <details class="sc-maths">
           <summary>Show monthly breakdown</summary>
@@ -459,19 +492,19 @@ label.active-tier { color:var(--purple); font-weight:700; }
               <tr id="scMobRow"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
               <tr id="scCbRow"><td>💳 Cashback</td><td>&mdash;</td><td id="scCbUw"></td><td id="scCbSave"></td></tr>
               <tr class="tot"><td>Total</td><td id="scBdTotNow"></td><td id="scBdTotUw"></td><td id="scBdTotSave"></td></tr>
-              <tr id="ddRow" class="hidden"><td>From month 7</td><td>&mdash;</td><td id="ddVal"></td><td>&mdash;</td></tr>
             </tbody>
           </table>
         </details>
 
         <details class="sc-maths">
-          <summary>Show year-one benefits</summary>
+          <summary>Show year-one benefits breakdown</summary>
           <div class="sc-sec" style="margin-top:0.4rem;">Year-one benefits</div>
-          <div class="sc-line" id="scBbFreeRow"><span class="k">Free City Fibre</span><span class="v good" id="scBbFree">£0</span></div>
+          <div class="sc-line" id="scBbFreeRow"><span class="k">6 months free - Full Fibre</span><span class="v good" id="scBbFree">£0</span></div>
+          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">6 months free - 1 SIM</span><span class="v good" id="scMobileFree">£0</span></div>
           <div class="sc-line" id="scWelcomeRow"><span class="k">Cashback Welcome</span><span class="v good" id="scWelcome">£0</span></div>
           <div class="sc-line" id="scReferralRow"><span class="k">Referral Welcome</span><span class="v good" id="scReferral">£0</span></div>
-          <div class="sc-line" id="scCardFeeRow"><span class="k">3 months free</span><span class="v good" id="scCardFee">£9</span></div>
-          <div class="sc-line sumrow"><span class="k">Total</span><span class="v" id="scBenefitsTotal">£0</span></div>
+          <div class="sc-line" id="scCardFeeRow"><span class="k">3 months free - Cashback Card</span><span class="v good" id="scCardFee">£9</span></div>
+          <div class="sc-line" id="scExitDeductionRow"><span class="k">Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
         </details>
         <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
       </div>
@@ -518,11 +551,11 @@ const CONFIG = {
     freeMonths: 6,            // City Fibre homeowner offer
     uwAprilIncrease: 4,       // £/m UW + all providers increase every April (net saving unchanged; only affects 6-months-free value if April falls in free period)
     packages: [
-      { label: 'Full Fibre 900', price: 35 },
-      { label: 'Full Fibre 500', price: 30 },
-      { label: 'Full Fibre 150', price: 23.95 },
-      { label: 'Part Fibre Ultra+', price: 30 },
-      { label: 'Part Fibre Ultra', price: 26 }
+      { label: '900', price: 35 },
+      { label: '500', price: 30 },
+      { label: '150', price: 23.95 },
+      { label: 'Ultra+', price: 30 },
+      { label: 'Ultra', price: 26 }
     ]
   },
 
@@ -549,7 +582,7 @@ const CONFIG = {
     maxSims: 5,
     servicesCountedMax: 2,   // mobile contributes at most 2 to the service count
     plans: {
-      unlimitedMax: { label: "Unlimited", first: 23, extra: 5, extraM1to6: 0, extraM7to12: 10, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: free months 1–6, £10 months 7–12 (avg £5/m)" },
+      unlimitedMax: { label: "Unlimited", first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
       essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }
       // bestOfBoth parked: avg £2.50/m relied on the customer downgrading after the free months — reinstate here if needed
 
@@ -575,13 +608,9 @@ const state = {
   splitElec: true
 };
 
-let previewSim1 = false, previewSim2 = false, previewMode = false;
+let previewExtra = false;
 function currentPreviewCount() {
-  const real = compute(0);
-  let n = 0;
-  if (previewSim1 && real.includedSimsCount < 1) n++;
-  if (previewSim2 && real.includedSimsCount < 2) n++;
-  return n;
+  return previewExtra ? compute(0).availableSlots : 0;
 }
 
 /* ---------- service pills ---------- */
@@ -791,31 +820,18 @@ function monthsUntilApril() {
 /* UW mobile pricing: the discounted Unlimited rate only exists as an
    additional SIM behind a full-price £23 Unlimited lead. The FIRST
    Unlimited SIM among those included is always £23, wherever it sits
-   in the list; further Unlimiteds get the blended extra rate.
+   in the list; further Unlimiteds are £10/m ongoing (steady state) —
+   their free first-6-months is shown separately as a year-one benefit.
    Essentials is £5 regardless. */
 function priceSims(includedSims) {
   let unlimitedLeadTaken = false;
   return includedSims.map(s => {
     if (s.uwPlan === 'unlimitedMax') {
       if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return CONFIG.mobile.plans.unlimitedMax.first; }
-      return CONFIG.mobile.plans.unlimitedMax.extra;
+      return CONFIG.mobile.plans.unlimitedMax.extraM7to12;
     }
     return CONFIG.mobile.plans.essentialMax.extra;
   });
-}
-
-/* Real (non-averaged) per-period SIM pricing, for the direct-debit breakdown.
-   Additional Unlimited SIMs are £0 for months 1-6, £10 for months 7-12 — both
-   land on the same boundary as the City Fibre 6-months-free offer. */
-function priceSimsPeriod(includedSims, period) {
-  let unlimitedLeadTaken = false;
-  return includedSims.reduce((sum, s) => {
-    if (s.uwPlan === 'unlimitedMax') {
-      if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return sum + CONFIG.mobile.plans.unlimitedMax.first; }
-      return sum + (period === 'm1to6' ? CONFIG.mobile.plans.unlimitedMax.extraM1to6 : CONFIG.mobile.plans.unlimitedMax.extraM7to12);
-    }
-    return sum + CONFIG.mobile.plans.essentialMax.extra;
-  }, 0);
 }
 
 /* ---------- cashback ---------- */
@@ -847,7 +863,13 @@ function compute(previewSims = 0) {
   const realMobileContribution = energyOrBb ? Math.min(includedSimsCount, CONFIG.mobile.servicesCountedMax) : 0;
   const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
   const baseCount = (state.services.energy ? 1 : 0) + (state.services.broadband ? 1 : 0) + realMobileContribution;
-  const maxPreview = baseCount <= 2 ? 1 : 0; // never preview a 2nd meal-deal SIM at once
+  // The energy bundle only has tiers for "energy only / +1 service / +2 services" — once
+  // count-1 (services alongside energy) reaches 2, adding more sims doesn't reduce energy
+  // further. Cap the preview at however many sims are needed to reach that tier, so we don't
+  // offer a 2nd "free" SIM preview that wouldn't actually make energy any cheaper.
+  const maxPreview = state.services.energy
+    ? Math.min(availableSlots, Math.max(0, 2 - (baseCount - 1)))
+    : availableSlots;
   const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
   const mobilePresent = state.services.mobile || previewApplied > 0;
   const count = baseCount + previewApplied;
@@ -927,26 +949,10 @@ function compute(previewSims = 0) {
   const cbHigh = (cb.referenceHighAnnual * (spend / cb.referenceSpend)) / 12;
   const cbSelected = state.cbTier === 'low' ? cbLow : state.cbTier === 'high' ? cbHigh : cbMed;
   const cbMonthly = Math.round(cbSelected);
-  const cbAnnual = Math.round(cbSelected * 12);
   const freeMonthsValue = cb.cardFeeMonthly * cb.freeMonths;   // £9
-  const cardAnnualFee = cb.cardFeeMonthly * 12;                // £36
   const cashbackNet = cbMonthly - cb.cardFeeMonthly; // direct-debit view: £3 fee always counted, waiver shown separately
 
   // --- 6 months free City Fibre (homeowner, must bundle with energy or mobile) ---
-  // --- direct-debit breakdown: months 1-6 vs months 7-12 ---
-  // City Fibre 6-months-free and the additional-Unlimited-SIM step both land on
-  // the same month-6/7 boundary, so this is at most two periods, never three.
-  const cityFibreActive = state.services.broadband && $('bbFreeMonthsToggle').checked &&
-                           (state.services.energy || mobilePresent);
-  const bb1to6 = cityFibreActive ? 0 : uwBb;
-  const bb7to12 = uwBb;
-  const previewMobCost = previewApplied * CONFIG.mobile.plans.essentialMax.extra;
-  const mob1to6 = priceSimsPeriod(realSims, 'm1to6') + previewMobCost;
-  const mob7to12 = priceSimsPeriod(realSims, 'm7to12') + previewMobCost;
-  const services1to6 = uwEnergy + bb1to6 + mob1to6;
-  const services7to12 = uwEnergy + bb7to12 + mob7to12;
-  const periodSplit = services1to6 !== services7to12;
-
   let bbFree = 0;
   if (state.services.broadband && $('bbFreeMonthsToggle').checked &&
       (state.services.energy || mobilePresent)) {
@@ -957,6 +963,14 @@ function compute(previewSims = 0) {
       ? fm * uwBbRaw
       : mba * uwBbRaw + (fm - mba) * (uwBbRaw + uwInc);
   }
+
+  // --- free first-6-months on additional Unlimited SIMs ---
+  // uwMob/uwTotalBase already use the steady-state £10/m (priceSims), so the
+  // value of the free period is shown here as a one-off year-one benefit —
+  // same treatment as bbFree above.
+  const um = CONFIG.mobile.plans.unlimitedMax;
+  const additionalUnlimited = Math.max(0, realSims.filter(s => s.uwPlan === 'unlimitedMax').length - 1);
+  const mobileFreeMonths = additionalUnlimited * um.extraM7to12 * um.freeMonths;
 
   // --- bonuses ---
   const welcome = CONFIG.welcomeBonus[count] || 0;
@@ -976,20 +990,23 @@ function compute(previewSims = 0) {
 
   // --- first 12 months benefit (the hero) ---
   const cbOn = state.includeCashback;
+  // Cashback's annual contribution uses cashbackNet x12 (the same figure behind the
+  // monthly Saving column) rather than separately-rounded cbAnnual/cardAnnualFee —
+  // so "Service savings over 12 months" + "Year-one benefits" always equals year1 exactly.
+  const cashbackAnnualNet = cashbackNet * 12 + freeMonthsValue;
   const year1 = monthlySaving * 12
               + welcome + referral
               + bbFree
+              + mobileFreeMonths
               - exitDeduction
-              + (cbOn ? cbAnnual : 0)
-              + (cbOn ? freeMonthsValue : 0)
-              - (cbOn ? cardAnnualFee : 0);
+              + (cbOn ? cashbackAnnualNet : 0);
 
   return { currentEnergy, uwEnergy, currentBb, uwBb, currentMob, uwMob,
            currentTotal, uwTotalBase, monthlySaving,
-           spend, cbLow, cbMed, cbHigh, cbMonthly, cbAnnual, freeMonthsValue, cardAnnualFee,
-           count, welcome, referral, bbFree, exitFees, refunded, exitDeduction, year1, cbOn,
-           uwBb, mba, monthlySaving, availableSlots, previewApplied, includedSimsCount,
-           services1to6, services7to12, periodSplit, cashbackNet, bb1to6, mob1to6, maxPreview };
+           spend, cbLow, cbMed, cbHigh, cbMonthly, freeMonthsValue,
+           count, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,
+           exitFees, refunded, exitDeduction, year1, cbOn,
+           mba, availableSlots, previewApplied, includedSimsCount, cashbackNet, maxPreview };
 }
 
 /* Every in-basket service needs BOTH sides of the comparison:
@@ -1127,7 +1144,7 @@ function openCard() {
     }
     return;
   }
-  previewSim1 = false; previewSim2 = false; previewMode = false; // reset preview each time the card opens
+  previewExtra = false; // reset preview each time the card opens
   renderCard(compute(0));
   $('cardModal').classList.add('open');
 }
@@ -1139,24 +1156,63 @@ function renderCard(r) {
   const nm = $('customerName').value.trim();
   $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
 
+  // Highlight what the meal-deal SIM preview adds to the headline figure
+  const heroDelta = hero - Math.round(real.year1);
+  const heroDeltaEl = $('scHeroDelta');
+  heroDeltaEl.classList.toggle('hidden', heroDelta === 0);
+  if (heroDelta !== 0) {
+    heroDeltaEl.textContent = (heroDelta > 0 ? '+£' : '−£') + Math.abs(heroDelta).toLocaleString('en-GB')
+      + ' ' + '🥪'.repeat(Math.max(1, r.previewApplied));
+  }
+
   // per-service monthly savings (only services in the basket)
   // Mobile: add 🥪 per meal deal SIM, amber colour when intentional net cost
   const mdSims = Object.values(state.sims).filter(s => s.include && s.mealDeal);
   const totalMd = mdSims.length + r.previewApplied;
   const mdEmoji = totalMd ? ' ' + '🥪'.repeat(totalMd) : '';
   const fmt = (v, suf) => (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)) + (suf || '');
+  // When previewing, shows "<new> <old, struck through, grey>" — like a written correction:
+  // the new figure goes first/left, the old one stays where it was, crossed out.
+  const oldNew = (el, oldVal, newVal, suf) => {
+    if (r.previewApplied > 0 && oldVal !== newVal) {
+      el.innerHTML = fmt(newVal, suf) + ' <s>' + fmt(oldVal) + '</s>';
+    } else {
+      el.textContent = fmt(newVal, suf);
+    }
+  };
+  // Same as oldNew, but also prefixes a +/- delta badge showing the size of the swing —
+  // used for the two summary totals where seeing "how much did this move?" matters most.
+  const oldNewDelta = (el, oldVal, newVal, suf) => {
+    if (r.previewApplied > 0 && oldVal !== newVal) {
+      const delta = Math.round(newVal - oldVal);
+      const deltaTxt = (delta >= 0 ? '+£' : '−£') + Math.abs(delta).toLocaleString('en-GB');
+      el.innerHTML = '<span class="delta ' + (delta >= 0 ? 'good' : 'bad') + '">' + deltaTxt + '</span> '
+        + fmt(newVal, suf) + ' <s>' + fmt(oldVal) + '</s>';
+    } else {
+      el.textContent = fmt(newVal, suf);
+    }
+  };
   const cashbackAdj = r.cbOn ? r.cashbackNet : 0;
-  const initialUwNet = r.services1to6 - cashbackAdj;     // "from month 1", net of cashback
-  const initialSaveNet = r.currentTotal - initialUwNet;
+  const steadyUwNet = r.uwTotalBase - cashbackAdj;     // ongoing monthly direct debit, net of cashback
+  const steadySaveNet = r.currentTotal - steadyUwNet;
+  const cashbackAdjReal = real.cbOn ? real.cashbackNet : 0;
+  const steadyUwNetReal = real.uwTotalBase - cashbackAdjReal;
+  const steadySaveNetReal = real.currentTotal - steadyUwNetReal;
 
   // Total monthly summary — the headline, directly under the hero
   $('totNow').textContent = fmt(r.currentTotal);
-  $('totUw').textContent = fmt(initialUwNet) + '*';
-  $('totSave').textContent = fmt(initialSaveNet);
-  $('totSave').classList.toggle('good', initialSaveNet > 0);
-  $('totSave').classList.toggle('bad', initialSaveNet < 0);
+  oldNew($('totUw'), steadyUwNetReal, steadyUwNet);
+  oldNew($('totSave'), steadySaveNetReal, steadySaveNet);
+  $('totSave').classList.toggle('good', steadySaveNet > 0);
+  $('totSave').classList.toggle('bad', steadySaveNet < 0);
 
-  // Monthly breakdown — months 1-6 figures, reconciles exactly to the row above
+  const annualServiceSavings = Math.round(steadySaveNet * 12);
+  const annualServiceSavingsReal = Math.round(steadySaveNetReal * 12);
+  oldNewDelta($('annualServiceSavings'), annualServiceSavingsReal, annualServiceSavings);
+  $('annualServiceSavings').classList.toggle('good', annualServiceSavings > 0);
+  $('annualServiceSavings').classList.toggle('bad', annualServiceSavings < 0);
+
+  // Monthly breakdown — ongoing (steady-state) figures, reconciles exactly to the row above
   $('scEnergyRow').classList.toggle('hidden', !state.services.energy);
   $('scBbRow').classList.toggle('hidden', !state.services.broadband);
   $('scMobRow').classList.toggle('hidden', !(state.services.mobile || r.previewApplied > 0));
@@ -1164,56 +1220,53 @@ function renderCard(r) {
 
   $('scEnergyNow').textContent = fmt(r.currentEnergy);
   if (r.previewApplied > 0 && real.uwEnergy !== r.uwEnergy) {
-    const eDelta = r.uwEnergy - real.uwEnergy;
-    $('scEnergyUw').innerHTML = '<s>' + fmt(real.uwEnergy) + '</s><span class="delta ' + (eDelta < 0 ? 'good' : 'bad') + '">'
-      + (eDelta >= 0 ? '+' : '') + fmt(eDelta) + '</span>';
+    $('scEnergyUw').innerHTML = fmt(r.uwEnergy) + ' <s>' + fmt(real.uwEnergy) + '</s>';
   } else {
     $('scEnergyUw').textContent = fmt(r.uwEnergy);
   }
   saveLine($('scEnergySave'), r.currentEnergy - r.uwEnergy);
+  const energyNoteNeeded = state.services.energy && r.previewApplied > 0 && r.uwEnergy === real.uwEnergy;
+  $('scEnergyNoteRow').classList.toggle('hidden', !energyNoteNeeded);
 
   $('scBbNow').textContent = fmt(r.currentBb);
-  $('scBbUw').textContent = fmt(r.bb1to6);
-  saveLine($('scBbSave'), r.currentBb - r.bb1to6);
+  $('scBbUw').textContent = fmt(r.uwBb);
+  saveLine($('scBbSave'), r.currentBb - r.uwBb);
 
   $('scMobNow').textContent = fmt(r.currentMob);
-  $('scMobUw').textContent = fmt(r.mob1to6);
-  const mobSave1to6 = r.currentMob - r.mob1to6;
-  saveLine($('scMobSave'), mobSave1to6);
-  if (mobSave1to6 < 0 && totalMd > 0) {
-    $('scMobSave').classList.remove('bad');
-    $('scMobSave').classList.add('neutral');
-  }
+  $('scMobUw').textContent = fmt(r.uwMob);
+  const mobSave = r.currentMob - r.uwMob;
+  saveLine($('scMobSave'), mobSave);
+  const mobNeutral = mobSave < 0 && totalMd > 0;
+  $('scMobSave').classList.toggle('neutral', mobNeutral);
+  if (mobNeutral) $('scMobSave').classList.remove('bad');
   const mobLabelEl = $('scMobRow') && $('scMobRow').querySelector('td');
   if (mobLabelEl) mobLabelEl.textContent = '📱 Mobile' + mdEmoji;
 
   if (r.cbOn) {
-    saveLine($('scCbUw'), -r.cashbackNet);
+    // UW column shows cashback as a reduction (negative = good) — inverted vs saveLine's usual logic
+    const cbUwVal = -r.cashbackNet;
+    $('scCbUw').textContent = (cbUwVal < 0 ? '−£' + money(Math.abs(cbUwVal)) : '£' + money(cbUwVal));
+    $('scCbUw').classList.toggle('good', cbUwVal < 0);
+    $('scCbUw').classList.toggle('bad', cbUwVal > 0);
     saveLine($('scCbSave'), r.cashbackNet);
   }
 
   $('scBdTotNow').textContent = fmt(r.currentTotal);
-  $('scBdTotUw').textContent = fmt(initialUwNet);
-  saveLine($('scBdTotSave'), initialSaveNet);
-
-  if (r.periodSplit) {
-    $('ddRow').classList.remove('hidden');
-    $('ddVal').textContent = fmt(r.services7to12 - cashbackAdj);
-  } else {
-    $('ddRow').classList.add('hidden');
-  }
+  $('scBdTotUw').textContent = fmt(steadyUwNet);
+  saveLine($('scBdTotSave'), steadySaveNet);
 
   // upfront & year-one
   $('scBbFreeRow').classList.toggle('hidden', r.bbFree === 0);
   $('scBbFree').textContent = '£' + Math.round(r.bbFree);
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
   if (r.previewApplied > 0 && real.welcome !== r.welcome) {
-    const wDelta = r.welcome - real.welcome;
-    $('scWelcome').innerHTML = '<s>£' + real.welcome + '</s><span class="delta ' + (wDelta > 0 ? 'good' : 'bad') + '">'
-      + (wDelta >= 0 ? '+' : '') + '£' + wDelta + '</span>';
+    $('scWelcome').innerHTML = '£' + r.welcome + ' <s>£' + real.welcome + '</s>';
   } else {
     $('scWelcome').textContent = '£' + r.welcome;
   }
+  $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
+  $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
+  $('scMobileFreeLabel').textContent = '6 months free - ' + r.additionalUnlimited + ' SIM' + (r.additionalUnlimited > 1 ? 's' : '');
   $('scReferralRow').classList.toggle('hidden', r.referral === 0);
   $('scReferral').textContent = '£' + r.referral;
   $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
@@ -1228,7 +1281,7 @@ function renderCard(r) {
     if (r.refunded && r.exitDeduction === 0) {
       msg = '🛡️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✓';
     } else if (r.refunded && r.exitDeduction > 0) {
-      msg = "🛡️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you’re still better off";
+      msg = "🛡️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you're still better off";
     } else {
       const needed = CONFIG.exitFeeRefund.minServices - r.count;
       msg = 'ℹ️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
@@ -1236,11 +1289,17 @@ function renderCard(r) {
     $('scExitMsg').innerHTML = msg;
   }
 
-  // benefits total = everything in this section (hero = first-year savings + this)
-  // Cashback/fee are now reflected in the monthly Saving (net), x12 — not double-counted here
-  const benefitsTotal = r.bbFree + r.welcome + r.referral
-    + (r.cbOn ? r.freeMonthsValue : 0);
-  $('scBenefitsTotal').textContent = fmt(benefitsTotal);
+  // benefits total = everything in this section, including exit fees still to pay.
+  // Service savings over 12 months + this Total = the hero figure, exactly.
+  $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
+  $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths
+    + (r.cbOn ? r.freeMonthsValue : 0)
+    - r.exitDeduction;
+  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.mobileFreeMonths
+    + (real.cbOn ? real.freeMonthsValue : 0)
+    - real.exitDeduction;
+  oldNewDelta($('scBenefitsTotal'), benefitsTotalReal, benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
   $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
 
@@ -1248,65 +1307,63 @@ function renderCard(r) {
   $('brandRole').textContent = CONFIG.partner.role;
   $('brandStrap').textContent = CONFIG.partner.strapline;
 
-  // Basket row — reflects what's actually selected in the companion.
-  // Greyed mobile icons are directly tappable to preview a meal deal SIM.
+  // Basket row — icons for broadband and both SIM slots are always present:
+  // full opacity = in the basket, very faint = could be added, dashed + 🥪 = being previewed.
+  // The service count and "try adding" pill update together with the preview.
   const sim1On = real.includedSimsCount >= 1;
   const sim2On = real.includedSimsCount >= 2;
-  const canPreview = real.availableSlots > 0 && real.maxPreview > 0;
-  if (!canPreview) { previewSim1 = false; previewSim2 = false; previewMode = false; }
-  $('basketHint').classList.toggle('hidden', !canPreview);
-  $('basketHint').classList.toggle('on', previewMode);
+  const canAdd = real.availableSlots > 0 && real.maxPreview > 0;
+  if (!canAdd) previewExtra = false;
 
-  $('biEnergy').classList.toggle('active', state.services.energy);
-  $('biBroadband').classList.toggle('active', state.services.broadband);
-  $('biSim1').classList.toggle('active', sim1On);
-  $('biSim2').classList.toggle('active', sim2On);
+  $('biEnergy').classList.toggle('hidden', !state.services.energy);
 
-  document.querySelectorAll('.basket-icon .sup').forEach(el => el.remove());
-  document.querySelectorAll('.basket-icon').forEach(el => el.classList.remove('preview', 'tappable'));
+  $('biBroadband').classList.toggle('could', !state.services.broadband);
+  $('biBroadband').classList.remove('preview');
 
-  const addSup = el => {
-    const sup = document.createElement('span');
-    sup.className = 'sup'; sup.textContent = '🥪';
-    el.appendChild(sup);
+  const setSimIcon = (el, isReal, isPreview) => {
+    el.classList.toggle('could', !isReal && !isPreview);
+    el.classList.toggle('preview', isPreview);
+    const existingSup = el.querySelector('.sup');
+    if (isPreview && !existingSup) {
+      const sup = document.createElement('span');
+      sup.className = 'sup'; sup.textContent = '🥪';
+      el.appendChild(sup);
+    } else if (!isPreview && existingSup) {
+      existingSup.remove();
+    }
   };
-  let tappableLeft = canPreview ? real.maxPreview : 0;
-  if (!sim1On && canPreview && previewMode && tappableLeft > 0) {
-    tappableLeft--;
-    $('biSim1').classList.add('tappable');
-    if (previewSim1) { $('biSim1').classList.add('preview'); addSup($('biSim1')); }
-  }
-  if (!sim2On && canPreview && previewMode && tappableLeft > 0) {
-    $('biSim2').classList.add('tappable');
-    if (previewSim2) { $('biSim2').classList.add('preview'); addSup($('biSim2')); }
-  }
+  let previewSlotsLeft = r.previewApplied;
+  setSimIcon($('biSim1'), sim1On, !sim1On && previewSlotsLeft-- > 0);
+  setSimIcon($('biSim2'), sim2On, !sim2On && previewSlotsLeft-- > 0);
+
+  // Service count — shows the jump (e.g. "1 → 3 services") while previewing
+  const basketCountEl = $('basketCount');
+  const plural = n => n + ' service' + (n === 1 ? '' : 's');
+  basketCountEl.innerHTML = r.previewApplied > 0
+    ? plural(real.count) + ' <span class="arrow">→</span> ' + plural(r.count)
+    : plural(real.count);
+
+  const addBtn = $('biSimAdd');
+  addBtn.classList.toggle('hidden', !canAdd);
+  addBtn.classList.toggle('on', previewExtra);
+  addBtn.querySelector('.ic2').classList.toggle('hidden', real.maxPreview < 2);
+  addBtn.querySelector('.lbl').textContent = previewExtra ? 'added' : 'try adding';
 }
 
-// 🥪 toggles preview mode on/off — off by default, icon only
-$('basketHint').addEventListener('click', () => {
-  previewMode = !previewMode;
-  if (!previewMode) { previewSim1 = false; previewSim2 = false; }
-  renderCard(compute(currentPreviewCount()));
-});
-// In preview mode, tap a greyed mobile icon to add it to the basket preview — live recalc, no close
-$('biSim1').addEventListener('click', () => {
-  if (!previewMode) return;
+// "Try adding" pill — directly toggles the meal-deal SIM preview, live recalc, no close.
+// The totals (Service savings, Year-one benefits) are always visible, so the effect is
+// immediately clear without needing to expand any details — those remain available
+// for anyone who wants the line-by-line breakdown.
+$('biSimAdd').addEventListener('click', () => {
   const real = compute(0);
-  if (real.availableSlots === 0 || real.includedSimsCount >= 1) return;
-  previewSim1 = !previewSim1;
-  renderCard(compute(currentPreviewCount()));
-});
-$('biSim2').addEventListener('click', () => {
-  if (!previewMode) return;
-  const real = compute(0);
-  if (real.availableSlots === 0 || real.includedSimsCount >= 2) return;
-  previewSim2 = !previewSim2;
+  if (real.availableSlots === 0 || real.maxPreview === 0) return;
+  previewExtra = !previewExtra;
   renderCard(compute(currentPreviewCount()));
 });
 $('openCardBtn').addEventListener('click', openCard);
-$('closeModalBtn').addEventListener('click', () => { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); });
-$('doneBtn').addEventListener('click', () => { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); });
-$('cardModal').addEventListener('click', e => { if (e.target.id === 'cardModal') { previewSim1 = false; previewSim2 = false; previewMode = false; $('cardModal').classList.remove('open'); } });
+$('closeModalBtn').addEventListener('click', () => { previewExtra = false; $('cardModal').classList.remove('open'); });
+$('doneBtn').addEventListener('click', () => { previewExtra = false; $('cardModal').classList.remove('open'); });
+$('cardModal').addEventListener('click', e => { if (e.target.id === 'cardModal') { previewExtra = false; $('cardModal').classList.remove('open'); } });
 
 /* ---------- copy figures ---------- */
 $('copyBtn').addEventListener('click', () => {
@@ -1325,10 +1382,11 @@ $('copyBtn').addEventListener('click', () => {
   lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = £' + money(cfTotalSaveNet * 12));
   lines.push('');
   lines.push('Year-one benefits:');
-  if (r.bbFree) lines.push('  Free City Fibre: £' + money(r.bbFree));
+  if (r.bbFree) lines.push('  6 months free - Full Fibre: £' + money(r.bbFree));
+  if (r.mobileFreeMonths) lines.push('  6 months free - ' + r.additionalUnlimited + ' SIM' + (r.additionalUnlimited > 1 ? 's' : '') + ': £' + money(r.mobileFreeMonths));
   if (r.welcome) lines.push('  Cashback Welcome: £' + r.welcome);
   if (r.referral) lines.push('  Referral Welcome: £' + r.referral);
-  if (r.cbOn) lines.push('  3 months free: +£' + r.freeMonthsValue);
+  if (r.cbOn) lines.push('  3 months free - Cashback Card: +£' + r.freeMonthsValue);
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     if (r.refunded && r.exitDeduction === 0)
