@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,6 +78,8 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .pill.on { background: var(--purple); border-color: var(--purple); color: white; }
 .pill:focus-visible { outline: 3px solid rgba(122,66,200,0.35); outline-offset: 2px; }
 .pill.gated { opacity: 0.45; cursor: not-allowed; }
+#manualAdjustCard h2, #manualAdjustCard .switchrow .lbl,
+#manualAdjustFields label, #manualAdjustFields input { color: var(--muted); }
 
 .switchrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
 .switchrow span.lbl { font-size: 14px; font-weight: 600; }
@@ -265,14 +266,13 @@ label.active-tier { color:var(--purple); font-weight:700; }
   </div>
 
   <!-- Services in the basket -->
-  <div class="card">
+  <div class="card hidden" id="servicesCard">
     <div class="pills">
-      <button class="pill gated" type="button" data-service="energy">⚡🔥 Energy</button>
-      <button class="pill gated" type="button" data-service="broadband">🛜 Broadband</button>
-      <button class="pill gated" type="button" data-service="mobile">📱 Mobile Sim(s)</button>
+      <button class="pill" type="button" data-service="energy">⚡🔥 Energy</button>
+      <button class="pill" type="button" data-service="broadband">🛜 Broadband</button>
+      <button class="pill" type="button" data-service="mobile">📱 Mobile Sim(s)</button>
     </div>
-    <p class="sub" id="svcGateMsg" style="margin-top: 0.6rem; font-weight: 600; color: var(--bad);">👆 Select Homeowner or Tenant above first</p>
-    <p class="sub hidden" id="svcCounter" style="margin-top: 0.6rem; font-weight: 600;">Qualifying UW services: 0</p>
+    <p class="sub" id="svcCounter" style="margin-top: 0.6rem; font-weight: 600;">Qualifying UW services: 0</p>
   </div>
 
   <!-- ENERGY -->
@@ -426,7 +426,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   </div>
 
   <!-- INSURANCE -->
-  <div class="card">
+  <div class="card hidden" id="insuranceCard">
     <h2>🛡️ Insurance</h2>
     <p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can't advise or compare. If it's in the customer's basket on quote, capture the UW cost here so the totals match.</p>
     <div class="switchrow">
@@ -450,12 +450,12 @@ label.active-tier { color:var(--purple); font-weight:700; }
   </div>
 
   <!-- MANUAL ADJUSTMENT -->
-  <div class="card">
+  <div class="card hidden" id="manualAdjustCard">
     <div class="switchrow" style="padding:0;">
-      <h2 style="margin-bottom:0;">✏️ Manual adjustment</h2>
+      <h2 style="margin-bottom:0; color: var(--muted);">✏️ Manual adjustment</h2>
       <span class="switch"><input type="checkbox" id="manualAdjustToggle"><span class="track"></span></span>
     </div>
-    <div id="manualAdjustFields" class="hidden" style="margin-top:0.6rem;">
+    <div id="manualAdjustFields" class="hidden" style="margin-top:0.6rem; color: var(--muted);">
       <div class="row2">
         <div class="field money"><label>Current £</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
         <div class="field"><label>Reason</label><input type="text" id="manualAdjustCurrentReason" placeholder="optional"></div>
@@ -468,7 +468,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   </div>
 
   <!-- CASHBACK -->
-  <div class="card" style="background:rgba(122,66,200,0.04); border-color:rgba(122,66,200,0.15);">
+  <div class="card hidden" id="cashbackCard" style="background:rgba(122,66,200,0.04); border-color:rgba(122,66,200,0.15);">
     <div class="switchrow" style="padding:0;">
       <h2 style="margin-bottom:0;">💳 Cashback card</h2>
       <span class="switch"><input type="checkbox" id="includeCashback" checked><span class="track"></span></span>
@@ -483,8 +483,11 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <div class="cbchip used" data-cbtier="med"><div class="pct" id="cbMedPct">Average earner¹ ✓</div><div class="amt">£<span id="cbMed">0</span></div><div class="yr">£<span id="cbMedYr">0</span>/yr</div></div>
         <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">Top earners²</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
       </div>
-      <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
-      <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
+      <details style="margin-top: 0.5rem;">
+        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Details</summary>
+        <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
+        <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
+      </details>
     </div>
   </div>
 
@@ -695,11 +698,6 @@ function currentPreviewCount() {
 /* ---------- service pills ---------- */
 document.querySelectorAll('[data-service]').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (!state.homeowner) {
-      $('pillHomeowner').classList.add('err');
-      $('pillTenant').classList.add('err');
-      return;
-    }
     const s = btn.dataset.service;
     state.services[s] = !state.services[s];
     btn.classList.toggle('on', state.services[s]);
@@ -713,8 +711,6 @@ function setHome(which) {
   state.homeowner = which;
   $('pillHomeowner').classList.toggle('on', which === 'homeowner');
   $('pillTenant').classList.toggle('on', which === 'tenant');
-  $('pillHomeowner').classList.remove('err');
-  $('pillTenant').classList.remove('err');
   $('bbFreeMonthsRow').classList.toggle('hidden', which !== 'homeowner');
   if (which !== 'homeowner') $('bbFreeMonthsToggle').checked = false;
   $('boilerCoverRow').classList.toggle('hidden', which !== 'homeowner');
@@ -723,9 +719,7 @@ function setHome(which) {
     $('boilerCoverFreeToggle').checked = false;
     $('boilerCoverFields').classList.add('hidden');
   }
-  document.querySelectorAll('[data-service]').forEach(b => b.classList.remove('gated'));
-  $('svcGateMsg').classList.add('hidden');
-  $('svcCounter').classList.remove('hidden');
+  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));
   calc();
 }
 $('pillHomeowner').addEventListener('click', () => setHome('homeowner'));
@@ -925,6 +919,14 @@ function buildSims() {
     group.querySelectorAll('.pill').forEach(b => {
       if (b.dataset.plan === state.sims[key].uwPlan) b.classList.add('on');
       b.addEventListener('click', () => {
+        if (b.dataset.plan === 'essentialMax' && !state.sims[key].monthlyCost) {
+          const ok = confirm('Just double-checking — £0 current cost for this SIM?');
+          if (!ok) {
+            const input = document.querySelector('input[data-sim="' + key + '"][data-field="monthlyCost"]');
+            if (input) input.focus();
+            return;
+          }
+        }
         state.sims[key].uwPlan = b.dataset.plan;
         group.querySelectorAll('.pill').forEach(x => x.classList.remove('on'));
         b.classList.add('on');
@@ -1007,7 +1009,7 @@ function compute(previewSims = 0) {
   const boilerCoverCost = $('boilerCoverToggle').checked ? numF('boilerCoverCost') : 0;
   const boilerCoverFree = (boilerCoverCost > 0 && $('boilerCoverFreeToggle').checked) ? boilerCoverCost * 3 : 0;
   const insuranceTotal = incomeProtectorCost + boilerCoverCost;
-  const insuranceCount = (incomeProtectorCost > 0 ? 1 : 0) + (boilerCoverCost > 0 ? 1 : 0);
+  const insuranceCount = (incomeProtectorCost > 0 || boilerCoverCost > 0) ? 1 : 0;
 
   // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
   const energyOrBb = state.services.energy || state.services.broadband;
@@ -1640,9 +1642,7 @@ $('resetBtn').addEventListener('click', () => {
   state.sims = {};
   state.includeCashback = true;
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
-  document.querySelectorAll('[data-service]').forEach(b => b.classList.add('gated'));
-  $('svcGateMsg').classList.remove('hidden');
-  $('svcCounter').classList.add('hidden');
+  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.add('hidden'));
   ['energyCard','broadbandCard','mobileCard','billCosts','energySplitNow'].forEach(id => $(id).classList.add('hidden'));
   state.splitGas = true; state.splitElec = true;
   ['splitGasRow','splitElecRow'].forEach(id => $(id) && $(id).classList.remove('hidden'));
