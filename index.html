@@ -521,9 +521,9 @@ label.active-tier { color:var(--purple); font-weight:700; }
     <!-- screenshot this -->
     <div class="sharecard" id="shareCard">
       <div class="sc-hero">
-        <div class="eyebrow">Your first 12 months</div>
+        <div class="eyebrow">Year one in your pocket</div>
         <div class="big">£<span id="scHero">0</span><span class="hero-delta hidden" id="scHeroDelta"></span></div>
-        <div class="tag">better off with one UW bill</div>
+        <div class="tag">one bill · one app · one password</div>
         <div class="who" id="scWho"></div>
       </div>
       <div class="sc-body">
@@ -548,7 +548,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
             <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
           </tbody>
         </table>
-        <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your monthly direct debit, minus estimated cashback</p>
+        <p class="sub" id="ddNote" style="font-size:11px; margin-top:0.25rem;">* monthly direct debit, minus estimated cashback</p>
         <div class="sc-line sumrow" style="margin-top:0.5rem;">
           <span class="k">Year-one Savings on Services</span>
           <span class="v" id="annualServiceSavings">£0</span>
@@ -1359,8 +1359,7 @@ function renderCard(r) {
   const heroDeltaEl = $('scHeroDelta');
   heroDeltaEl.classList.toggle('hidden', heroDelta === 0);
   if (heroDelta !== 0) {
-    heroDeltaEl.textContent = (heroDelta > 0 ? '+£' : '−£') + Math.abs(heroDelta).toLocaleString('en-GB')
-      + ' ' + '🥪'.repeat(Math.max(1, r.previewApplied));
+    heroDeltaEl.textContent = (heroDelta > 0 ? '+£' : '−£') + Math.abs(heroDelta).toLocaleString('en-GB');
   }
 
   // per-service monthly savings (only services in the basket)
@@ -1369,23 +1368,15 @@ function renderCard(r) {
   const totalMd = mdSims.length + r.previewApplied;
   const mdEmoji = totalMd ? ' ' + '🥪'.repeat(totalMd) : '';
   const fmt = (v, suf) => (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)) + (suf || '');
-  // When previewing, shows "<new> <old, struck through, grey>" — like a written correction:
-  // the new figure goes first/left, the old one stays where it was, crossed out.
-  const oldNew = (el, oldVal, newVal, suf) => {
-    if (r.previewApplied > 0 && oldVal !== newVal) {
-      el.innerHTML = fmt(newVal, suf) + ' <s>' + fmt(oldVal) + '</s>';
-    } else {
-      el.textContent = fmt(newVal, suf);
-    }
-  };
-  // Same as oldNew, but also prefixes a +/- delta badge showing the size of the swing —
-  // used for the two summary totals where seeing "how much did this move?" matters most.
-  const oldNewDelta = (el, oldVal, newVal, suf) => {
+  // When previewing, shows "<+/-£delta> <old, struck through, grey>" — the delta badge
+  // is the change this preview makes; the struck figure is what it was before. The new
+  // figure itself isn't repeated here — it's already visible in the row/cell as normal,
+  // so the eye scans the deltas top-to-bottom and checks they sum to the hero's delta.
+  const deltaOld = (el, oldVal, newVal, suf) => {
     if (r.previewApplied > 0 && oldVal !== newVal) {
       const delta = Math.round(newVal - oldVal);
       const deltaTxt = (delta >= 0 ? '+£' : '−£') + Math.abs(delta).toLocaleString('en-GB');
-      el.innerHTML = '<span class="delta ' + (delta >= 0 ? 'good' : 'bad') + '">' + deltaTxt + '</span> '
-        + fmt(newVal, suf) + ' <s>' + fmt(oldVal) + '</s>';
+      el.innerHTML = '<span class="delta ' + (delta >= 0 ? 'good' : 'bad') + '">' + deltaTxt + '</span> <s>' + fmt(oldVal, suf) + '</s>';
     } else {
       el.textContent = fmt(newVal, suf);
     }
@@ -1399,16 +1390,28 @@ function renderCard(r) {
 
   // Total monthly summary — the headline, directly under the hero
   $('totNow').textContent = fmt(r.currentTotal);
-  oldNew($('totUw'), steadyUwNetReal, steadyUwNet);
-  oldNew($('totSave'), steadySaveNetReal, steadySaveNet);
+  deltaOld($('totUw'), steadyUwNetReal, steadyUwNet);
+  deltaOld($('totSave'), steadySaveNetReal, steadySaveNet);
   $('totSave').classList.toggle('good', steadySaveNet > 0);
   $('totSave').classList.toggle('bad', steadySaveNet < 0);
 
   const annualServiceSavings = Math.round(steadySaveNet * 12);
   const annualServiceSavingsReal = Math.round(steadySaveNetReal * 12);
-  oldNewDelta($('annualServiceSavings'), annualServiceSavingsReal, annualServiceSavings);
+  deltaOld($('annualServiceSavings'), annualServiceSavingsReal, annualServiceSavings);
   $('annualServiceSavings').classList.toggle('good', annualServiceSavings > 0);
   $('annualServiceSavings').classList.toggle('bad', annualServiceSavings < 0);
+
+  // The UW* column is the ongoing (post-intro) monthly cost, net of cashback — make that
+  // explicit whenever a free-period offer is in play, since those months look cheaper.
+  {
+    const freeItems = [];
+    if (r.bbFree > 0) freeItems.push('broadband');
+    if (r.mobileFreeMonths > 0) freeItems.push('mobile SIM');
+    let ddNote = '* monthly direct debit';
+    if (freeItems.length) ddNote += ', once your free ' + freeItems.join(' and ') + ' months end';
+    ddNote += ', minus estimated cashback';
+    $('ddNote').textContent = ddNote;
+  }
 
   // Monthly breakdown — ongoing (steady-state) figures, reconciles exactly to the row above
   $('scEnergyRow').classList.toggle('hidden', !state.services.energy);
@@ -1417,11 +1420,7 @@ function renderCard(r) {
   $('scCbRow').classList.toggle('hidden', !r.cbOn);
 
   $('scEnergyNow').textContent = fmt(r.currentEnergy);
-  if (r.previewApplied > 0 && real.uwEnergy !== r.uwEnergy) {
-    $('scEnergyUw').innerHTML = fmt(r.uwEnergy) + ' <s>' + fmt(real.uwEnergy) + '</s>';
-  } else {
-    $('scEnergyUw').textContent = fmt(r.uwEnergy);
-  }
+  deltaOld($('scEnergyUw'), real.uwEnergy, r.uwEnergy);
   saveLine($('scEnergySave'), r.currentEnergy - r.uwEnergy);
   const energyNoteNeeded = state.services.energy && r.previewApplied > 0 && r.uwEnergy === real.uwEnergy;
   $('scEnergyNoteRow').classList.toggle('hidden', !energyNoteNeeded);
@@ -1485,11 +1484,7 @@ function renderCard(r) {
   $('scBbFreeLabel').textContent = '🛜 Broadband (6x £' + Math.round(r.uwBbRaw) + ')';
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
   $('scWelcomeLabel').textContent = '💳 Cashback (' + (r.welcome / 50) + 'x £50)';
-  if (r.previewApplied > 0 && real.welcome !== r.welcome) {
-    $('scWelcome').innerHTML = '£' + r.welcome + ' <s>£' + real.welcome + '</s>';
-  } else {
-    $('scWelcome').textContent = '£' + r.welcome;
-  }
+  deltaOld($('scWelcome'), real.welcome, r.welcome);
   $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
   $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
   $('scMobileFreeLabel').textContent = '📱 Mobile Sim (6x £' + (r.additionalUnlimited * CONFIG.mobile.plans.unlimitedMax.extraM7to12) + ')';
@@ -1529,7 +1524,7 @@ function renderCard(r) {
   const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.mobileFreeMonths + real.boilerCoverFree
     + (real.cbOn ? real.freeMonthsValue : 0)
     - real.exitDeduction;
-  oldNewDelta($('scBenefitsTotal'), benefitsTotalReal, benefitsTotal);
+  deltaOld($('scBenefitsTotal'), benefitsTotalReal, benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
   $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
 
@@ -1572,7 +1567,7 @@ function renderCard(r) {
   const basketCountEl = $('basketCount');
   const plural = n => n + ' service' + (n === 1 ? '' : 's');
   basketCountEl.innerHTML = r.previewApplied > 0
-    ? plural(real.count) + ' <span class="arrow">→</span> ' + plural(r.count)
+    ? real.count + ' <span class="arrow">→</span> ' + plural(r.count)
     : plural(real.count);
 
   const addBtn = $('biSimAdd');
