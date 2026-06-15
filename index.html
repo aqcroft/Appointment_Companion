@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,10 +234,12 @@ label.active-tier { color:var(--purple); font-weight:700; }
 
 .belowfold { background: white; border-radius: 14px; margin-top: 0.8rem; padding: 1rem; }
 .screenshot-hint { text-align: center; color: rgba(255,255,255,0.85); font-size: 12px; margin: 0.7rem 0; }
-.modal-actions { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+.modal-actions { display: flex; gap: 0.6rem; margin-top: 0.8rem; flex-wrap: wrap; }
 .modal-actions button { flex: 1; padding: 13px; border-radius: 12px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
+.modal-actions button.full { flex: 1 1 100%; }
 .btn-ghost { background: rgba(255,255,255,0.92); color: var(--ink); }
 .btn-go { background: var(--pink); color: white; }
+.btn-share { background: var(--purple); color: white; }
 
 .hidden { display: none !important; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -359,6 +362,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <div class="field money"><label id="uwE2Lbl">+ 1 other service</label><input type="number" id="uwEnergyTier2" inputmode="numeric" placeholder="0"></div>
           <div class="field money" style="margin-bottom:0;"><label id="uwE3Lbl">+ 2 other services</label><input type="number" id="uwEnergyTier3" inputmode="numeric" placeholder="0"></div>
         </div>
+        <p id="bundleGateMsg" class="hidden sub" style="color:#b08000; font-weight:600; margin-top:0.5rem;">⚠️ Fill in all three bundle rates above so the meal-deal SIM saving shows correctly on a shared link.</p>
         <p class="sub" style="margin-top:0.35rem;">From uw.co.uk/quote — keyed during the appointment.</p>
         <p id="uwEnergyRequoteNote" class="hidden sub" style="color:#b08000;font-weight:600;margin-top:0.35rem;">🔄 Meal deal SIM added — re-quote energy at uw.co.uk/quote</p>
       </div>
@@ -597,6 +601,11 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
 
     <div class="screenshot-hint">📸 Screenshot the card above to share</div>
+
+    <div class="modal-actions">
+      <button class="btn-share full" type="button" id="shareBtn">🔗 Share link with customer</button>
+    </div>
+    <p id="shareGateMsg" class="hidden sub" style="color:#b08000; font-weight:700; padding: 0.3rem 0.25rem 0;"></p>
 
     <div class="modal-actions">
       <button class="btn-ghost" type="button" id="copyBtn">📋 Copy figures</button>
@@ -1642,6 +1651,101 @@ $('copyBtn').addEventListener('click', () => {
   });
 });
 
+/* ---------- share link ---------- */
+function b64urlEncode(str) {
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Builds the data payload for the read-only share card from the CURRENT
+// (post-preview, if active) figures — i.e. the same numbers on screen
+// right now. Returns { error: 'energyTiers' } if a meal-deal SIM preview
+// is active but the energy bundle rates aren't all filled in yet, since
+// sharing in that state would undersell the energy saving.
+function buildShareData() {
+  const r = compute(currentPreviewCount());
+
+  if (r.previewApplied > 0 && state.services.energy) {
+    const t1 = numF('uwEnergyTier1'), t2 = numF('uwEnergyTier2'), t3 = numF('uwEnergyTier3');
+    if (!(t1 > 0 && t2 > 0 && t3 > 0)) return { error: 'energyTiers' };
+  }
+
+  const mealDealCount = Object.values(state.sims).filter(s => s.include && s.mealDeal).length + r.previewApplied;
+
+  let f = 0;
+  if (state.services.energy) f |= 1;
+  if (state.services.broadband) f |= 2;
+  if (state.services.mobile || mealDealCount > 0) f |= 4;
+  if (r.cbOn) f |= 8;
+  if (r.refunded) f |= 16;
+
+  const data = {
+    n: $('customerName').value.trim(),
+    y: Math.round(r.year1),
+    f: f,
+    cE: r.currentEnergy, uE: r.uwEnergy,
+    cB: r.currentBb, uB: r.uwBb, uBr: r.uwBbRaw,
+    cM: r.currentMob, uM: r.uwMob, md: mealDealCount,
+    cT: r.currentTotal, uT: r.uwTotalBase, sM: r.monthlySaving,
+    ct: r.count, w: r.welcome, rf: r.referral, bf: Math.round(r.bbFree),
+    mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
+    ef: r.exitFees, ed: r.exitDeduction,
+    cn: r.cashbackNet, fm: r.freeMonthsValue,
+    ip: r.incomeProtectorCost, bc: r.boilerCoverCost, bcf: Math.round(r.boilerCoverFree),
+    it: r.insuranceTotal,
+    mac: r.manualAdjustCurrent, mau: r.manualAdjustUw,
+    macr: r.manualAdjustCurrentReason, maur: r.manualAdjustUwReason
+  };
+
+  // Drop zero/empty fields — keeps the link shorter, decoder defaults missing keys to 0/''
+  Object.keys(data).forEach(k => {
+    const v = data[k];
+    if (v === 0 || v === '' || v === false) delete data[k];
+  });
+
+  return { data };
+}
+
+$('shareBtn').addEventListener('click', () => {
+  const result = buildShareData();
+
+  if (result.error === 'energyTiers') {
+    $('cardModal').classList.remove('open');
+    $('bundleRatePanel').classList.remove('hidden');
+    $('bundleRatesBtn').classList.add('on');
+    $('bundleGateMsg').classList.remove('hidden');
+    let firstEmpty = null;
+    ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => {
+      const el = $(id);
+      if (numF(id) > 0) { el.classList.remove('warn'); }
+      else { el.classList.add('warn'); if (!firstEmpty) firstEmpty = el; }
+    });
+    $('energyCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (firstEmpty) setTimeout(() => firstEmpty.focus(), 400);
+    return;
+  }
+
+  const encoded = b64urlEncode(JSON.stringify(result.data));
+  const url = new URL('savings-card.html', location.href);
+  url.hash = 'd=' + encoded;
+
+  navigator.clipboard.writeText(url.href).then(() => {
+    $('shareGateMsg').classList.add('hidden');
+    $('shareBtn').textContent = '✓ Link copied — paste it to your customer';
+    setTimeout(() => { $('shareBtn').textContent = '🔗 Share link with customer'; }, 2000);
+  });
+});
+
+// Hide the bundle-rate gate message once all three tiers are filled
+['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (numF(id) > 0) $(id).classList.remove('warn');
+    if (numF('uwEnergyTier1') > 0 && numF('uwEnergyTier2') > 0 && numF('uwEnergyTier3') > 0) {
+      $('bundleGateMsg').classList.add('hidden');
+    }
+  });
+});
+
 /* ---------- reset ---------- */
 $('resetBtn').addEventListener('click', () => {
   if (!confirm('Reset all figures?')) return;
@@ -1661,7 +1765,8 @@ $('resetBtn').addEventListener('click', () => {
   ['splitGasRow','splitElecRow'].forEach(id => $(id) && $(id).classList.remove('hidden'));
   document.querySelectorAll('[data-fuel]').forEach(b => b.classList.add('on'));
   $('bundleRatePanel').classList.add('hidden'); $('bundleRatesBtn').classList.remove('on');
-  ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => { const el=$(id); if(el) el.value=''; });
+  $('bundleGateMsg').classList.add('hidden');
+  ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => { const el=$(id); if(el) { el.value=''; el.classList.remove('warn'); } });
   $('bbFreeMonthsRow').classList.add('hidden');
   $('boilerCoverRow').classList.add('hidden');
   document.querySelectorAll('[data-bbpkg]').forEach(b => b.classList.remove('on'));
