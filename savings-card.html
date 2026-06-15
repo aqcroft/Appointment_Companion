@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Your UW Savings</title>
+<style>
+:root {
+  --purple: #7A42C8;
+  --pink: #E63384;
+  --ink: #1f1f24;
+  --muted: #6b6b76;
+  --line: #e6e2ef;
+  --bg: #f6f4fa;
+  --good: #1d9b50;
+  --bad: #c43b3b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  padding: 1.2rem 0.75rem 2.5rem;
+}
+.wrap { max-width: 430px; margin: 0 auto; }
+.hidden { display: none !important; }
+.sub { font-size: 12px; color: var(--muted); }
+
+/* ===== Share card ===== */
+.sharecard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(40,20,70,0.14); }
+.sc-hero { text-align: center; padding: 1.6rem 1rem 1.4rem; background: linear-gradient(150deg, var(--purple) 0%, var(--pink) 100%); color: white; }
+.sc-hero .eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.6px; opacity: 0.95; }
+.sc-hero .big { font-size: 54px; font-weight: 800; line-height: 1.05; margin: 0.25rem 0 0.15rem; letter-spacing: -1px; }
+.sc-hero .tag { font-size: 14px; font-weight: 600; opacity: 0.95; }
+.sc-hero .who { font-size: 12.5px; opacity: 0.85; margin-top: 0.4rem; }
+
+.sc-body { padding: 1rem 1.1rem 0.4rem; }
+.sc-line { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 14px; border-bottom: 1px solid #f4f1fa; }
+.sc-line:last-of-type { border-bottom: none; }
+.sc-line .v { font-weight: 700; }
+.sc-line .v.good { color: var(--good); }
+.sc-line .v.bad { color: var(--bad); }
+.sc-line .v.neutral { color: #b08000; }
+.sc-line.sumrow { border-top: 1.5px solid var(--line); margin-top: 2px; }
+.sc-line.sumrow .k { font-weight: 700; }
+.sc-line.sumrow .v { font-weight: 800; color: var(--purple); }
+.sc-line.sumrow .v.good { color: var(--good); }
+.sc-line.sumrow .v.bad { color: var(--bad); }
+
+table.detail { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.6rem; table-layout: fixed; }
+table.detail th { text-align: right; font-size: 11px; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 2px solid var(--line); }
+table.detail th:first-child, table.detail td:first-child { text-align: left; }
+table.detail td { padding: 7px 6px; text-align: right; border-bottom: 1px solid #f0edf7; }
+table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); border-bottom: none; }
+table.detail td.good { color: var(--good); font-weight: 800; }
+table.detail td.bad { color: var(--bad); font-weight: 800; }
+table.detail td.neutral { color: #b08000; font-weight: 800; }
+
+.basket-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 0.75rem; margin:0.2rem 0 0.7rem;
+  border:1px solid rgba(122,66,200,0.15); border-radius:10px;
+  background:rgba(122,66,200,0.03);
+}
+.basket-icons { display:flex; gap:9px; font-size:16px; align-items:center; }
+.basket-icon { position:relative; }
+.basket-icon .sup { position:absolute; top:-6px; right:-6px; font-size:9px; line-height:1; }
+.basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
+.basket-count { font-size:11px; font-weight:700; color: var(--muted); white-space:nowrap; }
+
+.sc-maths { margin: 0.4rem 0 0.2rem; }
+.sc-maths summary { font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 5px 0; list-style-position: inside; }
+.sc-maths table.detail { margin-top: 0.2rem; }
+
+.sc-note { font-size: 10.5px; color: #9a96a8; padding: 0.7rem 1.1rem 0.2rem; line-height: 1.45; }
+.sc-brand { text-align: center; padding: 0.85rem 1rem 1rem; background: #faf8ff; border-top: 1px solid #f0ecfa; margin-top: 0.6rem; }
+.sc-brand .nm { font-size: 14.5px; font-weight: 800; }
+.sc-brand .rl { font-size: 11.5px; color: var(--purple); font-weight: 700; }
+.sc-brand .str { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.md-note { font-size: 12px; color: #7a6000; background: #fffbf0; border: 1px solid #ede5c8; border-radius: 8px; padding: 0.55rem 0.7rem; margin: 0 0 0.7rem; line-height: 1.5; }
+
+.notfound { text-align: center; padding: 3rem 1.5rem; color: var(--muted); }
+.notfound .big { font-size: 32px; margin-bottom: 0.6rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="sharecard hidden" id="shareCard">
+    <div class="sc-hero">
+      <div class="eyebrow">Your first 12 months</div>
+      <div class="big">£<span id="scHero">0</span></div>
+      <div class="tag">better off with one UW bill</div>
+      <div class="who" id="scWho"></div>
+    </div>
+    <div class="sc-body">
+      <div class="basket-row" id="basketRow">
+        <div class="basket-icons">
+          <span class="basket-icon basket-icon-grouped hidden" id="biEnergy" title="Energy">⚡🔥</span>
+          <span class="basket-icon hidden" id="biBroadband" title="Broadband">🛜</span>
+          <span class="basket-icon hidden" id="biMobile" title="Mobile">📱</span>
+          <span class="basket-icon hidden" id="biInsurance" title="Insurance">🛡️</span>
+        </div>
+        <div class="basket-count" id="basketCount">0 services</div>
+      </div>
+
+      <p id="mdNote" class="md-note hidden"></p>
+
+      <table class="detail">
+        <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+        <thead><tr><th></th><th>Current</th><th>UW*</th><th>Saving</th></tr></thead>
+        <tbody>
+          <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
+        </tbody>
+      </table>
+      <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your monthly direct debit, minus estimated cashback</p>
+
+      <div class="sc-line sumrow" style="margin-top:0.5rem;">
+        <span class="k">Year-one Savings on Services</span>
+        <span class="v" id="annualServiceSavings">£0</span>
+      </div>
+
+      <details class="sc-maths">
+        <summary>Breakdown</summary>
+        <table class="detail">
+          <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <tbody>
+            <tr id="scEnergyRow" class="hidden"><td>⚡🔥 Energy</td><td id="scEnergyNow"></td><td id="scEnergyUw"></td><td id="scEnergySave"></td></tr>
+            <tr id="scBbRow" class="hidden"><td>🛜 Broadband</td><td id="scBbNow"></td><td id="scBbUw"></td><td id="scBbSave"></td></tr>
+            <tr id="scMobRow" class="hidden"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
+            <tr id="scInsuranceRow" class="hidden"><td>🛡️ Insurance</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>
+            <tr id="scAdjustRow" class="hidden"><td>✏️ Adjustment</td><td id="scAdjustNow"></td><td id="scAdjustUw"></td><td id="scAdjustSave"></td></tr>
+            <tr id="scAdjustNoteRow" class="hidden"><td colspan="4" style="font-size:11px; color:var(--muted); font-weight:600; padding-top:0; padding-bottom:8px; border-bottom:1px solid #f0edf7;"></td></tr>
+            <tr class="tot"><td>Subtotal</td><td id="scSubtotNow"></td><td id="scSubtotUw"></td><td id="scSubtotSave"></td></tr>
+            <tr id="scCbRow" class="hidden"><td>💳 Cashback</td><td>&mdash;</td><td id="scCbUw"></td><td id="scCbSave"></td></tr>
+            <tr class="tot"><td>Total</td><td id="scBdTotNow"></td><td id="scBdTotUw"></td><td id="scBdTotSave"></td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <div class="sc-line sumrow" style="margin-top:0.5rem;">
+        <span class="k">Year-one Welcome Bonuses</span>
+        <span class="v" id="scBenefitsTotal">£0</span>
+      </div>
+
+      <details class="sc-maths">
+        <summary>Breakdown</summary>
+        <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral</span><span class="v good" id="scReferral">£0</span></div>
+        <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 Broadband (6x £0)</span><span class="v good" id="scBbFree">£0</span></div>
+        <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 Mobile Sim (6x £0)</span><span class="v good" id="scMobileFree">£0</span></div>
+        <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💳 Cashback (0x £50)</span><span class="v good" id="scWelcome">£0</span></div>
+        <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 Card Fee (3x £3)</span><span class="v good" id="scCardFee">£9</span></div>
+        <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ Boiler Cover (3x £0)</span><span class="v good" id="scBoilerFree">£0</span></div>
+        <div class="sc-line" id="scExitDeductionRow"><span class="k">⚠️ Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
+      </details>
+      <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
+    </div>
+    <p class="sc-note">Estimate based on today's prices and the figures discussed in this appointment. Not a formal quote.</p>
+    <div class="sc-brand">
+      <div class="nm">Adrian Croft</div>
+      <div class="rl">UW Authorised Partner · Market Harborough</div>
+      <div class="str">Giving people financial breathing space</div>
+    </div>
+  </div>
+
+  <div class="notfound hidden" id="notFound">
+    <div class="big">🔗</div>
+    <p>This link doesn't seem to have any figures attached to it.</p>
+    <p class="sub" style="margin-top:0.4rem;">Please ask for a fresh link.</p>
+  </div>
+
+</div>
+
+<script>
+// Keep in sync with CONFIG in appointment-companion.html
+const EXIT_REFUND = { minServices: 3, maxRefund: 400 };
+const MOBILE_EXTRA_M7_12 = 10;   // CONFIG.mobile.plans.unlimitedMax.extraM7to12
+const CASHBACK_FREE_MONTHS = 3;  // CONFIG.cashback.freeMonths
+const CARD_FEE_MONTHLY = 3;      // CONFIG.cashback.cardFeeMonthly
+
+function $(id) { return document.getElementById(id); }
+
+function b64urlDecode(str) {
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+function money(n) { const v = Math.round(n * 100) / 100; const dp = v % 1 !== 0 ? 2 : 0; return v.toLocaleString('en-GB', { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+function fmt(v) { return (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)); }
+
+function saveLine(el, val) {
+  el.textContent = (val < 0 ? '−£' + money(Math.abs(val)) : '£' + money(val));
+  el.classList.toggle('bad', val < 0);
+  el.classList.toggle('good', val > 0);
+}
+
+function render(d) {
+  const g = (k, def) => (d[k] !== undefined ? d[k] : (def !== undefined ? def : 0));
+
+  const f = g('f');
+  const hasEnergy = !!(f & 1);
+  const hasBroadband = !!(f & 2);
+  const hasMobile = !!(f & 4);
+  const cbOn = !!(f & 8);
+  const refunded = !!(f & 16);
+
+  const cn = g('cn');
+  const cT = g('cT'), uT = g('uT'), sM = g('sM');
+  const totUw = uT - (cbOn ? cn : 0);
+  const totSave = cT - totUw;
+  const annual = Math.round((sM + (cbOn ? cn : 0)) * 12);
+
+  // Hero
+  const hero = g('y');
+  $('scHero').textContent = (hero < 0 ? '−' : '') + Math.abs(hero).toLocaleString('en-GB');
+  const nm = g('n', '');
+  $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
+
+  // Basket row
+  const md = g('md');
+  $('biEnergy').classList.toggle('hidden', !hasEnergy);
+  $('biBroadband').classList.toggle('hidden', !hasBroadband);
+  $('biMobile').classList.toggle('hidden', !hasMobile);
+  $('biInsurance').classList.toggle('hidden', g('it') === 0);
+  if (md > 0) {
+    const sup = document.createElement('span');
+    sup.className = 'sup'; sup.textContent = '🥪';
+    $('biMobile').appendChild(sup);
+    $('biMobile').classList.remove('hidden');
+  }
+  const ct = g('ct');
+  $('basketCount').textContent = ct + ' service' + (ct === 1 ? '' : 's');
+
+  // Meal-deal note
+  if (md > 0) {
+    $('mdNote').classList.remove('hidden');
+    $('mdNote').textContent = '🥪 Includes ' + md + ' additional SIM' + (md === 1 ? '' : 's') + ' at meal-deal pricing — ask about adding these.';
+  }
+
+  // Total monthly summary
+  $('totNow').textContent = fmt(cT);
+  $('totUw').textContent = fmt(totUw);
+  saveLine($('totSave'), totSave);
+
+  // Year-one Savings on Services
+  $('annualServiceSavings').textContent = fmt(annual);
+  $('annualServiceSavings').classList.toggle('good', annual > 0);
+  $('annualServiceSavings').classList.toggle('bad', annual < 0);
+
+  // Energy row
+  $('scEnergyRow').classList.toggle('hidden', !hasEnergy);
+  if (hasEnergy) {
+    $('scEnergyNow').textContent = fmt(g('cE'));
+    $('scEnergyUw').textContent = fmt(g('uE'));
+    saveLine($('scEnergySave'), g('cE') - g('uE'));
+  }
+
+  // Broadband row
+  $('scBbRow').classList.toggle('hidden', !hasBroadband);
+  if (hasBroadband) {
+    $('scBbNow').textContent = fmt(g('cB'));
+    $('scBbUw').textContent = fmt(g('uB'));
+    saveLine($('scBbSave'), g('cB') - g('uB'));
+  }
+
+  // Mobile row
+  $('scMobRow').classList.toggle('hidden', !hasMobile);
+  if (hasMobile) {
+    $('scMobNow').textContent = fmt(g('cM'));
+    $('scMobUw').textContent = fmt(g('uM'));
+    const mobSave = g('cM') - g('uM');
+    saveLine($('scMobSave'), mobSave);
+    const mobNeutral = mobSave < 0 && md > 0;
+    $('scMobSave').classList.toggle('neutral', mobNeutral);
+    if (mobNeutral) $('scMobSave').classList.remove('bad');
+    $('scMobRow').querySelector('td').textContent = '📱 Mobile' + (md > 0 ? ' ' + '🥪'.repeat(md) : '');
+  }
+
+  // Insurance row
+  const it = g('it');
+  $('scInsuranceRow').classList.toggle('hidden', it === 0);
+  if (it > 0) {
+    $('scInsuranceUw').textContent = fmt(it);
+    saveLine($('scInsuranceSave'), -it);
+  }
+
+  // Manual adjustment row
+  const mac = g('mac'), mau = g('mau');
+  const adjustOn = mac !== 0 || mau !== 0;
+  $('scAdjustRow').classList.toggle('hidden', !adjustOn);
+  if (adjustOn) {
+    $('scAdjustNow').textContent = fmt(mac);
+    $('scAdjustUw').textContent = fmt(mau);
+    saveLine($('scAdjustSave'), mac - mau);
+  }
+  const macr = g('macr', ''), maur = g('maur', '');
+  const reasons = [];
+  if (macr) reasons.push('Current: ' + macr);
+  if (maur) reasons.push('UW: ' + maur);
+  $('scAdjustNoteRow').classList.toggle('hidden', !adjustOn || reasons.length === 0);
+  if (reasons.length) $('scAdjustNoteRow').querySelector('td').textContent = reasons.join(' · ');
+
+  // Subtotal
+  $('scSubtotNow').textContent = fmt(cT);
+  $('scSubtotUw').textContent = fmt(uT);
+  saveLine($('scSubtotSave'), sM);
+
+  // Cashback row
+  $('scCbRow').classList.toggle('hidden', !cbOn);
+  if (cbOn) {
+    const cbUwVal = -cn;
+    $('scCbUw').textContent = (cbUwVal < 0 ? '−£' + money(Math.abs(cbUwVal)) : '£' + money(cbUwVal));
+    $('scCbUw').classList.toggle('good', cbUwVal < 0);
+    $('scCbUw').classList.toggle('bad', cbUwVal > 0);
+    saveLine($('scCbSave'), cn);
+  }
+
+  // Total
+  $('scBdTotNow').textContent = fmt(cT);
+  $('scBdTotUw').textContent = fmt(totUw);
+  saveLine($('scBdTotSave'), totSave);
+
+  // Year-one Welcome Bonuses breakdown
+  const bf = g('bf'), w = g('w'), rf = g('rf'), mf = g('mf'), bcf = g('bcf'), ed = g('ed'), fm = g('fm'), au = g('au'), bc = g('bc');
+
+  $('scReferralRow').classList.toggle('hidden', rf === 0);
+  $('scReferral').textContent = '£' + rf;
+
+  $('scBbFreeRow').classList.toggle('hidden', bf === 0);
+  $('scBbFree').textContent = '£' + bf;
+  $('scBbFreeLabel').textContent = '🛜 Broadband (6x £' + Math.round(g('uBr')) + ')';
+
+  $('scMobileFreeRow').classList.toggle('hidden', mf === 0);
+  $('scMobileFree').textContent = '£' + mf;
+  $('scMobileFreeLabel').textContent = '📱 Mobile Sim (6x £' + (au * MOBILE_EXTRA_M7_12) + ')';
+
+  $('scWelcomeRow').classList.toggle('hidden', w === 0);
+  $('scWelcomeLabel').textContent = '💳 Cashback (' + (w / 50) + 'x £50)';
+  $('scWelcome').textContent = '£' + w;
+
+  $('scCardFeeRow').classList.toggle('hidden', !cbOn);
+  $('scCardFee').textContent = '+£' + fm;
+  $('scCardFeeLabel').textContent = '💳 Card Fee (' + CASHBACK_FREE_MONTHS + 'x £' + CARD_FEE_MONTHLY + ')';
+
+  $('scBoilerFreeRow').classList.toggle('hidden', bcf === 0);
+  $('scBoilerFree').textContent = '£' + bcf;
+  $('scBoilerFreeLabel').textContent = '🛡️ Boiler Cover (3x £' + bc + ')';
+
+  $('scExitDeductionRow').classList.toggle('hidden', ed === 0);
+  $('scExitDeduction').textContent = '−£' + money(ed);
+
+  // Exit fee info block
+  const ef = g('ef');
+  if (ef === 0) {
+    $('scExitBlock').classList.add('hidden');
+  } else {
+    $('scExitBlock').classList.remove('hidden');
+    const maxR = EXIT_REFUND.maxRefund;
+    let msg;
+    if (refunded && ed === 0) {
+      msg = '🛡️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW ✓';
+    } else if (refunded && ed > 0) {
+      msg = '🛡️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>£' + money(ed) + " still to pay, already included above — so you're still better off";
+    } else {
+      const needed = Math.max(0, EXIT_REFUND.minServices - ct);
+      msg = 'ℹ️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
+    }
+    $('scExitMsg').innerHTML = msg;
+  }
+
+  // Year-one Welcome Bonuses total
+  const benefitsTotal = bf + w + rf + mf + bcf + (cbOn ? fm : 0) - ed;
+  $('scBenefitsTotal').textContent = fmt(benefitsTotal);
+  $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
+  $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
+
+  $('shareCard').classList.remove('hidden');
+}
+
+function init() {
+  try {
+    const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('d');
+    if (!encoded) throw new Error('no data in link');
+    const d = JSON.parse(b64urlDecode(encoded));
+    render(d);
+  } catch (e) {
+    $('notFound').classList.remove('hidden');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
