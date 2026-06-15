@@ -546,19 +546,15 @@ label.active-tier { color:var(--purple); font-weight:700; }
         </table>
         <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your monthly direct debit, minus estimated cashback</p>
         <div class="sc-line sumrow" style="margin-top:0.5rem;">
-          <span class="k">Service savings over 12 months</span>
+          <span class="k">Year-one Savings on Services</span>
           <span class="v" id="annualServiceSavings">£0</span>
-        </div>
-        <div class="sc-line sumrow">
-          <span class="k">Year-one Welcome Benefits</span>
-          <span class="v" id="scBenefitsTotal">£0</span>
         </div>
         <div id="scEnergyNoteRow" class="hidden" style="font-size:11px; color:#7a6000; font-weight:600; padding:6px 0 0;">
           💡 Add energy quotes to see more savings — tap 🥪 on the main page
         </div>
 
         <details class="sc-maths">
-          <summary>Monthly breakdown</summary>
+          <summary>Breakdown</summary>
           <table class="detail">
             <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
             <tbody>
@@ -575,8 +571,13 @@ label.active-tier { color:var(--purple); font-weight:700; }
           </table>
         </details>
 
+        <div class="sc-line sumrow" style="margin-top:0.5rem;">
+          <span class="k">Year-one Welcome Bonuses</span>
+          <span class="v" id="scBenefitsTotal">£0</span>
+        </div>
+
         <details class="sc-maths">
-          <summary>Welcome Bonus Breakdown</summary>
+          <summary>Breakdown</summary>
           <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral</span><span class="v good" id="scReferral">£0</span></div>
           <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 Broadband (6x £0)</span><span class="v good" id="scBbFree">£0</span></div>
           <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 Mobile Sim (6x £0)</span><span class="v good" id="scMobileFree">£0</span></div>
@@ -1173,7 +1174,7 @@ function compute(previewSims = 0) {
   const cbOn = state.includeCashback;
   // Cashback's annual contribution uses cashbackNet x12 (the same figure behind the
   // monthly Saving column) rather than separately-rounded cbAnnual/cardAnnualFee —
-  // so "Service savings over 12 months" + "Year-one Welcome Benefits" always equals year1 exactly.
+  // so "Year-one Savings on Services" + "Year-one Welcome Bonuses" always equals year1 exactly.
   const cashbackAnnualNet = cashbackNet * 12 + freeMonthsValue;
   const year1 = monthlySaving * 12
               + welcome + referral
@@ -1510,7 +1511,7 @@ function renderCard(r) {
   }
 
   // benefits total = everything in this section, including exit fees still to pay.
-  // Service savings over 12 months + this Total = the hero figure, exactly.
+  // Year-one Savings on Services + this Total = the hero figure, exactly.
   $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
   $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
   const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
@@ -1573,7 +1574,7 @@ function renderCard(r) {
 }
 
 // "Try adding" pill — directly toggles the meal-deal SIM preview, live recalc, no close.
-// The totals (Service savings, Year-one Welcome Benefits) are always visible, so the effect is
+// The totals (Year-one Savings on Services, Year-one Welcome Bonuses) are always visible, so the effect is
 // immediately clear without needing to expand any details — those remain available
 // for anyone who wants the line-by-line breakdown.
 $('biSimAdd').addEventListener('click', () => {
@@ -1595,17 +1596,25 @@ $('copyBtn').addEventListener('click', () => {
   lines.push('UW SAVINGS — FIRST 12 MONTHS' + (nm ? ' (' + nm + ')' : ''));
   lines.push('Better off by: £' + Math.round(r.year1));
   lines.push('');
+  const cashbackAdj = r.cbOn ? r.cashbackNet : 0;
+  const steadyUwNet = r.uwTotalBase - cashbackAdj;
+  lines.push('Total monthly summary: £' + money(r.currentTotal) + ' \u2192 £' + money(steadyUwNet) + ' (save £' + money(r.currentTotal - steadyUwNet) + '/m)');
+  lines.push('');
   lines.push('Monthly savings:');
   if (state.services.energy) lines.push('  Energy: £' + money(r.currentEnergy - r.uwEnergy) + '/m');
   if (state.services.broadband) lines.push('  Broadband: £' + money(r.currentBb - r.uwBb) + '/m');
   if (state.services.mobile) lines.push('  Mobile: £' + money(r.currentMob - r.uwMob) + '/m');
   if (r.insuranceTotal) lines.push('  Insurance: −£' + money(r.insuranceTotal) + '/m');
-  if (r.manualAdjustCurrent || r.manualAdjustUw) lines.push('  Adjustment: £' + money(r.manualAdjustCurrent - r.manualAdjustUw) + '/m');
+  if (r.manualAdjustCurrent || r.manualAdjustUw) {
+    lines.push('  Adjustment: £' + money(r.manualAdjustCurrent - r.manualAdjustUw) + '/m');
+    if (r.manualAdjustCurrentReason) lines.push('    Current: ' + r.manualAdjustCurrentReason);
+    if (r.manualAdjustUwReason) lines.push('    UW: ' + r.manualAdjustUwReason);
+  }
   if (r.cbOn) lines.push('  Cashback (net): £' + money(r.cashbackNet) + '/m');
   const cfTotalSaveNet = r.monthlySaving + (r.cbOn ? r.cashbackNet : 0);
-  lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = £' + money(cfTotalSaveNet * 12));
+  lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = Year-one Savings on Services: £' + money(cfTotalSaveNet * 12));
   lines.push('');
-  lines.push('Year-one Welcome Benefits:');
+  lines.push('Year-one Welcome Bonuses:');
   if (r.referral) lines.push('  Referral: £' + r.referral);
   if (r.bbFree) lines.push('  Broadband (6x £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
   if (r.mobileFreeMonths) lines.push('  Mobile Sim (6x £' + (r.additionalUnlimited * CONFIG.mobile.plans.unlimitedMax.extraM7to12) + '): £' + money(r.mobileFreeMonths));
@@ -1621,6 +1630,10 @@ $('copyBtn').addEventListener('click', () => {
     else
       lines.push('  Exit fees: £' + money(r.exitFees) + ' — add ' + (CONFIG.exitFeeRefund.minServices - r.count) + ' more service(s) for up to £' + maxR + ' UW cover');
   }
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
+    + (r.cbOn ? r.freeMonthsValue : 0)
+    - r.exitDeduction;
+  lines.push('  Total: £' + money(benefitsTotal));
   lines.push('');
   lines.push(CONFIG.partner.name + ' — ' + CONFIG.partner.role);
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
