@@ -93,9 +93,9 @@ table.detail td.neutral { color: #b08000; font-weight: 800; }
 
   <div class="sharecard hidden" id="shareCard">
     <div class="sc-hero">
-      <div class="eyebrow">Your first 12 months</div>
+      <div class="eyebrow">Year one in your pocket</div>
       <div class="big">£<span id="scHero">0</span></div>
-      <div class="tag">better off with one UW bill</div>
+      <div class="tag">one bill · one app · one password</div>
       <div class="who" id="scWho"></div>
     </div>
     <div class="sc-body">
@@ -118,7 +118,7 @@ table.detail td.neutral { color: #b08000; font-weight: 800; }
           <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
         </tbody>
       </table>
-      <p class="sub" style="font-size:11px; margin-top:0.25rem;">* your monthly direct debit, minus estimated cashback</p>
+      <p class="sub" id="ddNote" style="font-size:11px; margin-top:0.25rem;">* monthly direct debit, minus estimated cashback</p>
 
       <div class="sc-line sumrow" style="margin-top:0.5rem;">
         <span class="k">Year-one Savings on Services</span>
@@ -240,7 +240,7 @@ function render(d) {
   // Meal-deal note
   if (md > 0) {
     $('mdNote').classList.remove('hidden');
-    $('mdNote').textContent = '🥪 Includes ' + md + ' additional SIM' + (md === 1 ? '' : 's') + ' at meal-deal pricing — ask about adding these.';
+    $('mdNote').textContent = 'Includes ' + md + ' extra "meal deal SIM' + (md === 1 ? '' : 's') + '" — please ask about ' + (md === 1 ? 'this' : 'these') + '.';
   }
 
   // Total monthly summary
@@ -252,6 +252,18 @@ function render(d) {
   $('annualServiceSavings').textContent = fmt(annual);
   $('annualServiceSavings').classList.toggle('good', annual > 0);
   $('annualServiceSavings').classList.toggle('bad', annual < 0);
+
+  // The UW* column is the ongoing (post-intro) monthly cost, net of cashback — make that
+  // explicit whenever a free-period offer is in play, since those months look cheaper.
+  {
+    const freeItems = [];
+    if (g('bf') > 0) freeItems.push('broadband');
+    if (g('mf') > 0) freeItems.push('mobile SIM');
+    let ddNote = '* monthly direct debit';
+    if (freeItems.length) ddNote += ', once your free ' + freeItems.join(' and ') + ' months end';
+    ddNote += ', minus estimated cashback';
+    $('ddNote').textContent = ddNote;
+  }
 
   // Energy row
   $('scEnergyRow').classList.toggle('hidden', !hasEnergy);
