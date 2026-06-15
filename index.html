@@ -250,7 +250,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
 <div class="wrap">
   <header>
     <h1>💰 Appointment Companion</h1>
-    <p>Capture current costs - show the first 12 months with UW</p>
+    <p>What they pay now. What they'd pocket in year one.</p>
   </header>
 
   <!-- Customer & household -->
@@ -432,24 +432,18 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- INSURANCE -->
   <div class="card hidden" id="insuranceCard">
     <h2>🛡️ Insurance</h2>
-    <p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can't advise or compare. If it's in the customer's basket on quote, capture the UW cost here so the totals match.</p>
+    <p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can't advise or compare. Toggle on what's in the customer's basket.</p>
     <div class="switchrow">
-      <span class="lbl">Income Protector</span>
+      <span class="lbl">Income Protector <span class="sub">£16/m</span></span>
       <span class="switch"><input type="checkbox" id="incomeProtectorToggle"><span class="track"></span></span>
     </div>
-    <div id="incomeProtectorFields" class="hidden" style="margin: 0.4rem 0 0.6rem;">
-      <div class="field money" style="margin-bottom:0;"><label>UW cost /m</label><input type="number" id="incomeProtectorCost" inputmode="decimal" placeholder="0" step="0.01"></div>
-    </div>
-    <div id="boilerCoverRow" class="switchrow hidden">
-      <span class="lbl">Boiler Cover</span>
+    <div id="boilerCoverRow" class="switchrow hidden" style="margin-top:0.5rem;">
+      <span class="lbl">Boiler Cover <span class="sub">£25/m</span></span>
       <span class="switch"><input type="checkbox" id="boilerCoverToggle"><span class="track"></span></span>
     </div>
-    <div id="boilerCoverFields" class="hidden" style="margin-top: 0.4rem;">
-      <div class="field money"><label>UW cost /m</label><input type="number" id="boilerCoverCost" inputmode="decimal" placeholder="0" step="0.01"></div>
-      <div class="switchrow" style="padding-top:0;">
-        <span class="lbl">3 months free</span>
-        <span class="switch"><input type="checkbox" id="boilerCoverFreeToggle"><span class="track"></span></span>
-      </div>
+    <div id="boilerCoverFreeRow" class="switchrow hidden" style="padding-left:1rem; margin-top:0.25rem;">
+      <span class="lbl" style="color:var(--muted);">3 months free</span>
+      <span class="switch"><input type="checkbox" id="boilerCoverFreeToggle"><span class="track"></span></span>
     </div>
   </div>
 
@@ -652,6 +646,13 @@ const CONFIG = {
   // Exit fees refunded by UW up to £400 when taking 3+ services
   exitFeeRefund: { minServices: 3, maxRefund: 400 },
 
+  // Insurance — fixed monthly rates (update here when UW changes pricing)
+  insurance: {
+    incomeProtector: 16,   // £/m fixed rate
+    boilerCover: 25,       // £/m fixed rate
+    boilerCoverFreeMonths: 3
+  },
+
   // Cashback card
   cashback: {
     rateLow: 0.01,           // 1% — capped per month by service count below (real T&Cs rate)
@@ -727,7 +728,7 @@ function setHome(which) {
   if (which !== 'homeowner') {
     $('boilerCoverToggle').checked = false;
     $('boilerCoverFreeToggle').checked = false;
-    $('boilerCoverFields').classList.add('hidden');
+    $('boilerCoverFreeRow').classList.add('hidden');
   }
   ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));
   calc();
@@ -863,12 +864,9 @@ document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(btn => {
 });
 
 // Insurance: Income Protector / Boiler Cover
-$('incomeProtectorToggle').addEventListener('change', e => {
-  $('incomeProtectorFields').classList.toggle('hidden', !e.target.checked);
-  calc();
-});
+$('incomeProtectorToggle').addEventListener('change', calc);
 $('boilerCoverToggle').addEventListener('change', e => {
-  $('boilerCoverFields').classList.toggle('hidden', !e.target.checked);
+  $('boilerCoverFreeRow').classList.toggle('hidden', !e.target.checked);
   if (!e.target.checked) $('boilerCoverFreeToggle').checked = false;
   calc();
 });
@@ -1015,9 +1013,9 @@ function compute(previewSims = 0) {
   // they count towards cheaper energy tiers, the cashback welcome bonus, and referral
   // eligibility, the same as energy/broadband/mobile. They do NOT unlock the broadband
   // 6-months-free offer though, which has its own specific eligibility further below.
-  const incomeProtectorCost = $('incomeProtectorToggle').checked ? numF('incomeProtectorCost') : 0;
-  const boilerCoverCost = $('boilerCoverToggle').checked ? numF('boilerCoverCost') : 0;
-  const boilerCoverFree = (boilerCoverCost > 0 && $('boilerCoverFreeToggle').checked) ? boilerCoverCost * 3 : 0;
+  const incomeProtectorCost = $('incomeProtectorToggle').checked ? CONFIG.insurance.incomeProtector : 0;
+  const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
+  const boilerCoverFree = (boilerCoverCost > 0 && $('boilerCoverFreeToggle').checked) ? boilerCoverCost * CONFIG.insurance.boilerCoverFreeMonths : 0;
   const insuranceTotal = incomeProtectorCost + boilerCoverCost;
   const insuranceCount = (incomeProtectorCost > 0 || boilerCoverCost > 0) ? 1 : 0;
 
@@ -1495,7 +1493,7 @@ function renderCard(r) {
   $('scCardFeeLabel').textContent = '💳 Card Fee (' + CONFIG.cashback.freeMonths + 'x £' + CONFIG.cashback.cardFeeMonthly + ')';
   $('scBoilerFreeRow').classList.toggle('hidden', r.boilerCoverFree === 0);
   $('scBoilerFree').textContent = '£' + Math.round(r.boilerCoverFree);
-  $('scBoilerFreeLabel').textContent = '🛡️ Boiler Cover (3x £' + r.boilerCoverCost + ')';
+  $('scBoilerFreeLabel').textContent = '🛡️ Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'x £' + CONFIG.insurance.boilerCover + ')';
   // Exit fees — info block below Total, not in benefits Total
   if (r.exitFees === 0) {
     $('scExitBlock').classList.add('hidden');
@@ -1624,7 +1622,7 @@ $('copyBtn').addEventListener('click', () => {
   if (r.mobileFreeMonths) lines.push('  Mobile Sim (6x £' + (r.additionalUnlimited * CONFIG.mobile.plans.unlimitedMax.extraM7to12) + '): £' + money(r.mobileFreeMonths));
   if (r.welcome) lines.push('  Cashback (' + (r.welcome / 50) + 'x £50): £' + r.welcome);
   if (r.cbOn) lines.push('  Card Fee (' + CONFIG.cashback.freeMonths + 'x £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
-  if (r.boilerCoverFree) lines.push('  Boiler Cover (3x £' + r.boilerCoverCost + '): £' + money(r.boilerCoverFree));
+  if (r.boilerCoverFree) lines.push('  Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'x £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     if (r.refunded && r.exitDeduction === 0)
@@ -1777,7 +1775,8 @@ $('resetBtn').addEventListener('click', () => {
   $('simList').innerHTML = '';
   $('mobileTotalsRow').style.display = 'none';
   // New toggles/panels (Whole Home Wi-Fi, manual adjustments, insurance)
-  ['energyAdjustFields','incomeProtectorFields','boilerCoverFields','manualAdjustFields'].forEach(id => $(id).classList.add('hidden'));
+  ['energyAdjustFields','manualAdjustFields'].forEach(id => $(id).classList.add('hidden'));
+  $('boilerCoverFreeRow').classList.add('hidden');
   state.energyAdjustTarget = 'current';
   state.energyAdjustPeriod = 'monthly';
   document.querySelector('[data-adjusttarget="current"]').classList.add('on');
