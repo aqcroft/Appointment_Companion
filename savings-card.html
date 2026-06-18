@@ -68,7 +68,7 @@ table.detail td.neutral { color: #b08000; font-weight: 800; }
   background:rgba(122,66,200,0.03);
 }
 .basket-icons { display:flex; gap:9px; font-size:16px; align-items:center; }
-.basket-icon { position:relative; }
+.basket-icon { position:relative; opacity:1; transition: opacity 0.15s; }
 .basket-icon.could { opacity:0.15; }
 .basket-icon .sup { position:absolute; top:-6px; right:-6px; font-size:9px; line-height:1; }
 .basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
@@ -108,9 +108,9 @@ table.detail td.neutral { color: #b08000; font-weight: 800; }
       <div class="basket-row" id="basketRow">
         <div class="basket-icons">
           <span class="basket-icon basket-icon-grouped hidden" id="biEnergy" title="Energy">⚡🔥</span>
-          <span class="basket-icon hidden" id="biBroadband" title="Broadband">🛜</span>
-          <span class="basket-icon hidden" id="biMobileOne" title="Mobile SIM">📱</span>
-          <span class="basket-icon hidden" id="biMobileTwo" title="Mobile SIM">📱</span>
+          <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
+          <span class="basket-icon" id="biMobileOne" title="Mobile SIM">📱</span>
+          <span class="basket-icon" id="biMobileTwo" title="Mobile SIM">📱</span>
           <span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>
         </div>
         <div class="basket-count" id="basketCount">0 services</div>
@@ -168,7 +168,7 @@ table.detail td.neutral { color: #b08000; font-weight: 800; }
       </details>
       <div id="scExitBlock" class="exit-block hidden"><div id="scExitMsg"></div></div>
     </div>
-    <p class="sc-note">Estimate based on today's prices and the figures discussed in this appointment. Not a formal quote.</p>
+    <p class="sc-note" id="scEstimateNote">Estimate based on prices as at today. Not a formal quote.</p>
     <div class="sc-brand">
       <div class="nm">Adrian Croft</div>
       <div class="rl">UW Authorised Partner · Market Harborough</div>
@@ -220,6 +220,11 @@ function cashbackBasisText(tier, spend) {
   return '** average cashback, ' + spendText;
 }
 
+function estimateDateText(isoDate) {
+  const d = isoDate ? new Date(isoDate + 'T00:00:00') : new Date();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function setMoney(id, value) { $(id).textContent = fmt(value); }
 
 function render(d) {
@@ -246,9 +251,10 @@ function render(d) {
   $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
 
   $('biEnergy').classList.toggle('hidden', !hasEnergy);
-  $('biBroadband').classList.toggle('hidden', !hasBroadband);
-  $('biMobileOne').classList.toggle('hidden', !hasMobile && md < 1);
-  $('biMobileTwo').classList.toggle('hidden', !(hasMobile && (g('au') || 0) > 1));
+  $('biBroadband').classList.toggle('could', !hasBroadband);
+  const includedSims = g('is', hasMobile ? 2 : 0);
+  $('biMobileOne').classList.toggle('could', includedSims < 1 && md < 1);
+  $('biMobileTwo').classList.toggle('could', includedSims < 2 && md < 2);
   $('biInsurance').classList.toggle('could', g('it') === 0);
   $('basketCount').textContent = ct + ' service' + (ct === 1 ? '' : 's');
 
@@ -374,9 +380,9 @@ function render(d) {
     const maxR = EXIT_REFUND.maxRefund;
     let msg;
     if (refunded && ed === 0) {
-      msg = '🛡️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
+      msg = '↩️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
     } else if (refunded && ed > 0) {
-      msg = '🛡️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>£' + money(ed) + " still to pay, already included above — so you're still better off";
+      msg = '↩️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>£' + money(ed) + " still to pay, already included above — so you're still better off";
     } else {
       const needed = Math.max(0, EXIT_REFUND.minServices - ct);
       msg = '⚠️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
@@ -392,6 +398,7 @@ function render(d) {
   const link = g('bl', '');
   $('scJoinLink').href = link || DEFAULT_JOIN_URL;
   $('scJoinLink').textContent = link ? 'Open your basket →' : 'Start saving here →';
+  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText(g('dt', '')) + '. Not a formal quote.';
 
   $('shareCard').classList.remove('hidden');
 }
