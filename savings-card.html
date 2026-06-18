@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,6 +26,9 @@ th { text-align:right; font-size:11px; text-transform:uppercase; color:var(--mut
 th:first-child, td:first-child { text-align:left; }
 td { padding:7px 6px; text-align:right; border-bottom:1px solid #f0edf7; vertical-align:top; }
 tr.tot td { font-weight:800; border-top:2px solid var(--line); border-bottom:none; }
+details.maths { margin:.45rem 0 .2rem; }
+details.maths summary { font-size:12px; font-weight:700; color:var(--purple); cursor:pointer; padding:5px 0; list-style-position:inside; }
+details.maths table { margin-top:.2rem; }
 .good { color:var(--good); font-weight:800; }
 .bad { color:var(--bad); font-weight:800; }
 .neutral { color:#b08000; font-weight:800; }
@@ -60,9 +64,19 @@ tr.tot td { font-weight:800; border-top:2px solid var(--line); border-bottom:non
         <thead><tr><th></th><th>Current</th><th>UW*</th><th>Saving</th></tr></thead>
         <tbody id="monthlyRows"></tbody>
       </table>
-      <p class="cashback-note hidden" id="cashbackNote">** average cashback, £1,000 monthly spend</p>
+      <details class="maths">
+        <summary>Breakdown</summary>
+        <table>
+          <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <tbody id="monthlyBreakdownRows"></tbody>
+        </table>
+        <p class="cashback-note hidden" id="cashbackNote">** average cashback, £1,000 monthly spend</p>
+      </details>
       <div class="line sumrow"><span>Year-one Welcome Bonuses</span><span class="v" id="benefitsTotal">£0</span></div>
-      <div id="benefitRows"></div>
+      <details class="maths">
+        <summary>Breakdown</summary>
+        <div id="benefitRows"></div>
+      </details>
       <div class="exit hidden" id="exitMsg"></div>
     </div>
     <p class="note">Estimate based on prices and figures discussed in the appointment. Not a formal quote.</p>
@@ -119,23 +133,24 @@ if (!d) {
   document.getElementById('empty').classList.remove('hidden');
 } else {
   const rows = document.getElementById('monthlyRows');
+  const detailRows = document.getElementById('monthlyBreakdownRows');
   const cashbackNet = d.cn || 0;
   const steadyUw = (d.uT || 0) - cashbackNet;
   const steadySave = (d.cT || 0) - steadyUw;
   document.getElementById('hero').textContent = pounds(d.y || 0);
   document.getElementById('who').textContent = d.n ? 'Prepared for ' + d.n : '';
   rows.appendChild(addMonthlyRow('Total monthly summary', d.cT || 0, steadyUw, steadySave));
-  if (d.f & 1) rows.appendChild(addMonthlyRow('⚡🔥 Energy', d.cE || 0, d.uE || 0, (d.cE || 0) - (d.uE || 0)));
-  if (d.f & 2) rows.appendChild(addMonthlyRow('🛜 Broadband', d.cB || 0, d.uB || 0, (d.cB || 0) - (d.uB || 0)));
-  if (d.f & 4) rows.appendChild(addMonthlyRow('📱 Mobile' + (d.md ? ' 🥪'.repeat(d.md) : ''), d.cM || 0, d.uM || 0, (d.cM || 0) - (d.uM || 0), { neutral: (d.cM || 0) - (d.uM || 0) < 0 && d.md }));
-  if (d.it) rows.appendChild(addMonthlyRow('🛡️ Insurance', 0, d.it, -d.it));
-  if (d.mac || d.mau) rows.appendChild(addMonthlyRow('✏️ Adjustment', d.mac || 0, d.mau || 0, (d.mac || 0) - (d.mau || 0)));
+  if (d.f & 1) detailRows.appendChild(addMonthlyRow('⚡🔥 Energy', d.cE || 0, d.uE || 0, (d.cE || 0) - (d.uE || 0)));
+  if (d.f & 2) detailRows.appendChild(addMonthlyRow('🛜 Broadband', d.cB || 0, d.uB || 0, (d.cB || 0) - (d.uB || 0)));
+  if (d.f & 4) detailRows.appendChild(addMonthlyRow('📱 Mobile' + (d.md ? ' 🥪'.repeat(d.md) : ''), d.cM || 0, d.uM || 0, (d.cM || 0) - (d.uM || 0), { neutral: (d.cM || 0) - (d.uM || 0) < 0 && d.md }));
+  if (d.it) detailRows.appendChild(addMonthlyRow('🛡️ Insurance', 0, d.it, -d.it));
+  if (d.mac || d.mau) detailRows.appendChild(addMonthlyRow('✏️ Adjustment', d.mac || 0, d.mau || 0, (d.mac || 0) - (d.mau || 0)));
   if (d.f & 8) {
-    rows.appendChild(addMonthlyRow('💳 Cashback**', 0, -cashbackNet, cashbackNet));
+    detailRows.appendChild(addMonthlyRow('💳 Cashback**', 0, -cashbackNet, cashbackNet));
     document.getElementById('cashbackNote').textContent = cashbackBasisText(d.cbt, d.cs);
     document.getElementById('cashbackNote').classList.remove('hidden');
   }
-  rows.insertAdjacentHTML('beforeend', `<tr class="tot"><td>Total</td><td>${pounds(d.cT || 0)}</td><td>${pounds(steadyUw)}</td><td class="${steadySave < 0 ? 'bad' : steadySave > 0 ? 'good' : ''}">${pounds(steadySave)}</td></tr>`);
+  detailRows.insertAdjacentHTML('beforeend', `<tr class="tot"><td>Total</td><td>${pounds(d.cT || 0)}</td><td>${pounds(steadyUw)}</td><td class="${steadySave < 0 ? 'bad' : steadySave > 0 ? 'good' : ''}">${pounds(steadySave)}</td></tr>`);
 
   addBenefit('🤝 Referral', d.rf || 0);
   addBenefit(`🛜 Broadband (6x £${Math.round(d.uBr || 0)})`, d.bf || 0);
