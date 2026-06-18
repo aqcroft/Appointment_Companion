@@ -640,7 +640,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
         </details>
         <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
       </div>
-      <p class="sc-note">Estimate based on today's prices and the figures discussed in this appointment. Not a formal quote.</p>
+      <p class="sc-note" id="scEstimateNote">Estimate based on prices as at today. Not a formal quote.</p>
       <div class="sc-brand">
         <div class="nm" id="brandName">Adrian Croft</div>
         <div class="rl" id="brandRole">UW Authorised Partner · Market Harborough</div>
@@ -1323,6 +1323,11 @@ function cashbackBasisText(tier, spend) {
   return '** average cashback, ' + spendText;
 }
 
+function estimateDateText(isoDate) {
+  const d = isoDate ? new Date(isoDate + 'T00:00:00') : new Date();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function calc() {
   const r = compute();
 
@@ -1580,9 +1585,9 @@ function renderCard(r) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     let msg;
     if (r.refunded && r.exitDeduction === 0) {
-      msg = '🛡️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
+      msg = '↩️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
     } else if (r.refunded && r.exitDeduction > 0) {
-      msg = "🛡️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you're still better off";
+      msg = "↩️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you're still better off";
     } else {
       const needed = CONFIG.exitFeeRefund.minServices - r.count;
       msg = '⚠️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
@@ -1611,6 +1616,7 @@ function renderCard(r) {
   $('scJoinLink').href = ctaLink || DEFAULT_JOIN_URL;
   $('scJoinLink').textContent = ctaLink ? 'Open your basket →' : 'Start saving here →';
   $('scCashbackNote').textContent = cashbackBasisText(state.cbTier, r.spend);
+  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText() + '. Not a formal quote.';
 
   // Basket row — icons for broadband and both SIM slots are always present:
   // full opacity = in the basket, very faint = could be added, dashed + 🥪 = being previewed.
@@ -1721,7 +1727,7 @@ $('copyBtn').addEventListener('click', () => {
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     if (r.refunded && r.exitDeduction === 0)
-      lines.push('  Exit fees: £' + money(r.exitFees) + ' — covered by UW ✅');
+      lines.push('  ↩️ Exit fees: £' + money(r.exitFees) + ' — covered by UW ✅');
     else if (r.refunded)
       lines.push('  Exit fees: £' + money(r.exitFees) + ' — £' + maxR + ' covered, £' + money(r.exitDeduction) + ' to pay (in Year 1 total)');
     else
@@ -1769,11 +1775,13 @@ function buildShareData() {
 
   const data = {
     n: $('customerName').value.trim(),
+    dt: new Date().toISOString().slice(0, 10),
     y: Math.round(r.year1),
     f: f,
     cE: r.currentEnergy, uE: r.uwEnergy,
     cB: r.currentBb, uB: r.uwBb, uBr: r.uwBbRaw,
     cM: r.currentMob, uM: r.uwMob, md: mealDealCount,
+    is: r.includedSimsCount,
     cT: r.currentTotal, uT: r.uwTotalBase, sM: r.monthlySaving,
     ct: r.count, w: r.welcome, rf: r.referral, bf: Math.round(r.bbFree),
     mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
