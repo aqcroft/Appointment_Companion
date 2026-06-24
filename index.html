@@ -1844,7 +1844,7 @@ function continueShareViaWhatsApp() {
   const greeting = nm ? 'Here\'s that summary I mentioned, ' + nm + ' 👀' : 'Here\'s that summary I mentioned 👀';
   const msg = greeting + '\n\nLooks like ' + figure + ' back in your pocket over the next 12 months.\n\n' + url + '\n\nIf the numbers look good, just tap the green "Open your basket" button — add your personal details and UW sort the rest 👍\n\nAny questions just shout!';
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-}
+
 }
 function continueCopyShareLink() {
   const url = buildShareUrl();
