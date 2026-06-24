@@ -642,10 +642,10 @@ label.active-tier { color:var(--purple); font-weight:700; }
       </div>
       <p class="sc-note" id="scEstimateNote">Estimate based on prices as at today. Not a formal quote.</p>
       <div class="sc-brand">
+        <a class="sc-join" id="scJoinLink" href="https://uw.partners/adrian.croft/join" target="_blank" rel="noopener">Start saving here →</a>
         <div class="nm" id="brandName">Adrian Croft</div>
         <div class="rl" id="brandRole">UW Authorised Partner · Market Harborough</div>
         <div class="str" id="brandStrap">Giving people financial breathing space</div>
-        <a class="sc-join" id="scJoinLink" href="https://uw.partners/adrian.croft/join" target="_blank" rel="noopener">Start saving here →</a>
       </div>
     </div>
 
@@ -1834,6 +1834,7 @@ function openBasketPrompt(action) {
 function closeBasketPrompt() {
   $('basketPrompt').classList.remove('open');
 }
+  
 function continueShareViaWhatsApp() {
   const url = buildShareUrl();
   if (!url) return;
@@ -1841,10 +1842,9 @@ function continueShareViaWhatsApp() {
   const nm = firstName();
   const r = compute(currentPreviewCount());
   const figure = '£' + Math.abs(Math.round(r.year1)).toLocaleString('en-GB');
-  const greeting = nm ? 'Here\'s that summary I mentioned, ' + nm + ' 👀' : 'Here\'s that summary I mentioned 👀';
-  const msg = greeting + '\n\nLooks like ' + figure + ' back in your pocket over the next 12 months.\n\n' + url + '\n\nIf the numbers look good, just tap the green "Open your basket" button — add your personal details and UW sort the rest 👍\n\nAny questions just shout!';
+  const greeting = nm ? `Here's that summary I mentioned, ${nm} 👀` : `Here's that summary I mentioned 👀`;
+  const msg = `${greeting}\n\nLooks like ${figure} back in your pocket over the next 12 months.\n\nIf the numbers look good, just tap the green *Open your basket* button — add your personal details and UW sort the rest 👍\n\n${url}\n\nAny questions just shout!`;
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-
 }
 function continueCopyShareLink() {
   const url = buildShareUrl();
