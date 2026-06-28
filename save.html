@@ -517,7 +517,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">Top earners²</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
       </div>
       <details style="margin-top: 0.5rem;">
-        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Details</summary>
+        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Cashback Card Details</summary>
         <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
         <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
       </details>
@@ -537,19 +537,32 @@ label.active-tier { color:var(--purple); font-weight:700; }
     <p class="sub" style="margin-top:0.35rem; font-size:11px;">Saved with the profile. Never shown on the shared card.</p>
   </div>
 
-  <!-- Saved profiles (accordion) -->
-  <details class="card" id="savesCard" style="margin-bottom:0.9rem;">
-    <summary style="cursor:pointer; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:var(--purple); list-style-position:inside;">💾 Saved profiles</summary>
-    <p class="sub" style="margin:0.6rem 0;">Save a prospect's figures to revisit, tweak and re-save later. Each save also writes a file you can keep or open on another device.</p>
-    <div class="pills" style="margin-bottom:0.6rem;">
+  <!-- Saved profiles -->
+  <div class="card" id="savesCard" style="margin-bottom:0.9rem;">
+    <div class="pills">
       <button class="pill" type="button" id="saveProfileBtn">💾 Save / update</button>
-      <button class="pill" type="button" id="loadProfileBtn">📂 Load from file</button>
+      <button class="pill" type="button" id="loadProfileBtn">📂 Load</button>
     </div>
     <input type="file" id="loadFileInput" accept=".json,application/json" class="hidden">
-    <div id="savesList"></div>
-  </details>
+    <div id="savesList" class="hidden" style="margin-top:0.7rem;"></div>
+  </div>
 
   <button class="pill" type="button" id="resetBtn" style="width:100%; margin-bottom: 1rem;">↺ Reset form</button>
+</div>
+
+<!-- Save gate prompt -->
+<div class="basket-prompt" id="saveGatePrompt">
+  <div class="basket-prompt-card">
+    <h3>Name this save?</h3>
+    <p>Add a customer name or a quick note so you can spot it later.</p>
+    <div class="modal-actions">
+      <button class="btn-share" type="button" id="gateAddNameBtn">Add name</button>
+      <button class="btn-share" type="button" id="gateAddNotesBtn">Add notes</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost full" type="button" id="gateSaveAnywayBtn">Save anyway</button>
+    </div>
+  </div>
 </div>
 
 <!-- Sticky live result -->
@@ -2109,32 +2122,58 @@ function fmtSavedAt(iso) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
          d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
+function showSavesList() {
+  const wrap = $('savesList');
+  if (wrap) wrap.classList.remove('hidden');
+  renderSavesList();
+}
 function renderSavesList() {
   const wrap = $('savesList');
   if (!wrap) return;
+  wrap.innerHTML = '';
+
+  // Always offer "open a file" — for saves not in this device's recent list.
+  const fileBtn = document.createElement('button');
+  fileBtn.type = 'button'; fileBtn.className = 'pill';
+  fileBtn.style.cssText = 'width:100%; margin-bottom:0.6rem;';
+  fileBtn.textContent = '📂 Open a saved file…';
+  fileBtn.addEventListener('click', () => $('loadFileInput').click());
+  wrap.appendChild(fileBtn);
+
   const saves = getLocalSaves();
   if (!saves.length) {
-    wrap.innerHTML = '<p class="sub" style="margin-top:0.2rem;">No saved profiles yet on this device.</p>';
+    const p = document.createElement('p');
+    p.className = 'sub'; p.style.margin = '0.2rem 0';
+    p.textContent = 'No recent profiles on this device yet.';
+    wrap.appendChild(p);
     return;
   }
-  wrap.innerHTML = '';
+
+  // Basket icons — same set/rules as the savings card: all shown, faded if not in basket, energy boxed.
+  const icon = (emoji, on, grouped) =>
+    '<span class="basket-icon' + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
+
   saves.forEach(rec => {
-    const row = document.createElement('div');
-    row.className = 'basket-row';
-    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
     const sum = (rec.data && rec.data.summary) || {};
-    let icons = '';
-    if (sum.energy) icons += '⚡🔥 ';
-    if (sum.broadband) icons += '🛜 ';
-    for (let i = 0; i < (sum.sims || 0); i++) icons += '📱';
-    if (sum.sims) icons += ' ';
-    if (sum.insurance) icons += '🛡️';
-    icons = icons.trim();
+    const iconsHtml =
+      '<span class="basket-icons" style="font-size:14px; gap:7px;">' +
+        icon('⚡🔥', !!sum.energy, true) +
+        icon('🛜', !!sum.broadband, false) +
+        icon('📱', (sum.sims || 0) >= 1, false) +
+        icon('📱', (sum.sims || 0) >= 2, false) +
+        icon('🛡️', !!sum.insurance, false) +
+      '</span>';
+
     let heroTxt = '', heroColor = 'var(--good)';
     if (sum.year1 !== undefined) {
       if (sum.valid === false) { heroTxt = 'draft'; heroColor = 'var(--muted)'; }
       else { heroTxt = (sum.year1 < 0 ? '−£' : '£') + Math.abs(sum.year1).toLocaleString('en-GB'); heroColor = sum.year1 < 0 ? 'var(--bad)' : 'var(--good)'; }
     }
+
+    const row = document.createElement('div');
+    row.className = 'basket-row';
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
+
     const info = document.createElement('div');
     info.style.cssText = 'min-width:0; flex:1;';
     info.innerHTML =
@@ -2142,9 +2181,11 @@ function renderSavesList() {
         (rec.label || 'Unnamed').replace(/</g, '&lt;') +
         (heroTxt ? ' <span style="color:' + heroColor + '; font-weight:800;">' + heroTxt + '</span>' : '') +
       '</div>' +
-      '<div class="sub" style="font-size:11px;">' +
-        (icons ? icons + ' · ' : '') + fmtSavedAt(rec.savedAt) +
+      '<div style="display:flex; align-items:center; gap:8px; margin-top:3px;">' +
+        iconsHtml +
+        '<span class="sub" style="font-size:11px;">' + fmtSavedAt(rec.savedAt) + '</span>' +
       '</div>';
+
     const btns = document.createElement('div');
     btns.style.cssText = 'display:flex; gap:6px; flex-shrink:0;';
     const loadBtn = document.createElement('button');
@@ -2198,28 +2239,43 @@ async function saveBlobToFile(filename, text) {
 }
 
 async function downloadProfile() {
-  // Soft-nudge gate — an unnamed, note-less save is hard to find later.
+  // Gate: need at least a name OR a note so the save is findable later.
   const name = ($('customerName').value || '').trim();
   const notes = $('apptNotes') ? $('apptNotes').value.trim() : '';
-  if (!name && !notes) {
-    if (!confirm("Save without a customer name or notes? It'll be harder to find later.")) {
-      $('customerName').focus();
-      $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-  }
+  if (!name && !notes) { openSaveGate(); return; }
+  await doSaveProfile();
+}
+
+async function doSaveProfile() {
   const data = serializeForm();
   const safe = (data.customerName || 'prospect').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'prospect';
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   const ok = await saveBlobToFile('ApptCompanion-' + safe + '-' + stamp + '.json', JSON.stringify(data, null, 2));
   if (!ok) return; // cancelled — don't stash a half-action
   stashLocal(data);
+  showSavesList();
   const btn = $('saveProfileBtn');
   if (btn) { const t = btn.textContent; btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = t; }, 1500); }
 }
 
+/* ----- save gate prompt (need a name or a note) ----- */
+function openSaveGate() { $('saveGatePrompt').classList.add('open'); }
+function closeSaveGate() { $('saveGatePrompt').classList.remove('open'); }
+$('gateAddNameBtn').addEventListener('click', () => {
+  closeSaveGate();
+  $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => $('customerName').focus(), 350);
+});
+$('gateAddNotesBtn').addEventListener('click', () => {
+  closeSaveGate();
+  $('notesCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => $('apptNotes').focus(), 350);
+});
+$('gateSaveAnywayBtn').addEventListener('click', () => { closeSaveGate(); doSaveProfile(); });
+$('saveGatePrompt').addEventListener('click', e => { if (e.target.id === 'saveGatePrompt') closeSaveGate(); });
+
 $('saveProfileBtn').addEventListener('click', downloadProfile);
-$('loadProfileBtn').addEventListener('click', () => $('loadFileInput').click());
+$('loadProfileBtn').addEventListener('click', showSavesList);
 $('loadFileInput').addEventListener('change', e => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
