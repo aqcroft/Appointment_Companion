@@ -550,17 +550,26 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <button class="pill" type="button" id="resetBtn" style="width:100%; margin-bottom: 1rem;">↺ Reset form</button>
 </div>
 
-<!-- Save gate prompt -->
+<!-- Save gate prompt (content / name) -->
 <div class="basket-prompt" id="saveGatePrompt">
   <div class="basket-prompt-card">
-    <h3>Name this save?</h3>
-    <p>Add a customer name or a quick note so you can spot it later.</p>
+    <h3 id="saveGateTitle"></h3>
+    <p id="saveGateMsg"></p>
     <div class="modal-actions">
-      <button class="btn-share" type="button" id="gateAddNameBtn">Add name</button>
-      <button class="btn-share" type="button" id="gateAddNotesBtn">Add notes</button>
+      <button class="btn-ghost" type="button" id="saveGateCancelBtn">Cancel</button>
+      <button class="btn-share" type="button" id="saveGateActionBtn"></button>
     </div>
+  </div>
+</div>
+
+<!-- Duplicate-name save prompt -->
+<div class="basket-prompt" id="dupSavePrompt">
+  <div class="basket-prompt-card">
+    <h3>Already saved</h3>
+    <p id="dupSaveMsg"></p>
     <div class="modal-actions">
-      <button class="btn-ghost full" type="button" id="gateSaveAnywayBtn">Save anyway</button>
+      <button class="btn-share" type="button" id="dupUpdateBtn">Update</button>
+      <button class="btn-share" type="button" id="dupNewBtn">Save as new</button>
     </div>
   </div>
 </div>
@@ -2110,8 +2119,10 @@ function getLocalSaves() {
 function setLocalSaves(arr) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(arr.slice(0, 30))); } catch (e) {}
 }
-function stashLocal(data) {
-  const saves = getLocalSaves();
+function stashLocal(data, updateId) {
+  let saves = getLocalSaves();
+  // updateId set → replace that specific entry (Update). Otherwise keep all (Save as new / scenarios).
+  if (updateId != null) saves = saves.filter(s => s.id !== updateId);
   saves.unshift({ id: Date.now(), label: data.customerName || 'Unnamed', savedAt: data.savedAt, data });
   setLocalSaves(saves);
   renderSavesList();
@@ -2239,40 +2250,71 @@ async function saveBlobToFile(filename, text) {
 }
 
 async function downloadProfile() {
-  // Gate: need at least a name OR a note so the save is findable later.
+  // 1. Content gate — need a basket and at least one cost (either side).
+  const r = compute(0);
+  const hasBasket = state.services.energy || state.services.broadband || state.services.mobile || r.insuranceTotal > 0;
+  const hasCost = r.currentTotal > 0 || r.uwTotalBase > 0;
+  if (!hasBasket || !hasCost) {
+    showSaveGate('Nothing to save yet',
+      'Pick at least one service and enter a cost (current or UW) before saving.',
+      'Go to top', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    return;
+  }
+  // 2. Name gate — mandatory.
   const name = ($('customerName').value || '').trim();
-  const notes = $('apptNotes') ? $('apptNotes').value.trim() : '';
-  if (!name && !notes) { openSaveGate(); return; }
+  if (!name) {
+    showSaveGate('Name this save',
+      'Enter a customer name so you can find it later.',
+      'Add name', () => {
+        $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => $('customerName').focus(), 350);
+      });
+    return;
+  }
+  // 3. Duplicate name → Update vs Save as new.
+  const dup = getLocalSaves().find(s => (s.label || '').trim().toLowerCase() === name.toLowerCase());
+  if (dup) { openDupPrompt(name, dup.id); return; }
   await doSaveProfile();
 }
 
-async function doSaveProfile() {
+async function doSaveProfile(opts) {
+  opts = opts || {};
   const data = serializeForm();
-  const safe = (data.customerName || 'prospect').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'prospect';
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  const ok = await saveBlobToFile('ApptCompanion-' + safe + '-' + stamp + '.json', JSON.stringify(data, null, 2));
-  if (!ok) return; // cancelled — don't stash a half-action
-  stashLocal(data);
+  // Browser copy first — always saved, even if the file dialog is cancelled.
+  stashLocal(data, opts.updateId != null ? opts.updateId : null);
   showSavesList();
   const btn = $('saveProfileBtn');
   if (btn) { const t = btn.textContent; btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = t; }, 1500); }
+  // File write is a best-effort bonus/backup — cancelling it doesn't lose the browser copy.
+  const safe = (data.customerName || 'prospect').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'prospect';
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  await saveBlobToFile('ApptCompanion-' + safe + '-' + stamp + '.json', JSON.stringify(data, null, 2));
 }
 
-/* ----- save gate prompt (need a name or a note) ----- */
-function openSaveGate() { $('saveGatePrompt').classList.add('open'); }
+/* ----- save gate prompt (content / name) ----- */
+function showSaveGate(title, msg, btnLabel, action) {
+  $('saveGateTitle').textContent = title;
+  $('saveGateMsg').textContent = msg;
+  const b = $('saveGateActionBtn');
+  b.textContent = btnLabel;
+  b.onclick = () => { closeSaveGate(); action(); };
+  $('saveGatePrompt').classList.add('open');
+}
 function closeSaveGate() { $('saveGatePrompt').classList.remove('open'); }
-$('gateAddNameBtn').addEventListener('click', () => {
-  closeSaveGate();
-  $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setTimeout(() => $('customerName').focus(), 350);
-});
-$('gateAddNotesBtn').addEventListener('click', () => {
-  closeSaveGate();
-  $('notesCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setTimeout(() => $('apptNotes').focus(), 350);
-});
-$('gateSaveAnywayBtn').addEventListener('click', () => { closeSaveGate(); doSaveProfile(); });
+$('saveGateCancelBtn').addEventListener('click', closeSaveGate);
 $('saveGatePrompt').addEventListener('click', e => { if (e.target.id === 'saveGatePrompt') closeSaveGate(); });
+
+/* ----- duplicate-name prompt (Update vs Save as new) ----- */
+let dupTargetId = null;
+function openDupPrompt(name, id) {
+  dupTargetId = id;
+  $('dupSaveMsg').textContent = 'You already have a save for "' + name + '". Update it, or keep both as separate scenarios?';
+  $('dupSavePrompt').classList.add('open');
+}
+function closeDupPrompt() { $('dupSavePrompt').classList.remove('open'); }
+$('dupUpdateBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile({ updateId: dupTargetId }); });
+$('dupNewBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile(); });
+$('dupSavePrompt').addEventListener('click', e => { if (e.target.id === 'dupSavePrompt') closeDupPrompt(); });
 
 $('saveProfileBtn').addEventListener('click', downloadProfile);
 $('loadProfileBtn').addEventListener('click', showSavesList);
