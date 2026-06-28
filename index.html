@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -520,7 +517,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">Top earners²</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
       </div>
       <details style="margin-top: 0.5rem;">
-        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Details</summary>
+        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Cashback Card Details</summary>
         <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
         <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
       </details>
@@ -534,7 +531,47 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- Full detail -->
   
 
+  <!-- Notes (compact) -->
+  <div class="card" id="notesCard" style="padding:0.8rem 1rem;">
+    <textarea id="apptNotes" rows="3" placeholder="📝 Private notes — e.g. 'No for now, revisit September. Waiting on broadband contract end.'" style="width:100%; padding:10px; font-size:15px; font-family:inherit; border:1px solid var(--line); border-radius:10px; background:#fbfaff; resize:vertical;"></textarea>
+    <p class="sub" style="margin-top:0.35rem; font-size:11px;">Saved with the profile. Never shown on the shared card.</p>
+  </div>
+
+  <!-- Saved profiles -->
+  <div class="card" id="savesCard" style="margin-bottom:0.9rem;">
+    <div class="pills">
+      <button class="pill" type="button" id="saveProfileBtn">💾 Save / update</button>
+      <button class="pill" type="button" id="loadProfileBtn">📂 Load</button>
+    </div>
+    <input type="file" id="loadFileInput" accept=".json,application/json" class="hidden">
+    <div id="savesList" class="hidden" style="margin-top:0.7rem;"></div>
+  </div>
+
   <button class="pill" type="button" id="resetBtn" style="width:100%; margin-bottom: 1rem;">↺ Reset form</button>
+</div>
+
+<!-- Save gate prompt (content / name) -->
+<div class="basket-prompt" id="saveGatePrompt">
+  <div class="basket-prompt-card">
+    <h3 id="saveGateTitle"></h3>
+    <p id="saveGateMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-ghost" type="button" id="saveGateCancelBtn">Cancel</button>
+      <button class="btn-share" type="button" id="saveGateActionBtn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate-name save prompt -->
+<div class="basket-prompt" id="dupSavePrompt">
+  <div class="basket-prompt-card">
+    <h3>Already saved</h3>
+    <p id="dupSaveMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-share" type="button" id="dupUpdateBtn">Update</button>
+      <button class="btn-share" type="button" id="dupNewBtn">Save as new</button>
+    </div>
+  </div>
 </div>
 
 <!-- Sticky live result -->
@@ -1889,9 +1926,9 @@ $('shareWithoutBasketBtn').addEventListener('click', () => {
 });
 
 /* ---------- reset ---------- */
-$('resetBtn').addEventListener('click', () => {
-  if (!confirm('Reset all figures?')) return;
+function resetForm() {
   document.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
+  if ($('apptNotes')) $('apptNotes').value = '';
   document.querySelectorAll('input[type="checkbox"]').forEach(i => { i.checked = i.id === 'includeCashback'; i.disabled = false; });
   $('spendSlider').value = CONFIG.cashback.slider.default;
   $('spendDisplay').textContent = CONFIG.cashback.slider.default;
@@ -1933,7 +1970,366 @@ $('resetBtn').addEventListener('click', () => {
   document.querySelector('[data-adjusttarget="current"]').classList.add('on');
   document.querySelector('[data-adjustperiod="monthly"]').classList.add('on');
   calc();
+}
+$('resetBtn').addEventListener('click', () => { if (confirm('Reset all figures?')) resetForm(); });
+
+/* ================================================================
+   SAVE / LOAD PROFILES + NOTES  (additive — leaves calc/share intact)
+   ================================================================ */
+const LS_KEY = 'apptCompanionSaves_v2';
+
+// Snapshot everything needed to rebuild the FORM (inputs, not just results).
+function serializeForm() {
+  const inputs = {};
+  document.querySelectorAll('input, textarea').forEach(el => {
+    if (!el.id || el.type === 'file') return;
+    inputs[el.id] = (el.type === 'checkbox') ? el.checked : el.value;
+  });
+  const bbPkgOn = document.querySelector('[data-bbpkg].on');
+  // Scannable summary for the saved list — hero figure, validity, basket icons.
+  const r = compute(0);
+  const summary = {
+    valid: validateInputs(r).length === 0,
+    year1: Math.round(r.year1),
+    count: r.count,
+    energy: !!state.services.energy,
+    broadband: !!state.services.broadband,
+    sims: Math.min(r.includedSimsCount, 2),
+    insurance: (r.incomeProtectorCost > 0 || r.boilerCoverCost > 0)
+  };
+  return {
+    app: 'appointment-companion', v: 2,
+    savedAt: new Date().toISOString(),
+    customerName: ($('customerName').value || '').trim(),
+    notes: $('apptNotes') ? $('apptNotes').value : '',
+    summary,
+    inputs,
+    state: JSON.parse(JSON.stringify(state)),
+    ui: {
+      bundlePanelOpen: !$('bundleRatePanel').classList.contains('hidden'),
+      bbPkg: bbPkgOn ? bbPkgOn.dataset.bbpkg : null
+    }
+  };
+}
+
+// Rebuild the form from a saved snapshot.
+function restoreForm(saved) {
+  if (!saved || !saved.inputs || !saved.state) { alert('That file is not a valid saved profile.'); return false; }
+  resetForm();
+
+  const s = saved.state;
+  state.services = Object.assign({ energy:false, broadband:false, mobile:false }, s.services || {});
+  state.homeowner = (s.homeowner != null) ? s.homeowner : null;
+  state.simCount = s.simCount || 0;
+  state.sims = s.sims || {};
+  state.includeCashback = (s.includeCashback !== undefined) ? s.includeCashback : true;
+  state.cbTier = s.cbTier || 'med';
+  state.dhpPlan = (s.dhpPlan != null) ? s.dhpPlan : null;
+  state.splitGas = (s.splitGas !== undefined) ? s.splitGas : true;
+  state.splitElec = (s.splitElec !== undefined) ? s.splitElec : true;
+  state.energyAdjustTarget = s.energyAdjustTarget || 'current';
+  state.energyAdjustPeriod = s.energyAdjustPeriod || 'monthly';
+
+  // homeowner/tenant reveals the main cards
+  if (state.homeowner) setHome(state.homeowner);
+
+  // service pills + their cards
+  Object.keys(state.services).forEach(svc => {
+    const on = !!state.services[svc];
+    const pill = document.querySelector('[data-service="' + svc + '"]');
+    if (pill) pill.classList.toggle('on', on);
+    const card = $(svc + 'Card');
+    if (card) card.classList.toggle('hidden', !on);
+  });
+
+  // all input values + checkbox states
+  Object.keys(saved.inputs).forEach(id => {
+    const el = $(id);
+    if (!el || el.type === 'file') return;
+    if (el.type === 'checkbox') el.checked = !!saved.inputs[id];
+    else el.value = saved.inputs[id];
+  });
+
+  // conditional panels follow their (now-restored) toggles
+  $('billCosts').classList.toggle('hidden', !$('useBillCosts').checked);
+  $('energyCombinedNow').classList.toggle('hidden', $('splitEnergyToggle').checked);
+  $('energySplitNow').classList.toggle('hidden', !$('splitEnergyToggle').checked);
+  $('energyAdjustFields').classList.toggle('hidden', !$('energyAdjustToggle').checked);
+  $('manualAdjustFields').classList.toggle('hidden', !$('manualAdjustToggle').checked);
+  $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
+  $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
+  $('boilerCoverFreeRow').classList.toggle('hidden', !$('boilerCoverToggle').checked);
+
+  // bundle-rate panel (🥪)
+  const bundleOpen = !!(saved.ui && saved.ui.bundlePanelOpen);
+  $('bundleRatePanel').classList.toggle('hidden', !bundleOpen);
+  $('bundleRatesBtn').classList.toggle('on', bundleOpen);
+
+  // fuel pills
+  document.querySelectorAll('[data-fuel]').forEach(b => {
+    const on = (b.dataset.fuel === 'gas') ? state.splitGas : state.splitElec;
+    b.classList.toggle('on', on);
+  });
+  $('splitGasRow').classList.toggle('hidden', !state.splitGas);
+  $('splitElecRow').classList.toggle('hidden', !state.splitElec);
+
+  // broadband package pill
+  document.querySelectorAll('[data-bbpkg]').forEach(b => b.classList.remove('on'));
+  if (saved.ui && saved.ui.bbPkg != null) {
+    const pkg = document.querySelector('[data-bbpkg="' + saved.ui.bbPkg + '"]');
+    if (pkg) pkg.classList.add('on');
+  }
+
+  // digital home phone plan pill
+  document.querySelectorAll('[data-dhp]').forEach(b =>
+    b.classList.toggle('on', state.dhpPlan != null && parseFloat(b.dataset.dhp) === state.dhpPlan));
+
+  // energy adjust target/period pills
+  document.querySelectorAll('#energyAdjustTargetPills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.adjusttarget === state.energyAdjustTarget));
+  document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.adjustperiod === state.energyAdjustPeriod));
+
+  // cashback tier chip
+  document.querySelectorAll('[data-cbtier]').forEach(c => {
+    const on = c.dataset.cbtier === state.cbTier;
+    c.classList.toggle('used', on);
+    c.querySelector('.pct').textContent = CB_LABELS[c.dataset.cbtier] + (on ? ' ✓' : '');
+  });
+
+  // mobile sims — count pill, then rebuild from state.sims
+  document.querySelectorAll('#simCountPills .pill').forEach(b =>
+    b.classList.toggle('on', parseInt(b.dataset.count, 10) === state.simCount));
+  if (state.simCount > 0) buildSims();
+  $('mobileTotalsRow').style.display = state.simCount ? 'flex' : 'none';
+
+  // misc displays
+  $('spendDisplay').textContent = $('spendSlider').value;
+  if ($('apptNotes')) $('apptNotes').value = saved.notes || '';
+
+  calc();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  return true;
+}
+
+/* ----- recent saves on this device (convenience layer) ----- */
+function getLocalSaves() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; }
+}
+function setLocalSaves(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr.slice(0, 30))); } catch (e) {}
+}
+function stashLocal(data, updateId) {
+  let saves = getLocalSaves();
+  // updateId set → replace that specific entry (Update). Otherwise keep all (Save as new / scenarios).
+  if (updateId != null) saves = saves.filter(s => s.id !== updateId);
+  saves.unshift({ id: Date.now(), label: data.customerName || 'Unnamed', savedAt: data.savedAt, data });
+  setLocalSaves(saves);
+  renderSavesList();
+}
+function fmtSavedAt(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
+         d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function showSavesList() {
+  const wrap = $('savesList');
+  if (wrap) wrap.classList.remove('hidden');
+  renderSavesList();
+}
+function renderSavesList() {
+  const wrap = $('savesList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  // Always offer "open a file" — for saves not in this device's recent list.
+  const fileBtn = document.createElement('button');
+  fileBtn.type = 'button'; fileBtn.className = 'pill';
+  fileBtn.style.cssText = 'width:100%; margin-bottom:0.6rem;';
+  fileBtn.textContent = '📂 Open a saved file…';
+  fileBtn.addEventListener('click', () => $('loadFileInput').click());
+  wrap.appendChild(fileBtn);
+
+  const saves = getLocalSaves();
+  if (!saves.length) {
+    const p = document.createElement('p');
+    p.className = 'sub'; p.style.margin = '0.2rem 0';
+    p.textContent = 'No recent profiles on this device yet.';
+    wrap.appendChild(p);
+    return;
+  }
+
+  // Basket icons — same set/rules as the savings card: all shown, faded if not in basket, energy boxed.
+  const icon = (emoji, on, grouped) =>
+    '<span class="basket-icon' + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
+
+  saves.forEach(rec => {
+    const sum = (rec.data && rec.data.summary) || {};
+    const iconsHtml =
+      '<span class="basket-icons" style="font-size:14px; gap:7px;">' +
+        icon('⚡🔥', !!sum.energy, true) +
+        icon('🛜', !!sum.broadband, false) +
+        icon('📱', (sum.sims || 0) >= 1, false) +
+        icon('📱', (sum.sims || 0) >= 2, false) +
+        icon('🛡️', !!sum.insurance, false) +
+      '</span>';
+
+    let heroTxt = '', heroColor = 'var(--good)';
+    if (sum.year1 !== undefined) {
+      if (sum.valid === false) { heroTxt = 'draft'; heroColor = 'var(--muted)'; }
+      else { heroTxt = (sum.year1 < 0 ? '−£' : '£') + Math.abs(sum.year1).toLocaleString('en-GB'); heroColor = sum.year1 < 0 ? 'var(--bad)' : 'var(--good)'; }
+    }
+
+    const row = document.createElement('div');
+    row.className = 'basket-row';
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'min-width:0; flex:1;';
+    info.innerHTML =
+      '<div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+        (rec.label || 'Unnamed').replace(/</g, '&lt;') +
+        (heroTxt ? ' <span style="color:' + heroColor + '; font-weight:800;">' + heroTxt + '</span>' : '') +
+      '</div>' +
+      '<div style="display:flex; align-items:center; gap:8px; margin-top:3px;">' +
+        iconsHtml +
+        '<span class="sub" style="font-size:11px;">' + fmtSavedAt(rec.savedAt) + '</span>' +
+      '</div>';
+
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex; gap:6px; flex-shrink:0;';
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button'; loadBtn.className = 'pill';
+    loadBtn.style.cssText = 'min-height:36px; padding:6px 12px; flex:0;';
+    loadBtn.textContent = 'Load';
+    loadBtn.addEventListener('click', () => restoreForm(rec.data));
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button'; delBtn.className = 'pill';
+    delBtn.style.cssText = 'min-height:36px; padding:6px 10px; flex:0;';
+    delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', () => {
+      if (!confirm('Delete saved profile for ' + (rec.label || 'Unnamed') + '?')) return;
+      setLocalSaves(getLocalSaves().filter(x => x.id !== rec.id));
+      renderSavesList();
+    });
+    btns.appendChild(loadBtn); btns.appendChild(delBtn);
+    row.appendChild(info); row.appendChild(btns);
+    wrap.appendChild(row);
+  });
+}
+
+/* ----- save: writes a file (remembers the folder) + stashes on device ----- */
+async function saveBlobToFile(filename, text) {
+  const blob = new Blob([text], { type: 'application/json' });
+  // Modern path: lets you pick a folder once; the browser reopens there next time.
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        id: 'apptCompanionSaves',     // browser remembers this folder for next time
+        startIn: 'downloads',
+        suggestedName: filename,
+        types: [{ description: 'Saved profile', accept: { 'application/json': ['.json'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      return true;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return false; // user cancelled the dialog
+      // any other error (e.g. unsupported) → fall through to classic download
+    }
+  }
+  // Fallback: classic download to the browser's default folder (mobile / older browsers).
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 200);
+  return true;
+}
+
+async function downloadProfile() {
+  // 1. Content gate — need a basket and at least one cost (either side).
+  const r = compute(0);
+  const hasBasket = state.services.energy || state.services.broadband || state.services.mobile || r.insuranceTotal > 0;
+  const hasCost = r.currentTotal > 0 || r.uwTotalBase > 0;
+  if (!hasBasket || !hasCost) {
+    showSaveGate('Nothing to save yet',
+      'Pick at least one service and enter a cost (current or UW) before saving.',
+      'Go to top', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    return;
+  }
+  // 2. Name gate — mandatory.
+  const name = ($('customerName').value || '').trim();
+  if (!name) {
+    showSaveGate('Name this save',
+      'Enter a customer name so you can find it later.',
+      'Add name', () => {
+        $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => $('customerName').focus(), 350);
+      });
+    return;
+  }
+  // 3. Duplicate name → Update vs Save as new.
+  const dup = getLocalSaves().find(s => (s.label || '').trim().toLowerCase() === name.toLowerCase());
+  if (dup) { openDupPrompt(name, dup.id); return; }
+  await doSaveProfile();
+}
+
+async function doSaveProfile(opts) {
+  opts = opts || {};
+  const data = serializeForm();
+  // Browser copy first — always saved, even if the file dialog is cancelled.
+  stashLocal(data, opts.updateId != null ? opts.updateId : null);
+  showSavesList();
+  const btn = $('saveProfileBtn');
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = t; }, 1500); }
+  // File write is a best-effort bonus/backup — cancelling it doesn't lose the browser copy.
+  const safe = (data.customerName || 'prospect').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'prospect';
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  await saveBlobToFile('ApptCompanion-' + safe + '-' + stamp + '.json', JSON.stringify(data, null, 2));
+}
+
+/* ----- save gate prompt (content / name) ----- */
+function showSaveGate(title, msg, btnLabel, action) {
+  $('saveGateTitle').textContent = title;
+  $('saveGateMsg').textContent = msg;
+  const b = $('saveGateActionBtn');
+  b.textContent = btnLabel;
+  b.onclick = () => { closeSaveGate(); action(); };
+  $('saveGatePrompt').classList.add('open');
+}
+function closeSaveGate() { $('saveGatePrompt').classList.remove('open'); }
+$('saveGateCancelBtn').addEventListener('click', closeSaveGate);
+$('saveGatePrompt').addEventListener('click', e => { if (e.target.id === 'saveGatePrompt') closeSaveGate(); });
+
+/* ----- duplicate-name prompt (Update vs Save as new) ----- */
+let dupTargetId = null;
+function openDupPrompt(name, id) {
+  dupTargetId = id;
+  $('dupSaveMsg').textContent = 'You already have a save for "' + name + '". Update it, or keep both as separate scenarios?';
+  $('dupSavePrompt').classList.add('open');
+}
+function closeDupPrompt() { $('dupSavePrompt').classList.remove('open'); }
+$('dupUpdateBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile({ updateId: dupTargetId }); });
+$('dupNewBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile(); });
+$('dupSavePrompt').addEventListener('click', e => { if (e.target.id === 'dupSavePrompt') closeDupPrompt(); });
+
+$('saveProfileBtn').addEventListener('click', downloadProfile);
+$('loadProfileBtn').addEventListener('click', showSavesList);
+$('loadFileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { restoreForm(JSON.parse(ev.target.result)); }
+    catch (err) { alert('Could not read that save file — is it a profile JSON?'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 });
+renderSavesList();
 
 /* ---------- recalc on any numeric input ---------- */
 document.addEventListener('input', e => {
