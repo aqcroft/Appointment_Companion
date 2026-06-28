@@ -667,12 +667,12 @@ label.active-tier { color:var(--purple); font-weight:700; }
 
         <details class="sc-maths">
           <summary>Breakdown</summary>
-          <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral</span><span class="v good" id="scReferral">£0</span></div>
-          <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 Broadband (6x £0)</span><span class="v good" id="scBbFree">£0</span></div>
-          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 Mobile Sim (6x £0)</span><span class="v good" id="scMobileFree">£0</span></div>
-          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💳 Cashback (0x £50)</span><span class="v good" id="scWelcome">£0</span></div>
-          <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 Card Fee (3x £3)</span><span class="v good" id="scCardFee">£9</span></div>
-          <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ Boiler Cover (3x £0)</span><span class="v good" id="scBoilerFree">£0</span></div>
+          <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral bonus</span><span class="v good" id="scReferral">£0</span></div>
+          <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 6m free Full Fibre (6m @ £0)</span><span class="v good" id="scBbFree">£0</span></div>
+          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 6m free Unlimited SIM (6m @ £10)</span><span class="v good" id="scMobileFree">£0</span></div>
+          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
+          <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
+          <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
           <div class="sc-line" id="scExitDeductionRow"><span class="k">⚠️ Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
         </details>
         <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
@@ -1599,21 +1599,22 @@ function renderCard(r) {
   // upfront & year-one
   $('scBbFreeRow').classList.toggle('hidden', r.bbFree === 0);
   $('scBbFree').textContent = '£' + Math.round(r.bbFree);
-  $('scBbFreeLabel').textContent = '🛜 Broadband (6x £' + Math.round(r.uwBbRaw) + ')';
+  $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + ')';
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
-  $('scWelcomeLabel').textContent = '💳 Cashback (' + (r.welcome / 50) + 'x £50)';
+  $('scWelcomeLabel').textContent = '💷 Cashback bonus (' + (r.welcome / 50) + 'm @ £50)';
   deltaOld($('scWelcome'), real.welcome, r.welcome);
   $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
   $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
-  $('scMobileFreeLabel').textContent = '📱 Mobile Sim (6x £' + (r.additionalUnlimited * CONFIG.mobile.plans.unlimitedMax.extraM7to12) + ')';
+  { const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
   $('scReferralRow').classList.toggle('hidden', r.referral === 0);
   $('scReferral').textContent = '£' + r.referral;
   $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
   $('scCardFee').textContent = '+£' + r.freeMonthsValue;
-  $('scCardFeeLabel').textContent = '💳 Card Fee (' + CONFIG.cashback.freeMonths + 'x £' + CONFIG.cashback.cardFeeMonthly + ')';
+  $('scCardFeeLabel').textContent = '💳 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + ')';
   $('scBoilerFreeRow').classList.toggle('hidden', r.boilerCoverFree === 0);
   $('scBoilerFree').textContent = '£' + Math.round(r.boilerCoverFree);
-  $('scBoilerFreeLabel').textContent = '🛡️ Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'x £' + CONFIG.insurance.boilerCover + ')';
+  $('scBoilerFreeLabel').textContent = '🛡️ ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + ')';
   // Exit fees — info block below Total, not in benefits Total
   if (r.exitFees === 0) {
     $('scExitBlock').classList.add('hidden');
@@ -1755,12 +1756,15 @@ $('copyBtn').addEventListener('click', () => {
   lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = Year-one Savings on Services: £' + money(cfTotalSaveNet * 12));
   lines.push('');
   lines.push('Year-one Welcome Bonuses:');
-  if (r.referral) lines.push('  Referral: £' + r.referral);
-  if (r.bbFree) lines.push('  Broadband (6x £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
-  if (r.mobileFreeMonths) lines.push('  Mobile Sim (6x £' + (r.additionalUnlimited * CONFIG.mobile.plans.unlimitedMax.extraM7to12) + '): £' + money(r.mobileFreeMonths));
-  if (r.welcome) lines.push('  Cashback (' + (r.welcome / 50) + 'x £50): £' + r.welcome);
-  if (r.cbOn) lines.push('  Card Fee (' + CONFIG.cashback.freeMonths + 'x £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
-  if (r.boilerCoverFree) lines.push('  Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'x £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
+  if (r.referral) lines.push('  Referral bonus: £' + r.referral);
+  if (r.bbFree) lines.push('  ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
+  if (r.mobileFreeMonths) {
+    const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    lines.push('  ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
+  }
+  if (r.welcome) lines.push('  Cashback bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
+  if (r.cbOn) lines.push('  ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
+  if (r.boilerCoverFree) lines.push('  ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     if (r.refunded && r.exitDeduction === 0)
