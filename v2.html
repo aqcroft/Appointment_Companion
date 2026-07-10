@@ -366,7 +366,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <span class="switch"><input type="checkbox" id="energyAdjustToggle"><span class="track"></span></span>
     </div>
     <div id="energyAdjustFields" class="hidden" style="margin-bottom: 0.8rem;">
-      <p class="sub" style="margin-bottom:0.5rem;">Manual adjust to allow for E7, EV or Solar complexity</p>
+      <p class="sub" style="margin-bottom:0.5rem;">Manual adjust to allow for E7, EV or Solar complexity. Folds straight into the energy figures above — it won't show as a separate line on the card. For a visible one-off (e.g. credit released), use ✏️ Manual adjustment further down.</p>
       <div class="row2">
         <div class="field money"><label>Adjustment £ (+/-)</label><input type="number" id="energyAdjustAmount" inputmode="decimal" placeholder="0" step="0.01"></div>
         <div class="field">
@@ -518,13 +518,39 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <span class="switch"><input type="checkbox" id="manualAdjustToggle"><span class="track"></span></span>
     </div>
     <div id="manualAdjustFields" class="hidden" style="margin-top:0.6rem; color: var(--muted);">
+      <p class="sub" style="margin-bottom:0.6rem;">For ongoing monthly or annual differences (e.g. E7, solar). Adds to, or with a minus takes off, that side's <strong>recurring</strong> cost. Adding to <strong>Current</strong> increases the saving; adding to <strong>UW</strong> reduces it. For a one-off amount like a released credit, use the section below instead.</p>
+      <div class="field">
+        <label>Period</label>
+        <div class="pills" id="manualAdjustPeriodPills">
+          <button class="pill on" type="button" data-maperiod="monthly">Monthly</button>
+          <button class="pill" type="button" data-maperiod="annual">Annual</button>
+        </div>
+      </div>
       <div class="row2">
-        <div class="field money"><label>Current £</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field money"><label>Add to Current £ (+/−)</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
         <div class="field"><label>Reason</label><input type="text" id="manualAdjustCurrentReason" placeholder="optional"></div>
       </div>
       <div class="row2">
-        <div class="field money"><label>UW £</label><input type="number" id="manualAdjustUw" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field money"><label>Add to UW £ (+/−)</label><input type="number" id="manualAdjustUw" inputmode="decimal" placeholder="0" step="0.01"></div>
         <div class="field"><label>Reason</label><input type="text" id="manualAdjustUwReason" placeholder="optional"></div>
+      </div>
+    </div>
+
+    <div class="switchrow" style="padding:0.6rem 0 0; border-top:1px solid var(--line); margin-top:0.6rem;">
+      <h2 style="margin-bottom:0; color: var(--muted);">💷 One-off amount</h2>
+      <span class="switch"><input type="checkbox" id="oneOffToggle"><span class="track"></span></span>
+    </div>
+    <div id="oneOffFields" class="hidden" style="margin-top:0.6rem; color: var(--muted);">
+      <p class="sub" style="margin-bottom:0.6rem;">A single amount that lands once, not every month — e.g. a credit refunded when they switch, or a one-off charge. Shows as its own line in the year-one benefits, and doesn't touch the monthly figures.</p>
+      <div class="field">
+        <div class="pills" id="oneOffTypePills">
+          <button class="pill on" type="button" data-oneoff="refund">Refund to customer</button>
+          <button class="pill" type="button" data-oneoff="charge">Charge to customer</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field money"><label>Amount £</label><input type="number" id="oneOffAmount" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field"><label>Label</label><input type="text" id="oneOffLabel" placeholder="e.g. credit refunded"></div>
       </div>
     </div>
   </div>
@@ -547,7 +573,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
       </div>
       <details style="margin-top: 0.5rem;">
         <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Cashback Card Details</summary>
-        <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
+        <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. Amounts shown are net of the £3/m card fee (UW quotes cashback before the fee). The first 3 months’ fee is free — a £9 year-one benefit.</p>
         <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
       </details>
     </div>
@@ -618,8 +644,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <input type="text" id="ppJoin" inputmode="url" autocomplete="off" placeholder="https://uw.partners/first.last/join">
     </div>
     <div class="field">
-      <label>Role / location <span class="sub">optional</span></label>
-      <input type="text" id="ppRole" autocomplete="off" placeholder="UW Authorised Partner · Your town">
+      <label>Town / city <span class="sub">optional — shown as "UW Authorised Partner · Your town"</span></label>
+      <input type="text" id="ppTown" autocomplete="off" placeholder="e.g. Market Harborough">
     </div>
     <div class="field" style="margin-bottom:0;">
       <label>Strapline <span class="sub">optional — edit or clear</span></label>
@@ -740,6 +766,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
           <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
           <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
+          <div class="sc-line" id="scOneOffRow"><span class="k" id="scOneOffLabel">💷 One-off</span><span class="v good" id="scOneOff">£0</span></div>
           <div class="sc-line" id="scExitDeductionRow"><span class="k">⚠️ Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
         </details>
         <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
@@ -868,7 +895,9 @@ const state = {
   splitGas: true,
   splitElec: true,
   energyAdjustTarget: 'current',  // 'current' | 'uw'
-  energyAdjustPeriod: 'monthly'   // 'monthly' | 'annual'
+  energyAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
+  manualAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
+  oneOffType: 'refund'            // 'refund' | 'charge'
 };
 
 let previewExtra = false;
@@ -1047,6 +1076,27 @@ $('manualAdjustToggle').addEventListener('change', e => {
   $('manualAdjustFields').classList.toggle('hidden', !e.target.checked);
   calc();
 });
+document.querySelectorAll('#manualAdjustPeriodPills .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.manualAdjustPeriod = btn.dataset.maperiod;
+    document.querySelectorAll('#manualAdjustPeriodPills .pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    calc();
+  });
+});
+$('oneOffToggle').addEventListener('change', e => {
+  $('oneOffFields').classList.toggle('hidden', !e.target.checked);
+  calc();
+});
+document.querySelectorAll('#oneOffTypePills .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.oneOffType = btn.dataset.oneoff;
+    document.querySelectorAll('#oneOffTypePills .pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    calc();
+  });
+});
+$('oneOffLabel').addEventListener('input', calc);
 document.querySelectorAll('#manualAdjustCurrentReason, #manualAdjustUwReason').forEach(el => {
   el.addEventListener('input', calc);
 });
@@ -1170,7 +1220,7 @@ function serviceCounts() {
   // Mobile only qualifies when bundled with energy or broadband
   if (state.services.mobile && (state.services.energy || state.services.broadband)) {
     const inc = Object.values(state.sims).filter(s => s.include).length;
-    count += Math.min(inc, CONFIG.mobile.servicesCountedMax);
+    count += Math.min(Math.max(inc, 1), CONFIG.mobile.servicesCountedMax);
   }
   return count;
 }
@@ -1192,7 +1242,12 @@ function compute(previewSims = 0) {
   // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
   const energyOrBb = state.services.energy || state.services.broadband;
   const includedSimsCount = state.services.mobile ? Object.values(state.sims).filter(s => s.include).length : 0;
-  const realMobileContribution = energyOrBb ? Math.min(includedSimsCount, CONFIG.mobile.servicesCountedMax) : 0;
+  // Selecting Mobile counts as 1 service straight away (same as broadband);
+  // a 2nd included SIM lifts it to 2 (the cap). Validation still requires
+  // SIM details before the card can open or be shared.
+  const realMobileContribution = (energyOrBb && state.services.mobile)
+    ? Math.min(Math.max(includedSimsCount, 1), CONFIG.mobile.servicesCountedMax)
+    : 0;
   const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
   // Capped at 4: welcomeBonus/lowMonthlyCaps are only defined up to 5 (and cap out at 4
   // anyway), and the energy tiers only go up to "2+ services beyond energy" — so once
@@ -1281,10 +1336,19 @@ function compute(previewSims = 0) {
 
   // --- manual adjustment (general, with reasons for reference) ---
   const manualAdjustOn = $('manualAdjustToggle').checked;
-  const manualAdjustCurrent = manualAdjustOn ? numF('manualAdjustCurrent') : 0;
-  const manualAdjustUw = manualAdjustOn ? numF('manualAdjustUw') : 0;
+  const maDiv = (manualAdjustOn && state.manualAdjustPeriod === 'annual') ? 12 : 1;
+  const manualAdjustCurrent = manualAdjustOn ? numF('manualAdjustCurrent') / maDiv : 0;
+  const manualAdjustUw = manualAdjustOn ? numF('manualAdjustUw') / maDiv : 0;
   const manualAdjustCurrentReason = manualAdjustOn ? $('manualAdjustCurrentReason').value.trim() : '';
   const manualAdjustUwReason = manualAdjustOn ? $('manualAdjustUwReason').value.trim() : '';
+
+  // One-off amount — a single year-one figure, NOT monthly. Refund is a
+  // positive benefit; charge is a negative one. Never touches the monthly
+  // direct-debit figures — it only lands in the year-one benefits total.
+  const oneOffOn = $('oneOffToggle').checked;
+  const oneOffRaw = oneOffOn ? numF('oneOffAmount') : 0;
+  const oneOff = state.oneOffType === 'charge' ? -oneOffRaw : oneOffRaw;
+  const oneOffLabel = oneOffOn ? $('oneOffLabel').value.trim() : '';
 
   const currentTotal = currentEnergy + currentBb + currentMob + manualAdjustCurrent;
   const uwTotalBase = uwEnergy + uwBb + uwMob + insuranceTotal + manualAdjustUw;
@@ -1358,6 +1422,7 @@ function compute(previewSims = 0) {
               + bbFree
               + mobileFreeMonths
               + boilerCoverFree
+              + oneOff
               - exitDeduction
               + (cbOn ? cashbackAnnualNet : 0);
 
@@ -1368,7 +1433,8 @@ function compute(previewSims = 0) {
            exitFees, refunded, exitDeduction, year1, cbOn,
            mba, availableSlots, previewApplied, includedSimsCount, cashbackNet, maxPreview,
            incomeProtectorCost, boilerCoverCost, boilerCoverFree, insuranceTotal,
-           manualAdjustCurrent, manualAdjustUw, manualAdjustCurrentReason, manualAdjustUwReason };
+           manualAdjustCurrent, manualAdjustUw, manualAdjustCurrentReason, manualAdjustUwReason,
+           oneOff, oneOffLabel, oneOffType: state.oneOffType };
 }
 
 /* Every in-basket service needs BOTH sides of the comparison:
@@ -1433,9 +1499,13 @@ function calc() {
   const r = compute();
 
   // cashback chips — cbLow/Med/High are already whole-pound (floored at source)
-  $('cbLow').textContent = r.cbLow;   $('cbLowYr').textContent = r.cbLow * 12;
-  $('cbMed').textContent = r.cbMed;   $('cbMedYr').textContent = r.cbMed * 12;
-  $('cbHigh').textContent = r.cbHigh; $('cbHighYr').textContent = r.cbHigh * 12;
+  // Chips show the NET monthly figure (after the £3/m card fee) so the
+  // selected chip matches the summary card exactly. The 3 free fee months
+  // stay separate as a £9 year-one benefit.
+  const cbFee = CONFIG.cashback.cardFeeMonthly;
+  $('cbLow').textContent = r.cbLow - cbFee;   $('cbLowYr').textContent = (r.cbLow - cbFee) * 12;
+  $('cbMed').textContent = r.cbMed - cbFee;   $('cbMedYr').textContent = (r.cbMed - cbFee) * 12;
+  $('cbHigh').textContent = r.cbHigh - cbFee; $('cbHighYr').textContent = (r.cbHigh - cbFee) * 12;
 
   // mobile totals
   $('currentMobileTotal').textContent = money(r.currentMob);
@@ -1637,6 +1707,12 @@ function renderCard(r) {
     saveLine($('scAdjustSave'), r.manualAdjustCurrent - r.manualAdjustUw);
   }
   const reasons = [];
+  if (adjustOn && state.manualAdjustPeriod === 'annual') {
+    const parts = [];
+    if (r.manualAdjustCurrent) parts.push('Current £' + money(r.manualAdjustCurrent * 12) + '/yr');
+    if (r.manualAdjustUw) parts.push('UW £' + money(r.manualAdjustUw * 12) + '/yr');
+    reasons.push('Entered annually — ' + parts.join(', ') + ', shown as monthly');
+  }
   if (r.manualAdjustCurrentReason) reasons.push('Current: ' + r.manualAdjustCurrentReason);
   if (r.manualAdjustUwReason) reasons.push('UW: ' + r.manualAdjustUwReason);
   $('scAdjustNoteRow').classList.toggle('hidden', !adjustOn || reasons.length === 0);
@@ -1679,6 +1755,16 @@ function renderCard(r) {
   $('scBoilerFreeRow').classList.toggle('hidden', r.boilerCoverFree === 0);
   $('scBoilerFree').textContent = '£' + Math.round(r.boilerCoverFree);
   $('scBoilerFreeLabel').textContent = '🛡️ ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + ')';
+  // One-off line — refund (green +) or charge (red −), year one only
+  $('scOneOffRow').classList.toggle('hidden', r.oneOff === 0);
+  if (r.oneOff !== 0) {
+    const isRefund = r.oneOff > 0;
+    const defLabel = isRefund ? 'One-off refund' : 'One-off charge';
+    $('scOneOffLabel').textContent = '💷 ' + (r.oneOffLabel || defLabel);
+    $('scOneOff').textContent = (isRefund ? '£' : '−£') + money(Math.abs(r.oneOff));
+    $('scOneOff').classList.toggle('good', isRefund);
+    $('scOneOff').classList.toggle('bad', !isRefund);
+  }
   // Exit fees — info block below Total, not in benefits Total
   if (r.exitFees === 0) {
     $('scExitBlock').classList.add('hidden');
@@ -1703,9 +1789,11 @@ function renderCard(r) {
   $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
   const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
     + (r.cbOn ? r.freeMonthsValue : 0)
+    + r.oneOff
     - r.exitDeduction;
   const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.mobileFreeMonths + real.boilerCoverFree
     + (real.cbOn ? real.freeMonthsValue : 0)
+    + real.oneOff
     - real.exitDeduction;
   deltaOld($('scBenefitsTotal'), benefitsTotalReal, benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
@@ -1714,7 +1802,7 @@ function renderCard(r) {
   const partner = getPartner();
   if (partner) {
     $('brandName').textContent = partner.name;
-    $('brandRole').textContent = partner.role || DEFAULT_PARTNER_ROLE;
+    $('brandRole').textContent = DEFAULT_PARTNER_ROLE + (partner.town ? ' · ' + partner.town : '');
     $('brandStrap').textContent = partner.strap || '';
   } else {
     $('brandName').textContent = 'Partner details not set';
@@ -1821,6 +1909,7 @@ $('copyBtn').addEventListener('click', () => {
   if (r.insuranceTotal) lines.push('  Insurance: −£' + money(r.insuranceTotal) + '/m');
   if (r.manualAdjustCurrent || r.manualAdjustUw) {
     lines.push('  Adjustment: £' + money(r.manualAdjustCurrent - r.manualAdjustUw) + '/m');
+    if (state.manualAdjustPeriod === 'annual') lines.push('    (entered annually, shown ÷ 12)');
     if (r.manualAdjustCurrentReason) lines.push('    Current: ' + r.manualAdjustCurrentReason);
     if (r.manualAdjustUwReason) lines.push('    UW: ' + r.manualAdjustUwReason);
   }
@@ -1847,13 +1936,18 @@ $('copyBtn').addEventListener('click', () => {
     else
       lines.push('  Exit fees: £' + money(r.exitFees) + ' — add ' + (CONFIG.exitFeeRefund.minServices - r.count) + ' more service(s) for up to £' + maxR + ' UW cover');
   }
+  if (r.oneOff !== 0) {
+    const lbl = r.oneOffLabel || (r.oneOff > 0 ? 'One-off refund' : 'One-off charge');
+    lines.push('  ' + lbl + ': ' + (r.oneOff > 0 ? '£' : '−£') + money(Math.abs(r.oneOff)));
+  }
   const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
     + (r.cbOn ? r.freeMonthsValue : 0)
+    + r.oneOff
     - r.exitDeduction;
   lines.push('  Total: £' + money(benefitsTotal));
   lines.push('');
   const cfPartner = getPartner();
-  if (cfPartner) lines.push(cfPartner.name + ' — ' + (cfPartner.role || DEFAULT_PARTNER_ROLE));
+  if (cfPartner) lines.push(cfPartner.name + ' — ' + DEFAULT_PARTNER_ROLE + (cfPartner.town ? ' · ' + cfPartner.town : ''));
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
     $('copyBtn').textContent = '✓ Copied';
     setTimeout(() => { $('copyBtn').textContent = '📋 Copy figures'; }, 1500);
@@ -1909,10 +2003,12 @@ function buildShareData() {
     ip: r.incomeProtectorCost, bc: r.boilerCoverCost, bcf: Math.round(r.boilerCoverFree),
     it: r.insuranceTotal,
     mac: r.manualAdjustCurrent, mau: r.manualAdjustUw,
+    map: (state.manualAdjustPeriod === 'annual' && (r.manualAdjustCurrent !== 0 || r.manualAdjustUw !== 0)) ? 1 : 0,
+    oo: r.oneOff, ool: r.oneOffLabel,
     macr: r.manualAdjustCurrentReason, maur: r.manualAdjustUwReason,
     bl: basketLink(),
     pn: partner ? partner.name : '',
-    pr: partner ? (partner.role || '') : '',
+    pr: (partner && partner.town) ? DEFAULT_PARTNER_ROLE + ' · ' + partner.town : '',
     ps: partner ? (partner.strap || '') : '',
     pj: partner ? partner.join : ''
   };
@@ -2051,12 +2147,16 @@ function resetForm() {
   $('simList').innerHTML = '';
   $('mobileTotalsRow').style.display = 'none';
   // New toggles/panels (Whole Home Wi-Fi, manual adjustments, insurance)
-  ['energyAdjustFields','manualAdjustFields'].forEach(id => $(id).classList.add('hidden'));
+  ['energyAdjustFields','manualAdjustFields','oneOffFields'].forEach(id => $(id).classList.add('hidden'));
   $('boilerCoverFreeRow').classList.add('hidden');
   state.energyAdjustTarget = 'current';
   state.energyAdjustPeriod = 'monthly';
+  state.manualAdjustPeriod = 'monthly';
+  state.oneOffType = 'refund';
   document.querySelector('[data-adjusttarget="current"]').classList.add('on');
   document.querySelector('[data-adjustperiod="monthly"]').classList.add('on');
+  document.querySelector('[data-maperiod="monthly"]').classList.add('on');
+  document.querySelector('[data-oneoff="refund"]').classList.add('on');
   calc();
 }
 $('resetBtn').addEventListener('click', () => { if (confirm('Reset all figures?')) resetForm(); });
@@ -2117,6 +2217,8 @@ function restoreForm(saved) {
   state.splitElec = (s.splitElec !== undefined) ? s.splitElec : true;
   state.energyAdjustTarget = s.energyAdjustTarget || 'current';
   state.energyAdjustPeriod = s.energyAdjustPeriod || 'monthly';
+  state.manualAdjustPeriod = s.manualAdjustPeriod || 'monthly';
+  state.oneOffType = s.oneOffType || 'refund';
 
   // homeowner/tenant reveals the main cards
   if (state.homeowner) setHome(state.homeowner);
@@ -2144,6 +2246,7 @@ function restoreForm(saved) {
   $('energySplitNow').classList.toggle('hidden', !$('splitEnergyToggle').checked);
   $('energyAdjustFields').classList.toggle('hidden', !$('energyAdjustToggle').checked);
   $('manualAdjustFields').classList.toggle('hidden', !$('manualAdjustToggle').checked);
+  $('oneOffFields').classList.toggle('hidden', !$('oneOffToggle').checked);
   $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
   $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
   $('boilerCoverFreeRow').classList.toggle('hidden', !$('boilerCoverToggle').checked);
@@ -2177,6 +2280,10 @@ function restoreForm(saved) {
     b.classList.toggle('on', b.dataset.adjusttarget === state.energyAdjustTarget));
   document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(b =>
     b.classList.toggle('on', b.dataset.adjustperiod === state.energyAdjustPeriod));
+  document.querySelectorAll('#manualAdjustPeriodPills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.maperiod === state.manualAdjustPeriod));
+  document.querySelectorAll('#oneOffTypePills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.oneoff === state.oneOffType));
 
   // cashback tier chip
   document.querySelectorAll('[data-cbtier]').forEach(c => {
@@ -2452,7 +2559,7 @@ function openPartnerPrompt(msg) {
   const p = getPartner() || {};
   $('ppName').value = p.name || '';
   $('ppJoin').value = p.join || '';
-  $('ppRole').value = p.role || '';
+  $('ppTown').value = p.town || '';
   $('ppStrap').value = (p.strap !== undefined) ? p.strap : DEFAULT_PARTNER_STRAP;
   $('partnerPromptMsg').textContent = msg ||
     'These appear on every card you share, with your sign-up link as the call to action. Saved on this device only.';
@@ -2492,7 +2599,7 @@ $('ppSaveBtn').addEventListener('click', () => {
   setPartner({
     name: name,
     join: join,
-    role: $('ppRole').value.trim(),
+    town: $('ppTown').value.trim(),
     strap: $('ppStrap').value.trim()
   });
   closePartnerPrompt();
@@ -2600,6 +2707,12 @@ function renderShared(d) {
     saveLine($('scAdjustSave'), mac - mau);
   }
   const reasons = [];
+  if (g('map') && adjustOn) {
+    const parts = [];
+    if (mac) parts.push('Current £' + money(mac * 12) + '/yr');
+    if (mau) parts.push('UW £' + money(mau * 12) + '/yr');
+    reasons.push('Entered annually — ' + parts.join(', ') + ', shown as monthly');
+  }
   if (g('macr', '')) reasons.push('Current: ' + g('macr', ''));
   if (g('maur', '')) reasons.push('UW: ' + g('maur', ''));
   $('scAdjustNoteRow').classList.toggle('hidden', !adjustOn || reasons.length === 0);
@@ -2639,6 +2752,16 @@ function renderShared(d) {
   $('scBoilerFreeRow').classList.toggle('hidden', bcf === 0);
   $('scBoilerFree').textContent = '\u00a3' + money(bcf);
   $('scBoilerFreeLabel').textContent = '\ud83d\udee1\ufe0f ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ \u00a3' + bc + ')';
+  const oo = g('oo');
+  $('scOneOffRow').classList.toggle('hidden', oo === 0);
+  if (oo !== 0) {
+    const isRefund = oo > 0;
+    const defLabel = isRefund ? 'One-off refund' : 'One-off charge';
+    $('scOneOffLabel').textContent = '\ud83d\udcb7 ' + (g('ool', '') || defLabel);
+    $('scOneOff').textContent = (isRefund ? '\u00a3' : '\u2212\u00a3') + money(Math.abs(oo));
+    $('scOneOff').classList.toggle('good', isRefund);
+    $('scOneOff').classList.toggle('bad', !isRefund);
+  }
   $('scExitDeductionRow').classList.toggle('hidden', ed === 0);
   $('scExitDeduction').textContent = '\u2212\u00a3' + money(ed);
   const ef = g('ef');
@@ -2658,7 +2781,7 @@ function renderShared(d) {
     }
     $('scExitMsg').innerHTML = msg;
   }
-  const benefitsTotal = bf + w + rf + mf + bcf + (cbOn ? fm : 0) - ed;
+  const benefitsTotal = bf + w + rf + mf + bcf + (cbOn ? fm : 0) + oo - ed;
   $('scBenefitsTotal').textContent = fmtV(benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
   $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
