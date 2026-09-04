@@ -203,7 +203,7 @@ details.expand[open]>summary::after{transform:rotate(90deg)}
 
 <!-- ===== HOUSE + TARIFF ===== -->
 <div class="card">
-  <div class="card-lbl">Their home electricity</div>
+  <div class="card-lbl">"🏠Home Usage"</div>
   <div class="house-row">
     <div class="field">
       <label>Annual house use <span class="hint">kWh, excl. the car</span></label>
