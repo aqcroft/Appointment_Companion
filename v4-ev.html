@@ -203,10 +203,10 @@ details.expand[open]>summary::after{transform:rotate(90deg)}
 
 <!-- ===== HOUSE + TARIFF ===== -->
 <div class="card">
-  <div class="card-lbl">"🏠Home Usage"</div>
+  <div class="card-lbl">🏠Home Usage</div>
   <div class="house-row">
     <div class="field">
-      <label>Estimate Annual Usage<span class="hint">kWh, excl. car</span></label>
+      <label>Estimated Annual Usage<span class="hint">kWh, excl. car</span></label>
       <input type="number" id="houseKwh" inputmode="numeric" placeholder="e.g. 1,981">
     </div>
     <div class="night-box">
@@ -221,15 +221,14 @@ details.expand[open]>summary::after{transform:rotate(90deg)}
     <div class="hint">Share of the home's own use in the off-peak window (midnight–5am), priced at the overnight rate.</div>
   </div>
 
-  <div class="card-lbl" style="margin-top:.9rem">House-only cost <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— taken from quote</span></div>
+  <div class="card-lbl" style="margin-top:.9rem">🏠Home Usage £ cost <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— taken from quote</span></div>
   <div class="seg small" id="curModeSeg">
     <button data-curmode="cost" class="on">Known £/month</button>
     <button data-curmode="rates">Enter rates</button>
   </div>
   <div id="curCostBox">
     <div class="field">
-      <label>House-only monthly cost <span class="hint">£ per month · house electricity only, no car · optional</span></label>
-      <div class="money-input"><span class="cur">£</span><input type="number" id="curMonthly" inputmode="decimal" step="0.01" placeholder="e.g. 54.64"></div>
+            <div class="money-input"><span class="cur">£</span><input type="number" id="curMonthly" inputmode="decimal" step="0.01" placeholder="e.g. 54.64"></div>
     </div>
   </div>
   <div id="curRatesBox" class="hidden">
@@ -240,13 +239,12 @@ details.expand[open]>summary::after{transform:rotate(90deg)}
     <div class="field"><label>Night rate <span class="hint">p/kWh · only if already on Economy 7 · else blank</span></label><input type="number" id="curNight" inputmode="decimal" step="0.001" placeholder="optional"></div>
   </div>
 
-  <div class="card-lbl" style="margin-top:.9rem">EV Tariff <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— by service level</span></div>
+  <div class="card-lbl" style="margin-top:.9rem">EV Tariff <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— dependent on number of services</span></div>
   <div class="svc" id="svcSeg">
     <button data-tier="value"><span class="t">Energy only</span><span class="c" data-costslot>EV Value</span></button>
     <button data-tier="gold"><span class="t">Energy +1</span><span class="c" data-costslot>EV Gold</span></button>
     <button data-tier="doubleGold" class="on"><span class="t">Energy +2</span><span class="c" data-costslot>EV Double&nbsp;Gold</span></button>
   </div>
-  <div class="svc-cap">More services = a cheaper EV rate. Figures are per month vs the selected tier.</div>
 </div>
 
 <!-- ===== RESULT ===== -->
