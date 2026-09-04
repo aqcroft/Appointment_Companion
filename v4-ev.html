@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ EV Sense-Check</title>
+<style>
+:root{
+  --ev:#00897B; --ev-lite:#e0f2f0; --ev-dark:#00695C;
+  --good:#1d9b50; --bad:#c43b3b; --amber:#d98a00;
+  --ink:#1f1f24; --muted:#6b6b76; --line:#e6e2ef;
+  --bg:#f0faf8; --card:#fff; --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;padding-bottom:2.5rem}
+.wrap{max-width:480px;margin:0 auto;padding:1rem}
+header{padding:.4rem 0 .3rem}
+header h1{font-size:20px;font-weight:800;color:var(--ev)}
+
+.fresh{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin:.15rem 0 .8rem;flex-wrap:wrap}
+.fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0}
+.fresh strong{color:var(--ev-dark);font-weight:700}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem}
+.card-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.6rem}
+.mini-edit{border:none;background:none;font-size:15px;cursor:pointer;color:var(--ev);padding:0 2px;border-radius:6px;line-height:1}
+.mini-edit:active{opacity:.6}
+
+.seg{display:flex;background:#eef4f3;border-radius:11px;padding:3px;gap:3px;margin-bottom:.7rem}
+.seg button{flex:1;border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 4px;border-radius:9px;cursor:pointer;transition:all .15s}
+.seg button.on{background:var(--ev);color:#fff;box-shadow:0 1px 4px rgba(0,137,123,.28)}
+.seg.small button{font-size:11.5px;padding:6px 4px}
+
+.vpills{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.vpill{padding:9px 8px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:all .15s;color:var(--ink);text-align:left}
+.vpill .ico{font-size:17px;flex-shrink:0}
+.vpill .meta{display:flex;flex-direction:column;line-height:1.2}
+.vpill .meta .eff{font-size:10px;color:var(--muted);font-weight:500}
+.vpill.on{background:var(--ev);border-color:var(--ev);color:#fff}
+.vpill.on .meta .eff{color:rgba(255,255,255,.85)}
+
+.mile-row{display:flex;align-items:center;justify-content:space-between;margin:.8rem 0 .35rem}
+.mile-row label{font-size:12.5px;font-weight:600}
+.mile-val{font-size:15px;font-weight:800;color:var(--ev)}
+.mini-seg{display:flex;gap:3px;background:#eef4f3;border-radius:8px;padding:2px}
+.mini-seg button{border:none;background:none;font-family:inherit;font-size:10.5px;font-weight:700;color:var(--muted);padding:3px 7px;border-radius:6px;cursor:pointer}
+.mini-seg button.on{background:#fff;color:var(--ev-dark);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+input[type=range]{width:100%;height:6px;border-radius:3px;background:var(--line);-webkit-appearance:none;appearance:none;margin-top:.2rem}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--ev);cursor:pointer;box-shadow:0 2px 6px rgba(0,137,123,.3)}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--ev);border:none}
+.mile-ends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px}
+
+/* energy summary */
+.esum-full{background:var(--ev);color:#fff;border-radius:11px;padding:.7rem .9rem;display:flex;align-items:center;justify-content:space-between;margin-top:.7rem}
+.esum-full .lft{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}
+.esum-full .lft .ci{font-size:20px}
+.esum-full .n{font-size:17px;font-weight:800}
+.esum-full .n small{font-size:10px;font-weight:600;opacity:.85}
+.esum-two{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+.esum-box{background:var(--ev-lite);border-radius:10px;padding:.55rem .5rem;text-align:center}
+.esum-box .ic{font-size:15px}
+.esum-box .n{font-size:15px;font-weight:800;color:var(--ev-dark);line-height:1.1}
+.esum-box .l{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px;margin-top:2px}
+.esum-edit{text-align:center;margin-top:.4rem}
+
+.slide-in{background:#f6fbfa;border:1px dashed var(--ev);border-radius:10px;padding:.6rem .8rem;margin-top:.55rem}
+.slide-in .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600}
+.slide-in .top b{color:var(--ev);font-size:14px}
+.slide-in .hint{font-size:10px;color:var(--muted);margin-top:.3rem}
+
+.field{margin-bottom:.7rem}
+.field:last-child{margin-bottom:0}
+.field label{font-size:12px;font-weight:600;display:block;margin-bottom:3px}
+.hint{font-size:10px;color:var(--muted);font-weight:400}
+input[type=number],input[type=text]{width:100%;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--line);border-radius:10px;background:#f8fefd}
+input[type=number]:focus,input[type=text]:focus{outline:none;border-color:var(--ev);box-shadow:0 0 0 3px rgba(0,137,123,.12)}
+select{width:100%;padding:10px 12px;font-size:14px;font-family:inherit;border:1px solid var(--line);border-radius:10px;background:#f8fefd;color:var(--ink)}
+.money-input{position:relative}
+.money-input .cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ev-dark);font-weight:800;font-size:15px;pointer-events:none}
+.money-input input{padding-left:24px}
+
+/* house row: kWh + night beside */
+.house-row{display:flex;gap:.6rem;align-items:flex-start}
+.house-row .field{flex:1.5;margin-bottom:0}
+.night-box{flex:1;background:#f6fbfa;border:1px solid var(--line);border-radius:10px;padding:.5rem .55rem;text-align:center}
+.night-box .nl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+.night-box .nv{font-size:15px;font-weight:800;color:var(--ev-dark);margin-top:1px}
+.night-box .nv small{font-size:10px;font-weight:600;color:var(--muted)}
+.night-box .ne{margin-top:1px}
+
+.svc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.svc button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
+.svc button .t{font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.1;text-align:center}
+.svc button .c{font-size:11px;font-weight:700;color:var(--muted);line-height:1}
+.svc button.on{background:var(--ev);border-color:var(--ev)}
+.svc button.on .t{color:#fff}.svc button.on .c{color:rgba(255,255,255,.92)}
+.svc button.cheaper .c{color:var(--good)}.svc button.on.cheaper .c{color:#eafff2}
+.svc-cap{font-size:10px;color:var(--muted);margin-top:.45rem;text-align:center}
+
+/* result */
+.result{border:1.5px solid var(--ev);border-radius:var(--radius);overflow:hidden;margin-bottom:.75rem;background:#fff}
+.result .prompt{padding:1.4rem 1rem;text-align:center;color:var(--muted);font-size:13px}
+.res-head{background:var(--ev);color:#fff;padding:1rem;text-align:center}
+.res-head .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.9}
+.res-head .big{font-size:34px;font-weight:800;line-height:1.05;margin:.15rem 0}
+.res-head .yr{font-size:11px;opacity:.85}
+.res-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:.9rem 1rem .6rem}
+.res-col{background:#f8fefd;border:1px solid var(--line);border-radius:11px;padding:.6rem .5rem;text-align:center}
+.res-col .ci{font-size:17px}
+.res-col .cl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-top:1px}
+.res-col .cm{font-size:19px;font-weight:800;color:var(--ev-dark);line-height:1.1;margin-top:2px}
+.res-col .cy{font-size:10px;color:var(--muted);font-weight:600}
+.res-foot{padding:0 1rem 1rem}
+.res-note{background:var(--ev-lite);border-radius:10px;padding:.55rem .75rem;font-size:11.5px;color:var(--ev-dark);line-height:1.45}
+.res-note b{font-weight:800}
+.away-note{background:#fff8ef;border:1px solid #f0dcbf;border-radius:10px;padding:.55rem .75rem;font-size:11px;color:#8a5a00;margin-top:.5rem;line-height:1.45}
+.away-note b{font-weight:800}
+
+details.expand{margin-bottom:.6rem}
+details.expand>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:.8rem 1rem;cursor:pointer;font-size:13px;font-weight:700;color:var(--ev-dark);user-select:none}
+details.expand>summary::-webkit-details-marker{display:none}
+details.expand>summary::after{content:'›';font-size:18px;transition:transform .2s;color:var(--muted)}
+details.expand[open]>summary{border-radius:var(--radius) var(--radius) 0 0;border-bottom-color:transparent}
+details.expand[open]>summary::after{transform:rotate(90deg)}
+.expand-body{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:1rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.sub-h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:.9rem 0 .5rem}
+.sub-h:first-child{margin-top:0}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.35rem 0}
+.switchrow .lbl{font-size:12px;font-weight:600}.switchrow .lbl .hint{display:block}
+.switch{position:relative;width:44px;height:26px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;cursor:pointer;z-index:2;margin:0}
+.switch .track{position:absolute;inset:0;background:#d8d3e6;border-radius:999px;transition:background .15s}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked+.track{background:var(--ev)}.switch input:checked+.track::after{left:21px}
+.stress{display:flex;gap:5px;margin-top:.3rem}
+.stress button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 2px;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+.stress button.on{background:#efebe9;border-color:#6d4c41;color:#6d4c41}
+.drow{display:flex;justify-content:space-between;font-size:12px;padding:.28rem 0;border-bottom:1px solid #f4f4f4}
+.drow:last-child{border-bottom:none}.drow span:last-child{font-weight:700;color:var(--ink)}
+.drow.head{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--line);padding-top:.5rem}
+.drow.diff span:last-child{color:var(--ev-dark)}
+.note{font-size:10px;color:var(--muted);line-height:1.5;margin-top:.6rem}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header><h1>⚡ EV Sense-Check</h1></header>
+<div class="fresh">
+  <span class="dot"></span>
+  <span><strong id="freshQuarter">Jul–Sep</strong> EV tariffs · <strong id="freshRegion">East Midlands</strong> · Direct Debit · inc VAT · UW official label</span>
+</div>
+
+<!-- ===== ROUTE + CAR ===== -->
+<div class="card">
+  <div class="seg" id="routeSeg">
+    <button data-route="new" class="on">New to EV</button>
+    <button data-route="existing">Existing EV driver</button>
+  </div>
+
+  <div class="vpills" data-veh="0">
+    <button class="vpill" type="button" data-eff="3.8" data-ic="🚗"><span class="ico">🚗</span><span class="meta"><span>Family Hatchback</span><span class="eff">3.8 mi/kWh</span></span></button>
+    <button class="vpill" type="button" data-eff="3.5" data-ic="🚘"><span class="ico">🚘</span><span class="meta"><span>Exec Saloon</span><span class="eff">3.5 mi/kWh</span></span></button>
+    <button class="vpill on" type="button" data-eff="3.2" data-ic="🚙"><span class="ico">🚙</span><span class="meta"><span>Family SUV</span><span class="eff">3.2 mi/kWh</span></span></button>
+    <button class="vpill" type="button" data-eff="2.8" data-ic="🚐"><span class="ico">🚐</span><span class="meta"><span>Large SUV / 7-seat</span><span class="eff">2.8 mi/kWh</span></span></button>
+  </div>
+  <div class="mile-row">
+    <label>Mileage</label>
+    <span class="mile-val" data-miledisp="0">10,000 / yr</span>
+  </div>
+  <div class="mini-seg" data-period="0">
+    <button data-per="annual" class="on">Annual</button>
+    <button data-per="monthly">Monthly</button>
+    <button data-per="weekly">Weekly</button>
+  </div>
+  <input type="range" data-mile="0" min="1000" max="30000" step="500" value="10000">
+  <div class="mile-ends"><span>1,000</span><span>30,000</span></div>
+
+  <!-- energy summary -->
+  <div class="esum-full">
+    <span class="lft"><span class="ci" id="carIcon">🚙</span>The car will use</span>
+    <span class="n"><span id="totEvKwh">—</span> <small>kWh/yr</small></span>
+  </div>
+  <div class="esum-two">
+    <div class="esum-box"><div class="ic">🔌🏠</div><div class="n" id="homeKwh">—</div><div class="l">Charged at home</div></div>
+    <div class="esum-box"><div class="ic">🔌🛣️</div><div class="n" id="awayKwh">—</div><div class="l">Charged away</div></div>
+  </div>
+  <div class="esum-edit"><button class="mini-edit" id="awayEdit" type="button">✏️</button></div>
+  <div class="slide-in hidden" id="awayInline">
+    <div class="top"><span>Charged away from home</span><b id="awayPctLbl">10%</b></div>
+    <input type="range" id="awayPct" min="0" max="60" step="1" value="10">
+    <div class="hint">The rest is charged at home and priced on the UW EV overnight rate.</div>
+  </div>
+
+  <div class="field hidden" id="knownKwhField" style="margin-top:.7rem">
+    <label>Known annual EV kWh <span class="hint">from car, app or bill · overrides the estimate (total, before home split)</span></label>
+    <input type="number" id="knownKwh" inputmode="numeric" placeholder="leave blank to use estimate">
+  </div>
+</div>
+
+<!-- ===== HOUSE + TARIFF ===== -->
+<div class="card">
+  <div class="card-lbl">Their home electricity</div>
+  <div class="house-row">
+    <div class="field">
+      <label>Annual house use <span class="hint">kWh, excl. the car</span></label>
+      <input type="number" id="houseKwh" inputmode="numeric" placeholder="e.g. 1,981">
+    </div>
+    <div class="night-box">
+      <div class="nl">Overnight</div>
+      <div class="nv"><span id="nightKwhDisp">—</span> <small>kWh</small></div>
+      <div class="ne"><button class="mini-edit" id="nightEdit" type="button">✏️</button></div>
+    </div>
+  </div>
+  <div class="slide-in hidden" id="nightInline">
+    <div class="top"><span>House used overnight</span><b id="nightPctLbl">10%</b></div>
+    <input type="range" id="nightPct" min="0" max="40" step="1" value="10">
+    <div class="hint">Share of the home's own use in the off-peak window (midnight–5am), priced at the overnight rate.</div>
+  </div>
+
+  <div class="card-lbl" style="margin-top:.9rem">House-only cost <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— taken from quote</span></div>
+  <div class="seg small" id="curModeSeg">
+    <button data-curmode="cost" class="on">Known £/month</button>
+    <button data-curmode="rates">Enter rates</button>
+  </div>
+  <div id="curCostBox">
+    <div class="field">
+      <label>House-only monthly cost <span class="hint">£ per month · house electricity only, no car · optional</span></label>
+      <div class="money-input"><span class="cur">£</span><input type="number" id="curMonthly" inputmode="decimal" step="0.01" placeholder="e.g. 54.64"></div>
+    </div>
+  </div>
+  <div id="curRatesBox" class="hidden">
+    <div class="two">
+      <div class="field"><label>Unit rate <span class="hint">p/kWh, as billed</span></label><input type="number" id="curUnit" inputmode="decimal" step="0.001" placeholder="e.g. 24.912"></div>
+      <div class="field"><label>Standing charge <span class="hint">p/day, as billed</span></label><input type="number" id="curSC" inputmode="decimal" step="0.001" placeholder="e.g. 44.44"></div>
+    </div>
+    <div class="field"><label>Night rate <span class="hint">p/kWh · only if already on Economy 7 · else blank</span></label><input type="number" id="curNight" inputmode="decimal" step="0.001" placeholder="optional"></div>
+  </div>
+
+  <div class="card-lbl" style="margin-top:.9rem">EV Tariff <span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">— by service level</span></div>
+  <div class="svc" id="svcSeg">
+    <button data-tier="value"><span class="t">Energy only</span><span class="c" data-costslot>EV Value</span></button>
+    <button data-tier="gold"><span class="t">Energy +1</span><span class="c" data-costslot>EV Gold</span></button>
+    <button data-tier="doubleGold" class="on"><span class="t">Energy +2</span><span class="c" data-costslot>EV Double&nbsp;Gold</span></button>
+  </div>
+  <div class="svc-cap">More services = a cheaper EV rate. Figures are per month vs the selected tier.</div>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div class="result">
+  <div class="prompt" id="resultPrompt">Enter their house electricity to see the monthly picture.</div>
+  <div id="resultBody" class="hidden">
+    <div class="res-head">
+      <div class="k">Total electricity on <span id="resTier">UW EV Double Gold</span></div>
+      <div class="big" id="resTotal">—</div>
+      <div class="yr" id="resTotalYr">—</div>
+    </div>
+    <div class="res-cols">
+      <div class="res-col"><div class="ci">🏠</div><div class="cl">House</div><div class="cm" id="resHouseM">—</div><div class="cy" id="resHouseY">—</div></div>
+      <div class="res-col"><div class="ci">🔌</div><div class="cl">Car charging</div><div class="cm" id="resCarM">—</div><div class="cy" id="resCarY">—</div></div>
+    </div>
+    <div class="res-foot">
+      <div class="res-note" id="houseNote"></div>
+      <div class="away-note hidden" id="awayNote"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS ===== -->
+<details class="expand" id="settingsWrap">
+  <summary>⚙️ Settings &amp; assumptions ✏️</summary>
+  <div class="expand-body">
+    <div class="sub-h">Tariff</div>
+    <div class="field"><label>Electricity region</label>
+      <select id="region">
+        <option value="10">Eastern</option><option value="11" selected>East Midlands</option>
+        <option value="12">London</option><option value="13">Manweb (Merseyside &amp; N Wales)</option>
+        <option value="14">Midlands</option><option value="15">Northern</option>
+        <option value="16">Norweb (NW England)</option><option value="17">Scottish Hydro</option>
+        <option value="18">Scottish Power</option><option value="19">Seeboard (SE England)</option>
+        <option value="20">Southern</option><option value="21">Swalec (S Wales)</option>
+        <option value="22">Sweb (SW England)</option><option value="23">Yorkshire</option>
+      </select>
+    </div>
+    <div class="switchrow">
+      <span class="lbl">Gas stays with UW (dual fuel)<span class="hint">applies £13/yr per fuel off the standing charge</span></span>
+      <span class="switch"><input type="checkbox" id="dualFuel" checked><span class="track"></span></span>
+    </div>
+
+    <div class="sub-h">Car efficiency</div>
+    <div class="field"><label>Efficiency override <span class="hint">mi/kWh · overrides the buttons</span></label><input type="number" id="veh0Eff" inputmode="decimal" step="0.1" placeholder="from buttons (3.2)"></div>
+
+    <div class="sub-h">Away-from-home charging (rough guide)</div>
+    <div class="field"><label>Assumed public rate <span class="hint">p/kWh · illustrative only, prices vary a lot</span></label><input type="number" id="awayRate" inputmode="decimal" step="1" value="50"></div>
+
+    <div id="existingExtras" class="hidden">
+      <div class="sub-h">Existing EV driver</div>
+      <div class="switchrow">
+        <span class="lbl">Separate EV from household night use<span class="hint">on: enter household overnight kWh yourself</span></span>
+        <span class="switch"><input type="checkbox" id="sepNight"><span class="track"></span></span>
+      </div>
+      <div class="field hidden" id="houseNightField"><label>Household overnight kWh <span class="hint">off-peak house use, excl. the car</span></label><input type="number" id="houseNightKwh" inputmode="numeric" placeholder="e.g. 200"></div>
+    </div>
+
+    <div class="sub-h">Future variable-rate stress test</div>
+    <p class="note" style="margin-top:0">A what-if only, applied to the UW EV unit rates. Not a forecast.</p>
+    <div class="stress" id="stressSeg">
+      <button data-stress="0" class="on">0%</button><button data-stress="5">+5%</button>
+      <button data-stress="10">+10%</button><button data-stress="15">+15%</button>
+    </div>
+  </div>
+</details>
+
+<!-- ===== DETAILS ===== -->
+<details class="expand" id="detailsWrap">
+  <summary>View calculation details</summary>
+  <div class="expand-body">
+    <div class="drow head"><span>Energy</span><span>kWh / year</span></div>
+    <div class="drow"><span>Total EV charging</span><span id="dTotalEv">—</span></div>
+    <div class="drow"><span>&nbsp;&nbsp;at home</span><span id="dHomeEv">—</span></div>
+    <div class="drow"><span>&nbsp;&nbsp;away</span><span id="dAwayEv">—</span></div>
+    <div class="drow"><span>House day</span><span id="dHouseDay">—</span></div>
+    <div class="drow"><span>House overnight</span><span id="dHouseNight">—</span></div>
+    <div class="drow head" style="margin-top:.6rem"><span>UW EV rates used</span><span>inc VAT</span></div>
+    <div class="drow"><span>Peak (day)</span><span id="dPeak">—</span></div>
+    <div class="drow"><span>Off-peak (overnight)</span><span id="dOff">—</span></div>
+    <div class="drow"><span>Standing charge</span><span id="dSC">—</span></div>
+    <div class="drow head" style="margin-top:.6rem"><span>Annual</span><span>£ / year</span></div>
+    <div class="drow"><span>House-only benchmark now</span><span id="dAnnCur">—</span></div>
+    <div class="drow"><span>House on UW EV</span><span id="dAnnHouseEv">—</span></div>
+    <div class="drow"><span>Car charging on UW EV</span><span id="dAnnEv">—</span></div>
+    <div class="drow"><span>Total on UW EV</span><span id="dAnnTotEv">—</span></div>
+    <div class="drow diff"><span>Difference vs benchmark</span><span id="dAnnDiff">—</span></div>
+    <div class="drow head" style="margin-top:.6rem"><span>Monthly</span><span>£ / month</span></div>
+    <div class="drow"><span>House-only benchmark now</span><span id="dMonCur">—</span></div>
+    <div class="drow"><span>House on UW EV</span><span id="dMonHouseEv">—</span></div>
+    <div class="drow"><span>Car charging on UW EV</span><span id="dMonEv">—</span></div>
+    <div class="drow"><span>Total on UW EV</span><span id="dMonTotEv">—</span></div>
+    <div class="drow diff"><span>Difference vs benchmark</span><span id="dMonDiff">—</span></div>
+    <p class="note">UW official Tariff Information Label, EV tariffs Jul–Sep 2026 quarter (doc UWETL010726), Direct Debit, inc 5% VAT. Off-peak window midnight to 5am GMT (1am to 6am BST). EV tariff is UW electricity only. Illustrative estimate, not a quote or a guaranteed Budget Plan amount.</p>
+  </div>
+</details>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var EV_RATES = {
+    doubleGold:{10:{sc:51.443,peak:27.723,off:7.142},11:{sc:50.387,peak:26.129,off:7.142},12:{sc:42.111,peak:27.797,off:7.142},13:{sc:66.481,peak:28.964,off:7.142},14:{sc:56.346,peak:26.346,off:7.142},15:{sc:60.331,peak:26.020,off:7.142},16:{sc:44.528,peak:27.468,off:7.142},17:{sc:55.294,peak:27.677,off:7.142},18:{sc:61.484,peak:26.772,off:7.142},19:{sc:51.988,peak:28.013,off:7.142},20:{sc:47.166,peak:27.877,off:7.142},21:{sc:53.992,peak:27.629,off:7.142},22:{sc:55.365,peak:27.573,off:7.142},23:{sc:60.530,peak:26.230,off:7.142}},
+    gold:{10:{sc:51.443,peak:30.881,off:8.095},11:{sc:50.387,peak:29.153,off:8.095},12:{sc:42.111,peak:30.832,off:8.095},13:{sc:66.481,peak:32.423,off:8.095},14:{sc:56.346,peak:29.469,off:8.095},15:{sc:60.331,peak:29.174,off:8.095},16:{sc:44.528,peak:30.511,off:8.095},17:{sc:55.294,peak:30.884,off:8.095},18:{sc:61.484,peak:29.998,off:8.095},19:{sc:51.988,peak:31.200,off:8.095},20:{sc:47.166,peak:30.988,off:8.095},21:{sc:53.992,peak:30.815,off:8.095},22:{sc:55.365,peak:30.774,off:8.095},23:{sc:60.534,peak:29.402,off:8.095}},
+    value:{10:{sc:51.443,peak:34.335,off:8.571},11:{sc:50.387,peak:32.468,off:8.571},12:{sc:42.111,peak:34.157,off:8.571},13:{sc:66.481,peak:36.189,off:8.571},14:{sc:56.346,peak:32.886,off:8.571},15:{sc:60.331,peak:32.623,off:8.571},16:{sc:44.528,peak:33.846,off:8.571},17:{sc:55.294,peak:34.390,off:8.571},18:{sc:61.484,peak:33.522,off:8.571},19:{sc:51.988,peak:34.684,off:8.571},20:{sc:47.166,peak:34.392,off:8.571},21:{sc:53.992,peak:34.298,off:8.571},22:{sc:55.365,peak:34.273,off:8.571},23:{sc:60.534,peak:32.871,off:8.571}}
+  };
+  var REGION_NAMES={10:"Eastern",11:"East Midlands",12:"London",13:"Manweb",14:"Midlands",15:"Northern",16:"Norweb",17:"Scottish Hydro",18:"Scottish Power",19:"Seeboard",20:"Southern",21:"Swalec",22:"Sweb",23:"Yorkshire"};
+  var TIER_NAMES={value:"UW EV Value",gold:"UW EV Gold",doubleGold:"UW EV Double Gold"};
+  var VAT=1.05, DUAL_FUEL_DISC_YR=1300;
+
+  function compute(i){
+    var r=(EV_RATES[i.tier]&&EV_RATES[i.tier][i.region])?EV_RATES[i.tier][i.region]:null;
+    if(!r) return {error:"No rates"};
+    var stress=1+(i.stressPct||0)/100, peak=r.peak*VAT*stress, off=r.off*VAT*stress;
+    var scDay=r.sc*VAT; if(i.dualFuel) scDay-=DUAL_FUEL_DISC_YR/365; if(scDay<0) scDay=0;
+    var evTotal;
+    if(i.knownEvKwh&&i.knownEvKwh>0){evTotal=i.knownEvKwh;}
+    else{evTotal=0;(i.vehicles||[]).forEach(function(v){if(v.eff>0&&v.miles>0)evTotal+=v.miles/v.eff;});}
+    var evHome=evTotal*(1-(i.awayPct||0)/100), evAway=evTotal-evHome;
+    var houseKwh=i.houseKwh||0, houseNight, houseDay;
+    if(i.existing&&i.sepNight){houseNight=Math.min(i.houseNightKwh||0,houseKwh);houseDay=houseKwh-houseNight;}
+    else{houseNight=houseKwh*(i.nightPct||0)/100;houseDay=houseKwh-houseNight;}
+    var houseEvAnn=(houseDay*peak+houseNight*off)/100+scDay*365/100;
+    var evChargeAnn=evHome*off/100, totEvAnn=houseEvAnn+evChargeAnn, awayCostAnn=evAway*(i.awayRate||0)/100;
+    var houseCurAnn=null;
+    if(i.curMode==="rates"){var cu=i.curUnit||0,cn=i.curNight||0,csc=i.curSC||0;
+      if(cu>0||csc>0){houseCurAnn=(cn>0)?((houseDay*cu+houseNight*cn)/100+csc*365/100):(houseKwh*cu/100+csc*365/100);}}
+    else{if(i.curMonthly>0)houseCurAnn=i.curMonthly*12;else if(i.curAnnual>0)houseCurAnn=i.curAnnual;}
+    var out={evTotal:evTotal,evHome:evHome,evAway:evAway,houseDay:houseDay,houseNight:houseNight,peak:peak,off:off,scDay:scDay,houseEvAnn:houseEvAnn,evChargeAnn:evChargeAnn,totEvAnn:totEvAnn,awayCostAnn:awayCostAnn,houseCurAnn:houseCurAnn};
+    if(houseCurAnn!=null){out.onCostAnn=houseEvAnn-houseCurAnn;out.increaseAnn=totEvAnn-houseCurAnn;}
+    return out;
+  }
+  if(typeof module!=="undefined"&&module.exports){module.exports={compute:compute,EV_RATES:EV_RATES,VAT:VAT,DUAL_FUEL_DISC_YR:DUAL_FUEL_DISC_YR};}
+  if(typeof document==="undefined") return;
+
+  var $=function(id){return document.getElementById(id);};
+  var fmtM=function(n){return "£"+(Math.round(Math.abs(n)*100)/100).toFixed(2);};
+  var whole=function(n){return "£"+Math.round(Math.abs(n)).toLocaleString("en-GB");};
+  var signM=function(n){return (n>=0?"+":"−")+fmtM(n);};
+  var fmt0=function(n){return Math.round(n).toLocaleString("en-GB");};
+
+  var state={route:"new",car:{eff:3.2,miles:10000,period:"annual",icon:"🚙"},
+    tier:"doubleGold",region:11,dualFuel:true,awayPct:10,nightPct:10,stressPct:0,curMode:"cost",sepNight:false};
+  function annualMiles(){var c=state.car;return c.period==="monthly"?c.miles*12:c.period==="weekly"?c.miles*52:c.miles;}
+  function num(id){var el=$(id);if(!el)return 0;var v=parseFloat(el.value);return isNaN(v)?0:v;}
+
+  document.querySelectorAll("#routeSeg button").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll("#routeSeg button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");
+    state.route=b.dataset.route;var ex=state.route==="existing";
+    $("knownKwhField").classList.toggle("hidden",!ex);$("existingExtras").classList.toggle("hidden",!ex);render();});});
+  document.querySelectorAll('.vpills[data-veh="0"] .vpill').forEach(function(btn){btn.addEventListener("click",function(){
+    document.querySelectorAll('.vpills[data-veh="0"] .vpill').forEach(function(x){x.classList.remove("on");});btn.classList.add("on");
+    state.car.eff=parseFloat(btn.dataset.eff);state.car.icon=btn.dataset.ic;$("carIcon").textContent=btn.dataset.ic;
+    var ef=$("veh0Eff");if(ef)ef.value="";render();});});
+  (function(){var sl=document.querySelector('input[data-mile="0"]');sl.addEventListener("input",function(){state.car.miles=parseInt(sl.value,10);updateMileDisplay();render();});})();
+  document.querySelectorAll('.mini-seg[data-period="0"] button').forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll('.mini-seg[data-period="0"] button').forEach(function(x){x.classList.remove("on");});b.classList.add("on");
+    state.car.period=b.dataset.per;var sl=document.querySelector('input[data-mile="0"]');
+    if(b.dataset.per==="annual"){sl.max=30000;sl.step=500;if(state.car.miles>30000)sl.value=30000;}
+    else if(b.dataset.per==="monthly"){sl.max=2500;sl.step=50;if(state.car.miles>2500)sl.value=1000;}
+    else{sl.max=600;sl.step=10;if(state.car.miles>600)sl.value=200;}
+    state.car.miles=parseInt(sl.value,10);updateMileDisplay();render();});});
+  function updateMileDisplay(){var c=state.car;var s=c.period==="annual"?" / yr":c.period==="monthly"?" / mo":" / wk";
+    var el=document.querySelector('[data-miledisp="0"]');if(el)el.textContent=c.miles.toLocaleString("en-GB")+s;}
+
+  $("awayEdit").addEventListener("click",function(){$("awayInline").classList.toggle("hidden");});
+  $("nightEdit").addEventListener("click",function(){$("nightInline").classList.toggle("hidden");});
+  $("awayPct").addEventListener("input",function(){state.awayPct=parseInt($("awayPct").value,10);$("awayPctLbl").textContent=state.awayPct+"%";render();});
+  $("nightPct").addEventListener("input",function(){state.nightPct=parseInt($("nightPct").value,10);$("nightPctLbl").textContent=state.nightPct+"%";render();});
+
+  document.querySelectorAll("#curModeSeg button").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll("#curModeSeg button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");
+    state.curMode=b.dataset.curmode;$("curCostBox").classList.toggle("hidden",state.curMode!=="cost");$("curRatesBox").classList.toggle("hidden",state.curMode!=="rates");render();});});
+  document.querySelectorAll("#svcSeg button").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll("#svcSeg button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");state.tier=b.dataset.tier;render();});});
+  document.querySelectorAll("#stressSeg button").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll("#stressSeg button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");state.stressPct=parseFloat(b.dataset.stress);render();});});
+
+  ["houseKwh","curMonthly","curUnit","curNight","curSC","knownKwh","houseNightKwh","veh0Eff","awayRate"].forEach(function(id){var el=$(id);if(el)el.addEventListener("input",render);});
+  $("region").addEventListener("change",function(){state.region=parseInt($("region").value,10);$("freshRegion").textContent=REGION_NAMES[state.region];render();});
+  $("dualFuel").addEventListener("change",function(){state.dualFuel=$("dualFuel").checked;render();});
+  $("sepNight").addEventListener("change",function(){state.sepNight=$("sepNight").checked;$("houseNightField").classList.toggle("hidden",!state.sepNight);render();});
+
+  function gatherInputs(tierOverride){
+    var eff=state.car.eff;var manual=num("veh0Eff");if(manual>0)eff=manual;
+    return {region:state.region,tier:tierOverride||state.tier,dualFuel:state.dualFuel,
+      vehicles:[{eff:eff,miles:annualMiles()}],awayPct:state.awayPct,awayRate:num("awayRate"),
+      knownEvKwh:state.route==="existing"?num("knownKwh"):0,houseKwh:num("houseKwh"),nightPct:state.nightPct,
+      existing:state.route==="existing",sepNight:state.sepNight,houseNightKwh:num("houseNightKwh"),
+      curMode:state.curMode,curMonthly:num("curMonthly"),curUnit:num("curUnit"),curNight:num("curNight"),curSC:num("curSC"),stressPct:state.stressPct};
+  }
+
+  function render(){
+    var i=gatherInputs(), res=compute(i);
+    $("totEvKwh").textContent=res.evTotal>0?fmt0(res.evTotal):"—";
+    $("homeKwh").textContent=res.evHome>0?fmt0(res.evHome):"—";
+    $("awayKwh").textContent=res.evAway>0?fmt0(res.evAway):"0";
+    $("nightKwhDisp").textContent=res.houseNight>0?fmt0(res.houseNight):"—";
+    $("resTier").textContent=TIER_NAMES[state.tier];
+
+    $("dTotalEv").textContent=res.evTotal>0?fmt0(res.evTotal)+" kWh":"—";
+    $("dHomeEv").textContent=res.evHome>0?fmt0(res.evHome)+" kWh":"—";
+    $("dAwayEv").textContent=res.evAway>0?fmt0(res.evAway)+" kWh":"—";
+    $("dHouseDay").textContent=res.houseDay>0?fmt0(res.houseDay)+" kWh":"—";
+    $("dHouseNight").textContent=res.houseNight>0?fmt0(res.houseNight)+" kWh":"—";
+    $("dPeak").textContent=res.peak?res.peak.toFixed(2)+"p":"—";
+    $("dOff").textContent=res.off?res.off.toFixed(2)+"p":"—";
+    $("dSC").textContent=res.scDay?res.scDay.toFixed(2)+"p/day":"—";
+    var cur=res.houseCurAnn;
+    $("dAnnCur").textContent=cur!=null?"£"+fmt0(cur):"—";
+    $("dAnnHouseEv").textContent="£"+fmt0(res.houseEvAnn);
+    $("dAnnEv").textContent="£"+fmt0(res.evChargeAnn);
+    $("dAnnTotEv").textContent="£"+fmt0(res.totEvAnn);
+    $("dAnnDiff").textContent=cur!=null?signM(res.increaseAnn):"—";
+    $("dMonCur").textContent=cur!=null?fmtM(cur/12):"—";
+    $("dMonHouseEv").textContent=fmtM(res.houseEvAnn/12);
+    $("dMonEv").textContent=fmtM(res.evChargeAnn/12);
+    $("dMonTotEv").textContent=fmtM(res.totEvAnn/12);
+    $("dMonDiff").textContent=cur!=null?signM(res.increaseAnn/12):"—";
+
+    var haveHouse=i.houseKwh>0, selTot=res.totEvAnn;
+    ["value","gold","doubleGold"].forEach(function(t){
+      var btn=document.querySelector('#svcSeg button[data-tier="'+t+'"]');var slot=btn.querySelector('[data-costslot]');btn.classList.remove("cheaper");
+      if(!haveHouse){slot.innerHTML=(t==="value"?"EV Value":t==="gold"?"EV Gold":"EV Double&nbsp;Gold");return;}
+      var tot=compute(gatherInputs(t)).totEvAnn;
+      if(t===state.tier){slot.textContent=fmtM(tot/12)+"/m";}
+      else{var d=(tot-selTot)/12;slot.textContent=signM(d)+"/m";if(d<0)btn.classList.add("cheaper");}
+    });
+
+    if(!haveHouse){$("resultBody").classList.add("hidden");$("resultPrompt").classList.remove("hidden");return;}
+    $("resultPrompt").classList.add("hidden");$("resultBody").classList.remove("hidden");
+
+    $("resTotal").textContent=fmtM(res.totEvAnn/12)+" /m";
+    $("resTotalYr").textContent="≈ £"+fmt0(res.totEvAnn)+" / year";
+    // house + car columns (whole pounds, monthly + annual)
+    $("resHouseM").textContent=whole(res.houseEvAnn/12)+" /m";
+    $("resHouseY").textContent="≈ "+whole(res.houseEvAnn)+"/yr";
+    if(res.evChargeAnn>0){
+      $("resCarM").textContent=whole(res.evChargeAnn/12)+" /m";
+      $("resCarY").textContent="≈ "+whole(res.evChargeAnn)+"/yr";
+    } else { $("resCarM").textContent="—";$("resCarY").textContent="add a car"; }
+
+    var hn=$("houseNote");
+    if(cur!=null){
+      hn.innerHTML="House on its own: <b>"+fmtM(cur/12)+"</b> now → <b>"+fmtM(res.houseEvAnn/12)+"</b> on this tariff ("+signM(res.onCostAnn/12)+"/m). That house difference is already inside the total above.";
+    } else {
+      hn.innerHTML="Add a house-only quote figure above to show how much the house alone changes on this tariff.";
+    }
+    var an=$("awayNote");
+    if(res.evAway>0&&i.awayRate>0){an.classList.remove("hidden");
+      an.innerHTML="Away from home: if they charge that "+fmt0(res.evAway)+" kWh in public at ~"+fmt0(i.awayRate)+"p, reckon on roughly <b>"+fmtM(res.awayCostAnn/12)+"/m</b> on top. Rough guide only, public prices vary a lot, and it's not on the UW bill.";
+    } else { an.classList.add("hidden"); }
+  }
+
+  updateMileDisplay();render();
+})();
+</script>
+</body>
+</html>
