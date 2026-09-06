@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UW EV Tariff Companion (unofficial) v16C</title>
+<script>
+/* Personalised customer mode is decided before first paint so Partner sharing controls never flash. */
+if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('shared-view');
+</script>
+<link rel="stylesheet" href="v14-ev.css">
+<link rel="stylesheet" href="v15-ev.css">
+<link rel="stylesheet" href="v16c-ev.css">
+</head>
+<body>
+
+<div class="personal-splash" id="personalSplash" aria-live="polite">
+  <div class="personal-splash-card">
+    <div class="personal-splash-icon">🚙  🔌  🏠</div>
+    <div class="personal-splash-hi">Hi <span id="splashName">there</span> 👋</div>
+    <div class="personal-splash-copy">This is for you.</div>
+    <div class="personal-splash-sub">Your home's usage, car size, mileage and other assumptions have already been entered.</div>
+    <div class="personal-splash-live"><span class="live-dot" aria-hidden="true"></span><span>Tap OK and the tool will update with the latest live UW tariff data before showing your personalised EV costs.</span></div>
+    <button class="personal-splash-ok" type="button" id="personalSplashOk">OK - load live data</button>
+  </div>
+</div>
+
+<div class="loading" id="loadingModal" role="status" aria-live="polite">
+  <div class="loading-card"><div class="spinner"></div><div class="loading-title" id="loadingTitle">Loading live UW tariff data…</div><div class="loading-copy" id="loadingCopy">Checking the latest rates before calculating.</div></div>
+</div>
+
+<div class="wrap">
+<header>
+  <div class="title-row">
+    <h1>⚡ UW EV Tariff Companion <span class="unofficial">(unofficial)</span></h1>
+    <div class="fresh-mini" aria-label="Tariff freshness status">
+      <button type="button" class="fresh-mini-btn fixed" id="fixedFresh" aria-expanded="false" aria-label="Fixed tariff version">
+        <span aria-hidden="true">🔒</span><strong id="fixedTopSeries">—</strong>
+      </button>
+      <button type="button" class="fresh-mini-btn variable" id="variableFresh" aria-expanded="false" aria-label="Standard variable tariff period">
+        <span class="season-icon" id="seasonIcon" aria-hidden="true">◷</span>
+      </button>
+    </div>
+  </div>
+  <div class="fresh-detail" id="fixedFreshDetail" hidden>
+    <div class="fresh-detail-head"><strong id="fixedDetailTitle">Fixed tariff version</strong><span id="fixedDetailState">Checking…</span></div>
+    <div class="fresh-detail-dates" id="fixedDetailText">Loading fixed tariff version…</div>
+    <div class="fresh-detail-note">Version comes from the fixed tariff suite currently loaded from the live Google Sheet feed.</div>
+  </div>
+  <div class="fresh-detail" id="variableFreshDetail" hidden>
+    <div class="fresh-detail-head"><strong id="seasonDetailTitle">Standard variable period</strong><span id="seasonDetailState">Checking…</span></div>
+    <div class="fresh-detail-dates" id="seasonDetailDates">Loading validity dates…</div>
+    <div class="fresh-detail-note">Dates come from the standard variable tariff row currently loaded from the live Google Sheet feed.</div>
+  </div>
+  <div class="fresh-warning" id="freshWarning" hidden></div>
+</header>
+
+<div class="strip"><span class="dot" id="feedDot"></span><span id="rateStrip">Loading live tariff data…</span></div>
+
+<section class="share-setup" id="shareSetup">
+  <div class="share-setup-copy">
+    <strong>👤 Personalise & share</strong>
+    <small>The current home usage, car, mileage and settings will travel with the link.</small>
+  </div>
+  <div class="share-setup-row">
+    <input id="shareCustomerName" type="text" autocomplete="off" placeholder="Customer first name - e.g. Mitch" aria-label="Customer first name">
+    <button type="button" id="createShareBtn">📤 Share</button>
+  </div>
+</section>
+
+<section class="customer-welcome" id="customerWelcome" hidden>
+  <div>
+    <strong>👋 Hi <span id="welcomeName">there</span></strong>
+    <small>This has been set up with your starting figures. Feel free to explore - tariff rates are refreshed from the live feed.</small>
+  </div>
+  <button type="button" id="resetSharedBtn">↺ Reset</button>
+</section>
+
+<section class="hero">
+  <div class="hero-head">
+    <div class="hero-title" id="heroTitle">Selected EV tariff · 3 UW services</div>
+    <div class="hero-controls">
+      <span id="fixedSeries" hidden></span>
+      <div class="toggle" id="periodToggle"><button class="on" data-period="month">Monthly</button><button data-period="year">Year</button></div>
+    </div>
+  </div>
+
+  <div class="hero-service-row" aria-label="Number of UW services used for the main comparison">
+    <span class="hero-service-label">UW services</span>
+    <div class="svc hero-svc" id="serviceButtons">
+      <button data-tier="0" aria-label="1 UW service, Energy only"><span class="num">1</span><span class="desc">Energy only</span></button>
+      <button data-tier="1" aria-label="2 UW services, Energy plus 1"><span class="num">2</span><span class="desc">Energy +1</span></button>
+      <button class="on" data-tier="2" aria-label="3 UW services, Energy plus 2"><span class="num">3</span><span class="desc">Energy +2</span></button>
+    </div>
+  </div>
+
+  <div class="hero-grid">
+    <div class="hero-box car"><div class="k"><span id="heroCarIcon">🚙</span> Car</div><div class="v" id="heroCar">£—</div><div class="meta" id="carMeta">🔌 — kWh charging</div></div>
+    <div class="hero-box"><div class="k">🏠 Home</div><div class="v" id="heroHome">£—</div><div class="meta" id="homeMeta">🏠 — kWh home</div></div>
+    <div class="hero-box"><div class="k">🏠 + <span id="heroTotalIcon">🚙</span> Home + car</div><div class="v" id="heroTotal">£—</div><div class="meta" id="totalMeta">⚡ — kWh total</div></div>
+  </div>
+  <div class="hero-tariff"><strong id="heroTariff">EV Double Gold</strong> <span>(variable - subject to quarterly changes)</span></div>
+</section>
+
+<section class="card">
+  <div class="label">The car</div>
+  <div class="vpills" id="vehiclePills">
+    <button class="vpill" data-eff="3.8" data-icon="🚗"><span class="ico">🚗</span><span>Family hatchback<small>3.8 mi/kWh</small></span></button>
+    <button class="vpill" data-eff="2.8" data-icon="🚘"><span class="ico">🚘</span><span>Large SUV / 7-seat<small>2.8 mi/kWh</small></span></button>
+    <button class="vpill on" data-eff="3.2" data-icon="🚙"><span class="ico">🚙</span><span>Family SUV<small>3.2 mi/kWh</small></span></button>
+    <button class="vpill" data-eff="2.5" data-icon="🚐"><span class="ico">🚐</span><span>Van / less efficient<small>2.5 mi/kWh</small></span></button>
+  </div>
+  <div class="range-title"><b>Annual mileage</b><span id="milesDisplay">10,000 miles</span></div>
+  <input id="miles" type="range" min="1000" max="30000" step="500" value="10000"><div class="ends"><span>1,000</span><span>30,000</span></div>
+</section>
+
+<section class="card">
+  <div class="label">Home usage (no EV)</div>
+  <div class="usage" id="usagePills">
+    <button data-use="low">Low<small>1,600 kWh</small></button>
+    <button data-use="medium" class="on">Medium<small>2,500 kWh</small></button>
+    <button data-use="high">High<small>3,800 kWh</small></button>
+    <button data-use="custom">Custom<small>actual use</small></button>
+  </div>
+  <div class="usage-note" id="usageNote">2,500 kWh/year</div>
+  <div class="custom" id="customWrap"><div class="custom-row"><input id="houseKwh" type="number" value="2500" min="0" step="100" inputmode="numeric"><span class="unit">kWh/year</span></div></div>
+  <div class="usage-timing">
+    <button type="button" class="timing-toggle" id="usageTimingToggle" aria-expanded="false">
+      <span class="left"><strong>⏱️ Usage & time of day</strong><small id="usageTimingSummary">Default assumptions applied</small></span>
+      <span class="action" id="usageTimingAction">Adjust</span>
+    </button>
+    <div class="usage-timing-panel" id="usageTimingPanel" hidden>
+      <div class="timing-block">
+        <div class="timing-block-head"><strong>EV tariff</strong><span id="evSplitLabel">10% off-peak</span></div>
+        <div class="timing-values"><span>☀️ Peak<b id="evPeakKwh">2,250 kWh</b><small>19 hrs · all other times</small></span><span>🌙 Off-peak<b id="evCheapKwh">250 kWh</b><small>5 hrs · 00:00-05:00 GMT<br>01:00-06:00 BST</small></span></div>
+        <input id="evTimingSlider" type="range" min="0" max="50" step="1" value="10">
+      </div>
+      <div class="timing-block">
+        <div class="timing-block-head"><strong>Economy 7</strong><span id="e7SplitLabelTop">15% off-peak</span></div>
+        <div class="timing-values"><span>☀️ Peak<b id="e7DayDisplay">2,125 kWh</b><small>17 hrs · remaining hours</small></span><span>🌙 Off-peak<b id="e7NightDisplay">375 kWh</b><small>7 hrs · usually 00:00-07:00*</small></span></div>
+        <input id="e7TimingSlider" type="range" min="0" max="70" step="1" value="15">
+        <div class="timing-actions"><button type="button" class="actual-toggle" id="e7ActualToggle">Use actual bill figures</button></div>
+        <div class="actual-top-row" id="e7ActualWrap" hidden>
+          <div><label for="e7DayActualInput">☀️ Peak kWh</label><input id="e7DayActualInput" type="number" min="0" step="1" inputmode="numeric" value="2125"></div>
+          <div><label for="e7NightActualInput">🌙 Off-peak kWh</label><input id="e7NightActualInput" type="number" min="0" step="1" inputmode="numeric" value="375"></div>
+        </div>
+        <div class="timing-hint" id="e7TimingHint">Defaults to 15% off-peak. *Economy 7 switching times can vary by meter and region, and some meters remain on GMT year-round. Use actual bill figures if known.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="section-title">⚡ Compare tariffs</div>
+  <div class="section-copy">Tap a tariff name to open it. The highlighted service column matches the main EV costs above.</div>
+  <div class="stressbar"><div class="stresslabel">Indicative variable uplift</div><div class="stressbuttons" id="stressButtons"><button class="on" data-stress="0">Current</button><button data-stress="5">+5%</button><button data-stress="10">+10%</button><button data-stress="15">+15%</button></div></div>
+  <div class="stressnote" id="stressNote">Directional only. The uplift is applied to today's calculated variable electricity costs - it is not an Ofgem forecast or a prediction of how unit rates and standing charges will move.</div>
+  <div class="tablewrap"><table><thead><tr><th class="rowh">Tariff</th><th class="numh" id="th0">1</th><th class="numh" id="th1">2</th><th class="numh sel" id="th2">3</th></tr></thead><tbody id="comparison"></tbody></table></div>
+  <div class="foot">Totals include home electricity, standing charge and home EV charging. Public charging is separate. Variable tariffs can change. Stress scenarios are illustrative only.</div>
+</section>
+
+<details><summary>⚙️ Settings & assumptions</summary><div class="settings">
+  <div class="field"><label>Electricity region</label><select id="region"><option value="10">10 Eastern</option><option value="11" selected>11 East Midlands</option><option value="12">12 London</option><option value="13">13 Manweb</option><option value="14">14 Midlands</option><option value="15">15 Northern</option><option value="16">16 Norweb</option><option value="17">17 Scottish Hydro</option><option value="18">18 Scottish Power</option><option value="19">19 Seeboard</option><option value="20">20 Southern</option><option value="21">21 Swalec</option><option value="22">22 Sweb</option><option value="23">23 Yorkshire</option></select></div>
+  <div class="two"><div class="field"><label>Charged away from home %</label><input id="awayPct" type="number" value="0" min="0" max="100" step="1"></div><div class="field"><label>Public charging p/kWh</label><input id="awayRate" type="number" value="50" min="0" step="1"></div></div>
+  <div class="two"><div class="field"><label>Efficiency override mi/kWh</label><input id="effOverride" type="number" placeholder="use car button" min="1" max="8" step="0.1"></div><div class="field"><label>Known annual EV use kWh</label><input id="knownEvKwh" type="number" placeholder="optional" min="0" step="100"></div></div>
+  <div class="switchrow"><span>Gas also with UW</span><label class="switch"><input id="dualFuel" type="checkbox" checked><span class="track"></span></label></div>
+  <div class="feednote" id="feedNote">Loading the Google Sheet tariff feed…</div>
+</div></details>
+<p class="smallnote">Illustrative comparison tool, not a quote or Budget Plan. Variable and EV rates may change. Fixed tariffs may have exit fees.</p>
+</div>
+
+<div class="share-toast" id="shareToast" role="status" aria-live="polite"></div>
+
+<!-- v16C deliberately loads the live-data calculator scripts only after OK on a personalised link. -->
+<script src="v16c-sharing.js"></script>
+</body>
+</html>
