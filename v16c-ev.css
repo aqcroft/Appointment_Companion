@@ -17,15 +17,18 @@ html.shared-view{--ev:#7a42c8;--ev-dark:#26164f;--bg:#f7f2fb}
 .personal-splash{display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;padding:20px;background:linear-gradient(155deg,#fffbe3 0%,#f1eafd 48%,#e8f8f5 100%);opacity:1;transition:opacity .3s ease}.shared-view .personal-splash{display:flex}.personal-splash.fade{opacity:0;pointer-events:none}.personal-splash-card{text-align:center;max-width:360px;padding:25px 22px}.personal-splash-icon{font-size:38px;letter-spacing:5px;margin-bottom:11px}.personal-splash-hi{font-size:28px;font-weight:900;letter-spacing:-.6px;color:var(--ink)}.personal-splash-copy{font-size:22px;font-weight:850;color:var(--ev-dark);margin-top:2px}.personal-splash-sub{font-size:11px;line-height:1.5;color:var(--muted);margin:10px auto 0;max-width:290px}.personal-splash-live{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px auto 0;padding:8px 10px;border:1px solid rgba(122,66,200,.20);border-radius:10px;background:rgba(255,255,255,.62);font-size:10px;font-weight:750;color:var(--ev-dark);max-width:290px}.personal-splash-live .live-dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px rgba(22,132,71,.10)}.personal-splash-ok{margin-top:16px;min-width:170px;border:0;border-radius:12px;background:var(--ev);color:#fff;padding:12px 18px;font:850 13px inherit;cursor:pointer;box-shadow:0 4px 14px rgba(122,66,200,.20)}.personal-splash-ok:active{transform:translateY(1px)}
 .shared-view:not(.shared-started) #loadingModal{display:none!important}
 
-/* Hero service selector: this is the global choice that drives the main EV figures. */
-.hero-service-row{display:flex;align-items:center;gap:8px;margin-top:9px;padding:6px 7px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);border-radius:10px}
-.hero-service-label{flex:0 0 auto;font-size:8px;font-weight:900;line-height:1.1;text-transform:uppercase;letter-spacing:.5px;opacity:.82}
-.hero-svc{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
-.hero-svc button{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);border-radius:8px;padding:4px 4px 5px;color:#fff;cursor:pointer;min-width:0;min-height:36px;font-family:inherit}
-.hero-svc button .num{display:block;font-size:18px;line-height:1;font-weight:950}
-.hero-svc button .desc{display:block;font-size:7px;line-height:1.15;margin-top:2px;font-weight:750;opacity:.82;white-space:nowrap}
-.hero-svc button.on{background:#fff;border-color:#fff;color:var(--ev-dark);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.hero-svc button.on .desc{opacity:.72}
+/* Hero service selector: compact question + 1/2/3, with the active tier deliberately dominant. */
+.hero-title{display:none}
+.hero-head{justify-content:flex-end;min-height:28px}
+.hero-service-row{display:flex;align-items:center;gap:6px;margin-top:-28px;margin-right:106px;padding:0;min-height:28px;background:transparent;border:0;border-radius:0}
+.hero-service-label{flex:0 0 auto;font-size:0;line-height:1;text-transform:none;letter-spacing:0;opacity:.9;white-space:nowrap}
+.hero-service-label:before{content:'How many UW services?';font-size:9px;font-weight:850;letter-spacing:.1px;text-transform:none}
+.hero-svc{flex:0 0 auto;display:flex;align-items:center;gap:2px;width:auto}
+.hero-svc button{width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;border-radius:50%;color:#fff;cursor:pointer;font-family:inherit;opacity:.66;box-shadow:none}
+.hero-svc button .num{display:block;font-size:15px;line-height:1;font-weight:900}
+.hero-svc button .desc{display:none}
+.hero-svc button.on{width:34px;min-width:34px;height:34px;min-height:34px;margin:-3px 0;background:#fff;border:0;color:var(--ev-dark);opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+.hero-svc button.on .num{font-size:23px;font-weight:950}
 .hero-svc button:active{transform:translateY(1px)}
 
 /* v16B hero geometry retained: two equal components, then a stronger combined total. */
@@ -65,6 +68,7 @@ html.shared-view{--ev:#7a42c8;--ev-dark:#26164f;--bg:#f7f2fb}
 
 .share-toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,18px);z-index:1400;max-width:min(90vw,420px);background:var(--ink);color:#fff;border-radius:999px;padding:9px 14px;font-size:11px;font-weight:750;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;box-shadow:0 6px 22px rgba(0,0,0,.22);text-align:center}.share-toast.show{opacity:1;transform:translate(-50%,0)}
 
-@media(max-width:520px){.share-setup-copy{display:block}.share-setup-copy small{display:block;max-width:none;text-align:left;margin-top:2px}.share-setup-row{grid-template-columns:minmax(0,1fr) auto}.personal-splash-hi{font-size:25px}.personal-splash-copy{font-size:20px}.hero-service-row{gap:6px;padding:5px 6px}.hero-service-label{font-size:7px}.hero-svc button .num{font-size:17px}.hero-svc button .desc{font-size:6.5px}}
-@media(max-width:390px){.hero-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.hero-box,.hero-box.car{padding:8px 6px}.hero-box .k{font-size:7.5px}.hero-box .v,.hero-box.car .v{font-size:21px}.hero-main-icon{font-size:25px}.hero-total .hero-main-icon{font-size:22px}.hero-box .meta{font-size:7.5px}.hero-service-label{display:none}.hero-svc{width:100%}.hero-svc button{min-height:34px}.tablewrap thead th.numh{font-size:11px}}
-@media(max-width:370px){.share-setup-row button{padding:0 10px}.customer-welcome{align-items:flex-start}.customer-welcome button{margin-top:1px}.hero-svc button .desc{font-size:6px}}
+@media(max-width:520px){.share-setup-copy{display:block}.share-setup-copy small{display:block;max-width:none;text-align:left;margin-top:2px}.share-setup-row{grid-template-columns:minmax(0,1fr) auto}.personal-splash-hi{font-size:25px}.personal-splash-copy{font-size:20px}}
+@media(max-width:390px){.hero-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.hero-box,.hero-box.car{padding:8px 6px}.hero-box .k{font-size:7.5px}.hero-box .v,.hero-box.car .v{font-size:21px}.hero-main-icon{font-size:25px}.hero-total .hero-main-icon{font-size:22px}.hero-box .meta{font-size:7.5px}.hero-service-row{margin-right:96px;gap:4px}.hero-service-label:before{font-size:8px}.hero-svc{gap:1px}.hero-svc button{width:24px;min-width:24px;height:24px;min-height:24px}.hero-svc button .num{font-size:13px}.hero-svc button.on{width:30px;min-width:30px;height:30px;min-height:30px;margin:-3px 0}.hero-svc button.on .num{font-size:20px}.tablewrap thead th.numh{font-size:11px}}
+@media(max-width:350px){.hero-head{min-height:27px}.hero-service-row{margin-top:4px;margin-right:0;justify-content:flex-start}.hero-grid{margin-top:9px}}
+@media(max-width:370px){.share-setup-row button{padding:0 10px}.customer-welcome{align-items:flex-start}.customer-welcome button{margin-top:1px}}
