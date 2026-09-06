@@ -23,6 +23,7 @@ function b64urlDecode(str){
   return decodeURIComponent(escape(atob(b64)));
 }
 function cleanName(s){return String(s||'').trim().replace(/\s+/g,' ').slice(0,80)}
+function safeCarIcon(s){return ['🚗','🚙','🚘','🚐'].indexOf(s)>=0?s:'🚙'}
 function showToast(msg){
   var el=$('shareToast');
   if(!el)return;
@@ -143,6 +144,8 @@ function startCompanion(payload){
 
   loadScript('v13-ev.js').then(function(){
     if(payload)applyPayload(payload);
+    return loadScript('v16b-hero.js');
+  }).then(function(){
     return loadScript('v15-freshness.js');
   }).catch(function(){
     var lm=$('loadingModal');
@@ -201,6 +204,13 @@ function prepareShared(raw){
     $('splashName').textContent=name;
     $('welcomeName').textContent=name;
     $('customerWelcome').hidden=false;
+
+    var splashIcons=document.querySelector('.personal-splash-icon');
+    if(splashIcons)splashIcons.textContent=safeCarIcon(p.vi)+'  🔌  🏠';
+    var splashSub=document.querySelector('.personal-splash-sub');
+    if(splashSub)splashSub.textContent="Your home's usage, car size, mileage and other assumptions have already been entered.";
+    var splashLive=document.querySelector('.personal-splash-live span:last-child');
+    if(splashLive)splashLive.textContent='Tap OK and the tool will update with the latest live UW tariff data before showing your personalised EV costs.';
 
     $('personalSplashOk').onclick=function(){
       this.disabled=true;
