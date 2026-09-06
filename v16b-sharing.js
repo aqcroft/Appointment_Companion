@@ -146,6 +146,8 @@ function startCompanion(payload){
     if(payload)applyPayload(payload);
     return loadScript('v16b-hero.js');
   }).then(function(){
+    return loadScript('v16b-table.js');
+  }).then(function(){
     return loadScript('v15-freshness.js');
   }).catch(function(){
     var lm=$('loadingModal');
