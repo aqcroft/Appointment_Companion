@@ -1,0 +1,17 @@
+/* v15 - selected-detail outline + deliberately minimal tariff freshness controls */
+.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.title-row h1{flex:1;min-width:0}
+.fresh-mini{display:flex;gap:5px;align-items:center;flex:0 0 auto;margin-top:-2px}
+.fresh-mini-btn{height:34px;min-width:34px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 7px;display:inline-flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--ink);font:850 13px inherit;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.fresh-mini-btn.fixed{min-width:48px}.fresh-mini-btn.fixed strong{font-size:15px;line-height:1}.fresh-mini-btn.variable .season-icon{font-size:18px;line-height:1}
+.fresh-mini-btn.good{border-color:rgba(22,132,71,.35);background:#f3fbf6}
+.fresh-mini-btn.stale{border-color:var(--bad);background:#fff1f1;box-shadow:0 0 0 2px rgba(182,61,61,.10)}
+.fresh-mini-btn[aria-expanded="true"]{box-shadow:inset 0 0 0 2px var(--ev)}
+.fresh-detail{margin:7px 0 0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:9px;color:var(--muted)}
+.fresh-detail[hidden]{display:none}.fresh-detail-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.fresh-detail-head strong{font-size:10px;color:var(--ink)}.fresh-detail-head span{font-size:8px;font-weight:850;color:var(--good)}.fresh-detail-head span.stale{color:var(--bad)}.fresh-detail-dates{margin-top:4px;color:var(--ink);font-weight:700}.fresh-detail-note{margin-top:4px;line-height:1.4}.fresh-warning{margin:7px 0 0;background:#fff0f0;border:2px solid var(--bad);border-radius:10px;padding:9px 10px;color:#8c2222;font-size:9px;line-height:1.45}.fresh-warning strong{display:block;font-size:10px;margin-bottom:2px}
+/* The green outline now means: this is the exact 1/2/3-service cell whose detail is open. */
+.cell.hero-selected{box-shadow:none!important;background:#f2fbfa!important;color:var(--ink)!important}
+.cell.hero-selected.best{background:var(--good-bg)!important;color:var(--good)!important}
+.cell.open{box-shadow:inset 0 0 0 2px var(--ev)!important;background:#e9f8f5!important;color:var(--ev-dark)!important;z-index:1}
+.cell.open.best{background:#e9f8f5!important;color:var(--ev-dark)!important}
+@media(max-width:390px){.fresh-mini-btn{height:32px;min-width:32px;padding:3px 6px}.fresh-mini-btn.fixed{min-width:45px}.fresh-mini-btn.fixed strong{font-size:14px}.fresh-mini-btn.variable .season-icon{font-size:17px}}
