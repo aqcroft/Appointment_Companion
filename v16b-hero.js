@@ -21,6 +21,8 @@ function rebuildHero(){
   var boxes=grid.querySelectorAll('.hero-box');
   if(boxes.length<3)return;
 
+  var selectedVehicle=document.querySelector('#vehiclePills .vpill.on');
+  var selectedIcon=selectedVehicle&&selectedVehicle.dataset.icon?selectedVehicle.dataset.icon:'🚙';
   var car=boxes[0],home=boxes[1],total=boxes[2];
   car.classList.add('hero-component','hero-car');
   home.classList.add('hero-component','hero-home');
@@ -51,9 +53,9 @@ function rebuildHero(){
   var existingTotalIcon=document.getElementById('heroTotalIcon');
   if(existingTotalIcon)existingTotalIcon.remove();
 
-  makeValueRow(car,'heroCar','<span id="heroCarIcon">🚙</span>');
+  makeValueRow(car,'heroCar','<span id="heroCarIcon">'+selectedIcon+'</span>');
   makeValueRow(home,'heroHome','<span aria-hidden="true">🏠</span>');
-  makeValueRow(total,'heroTotal','<span id="heroTotalIcon">🚙</span><span aria-hidden="true">🏠</span>');
+  makeValueRow(total,'heroTotal','<span id="heroTotalIcon">'+selectedIcon+'</span><span aria-hidden="true">🏠</span>');
 
   cleanMeta('carMeta');
   cleanMeta('homeMeta');
