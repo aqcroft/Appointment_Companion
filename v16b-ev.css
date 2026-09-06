@@ -29,6 +29,17 @@ html.shared-view{--ev:#7a42c8;--ev-dark:#26164f;--bg:#f7f2fb}
 .hero-box .meta{font-size:8.5px;line-height:1.25;opacity:.84;margin-top:6px;white-space:normal}
 .hero-box .k{font-size:9px}
 
+/* Safer comparison-table interaction: first column opens the row; service cells become detail buttons only after that. */
+#comparison tr[data-row] .tariff-name{position:relative;padding-right:18px!important;cursor:pointer;user-select:none}
+#comparison tr[data-row] .tariff-name:after{content:'›';position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:16px;line-height:1;color:var(--ev);font-weight:900}
+#comparison tr[data-row].v16b-row-open .tariff-name:after{content:'⌄';font-size:14px}
+#comparison tr[data-row].v16b-row-open .tariff-name{background:rgba(0,137,123,.045)}
+.shared-view #comparison tr[data-row].v16b-row-open .tariff-name{background:rgba(122,66,200,.06)}
+#comparison td.cell.v16b-cell-locked{pointer-events:none;cursor:default}
+#comparison tr.v16b-row-closed td.cell{cursor:default}
+#comparison tr.v16b-row-open td.cell{cursor:pointer}
+#comparison tr.v16b-row-open td.cell:not(.open):hover{box-shadow:inset 0 0 0 1px var(--ev)}
+
 .share-toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,18px);z-index:1400;max-width:min(90vw,420px);background:var(--ink);color:#fff;border-radius:999px;padding:9px 14px;font-size:11px;font-weight:750;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;box-shadow:0 6px 22px rgba(0,0,0,.22);text-align:center}.share-toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:520px){.share-setup-copy{display:block}.share-setup-copy small{display:block;max-width:none;text-align:left;margin-top:2px}.share-setup-row{grid-template-columns:minmax(0,1fr) auto}.personal-splash-hi{font-size:25px}.personal-splash-copy{font-size:20px}}
 @media(max-width:390px){.hero-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.hero-box,.hero-box.car{padding:8px 6px}.hero-box .k{font-size:7.5px}.hero-box .v,.hero-box.car .v{font-size:21px}.hero-main-icon{font-size:25px}.hero-total .hero-main-icon{font-size:22px}.hero-box .meta{font-size:7.5px}}
