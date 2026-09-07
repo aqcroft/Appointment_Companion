@@ -196,10 +196,32 @@
   }
 
   function setSaveUi(text, tone) {
-    const el = $('evBridgeSaveState');
-    if (!el) return;
-    el.textContent = text;
-    el.style.color = tone === 'bad' ? '#c43b3b' : tone === 'warn' ? '#8a6400' : tone === 'good' ? '#1d7f45' : '#6b6b76';
+    document.querySelectorAll('.evBridgeSaveState').forEach(function (el) {
+      el.textContent = text;
+      el.style.color = tone === 'bad' ? '#c43b3b' : tone === 'warn' ? '#8a6400' : tone === 'good' ? '#1d7f45' : '#6b6b76';
+    });
+    showNotice(text, tone);
+  }
+
+  function showNotice(text, tone) {
+    let notice = $('evBridgeNotice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'evBridgeNotice';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      document.body.appendChild(notice);
+    }
+    notice.textContent = text;
+    notice.className = 'show ' + (tone || '');
+    clearTimeout(showNotice.timer);
+    showNotice.timer = setTimeout(function () { notice.classList.remove('show'); }, tone === 'bad' ? 5200 : 1800);
+  }
+
+  function setSaveButtonsDisabled(disabled) {
+    document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
+      btn.disabled = !!disabled;
+    });
   }
 
   async function saveNow(force) {
@@ -225,8 +247,7 @@
     saving = true;
     dirty = true;
     setSaveUi('☁️ Saving…', '');
-    const saveButton = $('evBridgeSaveNow');
-    if (saveButton) saveButton.disabled = true;
+    setSaveButtonsDisabled(true);
 
     try {
       await cloudSave.save('ev', state, {
@@ -237,13 +258,13 @@
       lastSavedFingerprint = fp;
       dirty = false;
       const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      setSaveUi('✓ Saved to Cloud ' + time, 'good');
+      setSaveUi('✓ Saved to Cloud ' + time + ' · local backup kept', 'good');
     } catch (err) {
       dirty = true;
-      setSaveUi('⚠️ Not saved - ' + ((err && err.message) || String(err)), 'bad');
+      setSaveUi('⚠️ Cloud save failed - local backup kept on this device. ' + ((err && err.message) || String(err)), 'bad');
     } finally {
       saving = false;
-      if (saveButton) saveButton.disabled = false;
+      setSaveButtonsDisabled(false);
       if (pendingSave) {
         pendingSave = false;
         setTimeout(function () { saveNow(false); }, 50);
@@ -290,7 +311,7 @@
     if (!wrap) return;
 
     const style = document.createElement('style');
-    style.textContent = '#evBridgeBar{margin:0 0 .75rem;padding:.7rem .75rem;border:1px solid rgba(122,66,200,.28);border-radius:12px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}#evBridgeBar .top{display:flex;align-items:center;justify-content:space-between;gap:10px}#evBridgeBar .meta{min-width:0}#evBridgeBar .name{font-weight:800;font-size:13px}#evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}#evBridgeBar .actions{display:flex;gap:6px;flex:0}#evBridgeBar button{border:0;border-radius:999px;padding:8px 11px;background:#7a42c8;color:white;font-weight:800;cursor:pointer}#evBridgeBar button.secondary{background:white;color:#7a42c8;border:1px solid rgba(122,66,200,.35)}#evBridgeBar button:disabled{opacity:.55;cursor:default}#evBridgeSaveState{margin-top:.45rem;font-size:10.8px;font-weight:700}';
+    style.textContent = '.evBridgeBar{margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:center;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button.primary{background:#7a42c8;color:white}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}';
     document.head.appendChild(style);
 
     const bar = document.createElement('div');
@@ -299,28 +320,36 @@
       ? Number(customer.electricity_usage_kwh).toLocaleString('en-GB') + ' kWh home usage inherited'
       : 'Appointment and basket context inherited';
 
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="actions"><button type="button" class="secondary" id="evBridgeSaveNow">Save now</button><button type="button" id="evBridgeReturn">← Save & return</button></div></div><div id="evBridgeSaveState">✓ Cloud autosave on</div>';
+    bar.className = 'evBridgeBar';
+    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="save" id="evBridgeSaveNow" title="Save now" aria-label="Save now">💾</button><button type="button" class="primary" data-ev-action="return" id="evBridgeReturn" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button></div></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
+
+    const bottom = bar.cloneNode(true);
+    bottom.id = 'evBridgeFooterBar';
+    bottom.classList.add('bottom');
+    bottom.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
+    wrap.appendChild(bottom);
 
     const share = $('shareSetup');
     if (share) share.hidden = true;
 
-    $('evBridgeSaveNow').addEventListener('click', function () {
-      clearTimeout(saveTimer);
-      saveNow(true);
+    document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        clearTimeout(saveTimer);
+        saveNow(true);
+      });
     });
 
-    $('evBridgeReturn').addEventListener('click', async function () {
-      const btn = this;
+    document.querySelectorAll('[data-ev-action="return"]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
       btn.disabled = true;
-      btn.textContent = 'Saving…';
+      showNotice('Saving and returning to Companion…', '');
       clearTimeout(saveTimer);
       await saveNow(true);
 
       if (dirty) {
         btn.disabled = false;
-        btn.textContent = '← Save & return';
         return;
       }
 
@@ -331,6 +360,7 @@
         tool_state: state,
         appointment_state: launch.appointment_state,
         basket_url: launch.basket_url
+      });
       });
     });
   }

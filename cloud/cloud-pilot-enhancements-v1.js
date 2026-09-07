@@ -109,8 +109,8 @@
     let previous = status.textContent || '';
     const observer = new MutationObserver(() => {
       const text = status.textContent || '';
-      if (text !== previous && / saved to Cloud ✓$/.test(text)) {
-        const name = text.replace(/ saved to Cloud ✓$/, '');
+      if (text !== previous && / saved to Cloud ✓/.test(text)) {
+        const name = text.replace(/ saved to Cloud ✓.*$/, '');
         showToast('Saved to Cloud', name + ' is safely stored.');
       }
       previous = text;
