@@ -146,10 +146,10 @@
     card.style.cssText = 'border-color:rgba(122,66,200,0.22);background:rgba(122,66,200,0.035);padding:.7rem .75rem;';
     card.innerHTML = `
       <style>
-        #cloudPilotCard .cloudbar{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+        #cloudPilotCard .cloudbar{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;flex-wrap:wrap}
         #cloudPilotCard .cloudwho{min-width:0;flex:1}
         #cloudPilotCard .cloudwho strong{display:block;font-size:13px;color:var(--purple);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0}
+        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
         #cloudPilotCard .cloudicon{width:36px;height:36px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:.95}
         #cloudPilotCard .cloudicon:disabled{opacity:.38;cursor:default}
         #cloudPilotCard .cloudicon.good{border-color:rgba(29,155,80,.35);background:rgba(29,155,80,.08)}
@@ -157,6 +157,7 @@
         #cloudPilotCard .companion-dot.on{opacity:1;filter:none;border-color:rgba(29,155,80,.34);background:rgba(29,155,80,.08)}
         #cloudCustomerModal .sortbar{display:flex;gap:7px;margin:.7rem 0;align-items:center}
         #cloudCustomerModal .sortbar button{flex:0 0 auto;min-height:34px;padding:6px 10px}
+        @media(max-width:430px){#cloudPilotCard .cloudwho{flex:1 1 100%}#cloudPilotCard .cloudicons{width:100%;justify-content:space-between}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}}
       </style>
       <div class="cloudbar">
         <div class="cloudwho">
