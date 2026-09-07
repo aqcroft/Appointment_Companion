@@ -18,7 +18,7 @@
       const response = await fetch('./v16c-ev.html', { cache: 'no-store' });
       if (!response.ok) throw new Error('EV source returned HTTP ' + response.status);
       let html = await response.text();
-      const inject = '<script>document.body.dataset.companionTool="ev";<\/script><script src="./cloud/device-identity-v1.js"><\/script><script src="./cloud/companion-bridge-v1.js"><\/script><script src="./cloud/ev-bridge-pilot-v1.js"><\/script>';
+      const inject = '<script>document.body.dataset.companionTool="ev";<\/script><script src="./cloud-client-v1.js"><\/script><script src="./cloud/device-identity-v1.js"><\/script><script src="./cloud/companion-bridge-v1.js"><\/script><script src="./cloud/specialist-cloud-save-v1.js"><\/script><script src="./cloud/ev-bridge-pilot-v1.js"><\/script>';
       if (!/<\/body>/i.test(html)) throw new Error('EV source has no closing body tag.');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open();
