@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appointment Companion Cloud Test</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #fffbe3; color: #26164f; }
+    main { max-width: 680px; margin: 0 auto; padding: 32px 20px 60px; }
+    .card { background: #fff; border: 1px solid rgba(38,22,79,.18); border-radius: 16px; padding: 22px; box-shadow: 0 8px 24px rgba(38,22,79,.08); }
+    h1 { margin-top: 0; font-size: 1.55rem; }
+    p { line-height: 1.5; }
+    label { display: block; margin: 16px 0 6px; font-weight: 700; }
+    input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #aaa; border-radius: 8px; font: inherit; }
+    button { margin-top: 18px; padding: 11px 16px; border: 0; border-radius: 9px; background: #7a42c8; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    #result { margin-top: 18px; padding: 14px; border-radius: 10px; background: #f6f2fb; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 48px; }
+    .small { font-size: .9rem; opacity: .8; }
+    .success { border-left: 5px solid #2e7d32; }
+    .error { border-left: 5px solid #b3261e; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>☁️ Appointment Companion Cloud test</h1>
+    <p>This performs one <strong>read-only</strong> authenticated request from GitHub Pages to the Appointment Companion Cloud. It asks the Cloud to list this Partner's customers. Nothing is changed or saved.</p>
+
+    <label for="partnerId">Partner ID</label>
+    <input id="partnerId" autocomplete="off" spellcheck="false" placeholder="p_...">
+
+    <label for="workspaceKey">Workspace Key</label>
+    <input id="workspaceKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the private Workspace Key">
+
+    <button id="testBtn" type="button">Test Cloud connection</button>
+
+    <div id="result">Ready.</div>
+    <p class="small">The Workspace Key is used only for this request. This test page does not store it in localStorage, cookies or the GitHub repository.</p>
+  </div>
+</main>
+<script>
+(() => {
+  'use strict';
+
+  const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyEEvE7ALdjbRZ540PSYsiX-tkA83ZiEryFQBqA_zSa8W-Xpd_DWL3FG_YFMU6XmE3D/exec';
+  const partnerIdEl = document.getElementById('partnerId');
+  const workspaceKeyEl = document.getElementById('workspaceKey');
+  const testBtn = document.getElementById('testBtn');
+  const resultEl = document.getElementById('result');
+
+  function show(text, kind) {
+    resultEl.textContent = text;
+    resultEl.className = kind || '';
+  }
+
+  testBtn.addEventListener('click', async () => {
+    const partner_id = partnerIdEl.value.trim();
+    const workspace_key = workspaceKeyEl.value;
+
+    if (!partner_id || !workspace_key) {
+      show('❌ Enter both the Partner ID and Workspace Key.', 'error');
+      return;
+    }
+
+    testBtn.disabled = true;
+    show('⏳ Sending authenticated POST from GitHub Pages to Appointment Companion Cloud...');
+
+    try {
+      const response = await fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({
+          action: 'listCustomers',
+          partner_id,
+          workspace_key
+        }),
+        redirect: 'follow',
+        cache: 'no-store'
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        throw new Error('Cloud responded, but not with JSON. HTTP ' + response.status + '. Response: ' + text.slice(0, 500));
+      }
+
+      if (!data.ok) {
+        show('❌ Cloud reached, but authentication/API returned an error:\n\n' + (data.error || JSON.stringify(data, null, 2)), 'error');
+        return;
+      }
+
+      const customers = Array.isArray(data.customers) ? data.customers : [];
+      const names = customers.map(c => c && c.customer_name).filter(Boolean);
+      const mitch = names.includes('Mitch TEST');
+
+      show(
+        '✅ SUCCESS\n\n' +
+        'GitHub Pages → authenticated POST → Appointment Companion Cloud works.\n\n' +
+        'Customers returned: ' + customers.length + '\n' +
+        (names.length ? 'Names: ' + names.join(', ') + '\n' : '') +
+        (mitch ? 'Mitch TEST found: ✅\n' : '') +
+        '\nHTTP status: ' + response.status,
+        'success'
+      );
+    } catch (err) {
+      show(
+        '❌ Browser request failed before a usable Cloud response was received.\n\n' +
+        (err && err.message ? err.message : String(err)) +
+        '\n\nIf the same Cloud URL works directly in the browser, this points to the cross-origin/redirect part of the GitHub Pages → Apps Script connection.',
+        'error'
+      );
+    } finally {
+      testBtn.disabled = false;
+      workspaceKeyEl.value = '';
+    }
+  });
+})();
+</script>
+</body>
+</html>
