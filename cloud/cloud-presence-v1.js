@@ -1,9 +1,9 @@
 /* Appointment Companion Cloud presence v1
    Detects other open sessions for the same customer.
    - Same-browser/tab awareness works immediately via BroadcastChannel.
-   - Cross-device presence uses optional Cloud actions touchPresence/listPresence/
-     leavePresence. If the current Apps Script has not been upgraded yet, remote
-     presence quietly disables itself and local tab-awareness continues.
+   - Cross-device presence uses Cloud actions touchPresence/listPresence/leavePresence.
+   - A persistent status remains in the Cloud panel and a one-time modal appears
+     when a newly detected tab/device is also in the same customer record.
 */
 (function (global) {
   'use strict';
@@ -24,6 +24,7 @@
   let remotePeers = [];
   let heartbeatTimer = null;
   let customerPoll = null;
+  let alertedPeerSessions = new Set();
 
   function getAuth() {
     try {
@@ -52,6 +53,64 @@
     line.style.cssText = 'margin-top:.55rem;padding:.5rem .6rem;border-radius:9px;background:rgba(38,22,79,.045);font-size:10.8px;line-height:1.35;';
     line.textContent = '○ Presence - load a Cloud customer to activate.';
     connected.appendChild(line);
+  }
+
+  function ensureModal() {
+    let modal = document.getElementById('cloudPresenceModal');
+    if (modal) return modal;
+
+    const style = document.createElement('style');
+    style.id = 'cloudPresenceModalStyles';
+    style.textContent = `
+      #cloudPresenceModal{position:fixed;inset:0;z-index:12000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.36);backdrop-filter:blur(2px)}
+      #cloudPresenceModal.show{display:flex}
+      #cloudPresenceModal .cp-card{width:min(430px,calc(100vw - 32px));background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(38,22,79,.28);padding:22px;color:var(--ink,#26164f)}
+      #cloudPresenceModal .cp-icon{font-size:30px;line-height:1;margin-bottom:9px}
+      #cloudPresenceModal h3{margin:0 0 8px;font-size:20px;line-height:1.2}
+      #cloudPresenceModal p{margin:0 0 10px;font-size:13px;line-height:1.45;color:var(--muted,#6b6b76)}
+      #cloudPresenceModal .cp-peer{margin:12px 0;padding:10px 12px;border-radius:10px;background:#fff8e8;color:#725300;font-size:13px;font-weight:700}
+      #cloudPresenceModal .cp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+      #cloudPresenceModal .cp-actions button{min-height:40px;flex:1;border-radius:999px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+      #cloudPresenceReload{border:0;background:#7a42c8;color:#fff}
+      #cloudPresenceContinue{border:1px solid #d8d1e5;background:#fff;color:#26164f}
+    `;
+    document.head.appendChild(style);
+
+    modal = document.createElement('div');
+    modal.id = 'cloudPresenceModal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'cloudPresenceModalTitle');
+    modal.innerHTML = `
+      <div class="cp-card">
+        <div class="cp-icon">⚠️</div>
+        <h3 id="cloudPresenceModalTitle">This customer is open elsewhere</h3>
+        <p>Another tab or device is currently in the same Cloud customer record.</p>
+        <div class="cp-peer" id="cloudPresenceModalPeer"></div>
+        <p>To avoid competing edits, choose which device you want to work from. Nothing is locked.</p>
+        <div class="cp-actions">
+          <button type="button" id="cloudPresenceReload">🔄 Reload latest first</button>
+          <button type="button" id="cloudPresenceContinue">Continue here</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('cloudPresenceContinue').addEventListener('click', function () {
+      modal.classList.remove('show');
+    });
+
+    document.getElementById('cloudPresenceReload').addEventListener('click', function () {
+      modal.classList.remove('show');
+      const reload = document.getElementById('cloudPilotReloadCurrent');
+      if (reload) reload.click();
+    });
+
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) modal.classList.remove('show');
+    });
+
+    return modal;
   }
 
   function setUi(html, tone) {
@@ -87,6 +146,30 @@
     return Array.from(bySession.values());
   }
 
+  function maybeShowPeerModal(peers, me) {
+    const newPeers = peers.filter(function (p) {
+      const session = String(p.session_id || '');
+      return session && !alertedPeerSessions.has(session);
+    });
+    if (!newPeers.length) return;
+
+    newPeers.forEach(function (p) {
+      alertedPeerSessions.add(String(p.session_id || ''));
+    });
+
+    const labels = newPeers.map(function (p) { return peerLabel(p, me); });
+    const modal = ensureModal();
+    const peer = document.getElementById('cloudPresenceModalPeer');
+    if (peer) {
+      peer.textContent = labels.length === 1
+        ? 'Also open on: ' + labels[0]
+        : 'Also open on: ' + labels.join(', ');
+    }
+    modal.classList.add('show');
+    const continueBtn = document.getElementById('cloudPresenceContinue');
+    if (continueBtn) continueBtn.focus();
+  }
+
   function render() {
     if (!currentCustomer) {
       setUi('○ Presence - load a Cloud customer to activate.', '');
@@ -101,6 +184,7 @@
     }
     const names = peers.map(function (p) { return escapeHtml(peerLabel(p, me)); });
     setUi('⚠️ This customer is also open on <strong>' + names.join('</strong>, <strong>') + '</strong>.', 'warn');
+    maybeShowPeerModal(peers, me);
   }
 
   function escapeHtml(s) {
@@ -108,7 +192,7 @@
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/\"/g, '&quot;');
   }
 
   function broadcast(type) {
@@ -172,6 +256,9 @@
     currentCustomer = id;
     localPeers.clear();
     remotePeers = [];
+    alertedPeerSessions.clear();
+    const modal = document.getElementById('cloudPresenceModal');
+    if (modal) modal.classList.remove('show');
     if (currentCustomer) heartbeat();
     else render();
   }
@@ -204,6 +291,7 @@
 
   function boot() {
     ensureUi();
+    ensureModal();
     initChannel();
     setCustomer(sessionStorage.getItem(CUSTOMER_KEY) || '');
     heartbeatTimer = setInterval(heartbeat, HEARTBEAT_MS);
