@@ -74,6 +74,21 @@
 
     async createShare(auth, payload) {
       return post(Object.assign({ action: 'createShare' }, payload || {}, authPayload(auth)));
+    },
+
+    async touchPresence(auth, payload) {
+      return post(Object.assign({ action: 'touchPresence' }, payload || {}, authPayload(auth)));
+    },
+
+    async listPresence(auth, customerId) {
+      return post(Object.assign({
+        action: 'listPresence',
+        customer_id: String(customerId || '').trim()
+      }, authPayload(auth)));
+    },
+
+    async leavePresence(auth, payload) {
+      return post(Object.assign({ action: 'leavePresence' }, payload || {}, authPayload(auth)));
     }
   };
 
