@@ -25,7 +25,10 @@
 
       html = html.replace(/<head>/i, '<head><base href="../../"><style>#shareSetup{display:none!important}</style>');
       html = html.replace(/<body([^>]*)>/i, '<body$1><div id="cloudShareBlocker" style="position:fixed;inset:0;z-index:99998;background:#fffbe3;display:grid;place-items:center;padding:24px;font:600 15px/1.45 system-ui,-apple-system,\"Segoe UI\",sans-serif;color:#26164f;text-align:center;"><div><div style="font-size:34px;margin-bottom:10px;">🚙</div><div>Loading your personalised EV Companion…</div><div style="font-size:11px;font-weight:500;opacity:.7;margin-top:6px;">Checking the saved figures and latest tariff data</div></div></div>');
-      html = html.replace(/<\/body>/i, '<script src="companion/ev/share-view-v1.js"><\\/script></body>');
+      html = html.replace(
+        /<script src="v16c-sharing\.js"><\/script>/i,
+        '<script src="cloud-client-v1.js"><\/script><script src="cloud/specialist-share-v1.js"><\/script><script src="v16c-sharing.js"><\/script><script src="companion/ev/share-view-v1.js"><\/script>'
+      );
 
       document.open();
       document.write(html);

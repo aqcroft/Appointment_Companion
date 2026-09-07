@@ -61,6 +61,11 @@
     setTimeout(function () { el.classList.remove('show'); }, 2400);
   }
 
+  function showLinkDialog(url) {
+    const text = 'Your short Cloud share link is ready:';
+    if (global.prompt) global.prompt(text, url);
+  }
+
   function shareUrl(token) {
     return new URL('./companion/ev/?s=' + encodeURIComponent(token), global.location.href).href;
   }
@@ -119,13 +124,19 @@
         } catch (err) {
           if (err && err.name === 'AbortError') {
             showToast('Share created');
+            showLinkDialog(url);
             return;
           }
         }
       }
 
-      await copyText(url);
-      showToast('Short Cloud share link copied');
+      try {
+        await copyText(url);
+        showToast('Short Cloud share link copied');
+      } catch (_) {
+        showToast('Short Cloud share link ready');
+        showLinkDialog(url);
+      }
     } catch (err) {
       showToast('Share failed - ' + ((err && err.message) || String(err)));
     } finally {
