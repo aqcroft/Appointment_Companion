@@ -174,7 +174,7 @@
       if (/ loaded from Cloud ✓$/.test(text) || /fresh form has been started for this Cloud customer/.test(text)) {
         saving = false;
         setTimeout(() => establishBaseline('💾 Autosave on - Cloud version loaded.'), 120);
-      } else if (/ saved to Cloud ✓$/.test(text)) {
+      } else if (/ saved to Cloud ✓/.test(text)) {
         saving = false;
         setTimeout(() => establishBaseline('💾 Autosave on - saved to Cloud.'), 120);
       } else if (/Disconnected/.test(text)) {

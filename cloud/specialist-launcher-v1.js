@@ -14,8 +14,7 @@
   const CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const RETURN_SAVE_KEY = 'apptCompanionSpecialistReturnNeedsSaveV1';
   const specs = [];
-  let card = null;
-  let buttons = null;
+  const wiredTopButtons = new Set();
 
   function getAuth() {
     try {
@@ -51,7 +50,7 @@
       };
       const check = function () {
         const text = status.textContent || '';
-        if (/ saved to Cloud ✓$/.test(text)) finish();
+        if (/ saved to Cloud ✓/.test(text)) finish();
         else if (/Cloud is not connected|Customer not found|Invalid workspace key|conflict|changed in Cloud/i.test(text)) finish(new Error(text));
       };
       const observer = new MutationObserver(check);
@@ -72,8 +71,9 @@
   async function launch(spec, btn) {
     const customerId = currentCustomerId();
     const auth = getAuth();
+    const label = spec.label || 'this Companion';
     if (!customerId) {
-      setCloudStatus('Load a Cloud customer before opening a specialist Companion.', 'bad');
+      setCloudStatus('Load a Cloud customer before opening ' + label + '.', 'bad');
       return;
     }
     if (!auth || !api || !bridge) {
@@ -81,13 +81,11 @@
       return;
     }
 
-    const oldText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Saving first…';
+    btn.setAttribute('aria-busy', 'true');
 
     try {
       await saveBeforeLaunch();
-      btn.textContent = 'Opening…';
       const res = await api.getCustomer(auth, customerId);
       const customer = res && res.customer;
       if (!customer) throw new Error('Cloud customer was not returned.');
@@ -101,42 +99,20 @@
       });
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = oldText;
+      btn.removeAttribute('aria-busy');
       setCloudStatus((err && err.message) || String(err), 'bad');
     }
   }
 
-  function ensureCard() {
-    if (card) return card;
-    const cloudCard = document.getElementById('cloudPilotCard');
-    if (!cloudCard) return null;
-
-    card = document.createElement('div');
-    card.className = 'card';
-    card.id = 'specialistCompanionsCard';
-    card.style.borderColor = 'rgba(122,66,200,0.24)';
-    card.innerHTML = `
-      <h2 style="margin-bottom:.35rem;">🧰 Specialist Companions</h2>
-      <p class="sub" style="margin-bottom:.7rem;">Open a specialist tool with this customer's Cloud, appointment and basket context already carried across.</p>
-      <div id="specialistCompanionButtons" class="pills"></div>
-    `;
-    cloudCard.insertAdjacentElement('afterend', card);
-    buttons = document.getElementById('specialistCompanionButtons');
-    return card;
-  }
-
   function render() {
-    if (!ensureCard() || !buttons) return;
-    buttons.innerHTML = '';
     specs.forEach(function (spec) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pill';
-      btn.style.minHeight = '48px';
-      btn.innerHTML = '<span style="font-size:18px;">' + (spec.emoji || '🧩') + '</span><span>' + (spec.label || spec.tool_id) + '</span>';
+      const id = 'cloudCompanion' + String(spec.tool_id || '').replace(/(^|[-_])([a-z])/g, function (_, __, ch) { return ch.toUpperCase(); });
+      const btn = document.getElementById(id);
+      if (!btn || wiredTopButtons.has(id)) return;
       btn.title = spec.description || ('Open ' + (spec.label || spec.tool_id));
+      btn.setAttribute('aria-label', spec.label || spec.tool_id);
       btn.addEventListener('click', function () { launch(spec, btn); });
-      buttons.appendChild(btn);
+      wiredTopButtons.add(id);
     });
   }
 
