@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Appointment Companion Cloud Pilot</title>
+  <meta name="robots" content="noindex">
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}
+    .msg{padding:24px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="msg" id="loader">☁️ Loading Appointment Companion Cloud pilot…</div>
+  <script>
+  (async function(){
+    try {
+      const response = await fetch('./companion_cloud_pilot.html', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Pilot source returned HTTP ' + response.status);
+      let html = await response.text();
+      const inject = '<script src="../cloud-client-v1.js"><\\/script><script src="./cloud-pilot-v1.js"><\\/script>';
+      if (!/<\\/body>/i.test(html)) throw new Error('Pilot source has no closing body tag.');
+      html = html.replace(/<\\/body>/i, inject + '</body>');
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (err) {
+      document.getElementById('loader').textContent = '❌ Cloud pilot could not load: ' + (err && err.message ? err.message : String(err));
+    }
+  })();
+  </script>
+</body>
+</html>
