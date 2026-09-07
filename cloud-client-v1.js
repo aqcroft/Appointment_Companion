@@ -41,6 +41,30 @@
     };
   }
 
+  async function getShare(token) {
+    const cleanToken = String(token || '').trim();
+    if (!cleanToken) throw new Error('Missing share token.');
+
+    const response = await fetch(CLOUD_URL + '?action=share&token=' + encodeURIComponent(cleanToken), {
+      cache: 'no-store',
+      redirect: 'follow'
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      throw new Error('Cloud returned a non-JSON share response. HTTP ' + response.status + '.');
+    }
+
+    if (!data || data.ok !== true) {
+      throw new Error((data && data.error) || 'Share could not be loaded.');
+    }
+
+    return data;
+  }
+
   const api = {
     url: CLOUD_URL,
 
@@ -74,6 +98,10 @@
 
     async createShare(auth, payload) {
       return post(Object.assign({ action: 'createShare' }, payload || {}, authPayload(auth)));
+    },
+
+    async getShare(token) {
+      return getShare(token);
     },
 
     async touchPresence(auth, payload) {

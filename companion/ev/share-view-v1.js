@@ -5,7 +5,6 @@
 (function (global) {
   'use strict';
 
-  const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyEEvE7ALdjbRZ540PSYsiX-tkA83ZiEryFQBqA_zSa8W-Xpd_DWL3FG_YFMU6XmE3D/exec';
   const $ = function (id) { return document.getElementById(id); };
   let startState = null;
 
@@ -108,21 +107,28 @@
   }
 
   function showFatal(message) {
+    const blocker = $('cloudShareBlocker');
+    if (blocker) blocker.remove();
+
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fffbe3;display:grid;place-items:center;padding:24px;font:600 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f;text-align:center;';
-    overlay.innerHTML = '<div><div style="font-size:34px;margin-bottom:10px;">⚠️</div><div>' + String(message || 'This share could not be loaded.') + '</div></div>';
+    const wrap = document.createElement('div');
+    const icon = document.createElement('div');
+    const text = document.createElement('div');
+    icon.style.cssText = 'font-size:34px;margin-bottom:10px;';
+    icon.textContent = '⚠️';
+    text.textContent = String(message || 'This share could not be loaded.');
+    wrap.appendChild(icon);
+    wrap.appendChild(text);
+    overlay.appendChild(wrap);
     document.body.appendChild(overlay);
   }
 
   async function readShare(token) {
-    const response = await fetch(CLOUD_URL + '?action=share&token=' + encodeURIComponent(token), {
-      cache: 'no-store',
-      redirect: 'follow'
-    });
-    const data = await response.json();
-    if (!data || data.ok !== true || !data.share) throw new Error((data && data.error) || 'Share could not be loaded.');
-    if (String(data.share.view_type || '').toLowerCase() !== 'ev') throw new Error('This link is not an EV Companion share.');
-    return data.share.snapshot || {};
+    const shareApi = global.AppointmentCompanionSpecialistShare;
+    if (!shareApi || typeof shareApi.read !== 'function') throw new Error('Cloud share reader is unavailable.');
+    const data = await shareApi.read('ev', token);
+    return data.snapshot || {};
   }
 
   function waitForControls(snapshot) {

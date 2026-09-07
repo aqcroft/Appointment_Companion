@@ -54,8 +54,37 @@
     return res.share;
   }
 
+  function normaliseSnapshot(share) {
+    if (!share || typeof share !== 'object') return {};
+    if (share.snapshot && typeof share.snapshot === 'object') return share.snapshot;
+    if (share.snapshot_json && typeof share.snapshot_json === 'object') return share.snapshot_json;
+    if (typeof share.snapshot_json === 'string' && share.snapshot_json.trim()) {
+      return JSON.parse(share.snapshot_json);
+    }
+    return {};
+  }
+
+  async function read(viewType, token) {
+    if (!api || typeof api.getShare !== 'function') throw new Error('Cloud share reader is unavailable.');
+    const res = await api.getShare(token);
+    const share = res && res.share;
+    if (!share) throw new Error('Share could not be loaded.');
+
+    const expected = String(viewType || '').trim().toLowerCase();
+    const actual = String(share.view_type || '').trim().toLowerCase();
+    if (expected && actual && actual !== expected) {
+      throw new Error('This link is not a ' + expected.toUpperCase() + ' Companion share.');
+    }
+
+    return {
+      share: share,
+      snapshot: normaliseSnapshot(share)
+    };
+  }
+
   global.AppointmentCompanionSpecialistShare = {
     create: create,
+    read: read,
     getCurrentCustomer: getCurrentCustomer,
     currentCustomerId: currentCustomerId
   };
