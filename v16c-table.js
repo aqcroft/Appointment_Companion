@@ -16,6 +16,7 @@ function injectHeroStyles(){
     '.hero[data-v16c-layout="1"] .hero-footer-v16c{display:flex;align-items:center;gap:8px;margin-top:8px;min-width:0}',
     '.hero[data-v16c-layout="1"] .hero-service-row{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;margin:0;padding:0;background:transparent;border:0;border-radius:0}',
     '.hero[data-v16c-layout="1"] .hero-service-label{flex:0 1 auto;font-size:9px;font-weight:800;line-height:1.15;text-transform:none;letter-spacing:0;opacity:.9;white-space:nowrap}',
+    '.hero[data-v16c-layout="1"] .hero-service-label:before{content:none!important}',
     '.hero[data-v16c-layout="1"] .hero-svc{display:flex;flex:0 0 auto;gap:3px;width:auto}',
     '.hero[data-v16c-layout="1"] .hero-svc button{width:25px;height:25px;min-width:25px;min-height:25px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:none}',
     '.hero[data-v16c-layout="1"] .hero-svc button .num{font-size:13px;line-height:1;font-weight:900}',
