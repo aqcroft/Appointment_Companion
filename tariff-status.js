@@ -130,6 +130,7 @@
     var css =
       '.tstat-panel{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.35rem;position:relative;font:600 .78rem/1.25 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink,#1f1f24);}' +
       '.tstat-top{display:inline-flex;align-items:center;gap:.3rem;}' +
+      '.tstat-label{color:var(--muted,#6b6b76);font-size:.7rem;font-weight:750;text-transform:uppercase;letter-spacing:0;white-space:nowrap;margin-right:.05rem;}' +
       '.tstat-btn,.tstat-refresh{border:1px solid var(--line,#e6e2ef);background:#fff;color:var(--ink,#1f1f24);border-radius:999px;min-height:30px;display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.22rem .55rem;cursor:pointer;font:inherit;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:border-color .15s,background .15s,box-shadow .15s;}' +
       '.tstat-btn:hover,.tstat-refresh:hover{background:#faf8fe;}' +
       '.tstat-btn.is-green{border-color:rgba(29,155,80,.45);box-shadow:0 0 0 2px rgba(29,155,80,.09);}' +
@@ -162,6 +163,10 @@
     var top = document.createElement('div');
     top.className = 'tstat-top';
 
+    var label = document.createElement('span');
+    label.className = 'tstat-label';
+    label.textContent = 'Tariff Version';
+
     var fixedBtn = document.createElement('button');
     fixedBtn.type = 'button';
     fixedBtn.className = 'tstat-btn tstat-fixed is-check';
@@ -181,6 +186,7 @@
     refreshBtn.setAttribute('aria-label', 'Re-check tariff feed');
     refreshBtn.textContent = '⟳';
 
+    top.appendChild(label);
     top.appendChild(fixedBtn);
     top.appendChild(seasonBtn);
     top.appendChild(refreshBtn);
