@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Appointment Companion PWA</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#7a42c8">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="app-icon.svg" type="image/svg+xml">
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}
+    .msg{padding:24px;text-align:center}
+    a{color:#7a42c8;font-weight:800}
+  </style>
+  <script>
+    location.replace('./cloud/');
+  </script>
+</head>
+<body>
+  <div class="msg">Opening <a href="./cloud/">Appointment Companion PWA</a>...</div>
+  <script src="pwa-register.js"></script>
+</body>
+</html>
