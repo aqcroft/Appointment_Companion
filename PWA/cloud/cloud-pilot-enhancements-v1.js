@@ -1,7 +1,7 @@
 /* Appointment Companion Cloud pilot UX enhancements v1
    - Makes the currently linked customer reloadable from Cloud
    - Adds an obvious save-success popup
-   - Adds a direct "Reload current" action for cross-device testing
+   - Keeps reload handling in the Settings flow
 */
 (function () {
   'use strict';
@@ -26,7 +26,6 @@
       }
       #cloudPilotToast.show{opacity:1;transform:translate(-50%,0)}
       #cloudPilotToast .big{display:block;font-size:22px;margin-bottom:3px}
-      #cloudPilotReloadCurrent{margin-top:.55rem;width:100%;}
     `;
     document.head.appendChild(style);
   }
@@ -63,33 +62,8 @@
   }
 
   function addReloadCurrentButton() {
-    const connected = $('cloudPilotConnected');
-    const current = $('cloudPilotCurrent');
-    if (!connected || !current || $('cloudPilotReloadCurrent')) return;
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'pill';
-    btn.id = 'cloudPilotReloadCurrent';
-    btn.textContent = '🔄 Reload current from Cloud';
-    btn.addEventListener('click', () => {
-      makeLinkedCustomerReloadable();
-      const list = $('cloudPilotListBody') || $('cloudPilotList');
-      const reload = list && Array.from(list.querySelectorAll('button')).find(b => b.textContent.trim() === 'Reload');
-      if (reload) {
-        reload.click();
-      } else {
-        const status = $('cloudPilotStatus');
-        if (status) {
-          status.textContent = 'No linked Cloud customer to reload yet.';
-          status.style.color = '#c43b3b';
-        }
-      }
-    });
-
-    const pills = connected.querySelector('.pills');
-    if (pills) pills.insertAdjacentElement('afterend', btn);
-    else connected.insertBefore(btn, connected.firstChild);
+    const btn = $('cloudPilotReloadCurrent');
+    if (btn) btn.remove();
   }
 
   function updateCurrentHint() {

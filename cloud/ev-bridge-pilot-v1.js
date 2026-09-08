@@ -26,6 +26,7 @@
   let saving = false;
   let pendingSave = false;
   let saveTimer = null;
+  let changeBurst = 0;
   let lastSavedFingerprint = '';
 
   function click(selector) {
@@ -264,6 +265,7 @@
       setSaveUi('⚠️ Cloud save failed - local backup kept on this device. ' + ((err && err.message) || String(err)), 'bad');
     } finally {
       saving = false;
+      changeBurst = 0;
       setSaveButtonsDisabled(false);
       if (pendingSave) {
         pendingSave = false;
@@ -274,10 +276,12 @@
 
   function scheduleSave(delay) {
     if (hydrating) return;
+    changeBurst++;
     dirty = true;
     setSaveUi('● Unsaved change - autosaving…', 'warn');
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () { saveNow(false); }, delay == null ? 700 : delay);
+    const coalescedDelay = delay == null ? (changeBurst >= 3 ? 1000 : 4000) : delay;
+    saveTimer = setTimeout(function () { saveNow(false); }, coalescedDelay);
   }
 
   function relevantTarget(target) {
@@ -287,15 +291,15 @@
 
   function armAutosave() {
     document.addEventListener('input', function (e) {
-      if (relevantTarget(e.target)) scheduleSave(700);
+      if (relevantTarget(e.target)) scheduleSave();
     }, true);
 
     document.addEventListener('change', function (e) {
-      if (relevantTarget(e.target)) scheduleSave(120);
+      if (relevantTarget(e.target)) scheduleSave(changeBurst >= 2 ? 900 : 2200);
     }, true);
 
     document.addEventListener('click', function (e) {
-      if (relevantTarget(e.target)) scheduleSave(350);
+      if (relevantTarget(e.target)) scheduleSave(changeBurst >= 2 ? 900 : 2200);
     }, true);
 
     global.addEventListener('beforeunload', function (e) {
@@ -321,7 +325,7 @@
       : 'Appointment and basket context inherited';
 
     bar.className = 'evBridgeBar';
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>Save and return to Companion</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
+    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button><button type="button" data-ev-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>Save and return to Companion</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
 
@@ -388,6 +392,13 @@
           settings.open = true;
           settings.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="card"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        closeEvMenus();
+        window.location.href = new URL('./cashback-card-companion.html', window.location.href).href;
       });
     });
 

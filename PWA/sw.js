@@ -21,6 +21,7 @@ const APP_SHELL = [
   './cloud/ev-bridge-pilot-v1.js',
   './cloud/ev-cloud-share-v1.js',
   './cloud-ev-pilot.html',
+  './cashback-card-companion.html',
   './companion/ev/',
   './companion/ev/index.html',
   './companion/ev/share-view-v1.js',

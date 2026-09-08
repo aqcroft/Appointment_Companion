@@ -333,7 +333,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- Customer & household -->
   <div class="card">
     <div class="field">
-      <input type="text" id="customerName" placeholder="Customer first name (optional)" autocomplete="off">
+      <input type="text" id="customerName" placeholder="Customer name (FIRST name only)" autocomplete="off">
     </div>
     <div class="pills" style="margin-bottom: 0.6rem;">
       <button class="pill" id="pillHomeowner" type="button">🏠 Homeowner</button>
@@ -362,7 +362,6 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- ENERGY -->
   <div class="card hidden" id="energyCard">
     <h2>Energy</h2>
-    <button class="ev-tool-btn" type="button" id="openEvModalBtn">⚡ EV / E7 sense-check</button>
     <div class="switchrow" style="margin-bottom: 0.6rem;">
       <span class="lbl">Separate electricity & gas bills</span>
       <span class="switch"><input type="checkbox" id="splitEnergyToggle"><span class="track"></span></span>
@@ -1929,7 +1928,7 @@ function openEvModal() {
   $('evModal').classList.add('open');
 }
 function closeEvModal() { $('evModal').classList.remove('open'); }
-$('openEvModalBtn').addEventListener('click', openEvModal);
+if ($('openEvModalBtn')) $('openEvModalBtn').addEventListener('click', openEvModal);
 $('closeEvModalBtn').addEventListener('click', closeEvModal);
 $('evModal').addEventListener('click', e => { if (e.target.id === 'evModal') closeEvModal(); });
 

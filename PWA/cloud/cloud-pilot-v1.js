@@ -18,6 +18,8 @@
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
+  const ONBOARDING_KEY = 'apptCompanionOnboardingCompleteV1';
+  const ONBOARDING_STEP_KEY = 'apptCompanionOnboardingStepV1';
   const ADRIAN_WHATSAPP_URL = 'https://api.whatsapp.com/send?phone=447787400800';
   const ADRIAN_TEL_URL = 'tel:+447787400800';
 
@@ -25,7 +27,10 @@
   let currentCloudCustomerId = sessionStorage.getItem(CURRENT_CUSTOMER_KEY) || '';
   let currentCloudCustomer = null;
   let customerSort = localStorage.getItem('apptCloudPilotCustomerSort') || 'date';
+  let customerSortDir = localStorage.getItem('apptCloudPilotCustomerSortDir') || 'asc';
   let connectedWidgetObserver = null;
+  let loadingDepth = 0;
+  let activeSettingsSection = 'hub';
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -213,26 +218,40 @@
         #cloudPilotCard .state-on{border-color:rgba(29,155,80,.38);background:rgba(29,155,80,.08);box-shadow:inset 0 -2px 0 rgba(29,155,80,.38)}
         #cloudPilotCard .cloudtool-unbuilt{cursor:default}
         #cloudPilotCard .cloudActionToggle{display:inline-flex}
+        #cloudPilotCard .cloud-top-shortcut{display:inline-flex}
         #cloudPilotCard .cloud-menu-popover{position:absolute;right:.75rem;top:calc(100% - .25rem);z-index:50;width:min(310px,calc(100vw - 32px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none}
         #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
         #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
+        .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
+        .whatsapp-ico{width:18px;height:18px;border-radius:50%;background:#25D366;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;line-height:1}
         #cloudSettingsModal .cloud-settings-list{display:grid;gap:8px;margin-top:.75rem}
         #cloudSettingsModal .cloud-menu-item{width:100%;min-height:42px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudSettingsModal .cloud-menu-item:disabled{opacity:.48;cursor:default}
         #cloudSettingsModal .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
-        #cloudSettingsModal .whatsapp-ico{width:18px;height:18px;border-radius:50%;background:#25D366;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;line-height:1}
+        #cloudSettingsModal .cloud-settings-pane{display:none}
+        #cloudSettingsModal .cloud-settings-pane.open{display:block}
+        #cloudSettingsModal .cloud-settings-back{margin-bottom:.65rem}
         #cloudSettingsModal .cloud-contact-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
         #cloudSettingsModal .cloud-about{margin-top:.8rem;padding:.75rem;border:1px solid var(--line);border-radius:10px;background:#fbfaff}
         #cloudSettingsModal .cloud-about h4{margin:0 0 .35rem;color:var(--purple);font-size:13px}
         #cloudSettingsModal .cloud-about p{margin:0;font-size:12px;line-height:1.45;color:var(--muted)}
-        #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(220px,1fr) 112px 74px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
+        #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 74px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
         #cloudCustomerModal .cloud-sort{border:0;background:transparent;color:var(--purple);font:inherit;font-weight:850;text-transform:uppercase;padding:0;cursor:pointer;text-align:left}
         #cloudCustomerModal .cloud-customer-icons{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0}
         #cloudCustomerModal .cloud-customer-icons .basket-icon{width:22px;height:22px}
         #cloudCustomerModal .cloud-companion-mini{opacity:.28;filter:grayscale(1)}
         #cloudCustomerModal .cloud-companion-mini.on{opacity:1;filter:none}
-        #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(220px,1fr) 112px 74px;gap:8px;align-items:center}
+        #cloudCustomerModal .cloud-service-head{display:inline-flex;align-items:center;gap:5px}
+        #cloudCustomerModal .cloud-service-head span{cursor:help}
+        #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 74px;gap:8px;align-items:center}
+        #cloudLoadingOverlay{position:fixed;inset:0;z-index:14000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.22);backdrop-filter:blur(2px)}
+        #cloudLoadingOverlay.open{display:flex}
+        #cloudLoadingOverlay .loading-card{width:min(320px,calc(100vw - 36px));padding:22px;border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 18px 55px rgba(38,22,79,.24);text-align:center}
+        #cloudLoadingOverlay .spinner{width:34px;height:34px;margin:0 auto 12px;border-radius:50%;border:4px solid rgba(122,66,200,.16);border-top-color:var(--purple);animation:cloudSpin .8s linear infinite}
+        #cloudLoadingOverlay strong{display:block;font-size:16px;color:var(--purple)}
+        #cloudLoadingOverlay p{margin:.35rem 0 0;font-size:12px;color:var(--muted)}
+        @keyframes cloudSpin{to{transform:rotate(360deg)}}
         @media(max-width:720px){#cloudCustomerModal .cloud-table-head{display:none}#cloudCustomerModal .cloud-row{display:flex;align-items:center;justify-content:space-between}.cloud-row-meta{display:block!important}}
         @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
       </style>
@@ -242,18 +261,18 @@
           <div id="cloudPilotCurrent" class="cloud-current-line"></div>
         </div>
         <div class="cloudicons">
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionEv" data-cloud-action="ev" title="EV Companion" aria-label="EV Companion">🚙</button>
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionCard" data-cloud-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button>
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudShareShortcut" data-cloud-action="share" title="Share summary" aria-label="Share summary">📤</button>
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
         </div>
       </div>
       <div id="cloudTariffSlot" class="cloud-tariff-slot"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
-        <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="customers"><span class="menu-ico">☁️↓</span><span>Customers / load customer</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="customers"><span class="menu-ico">👥</span><span>Customers / load customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
-        <button class="pill cloud-menu-item" type="button" id="cloudShareShortcut" data-cloud-action="share"><span class="menu-ico">📤</span><span>Share summary</span></button>
-        <button class="pill cloud-menu-item" type="button" id="cloudCompanionEv" data-cloud-action="ev"><span class="menu-ico">🚙</span><span>EV Companion</span></button>
-        <button class="pill cloud-menu-item hidden" type="button" id="cloudCompanionCard" disabled><span class="menu-ico">💳</span><span>Cashback Card Companion</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="settings"><span class="menu-ico">⚙️</span><span>Settings</span></button>
       </div>
 
@@ -287,6 +306,7 @@
       if (action.dataset.cloudAction === 'customer-name') editCustomerName();
       if (action.dataset.cloudAction === 'basket') focusBasketLink();
       if (action.dataset.cloudAction === 'share') openShareSummary();
+      if (action.dataset.cloudAction === 'card') openCardPlaceholder();
       if (action.dataset.cloudAction === 'toggle-actions') toggleActionTray();
       if (action.dataset.cloudAction === 'local-save') localSaveNow();
       if (action.dataset.cloudAction === 'local-open') openLocalBackups();
@@ -304,6 +324,8 @@
     renderCloudCurrent();
     moveTariffStatusIntoBar();
     tuckLocalSaveCard();
+    ensureLoadingOverlay();
+    maybeStartOnboarding();
   }
 
   function showConnected(on) {
@@ -316,12 +338,13 @@
     const workspaceKey = $c('cloudPilotWorkspaceKey').value;
     if (!partnerId || !workspaceKey) {
       setStatus('Enter both the Companion Login ID and Password.', 'bad');
-      return;
+      return false;
     }
 
     const btn = $c('cloudPilotConnect');
     btn.disabled = true;
     setStatus('Connecting...');
+    showLoading('Connecting to Companion...', 'Checking your Companion Login ID and Password.');
     try {
       const auth = setAuth(partnerId, workspaceKey);
       const res = await api.listCustomers(auth);
@@ -333,11 +356,14 @@
       const current = cloudCustomers.find(c => c.customer_id === currentCloudCustomerId);
       setCurrent(current || null);
       renderCloudList();
+      return true;
     } catch (err) {
       clearAuth();
       showConnected(false);
       setStatus((err && err.message) || String(err), 'bad');
+      return false;
     } finally {
+      hideLoading();
       btn.disabled = false;
     }
   }
@@ -371,7 +397,10 @@
     }
 
     const customers = cloudCustomers.slice().sort((a, b) => {
-      if (customerSort === 'name') return String(a.customer_name || '').localeCompare(String(b.customer_name || ''), 'en-GB', { sensitivity: 'base' });
+      if (customerSort === 'name') {
+        const byName = String(a.customer_name || '').localeCompare(String(b.customer_name || ''), 'en-GB', { sensitivity: 'base' });
+        return customerSortDir === 'desc' ? -byName : byName;
+      }
       return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0);
     });
 
@@ -478,6 +507,7 @@
             <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Password">
           </div>
           <button class="pill" type="button" id="cloudPilotConnect" style="width:100%;">Connect Cloud</button>
+          <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener" style="margin-top:.55rem;"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
         </div>
         <div class="modal-actions">
           <button class="btn-ghost" type="button" id="cloudConnectClose">Close</button>
@@ -516,7 +546,7 @@
         <div class="cloud-table-head">
           <button class="cloud-sort" type="button" id="cloudSortName">Name</button>
           <span>Saving</span>
-          <span>Basket</span>
+          <span class="cloud-service-head" aria-label="Services"><span title="Energy">⚡🔥</span><span title="Broadband">🛜</span><span title="Mobile">📱</span><span title="Insurance">🛡️</span><span title="Basket link">🛒</span><span title="Summary generated">✉️</span><span title="EV Companion">🚙</span></span>
           <button class="cloud-sort" type="button" id="cloudSortDate">Recent</button>
           <span></span>
         </div>
@@ -534,11 +564,19 @@
   }
 
   function setCustomerSort(sort) {
+    if (sort === 'name' && customerSort === 'name') customerSortDir = customerSortDir === 'asc' ? 'desc' : 'asc';
+    else customerSortDir = sort === 'name' ? 'asc' : 'desc';
     customerSort = sort === 'name' ? 'name' : 'date';
     localStorage.setItem('apptCloudPilotCustomerSort', customerSort);
-    $c('cloudSortDate').textContent = customerSort === 'date' ? 'Recent ↓' : 'Recent';
-    $c('cloudSortName').textContent = customerSort === 'name' ? 'Name ↑' : 'Name';
+    localStorage.setItem('apptCloudPilotCustomerSortDir', customerSortDir);
+    renderCustomerSortControls();
     renderCloudList();
+  }
+
+  function renderCustomerSortControls() {
+    if (!$c('cloudSortDate') || !$c('cloudSortName')) return;
+    $c('cloudSortDate').textContent = customerSort === 'date' ? 'Recent ↓' : 'Recent';
+    $c('cloudSortName').textContent = customerSort === 'name' ? 'Name ' + (customerSortDir === 'asc' ? '↑' : '↓') : 'Name';
   }
 
   async function toggleCloudList() {
@@ -548,18 +586,22 @@
       return;
     }
     setStatus('Loading Cloud customers...');
+    showLoading('Loading customer data...', 'Fetching your Cloud customer list.');
     try {
       await refreshCustomers();
       openCloudList();
       setStatus('Cloud customers refreshed ✓', 'good');
     } catch (err) {
       setStatus((err && err.message) || String(err), 'bad');
+    } finally {
+      hideLoading();
     }
   }
 
   function openCloudList() {
     ensureCustomerModal();
-    setCustomerSort(customerSort);
+    renderCustomerSortControls();
+    renderCloudList();
     $c('cloudCustomerModal').classList.add('open');
   }
 
@@ -590,6 +632,10 @@
   function openShareSummary() {
     const btn = $c('openCardBtn');
     if (btn) btn.click();
+  }
+
+  function openCardPlaceholder() {
+    window.location.href = new URL('../cashback-card-companion.html', window.location.href).href;
   }
 
   function localSaveNow() {
@@ -649,20 +695,198 @@
     if (tariff && slot && tariff.parentNode !== slot) slot.appendChild(tariff);
   }
 
+  function ensureLoadingOverlay() {
+    if ($c('cloudLoadingOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'cloudLoadingOverlay';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = `
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <strong id="cloudLoadingTitle">Loading customer data...</strong>
+        <p id="cloudLoadingCopy">Please wait a moment.</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  function getPartnerProfile() {
+    try {
+      const p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null');
+      return p && p.name && p.join ? p : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function onboardingComplete() {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    localStorage.removeItem(ONBOARDING_STEP_KEY);
+  }
+
+  function onboardingStep() {
+    return localStorage.getItem(ONBOARDING_STEP_KEY) || 'connect';
+  }
+
+  function setOnboardingStep(step) {
+    localStorage.setItem(ONBOARDING_STEP_KEY, step);
+    renderOnboardingStep(step);
+  }
+
+  function maybeStartOnboarding() {
+    if (localStorage.getItem(ONBOARDING_KEY) === '1') return;
+    ensureOnboardingModal();
+    const prompt = $c('partnerPrompt');
+    if (prompt && onboardingStep() !== 'partner') prompt.classList.remove('open');
+    renderOnboardingStep(onboardingStep());
+    $c('cloudOnboardingModal').classList.add('open');
+  }
+
+  function ensureOnboardingModal() {
+    if ($c('cloudOnboardingModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cloudOnboardingModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" style="max-width:460px;">
+        <h3 id="cloudOnboardingTitle">Welcome to Companion</h3>
+        <div id="cloudOnboardingBody"></div>
+        <div class="modal-actions">
+          <button class="btn-ghost" type="button" id="cloudOnboardingLater">Finish later</button>
+          <button class="btn-share" type="button" id="cloudOnboardingNext">Continue</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    $c('cloudOnboardingLater').addEventListener('click', () => modal.classList.remove('open'));
+    $c('cloudOnboardingNext').addEventListener('click', advanceOnboarding);
+  }
+
+  function renderOnboardingStep(step) {
+    ensureOnboardingModal();
+    const title = $c('cloudOnboardingTitle');
+    const body = $c('cloudOnboardingBody');
+    const next = $c('cloudOnboardingNext');
+    const later = $c('cloudOnboardingLater');
+    if (step === 'connect') {
+      title.textContent = 'Step 1 - Connect to Companion';
+      body.innerHTML = `
+        <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft.</p>
+        <div class="field"><label for="onboardLoginId">Companion Login ID</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
+        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off"></div>
+        <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
+      `;
+      next.textContent = 'Connect';
+      later.textContent = 'Finish later';
+    } else if (step === 'device') {
+      const device = window.AppointmentCompanionDevice && window.AppointmentCompanionDevice.getDevice ? window.AppointmentCompanionDevice.getDevice() : { device_name: '' };
+      title.textContent = 'Step 2 - Name this device';
+      body.innerHTML = `
+        <p class="sub">Use a recognisable name, like Adrian's Laptop, iPad, or Work phone.</p>
+        <div class="field"><label for="onboardDeviceName">Device name</label><input type="text" id="onboardDeviceName" autocomplete="off" value="${esc(device.device_name || '')}"></div>
+      `;
+      next.textContent = 'Save device';
+      later.textContent = 'Finish later';
+    } else if (step === 'partner') {
+      title.textContent = 'Step 3 - Partner details';
+      body.innerHTML = '<p class="sub">Add the Partner identity used for sharing and customer-facing output. Save the Partner details modal, then continue.</p><button class="pill cloud-menu-item" type="button" id="onboardPartnerOpen"><span class="menu-ico">👤</span><span>Open Partner details</span></button>';
+      next.textContent = 'I have saved Partner details';
+      later.textContent = 'Finish later';
+      setTimeout(() => {
+        const btn = $c('onboardPartnerOpen');
+        if (btn) btn.addEventListener('click', openPartnerProfile);
+      }, 0);
+    } else {
+      title.textContent = 'Step 4 - Ready';
+      body.innerHTML = '<p class="sub">Setup is complete. You can revisit setup from Settings whenever you need to.</p>';
+      next.textContent = 'Enter Appointment Companion';
+      later.textContent = 'Close';
+    }
+  }
+
+  async function advanceOnboarding() {
+    const step = onboardingStep();
+    if (step === 'connect') {
+      const id = $c('onboardLoginId');
+      const pw = $c('onboardPassword');
+      if ($c('cloudPilotPartnerId') && id) $c('cloudPilotPartnerId').value = id.value;
+      if ($c('cloudPilotWorkspaceKey') && pw) $c('cloudPilotWorkspaceKey').value = pw.value;
+      const ok = await connect();
+      if (ok) setOnboardingStep('device');
+      return;
+    }
+    if (step === 'device') {
+      const name = $c('onboardDeviceName');
+      try {
+        if (window.AppointmentCompanionDevice && window.AppointmentCompanionDevice.rename) {
+          window.AppointmentCompanionDevice.rename(name && name.value);
+        }
+        setOnboardingStep('partner');
+        openPartnerProfile();
+      } catch (_) {
+        if (name) name.focus();
+      }
+      return;
+    }
+    if (step === 'partner') {
+      if (!getPartnerProfile()) {
+        openPartnerProfile();
+        return;
+      }
+      setOnboardingStep('ready');
+      return;
+    }
+    onboardingComplete();
+    const modal = $c('cloudOnboardingModal');
+    if (modal) modal.classList.remove('open');
+    setStatus('Setup complete ✓', 'good');
+  }
+
+  function showLoading(title, copy) {
+    ensureLoadingOverlay();
+    loadingDepth++;
+    $c('cloudLoadingTitle').textContent = title || 'Loading customer data...';
+    $c('cloudLoadingCopy').textContent = copy || 'Please wait a moment.';
+    $c('cloudLoadingOverlay').classList.add('open');
+  }
+
+  function hideLoading() {
+    loadingDepth = Math.max(0, loadingDepth - 1);
+    if (!loadingDepth && $c('cloudLoadingOverlay')) $c('cloudLoadingOverlay').classList.remove('open');
+  }
+
   function openPartnerProfile() {
     if ($c('partnerSettingsBtn')) $c('partnerSettingsBtn').click();
     enhancePartnerPrompt();
   }
 
-  function openSettingsModal() {
+  function openSettingsModal(section) {
     ensureSettingsModal();
     relocateConnectedWidgets();
+    showSettingsSection(section || 'hub');
     $c('cloudSettingsModal').classList.add('open');
   }
 
   function closeSettingsModal() {
     const modal = $c('cloudSettingsModal');
     if (modal) modal.classList.remove('open');
+  }
+
+  function showSettingsSection(section) {
+    activeSettingsSection = section || 'hub';
+    const titles = {
+      hub: '⚙️ Settings',
+      cloud: '☁️ Cloud settings',
+      local: '💻 Local backup',
+      contact: '📞 Contact',
+      about: 'ℹ️ About'
+    };
+    const title = $c('cloudSettingsTitle');
+    if (title) title.textContent = titles[activeSettingsSection] || titles.hub;
+    document.querySelectorAll('#cloudSettingsModal [data-settings-pane]').forEach(pane => {
+      pane.classList.toggle('open', pane.dataset.settingsPane === activeSettingsSection);
+    });
   }
 
   function ensureSettingsModal() {
@@ -672,27 +896,49 @@
     modal.id = 'cloudSettingsModal';
     modal.innerHTML = `
       <div class="basket-prompt-card" style="max-width:440px;">
-        <h3>⚙️ Cloud settings</h3>
-        <p class="sub">Cloud session, partner details, device backup and recovery tools.</p>
-        <div class="cloud-settings-list">
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsPartner"><span class="menu-ico">👤</span><span>Partner details</span></button>
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsConnect"><span class="menu-ico">☁️</span><span>Connect Cloud</span></button>
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsReload"><span class="menu-ico">🔄</span><span>Reload current from Cloud</span></button>
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalSave"><span class="menu-ico">💻💾</span><span>Local backup save</span></button>
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalOpen"><span class="menu-ico">📂</span><span>Open local backup</span></button>
-          <div>
-            <button class="pill cloud-menu-item" type="button" id="cloudSettingsContact"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Contact Adrian Croft / WhatsApp</span></button>
-            <div class="cloud-contact-actions">
-              <a class="pill cloud-menu-item" id="cloudSettingsWhatsApp" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>WhatsApp</span></a>
-              <a class="pill cloud-menu-item" id="cloudSettingsTel" href="${ADRIAN_TEL_URL}"><span class="menu-ico">📞</span><span>Call</span></a>
-            </div>
+        <h3 id="cloudSettingsTitle">⚙️ Settings</h3>
+        <div class="cloud-settings-pane open" data-settings-pane="hub">
+          <div class="cloud-settings-list">
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsPartner"><span class="menu-ico">👤</span><span>Partner details</span></button>
+            <button class="pill cloud-menu-item" type="button" data-settings-section="cloud"><span class="menu-ico">☁️</span><span>Cloud settings</span></button>
+            <button class="pill cloud-menu-item" type="button" data-settings-section="local"><span class="menu-ico">💻</span><span>Local backup</span></button>
+            <button class="pill cloud-menu-item" type="button" data-settings-section="contact"><span class="menu-ico">📞</span><span>Contact</span></button>
+            <button class="pill cloud-menu-item" type="button" data-settings-section="about"><span class="menu-ico">ℹ️</span><span>About</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsOnboarding"><span class="menu-ico">✅</span><span>Setup / onboarding</span></button>
           </div>
-          <button class="pill cloud-menu-item" type="button" id="cloudSettingsDisconnect"><span class="menu-ico">⏻</span><span>Disconnect Cloud for this session</span></button>
         </div>
-        <div id="cloudSettingsDynamic" style="margin-top:.75rem;"></div>
-        <div class="cloud-about">
-          <h4>About Appointment Companion</h4>
-          <p>Appointment Companion is a pet project by Adrian Croft, built to support conversations during or after UW appointments. It helps make the bigger picture easier to see: the customer's first-year position, bundle benefits and Partner income, so the decision feels clearer.</p>
+        <div class="cloud-settings-pane" data-settings-pane="cloud">
+          <button class="btn-ghost cloud-settings-back" type="button" data-settings-section="hub">← Settings</button>
+          <p class="sub">Connection, device, autosave and open-on-other-device status.</p>
+          <div class="cloud-settings-list">
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsConnect"><span class="menu-ico">☁️</span><span>Connect / reconnect Companion</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsReload"><span class="menu-ico">🔄</span><span>Reload current from Cloud</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsDisconnect"><span class="menu-ico">⏻</span><span>Disconnect Cloud for this session</span></button>
+          </div>
+          <div id="cloudSettingsDynamic" style="margin-top:.75rem;"></div>
+        </div>
+        <div class="cloud-settings-pane" data-settings-pane="local">
+          <button class="btn-ghost cloud-settings-back" type="button" data-settings-section="hub">← Settings</button>
+          <p class="sub">Local backup is a safety copy on this device. Cloud remains the main customer record.</p>
+          <div class="cloud-settings-list">
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalSave"><span class="menu-ico">💻💾</span><span>Local backup save</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalOpen"><span class="menu-ico">📂</span><span>Open local backup</span></button>
+          </div>
+        </div>
+        <div class="cloud-settings-pane" data-settings-pane="contact">
+          <button class="btn-ghost cloud-settings-back" type="button" data-settings-section="hub">← Settings</button>
+          <p class="sub">Need login details or help with Companion?</p>
+          <div class="cloud-contact-actions">
+            <a class="pill cloud-menu-item" id="cloudSettingsWhatsApp" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>WhatsApp Adrian Croft</span></a>
+            <a class="pill cloud-menu-item" id="cloudSettingsTel" href="${ADRIAN_TEL_URL}"><span class="menu-ico">📞</span><span>Call Adrian Croft</span></a>
+          </div>
+        </div>
+        <div class="cloud-settings-pane" data-settings-pane="about">
+          <button class="btn-ghost cloud-settings-back" type="button" data-settings-section="hub">← Settings</button>
+          <div class="cloud-about" style="margin-top:0;">
+            <h4>About Appointment Companion</h4>
+            <p>Appointment Companion is a pet project by Adrian Croft, built to support conversations during or after UW appointments. It helps make the bigger picture easier to see - the customer's first-year position, bundle benefits and Partner income - so the decision feels clearer.</p>
+          </div>
         </div>
         <div class="modal-actions">
           <button class="btn-ghost" type="button" id="cloudSettingsClose">Close</button>
@@ -702,9 +948,18 @@
     document.body.appendChild(modal);
     $c('cloudSettingsClose').addEventListener('click', closeSettingsModal);
     modal.addEventListener('click', e => { if (e.target.id === 'cloudSettingsModal') closeSettingsModal(); });
+    modal.querySelectorAll('[data-settings-section]').forEach(btn => {
+      btn.addEventListener('click', () => showSettingsSection(btn.dataset.settingsSection || 'hub'));
+    });
     $c('cloudSettingsPartner').addEventListener('click', () => {
       closeSettingsModal();
       openPartnerProfile();
+    });
+    $c('cloudSettingsOnboarding').addEventListener('click', () => {
+      closeSettingsModal();
+      localStorage.removeItem(ONBOARDING_KEY);
+      setOnboardingStep('connect');
+      $c('cloudOnboardingModal').classList.add('open');
     });
     $c('cloudSettingsConnect').addEventListener('click', () => {
       closeSettingsModal();
@@ -722,7 +977,6 @@
       closeSettingsModal();
       openLocalBackups();
     });
-    $c('cloudSettingsContact').addEventListener('click', () => window.open(ADRIAN_WHATSAPP_URL, '_blank', 'noopener'));
     $c('cloudSettingsDisconnect').addEventListener('click', () => {
       closeSettingsModal();
       disconnect();
@@ -753,13 +1007,20 @@
 
   async function reloadCurrent() {
     if (!currentCloudCustomerId) return setStatus('No linked Cloud customer to reload yet.', 'bad');
-    await loadCustomer(currentCloudCustomerId);
+    showLoading('Loading customer data...', 'Reloading the latest Cloud version.');
+    try {
+      await loadCustomer(currentCloudCustomerId, { noLoading: true });
+    } finally {
+      hideLoading();
+    }
   }
 
-  async function loadCustomer(customerId) {
+  async function loadCustomer(customerId, opts) {
+    opts = opts || {};
     const auth = getAuth();
     if (!auth) return setStatus('Cloud is not connected.', 'bad');
     setStatus('Loading customer...');
+    if (!opts.noLoading) showLoading('Loading customer data...', 'Loading this customer into Companion.');
     try {
       const res = await api.getCustomer(auth, customerId);
       const customer = res.customer;
@@ -784,9 +1045,12 @@
       setCurrent(customer);
       syncNotesVisibility();
       renderCloudList();
+      closeCloudList();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setStatus((err && err.message) || String(err), 'bad');
+    } finally {
+      if (!opts.noLoading) hideLoading();
     }
   }
 
