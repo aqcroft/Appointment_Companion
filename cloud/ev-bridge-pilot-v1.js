@@ -311,7 +311,7 @@
     if (!wrap) return;
 
     const style = document.createElement('style');
-    style.textContent = '.evBridgeBar{margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end;flex-wrap:wrap}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button.primary{background:#7a42c8;color:white}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeActions .ev-tray-action,.evBridgeActions .evCloudShare{display:none}.evBridgeActions.open{width:100%}.evBridgeActions.open .ev-tray-action,.evBridgeActions.open .evCloudShare{display:inline-flex}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}';
+    style.textContent = '.evBridgeBar{position:relative;margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeMenu{position:absolute;right:.7rem;top:calc(100% - .2rem);z-index:30;width:min(300px,calc(100vw - 30px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none;gap:6px}.evBridgeMenu.open{display:grid}.evBridgeMenu button{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px;font-size:14px}.evBridgeMenu .menu-ico{width:1.6em;text-align:center}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}@media(max-width:620px){.evBridgeMenu{left:.7rem;right:.7rem;width:auto}}';
     document.head.appendChild(style);
 
     const bar = document.createElement('div');
@@ -321,7 +321,7 @@
       : 'Appointment and basket context inherited';
 
     bar.className = 'evBridgeBar';
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" class="ev-tray-action" data-ev-action="save" id="evBridgeSaveNow" title="Save now" aria-label="Save now">💾</button><button type="button" class="ev-tray-action primary" data-ev-action="return" id="evBridgeReturn" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button><button type="button" data-ev-action="settings" title="EV settings" aria-label="EV settings">⚙️</button></div></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
+    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>Save and return to Companion</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
 
@@ -336,6 +336,7 @@
 
     document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        closeEvMenus();
         clearTimeout(saveTimer);
         saveNow(true);
       });
@@ -343,6 +344,7 @@
 
     document.querySelectorAll('[data-ev-action="return"]').forEach(function (btn) {
       btn.addEventListener('click', async function () {
+      closeEvMenus();
       btn.disabled = true;
       showNotice('Saving and returning to Companion…', '');
       clearTimeout(saveTimer);
@@ -366,10 +368,11 @@
 
     document.querySelectorAll('[data-ev-action="menu"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        const actions = btn.closest('.evBridgeActions');
-        if (!actions) return;
-        const open = !actions.classList.contains('open');
-        actions.classList.toggle('open', open);
+        const bar = btn.closest('.evBridgeBar');
+        const menu = bar && bar.querySelector('.evBridgeMenu');
+        if (!menu) return;
+        const open = !menu.classList.contains('open');
+        menu.classList.toggle('open', open);
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         btn.title = open ? 'Hide actions' : 'Show actions';
       });
@@ -377,6 +380,7 @@
 
     document.querySelectorAll('[data-ev-action="settings"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        closeEvMenus();
         const settings = Array.from(document.querySelectorAll('details')).find(function (details) {
           return /Settings & assumptions/i.test(details.textContent || '');
         });
@@ -385,6 +389,22 @@
           settings.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.evBridgeBar')) return;
+      closeEvMenus();
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeEvMenus();
+    });
+  }
+
+  function closeEvMenus() {
+    document.querySelectorAll('.evBridgeMenu.open').forEach(function (menu) { menu.classList.remove('open'); });
+    document.querySelectorAll('[data-ev-action="menu"]').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.title = 'Show actions';
     });
   }
 

@@ -93,10 +93,10 @@
     const btn = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('evCloudShare')
       ? document.activeElement
       : document.querySelector('.evCloudShare');
-    const original = btn ? btn.textContent : '';
+    const original = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Creating…';
+      btn.textContent = 'Creating...';
     }
 
     try {
@@ -145,13 +145,13 @@
       sharing = false;
       if (btn) {
         btn.disabled = false;
-        btn.textContent = original || '📤';
+        btn.innerHTML = original || '<span class="menu-ico">📤</span><span>Share customer link</span>';
       }
     }
   }
 
   function mount() {
-    const bars = Array.from(document.querySelectorAll('.evBridgeActions'));
+    const bars = Array.from(document.querySelectorAll('.evBridgeMenu'));
     if (!bars.length) return false;
     let mounted = false;
 
@@ -161,7 +161,7 @@
       btn.type = 'button';
       btn.className = 'evCloudShare';
       if (index === 0) btn.id = 'evCloudShare';
-      btn.textContent = '📤';
+      btn.innerHTML = '<span class="menu-ico">📤</span><span>Share customer link</span>';
       btn.title = 'Create a short Cloud-backed customer share link';
       btn.setAttribute('aria-label', 'Create customer share link');
       btn.addEventListener('click', createShare);

@@ -2122,6 +2122,12 @@ function buildShareUrl() {
   return location.href.split('#')[0] + '#d=' + encoded;
 }
 
+window.AppointmentCompanionQuoteSharedAt = '';
+function markQuoteSummaryShared() {
+  window.AppointmentCompanionQuoteSharedAt = new Date().toISOString();
+  document.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 let pendingBasketAction = null;
 function openBasketPrompt(action) {
   pendingBasketAction = action;
@@ -2134,6 +2140,7 @@ function closeBasketPrompt() {
 function continueShareViaWhatsApp() {
   const url = buildShareUrl();
   if (!url) return;
+  markQuoteSummaryShared();
   $('shareGateMsg').classList.add('hidden');
   const nm = firstName();
   const r = compute(0);
@@ -2145,6 +2152,7 @@ function continueShareViaWhatsApp() {
 function continueCopyShareLink() {
   const url = buildShareUrl();
   if (!url) return;
+  markQuoteSummaryShared();
   $('shareGateMsg').classList.add('hidden');
   navigator.clipboard.writeText(url).then(() => {
     $('copyLinkBtn').textContent = '✓ Copied';
@@ -2190,6 +2198,7 @@ $('shareWithoutBasketBtn').addEventListener('click', () => {
 function resetForm() {
   document.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
   if ($('apptNotes')) $('apptNotes').value = '';
+  window.AppointmentCompanionQuoteSharedAt = '';
   document.querySelectorAll('input[type="checkbox"]').forEach(i => { i.checked = i.id === 'includeCashback'; i.disabled = false; });
   $('spendSlider').value = CONFIG.cashback.slider.default;
   $('spendDisplay').textContent = CONFIG.cashback.slider.default;
@@ -2260,14 +2269,18 @@ function serializeForm() {
     energy: !!state.services.energy,
     broadband: !!state.services.broadband,
     sims: Math.min(r.includedSimsCount, 2),
-    insurance: (r.incomeProtectorCost > 0 || r.boilerCoverCost > 0)
+    insurance: (r.incomeProtectorCost > 0 || r.boilerCoverCost > 0),
+    basketLink: !!basketLink(),
+    quoteShared: !!window.AppointmentCompanionQuoteSharedAt
   };
   return {
     app: 'appointment-companion', v: 2,
     savedAt: new Date().toISOString(),
     customerName: ($('customerName').value || '').trim(),
     notes: $('apptNotes') ? $('apptNotes').value : '',
+    quoteSharedAt: window.AppointmentCompanionQuoteSharedAt || '',
     summary,
+    partner: getPartner(),
     inputs,
     state: JSON.parse(JSON.stringify(state)),
     ui: {
@@ -2378,6 +2391,8 @@ function restoreForm(saved) {
   // misc displays
   $('spendDisplay').textContent = $('spendSlider').value;
   if ($('apptNotes')) $('apptNotes').value = saved.notes || '';
+  window.AppointmentCompanionQuoteSharedAt = saved.quoteSharedAt || (saved.summary && saved.summary.quoteShared ? saved.savedAt : '') || '';
+  if (saved.partner && saved.partner.name && saved.partner.join) setPartner(saved.partner);
 
   calc();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2444,11 +2459,14 @@ function renderSavesList() {
       : '';
     const iconsHtml =
       '<span class="basket-icons" style="font-size:14px; gap:7px;">' +
-        icon('⚡🔥', !!sum.energy, true) +
+        icon('⚡', !!sum.energy, false) +
+        icon('🔥', !!sum.energy, false) +
         icon('🛜', !!sum.broadband, false) +
         icon('📱', (sum.sims || 0) >= 1, false) +
         icon('📱', (sum.sims || 0) >= 2, false) +
         icon('🛡️', !!sum.insurance, false) +
+        icon('🛒', !!sum.basketLink, false) +
+        icon('✉️', !!sum.quoteShared, false) +
       '</span>';
 
     let heroTxt = '', heroColor = 'var(--good)';
