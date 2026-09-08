@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UW EV Tariff Companion (unofficial) v16C</title>
+<meta name="theme-color" content="#7a42c8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EV Companion">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="app-icon.svg" type="image/svg+xml">
 <script>
 /* Personalised customer mode is decided before first paint so Partner sharing controls never flash. */
 if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('shared-view');
@@ -174,5 +180,6 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 
 <!-- v16C deliberately loads the live-data calculator scripts only after OK on a personalised link. -->
 <script src="v16c-sharing.js"></script>
+<script src="pwa-register.js"></script>
 </body>
 </html>

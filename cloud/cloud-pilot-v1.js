@@ -215,6 +215,8 @@
           <span class="cloudicon cloud-tray-action cloudtool-unbuilt" id="cloudCompanionCard" title="Cashback Card Companion">💳</span>
           <button class="cloudicon cloud-tray-action" type="button" id="cloudPilotSave" data-cloud-action="save" title="Save to Cloud and keep a local backup" aria-label="Save to Cloud">💾</button>
           <button class="cloudicon cloud-tray-action" type="button" id="cloudPilotLoad" data-cloud-action="customers" title="Load from Cloud" aria-label="Load from Cloud">☁️↓</button>
+          <button class="cloudicon cloud-tray-action" type="button" id="cloudLocalSave" data-cloud-action="local-save" title="Local backup save" aria-label="Local backup save">💻💾</button>
+          <button class="cloudicon cloud-tray-action" type="button" id="cloudLocalOpen" data-cloud-action="local-open" title="Open local backup" aria-label="Open local backup">📂</button>
           <button class="cloudicon cloud-tray-action" type="button" id="cloudPartnerMenu" data-cloud-action="partner" title="Partner details" aria-label="Partner details">👤</button>
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
           <button class="cloudicon" type="button" id="cloudPilotSettings" data-cloud-action="settings" title="Cloud settings" aria-label="Cloud settings">⚙️</button>
@@ -249,6 +251,8 @@
       if (action.dataset.cloudAction === 'basket') focusBasketLink();
       if (action.dataset.cloudAction === 'share') openShareSummary();
       if (action.dataset.cloudAction === 'toggle-actions') toggleActionTray();
+      if (action.dataset.cloudAction === 'local-save') localSaveNow();
+      if (action.dataset.cloudAction === 'local-open') openLocalBackups();
     });
     $c('cloudPartnerMenu').onclick = openPartnerProfile;
     document.addEventListener('input', updateCompanionIndicators, true);
@@ -260,6 +264,7 @@
     updateCompanionIndicators();
     syncNotesVisibility();
     renderCloudCurrent();
+    tuckLocalSaveCard();
   }
 
   function showConnected(on) {
@@ -535,6 +540,27 @@
   function openShareSummary() {
     const btn = $c('openCardBtn');
     if (btn) btn.click();
+  }
+
+  function localSaveNow() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.remove('hidden');
+    const btn = $c('saveProfileBtn');
+    if (btn) btn.click();
+    if (saves) setTimeout(() => saves.classList.add('hidden'), 300);
+  }
+
+  function openLocalBackups() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.remove('hidden');
+    const btn = $c('loadProfileBtn');
+    if (btn) btn.click();
+    if (saves) saves.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function tuckLocalSaveCard() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.add('hidden');
   }
 
   function toggleActionTray() {

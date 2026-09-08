@@ -1,0 +1,67 @@
+{
+  "name": "Appointment Companion",
+  "short_name": "Companion",
+  "description": "Appointment Companion with Cloud customer saving and EV Companion support.",
+  "start_url": "cloud/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffbe3",
+  "theme_color": "#7a42c8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cloud Companion",
+      "short_name": "Cloud",
+      "url": "cloud/",
+      "icons": [
+        {
+          "src": "app-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "src": "app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "EV Companion",
+      "short_name": "EV",
+      "url": "companion/ev/",
+      "icons": [
+        {
+          "src": "app-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        },
+        {
+          "src": "app-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
