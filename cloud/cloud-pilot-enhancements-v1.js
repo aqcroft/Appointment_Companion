@@ -51,7 +51,7 @@
   }
 
   function makeLinkedCustomerReloadable() {
-    const list = $('cloudPilotList');
+    const list = $('cloudPilotListBody') || $('cloudPilotList');
     if (!list) return;
     list.querySelectorAll('button').forEach(btn => {
       if (btn.textContent.trim() === 'Linked') {
@@ -74,7 +74,7 @@
     btn.textContent = '🔄 Reload current from Cloud';
     btn.addEventListener('click', () => {
       makeLinkedCustomerReloadable();
-      const list = $('cloudPilotList');
+      const list = $('cloudPilotListBody') || $('cloudPilotList');
       const reload = list && Array.from(list.querySelectorAll('button')).find(b => b.textContent.trim() === 'Reload');
       if (reload) {
         reload.click();
@@ -109,8 +109,8 @@
     let previous = status.textContent || '';
     const observer = new MutationObserver(() => {
       const text = status.textContent || '';
-      if (text !== previous && / saved to Cloud ✓$/.test(text)) {
-        const name = text.replace(/ saved to Cloud ✓$/, '');
+      if (text !== previous && / saved to Cloud ✓/.test(text)) {
+        const name = text.replace(/ saved to Cloud ✓.*$/, '');
         showToast('Saved to Cloud', name + ' is safely stored.');
       }
       previous = text;
@@ -128,7 +128,7 @@
     updateCurrentHint();
     watchStatus();
 
-    const list = $('cloudPilotList');
+    const list = $('cloudPilotListBody') || $('cloudPilotList');
     if (list && !list.dataset.enhancementWatched) {
       list.dataset.enhancementWatched = '1';
       new MutationObserver(() => {

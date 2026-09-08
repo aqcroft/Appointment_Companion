@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UW EV Tariff Companion (unofficial) v16C</title>
+<meta name="theme-color" content="#7a42c8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EV Companion">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="app-icon.svg" type="image/svg+xml">
 <script>
 /* Personalised customer mode is decided before first paint so Partner sharing controls never flash. */
 if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('shared-view');
@@ -31,16 +37,17 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 
 <div class="wrap">
 <header>
+  <div class="fresh-mini" aria-label="Tariff freshness status">
+    <span class="fresh-mini-label">Tariff Version</span>
+    <button type="button" class="fresh-mini-btn fixed" id="fixedFresh" aria-expanded="false" aria-label="Fixed tariff version">
+      <span aria-hidden="true">🔒</span><strong id="fixedTopSeries">—</strong>
+    </button>
+    <button type="button" class="fresh-mini-btn variable" id="variableFresh" aria-expanded="false" aria-label="Standard variable tariff period">
+      <span class="season-icon" id="seasonIcon" aria-hidden="true">◷</span>
+    </button>
+  </div>
   <div class="title-row">
     <h1>⚡ UW EV Tariff Companion <span class="unofficial">(unofficial)</span></h1>
-    <div class="fresh-mini" aria-label="Tariff freshness status">
-      <button type="button" class="fresh-mini-btn fixed" id="fixedFresh" aria-expanded="false" aria-label="Fixed tariff version">
-        <span aria-hidden="true">🔒</span><strong id="fixedTopSeries">—</strong>
-      </button>
-      <button type="button" class="fresh-mini-btn variable" id="variableFresh" aria-expanded="false" aria-label="Standard variable tariff period">
-        <span class="season-icon" id="seasonIcon" aria-hidden="true">◷</span>
-      </button>
-    </div>
   </div>
   <div class="fresh-detail" id="fixedFreshDetail" hidden>
     <div class="fresh-detail-head"><strong id="fixedDetailTitle">Fixed tariff version</strong><span id="fixedDetailState">Checking…</span></div>
@@ -173,5 +180,6 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 
 <!-- v16C deliberately loads the live-data calculator scripts only after OK on a personalised link. -->
 <script src="v16c-sharing.js"></script>
+<script src="pwa-register.js"></script>
 </body>
 </html>

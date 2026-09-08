@@ -32,6 +32,29 @@
     global.dispatchEvent(new CustomEvent('ac:specialist-cloud:' + name, { detail: detail || {} }));
   }
 
+  function stashLocalBackup(toolId, state, customer, status) {
+    try {
+      const key = 'apptCompanionSpecialistBackups_v1';
+      const rows = JSON.parse(localStorage.getItem(key) || '[]');
+      const now = new Date().toISOString();
+      const id = String(toolId || 'tool') + ':' + String(customer && customer.customer_id ? customer.customer_id : 'unlinked');
+      const next = rows.filter(row => row && row.id !== id);
+      next.unshift({
+        id: id,
+        tool_id: String(toolId || ''),
+        customer_id: customer && customer.customer_id ? customer.customer_id : '',
+        customer_name: customer && customer.customer_name ? customer.customer_name : '',
+        status: status || 'saved',
+        savedAt: now,
+        state: clone(state)
+      });
+      localStorage.setItem(key, JSON.stringify(next.slice(0, 30)));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function save(toolId, state, options) {
     const opts = options || {};
     const auth = getAuth();
@@ -68,9 +91,11 @@
       private_notes: customer.private_notes || ''
     };
 
+    stashLocalBackup(toolId, state, customer, 'pending_cloud_save');
     const savedResponse = await api.saveCustomer(auth, payload);
     const saved = savedResponse && savedResponse.customer;
     if (!saved) throw new Error('Cloud did not return the saved customer.');
+    stashLocalBackup(toolId, state, saved, 'saved');
 
     emit('saved', { tool_id: toolId, customer_id: id, customer: clone(saved) });
     return saved;

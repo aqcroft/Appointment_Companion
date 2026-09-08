@@ -2,6 +2,7 @@
 .title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .title-row h1{flex:1;min-width:0}
 .fresh-mini{display:flex;gap:5px;align-items:center;flex:0 0 auto;margin-top:-2px}
+.fresh-mini-label{color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase;white-space:nowrap}
 .fresh-mini-btn{height:34px;min-width:34px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 7px;display:inline-flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--ink);font:850 13px inherit;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .fresh-mini-btn.fixed{min-width:48px}.fresh-mini-btn.fixed strong{font-size:15px;line-height:1}.fresh-mini-btn.variable .season-icon{font-size:18px;line-height:1}
 .fresh-mini-btn.good{border-color:rgba(22,132,71,.35);background:#f3fbf6}

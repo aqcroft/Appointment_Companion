@@ -90,11 +90,13 @@
   async function createShare() {
     if (sharing) return;
     sharing = true;
-    const btn = $('evCloudShare');
-    const original = btn ? btn.textContent : '';
+    const btn = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('evCloudShare')
+      ? document.activeElement
+      : document.querySelector('.evCloudShare');
+    const original = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Creating…';
+      btn.textContent = 'Creating...';
     }
 
     try {
@@ -143,24 +145,31 @@
       sharing = false;
       if (btn) {
         btn.disabled = false;
-        btn.textContent = original || '📤 Share';
+        btn.innerHTML = original || '<span class="menu-ico">📤</span><span>Share customer link</span>';
       }
     }
   }
 
   function mount() {
-    const actions = document.querySelector('#evBridgeBar .actions');
-    if (!actions || $('evCloudShare')) return false;
+    const bars = Array.from(document.querySelectorAll('.evBridgeMenu'));
+    if (!bars.length) return false;
+    let mounted = false;
 
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'evCloudShare';
-    btn.className = 'secondary';
-    btn.textContent = '📤 Share';
-    btn.title = 'Create a short Cloud-backed customer share link';
-    btn.addEventListener('click', createShare);
-    actions.insertBefore(btn, actions.firstChild);
-    return true;
+    bars.forEach(function (actions, index) {
+      if (actions.querySelector('.evCloudShare')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'evCloudShare';
+      if (index === 0) btn.id = 'evCloudShare';
+      btn.innerHTML = '<span class="menu-ico">📤</span><span>Share customer link</span>';
+      btn.title = 'Create a short Cloud-backed customer share link';
+      btn.setAttribute('aria-label', 'Create customer share link');
+      btn.addEventListener('click', createShare);
+      actions.appendChild(btn);
+      mounted = true;
+    });
+
+    return mounted;
   }
 
   if (mount()) return;

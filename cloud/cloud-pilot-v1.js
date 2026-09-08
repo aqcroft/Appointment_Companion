@@ -1,6 +1,6 @@
 /* Appointment Companion Cloud pilot v1
    Adds Cloud connect, save and load to the isolated cloud pilot.
-   Partner ID is remembered locally; the Workspace Key is session-only.
+   Companion Login ID is remembered locally; the Password is session-only.
 */
 (function () {
   'use strict';
@@ -17,9 +17,14 @@
   const PARTNER_ID_KEY = 'apptCloudPilotPartnerId';
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
+  const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
+  const ADRIAN_WHATSAPP_URL = '';
 
   let cloudCustomers = [];
   let currentCloudCustomerId = sessionStorage.getItem(CURRENT_CUSTOMER_KEY) || '';
+  let currentCloudCustomer = null;
+  let customerSort = localStorage.getItem('apptCloudPilotCustomerSort') || 'date';
+  let connectedWidgetObserver = null;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -67,15 +72,115 @@
     el.style.color = kind === 'bad' ? '#c43b3b' : kind === 'good' ? '#1d7f45' : 'var(--muted)';
   }
 
+  function localBackupId(customerId, name) {
+    return 'cloud:' + (customerId || String(name || '').trim().toLowerCase() || 'draft');
+  }
+
+  function stashCloudLocalBackup(data, savedCustomer, status) {
+    if (!data || !data.customerName) return false;
+    try {
+      const id = localBackupId(savedCustomer && savedCustomer.customer_id, data.customerName);
+      const saves = JSON.parse(localStorage.getItem(LOCAL_BACKUP_KEY) || '[]').filter(rec => rec && rec.id !== id);
+      const copy = JSON.parse(JSON.stringify(data));
+      copy.savedAt = new Date().toISOString();
+      copy.cloud_backup = {
+        status: status || 'saved',
+        customer_id: savedCustomer && savedCustomer.customer_id ? savedCustomer.customer_id : currentCloudCustomerId || '',
+        backed_up_at: copy.savedAt
+      };
+      saves.unshift({
+        id: id,
+        label: copy.customerName || 'Unnamed',
+        savedAt: copy.savedAt,
+        data: copy
+      });
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(saves.slice(0, 30)));
+      if (typeof window.renderSavesList === 'function') window.renderSavesList();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function companionHasState(toolId) {
+    try {
+      const bridge = window.AppointmentCompanionBridge;
+      return !!(bridge && typeof bridge.getToolState === 'function' && bridge.getToolState(toolId));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function updateCompanionIndicators() {
+    const ev = $c('cloudCompanionEv');
+    const card = $c('cloudCompanionCard');
+    const basket = $c('cloudBasketShortcut');
+    const basketInput = $c('basketLink');
+    if (ev) ev.classList.toggle('state-on', companionHasState('ev'));
+    if (card) card.classList.toggle('state-on', !!($c('includeCashback') && $c('includeCashback').checked));
+    if (basket) basket.classList.toggle('state-on', !!(basketInput && String(basketInput.value || '').trim()));
+  }
+
+  function syncNotesVisibility() {
+    const card = $c('notesCard');
+    const notes = $c('apptNotes');
+    const name = $c('customerName');
+    if (!card || !notes) return;
+    const hasCustomerContext = currentCloudCustomerId || (name && String(name.value || '').trim());
+    const hasNotes = String(notes.value || '').trim();
+    card.classList.toggle('hidden', !(hasCustomerContext || hasNotes));
+  }
+
   function setCurrent(customer) {
+    currentCloudCustomer = customer || null;
     currentCloudCustomerId = customer && customer.customer_id ? customer.customer_id : '';
     if (currentCloudCustomerId) sessionStorage.setItem(CURRENT_CUSTOMER_KEY, currentCloudCustomerId);
     else sessionStorage.removeItem(CURRENT_CUSTOMER_KEY);
+    renderCloudCurrent();
+  }
+
+  function summaryIconHtml(sum, tiny) {
+    sum = sum || {};
+    const cls = tiny ? ' cloud-mini-icon' : '';
+    const icon = (emoji, on, grouped) =>
+      '<span class="basket-icon' + cls + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
+    return icon('⚡', !!sum.energy, false) +
+      icon('🔥', !!sum.energy, false) +
+      icon('🛜', !!sum.broadband, false) +
+      icon('📱', (sum.sims || 0) >= 1, false) +
+      icon('📱', (sum.sims || 0) >= 2, false) +
+      icon('🛡️', !!sum.insurance, false) +
+      icon('🛒', !!sum.basketLink, false) +
+      icon('✉️', !!sum.quoteShared, false);
+  }
+
+  function currentAppointmentSnapshot() {
+    if (typeof window.serializeForm === 'function') {
+      try { return window.serializeForm(); } catch (_) {}
+    }
+    return appointmentSnapshot(currentCloudCustomer) || null;
+  }
+
+  function renderCloudCurrent() {
     const el = $c('cloudPilotCurrent');
     if (!el) return;
-    el.textContent = customer && customer.customer_name
-      ? 'Linked Cloud customer: ' + customer.customer_name
-      : 'No Cloud customer linked to this form yet.';
+    const data = currentAppointmentSnapshot() || {};
+    const sum = Object.assign({}, data.summary || {});
+    const basketInput = $c('basketLink');
+    sum.basketLink = !!(sum.basketLink || (basketInput && String(basketInput.value || '').trim()));
+    sum.quoteShared = !!(sum.quoteShared || data.quoteSharedAt);
+    const specialists = (data.state && data.state._journey && data.state._journey.specialists) || {};
+    const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
+    const cardUsed = !!((currentCloudCustomer && (currentCloudCustomer.card_state || currentCloudCustomer.card_state_json)) || specialists.card || specialists.cashback_card || ($c('includeCashback') && $c('includeCashback').checked));
+    const nameEl = $c('customerName');
+    const name = currentCloudCustomer && currentCloudCustomer.customer_name
+      ? currentCloudCustomer.customer_name
+      : String(data.customerName || (nameEl && nameEl.value) || '').trim() || 'New customer';
+    el.innerHTML = '<button class="cloud-current-name" type="button" data-cloud-action="customer-name" title="Edit customer name">' + esc(name) + '</button>' +
+      '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
+        '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
+        '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Card Companion">💳</span>' +
+      '</span>';
   }
 
   function buildPanel() {
@@ -85,60 +190,129 @@
     const card = document.createElement('div');
     card.className = 'card';
     card.id = 'cloudPilotCard';
-    card.style.borderColor = 'rgba(122,66,200,0.35)';
-    card.style.background = 'rgba(122,66,200,0.035)';
+    card.style.cssText = 'border-color:rgba(122,66,200,0.22);background:rgba(122,66,200,0.035);padding:.7rem .75rem;';
     card.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:.55rem;">
-        <h2 style="margin:0;">☁️ Cloud pilot</h2>
-        <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--purple);">Test</span>
+      <style>
+        #cloudPilotCard{position:relative}
+        #cloudPilotCard .cloudbar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+        #cloudPilotCard .cloudwho{min-width:0;flex:1}
+        #cloudPilotCard .cloudwho strong{display:block;font-size:13px;color:var(--purple);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        #cloudPilotCard .cloud-current-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-top:2px}
+        #cloudPilotCard .cloud-current-name{border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:750;color:var(--ink);cursor:pointer}
+        #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;gap:6px}
+        #cloudPilotCard .cloud-mini-icon{font-size:13px}
+        #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
+        #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
+        #cloudPilotCard .cloud-tariff-slot{margin-top:.48rem}
+        #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
+        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0;justify-content:flex-end;margin-left:auto}
+        #cloudPilotCard .cloudicon{width:36px;height:36px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
+        #cloudPilotCard .cloudicon:disabled{opacity:.38;cursor:default}
+        #cloudPilotCard .cloudicon.good{border-color:rgba(29,155,80,.35);background:rgba(29,155,80,.08)}
+        #cloudPilotCard .state-on{border-color:rgba(29,155,80,.38);background:rgba(29,155,80,.08);box-shadow:inset 0 -2px 0 rgba(29,155,80,.38)}
+        #cloudPilotCard .cloudtool-unbuilt{cursor:default}
+        #cloudPilotCard .cloudActionToggle{display:inline-flex}
+        #cloudPilotCard .cloud-menu-popover{position:absolute;right:.75rem;top:calc(100% - .25rem);z-index:50;width:min(310px,calc(100vw - 32px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none}
+        #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
+        #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
+        #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
+        #cloudSettingsModal .cloud-settings-list{display:grid;gap:8px;margin-top:.75rem}
+        #cloudSettingsModal .cloud-menu-item{width:100%;min-height:42px;justify-content:flex-start;text-align:left;gap:9px}
+        #cloudSettingsModal .cloud-menu-item:disabled{opacity:.48;cursor:default}
+        #cloudSettingsModal .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
+        #cloudSettingsModal .cloud-about{margin-top:.8rem;padding:.75rem;border:1px solid var(--line);border-radius:10px;background:#fbfaff}
+        #cloudSettingsModal .cloud-about h4{margin:0 0 .35rem;color:var(--purple);font-size:13px}
+        #cloudSettingsModal .cloud-about p{margin:0;font-size:12px;line-height:1.45;color:var(--muted)}
+        #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(220px,1fr) 112px 74px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
+        #cloudCustomerModal .cloud-sort{border:0;background:transparent;color:var(--purple);font:inherit;font-weight:850;text-transform:uppercase;padding:0;cursor:pointer;text-align:left}
+        #cloudCustomerModal .cloud-customer-icons{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0}
+        #cloudCustomerModal .cloud-customer-icons .basket-icon{width:22px;height:22px}
+        #cloudCustomerModal .cloud-companion-mini{opacity:.28;filter:grayscale(1)}
+        #cloudCustomerModal .cloud-companion-mini.on{opacity:1;filter:none}
+        #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(220px,1fr) 112px 74px;gap:8px;align-items:center}
+        @media(max-width:720px){#cloudCustomerModal .cloud-table-head{display:none}#cloudCustomerModal .cloud-row{display:flex;align-items:center;justify-content:space-between}.cloud-row-meta{display:block!important}}
+        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
+      </style>
+      <div class="cloudbar">
+        <div class="cloudwho">
+          <strong>☁️ Cloud workspace</strong>
+          <div id="cloudPilotCurrent" class="cloud-current-line"></div>
+        </div>
+        <div class="cloudicons">
+          <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
+        </div>
       </div>
-      <p class="sub" style="margin-bottom:.7rem;">Connect this browser session, then save or load customers from Appointment Companion Cloud.</p>
-
-      <div id="cloudPilotLogin">
-        <div class="field">
-          <label for="cloudPilotPartnerId">Cloud Partner ID</label>
-          <input type="text" id="cloudPilotPartnerId" autocomplete="off" spellcheck="false" placeholder="p_...">
-        </div>
-        <div class="field">
-          <label for="cloudPilotWorkspaceKey">Workspace Key</label>
-          <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Private Workspace Key">
-        </div>
-        <button class="pill" type="button" id="cloudPilotConnect" style="width:100%;">Connect Cloud</button>
-        <p class="sub" style="font-size:10.5px;margin-top:.45rem;">Pilot only: the Workspace Key is kept in sessionStorage for this browser tab/session, not written to GitHub or the customer Sheet.</p>
+      <div id="cloudTariffSlot" class="cloud-tariff-slot"></div>
+      <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="customers"><span class="menu-ico">☁️↓</span><span>Customers / load customer</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudShareShortcut" data-cloud-action="share"><span class="menu-ico">📤</span><span>Share summary</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudCompanionEv" data-cloud-action="ev"><span class="menu-ico">🚙</span><span>EV Companion</span></button>
+        <button class="pill cloud-menu-item hidden" type="button" id="cloudCompanionCard" disabled><span class="menu-ico">💳</span><span>Cashback Card Companion</span></button>
+        <button class="pill cloud-menu-item" type="button" data-cloud-action="settings"><span class="menu-ico">⚙️</span><span>Settings</span></button>
       </div>
 
       <div id="cloudPilotConnected" class="hidden">
-        <div id="cloudPilotCurrent" class="sub" style="margin-bottom:.55rem;">No Cloud customer linked to this form yet.</div>
-        <div class="pills">
-          <button class="pill" type="button" id="cloudPilotSave">☁️ Save to Cloud</button>
-          <button class="pill" type="button" id="cloudPilotLoad">☁️ Cloud customers</button>
-        </div>
-        <button type="button" id="cloudPilotDisconnect" style="margin-top:.55rem;background:none;border:none;padding:0;color:var(--muted);font:inherit;font-size:11px;cursor:pointer;">Disconnect Cloud for this session</button>
       </div>
 
       <div id="cloudPilotStatus" class="sub" style="margin-top:.65rem;min-height:1.2em;">Not connected.</div>
       <div id="cloudPilotList" class="hidden" style="margin-top:.7rem;"></div>
     `;
-    anchor.parentNode.insertBefore(card, anchor);
+    const header = document.querySelector('.wrap header');
+    if (header && header.parentNode) header.insertAdjacentElement('beforebegin', card);
+    else anchor.parentNode.insertBefore(card, anchor);
+    ensureConnectModal();
+    ensureCustomerModal();
+    ensureSettingsModal();
+    enhancePartnerPrompt();
+    observeConnectedWidgets();
 
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
 
-    $c('cloudPilotConnect').addEventListener('click', connect);
-    $c('cloudPilotDisconnect').addEventListener('click', disconnect);
-    $c('cloudPilotSave').addEventListener('click', saveToCloud);
-    $c('cloudPilotLoad').addEventListener('click', toggleCloudList);
+    card.addEventListener('click', e => {
+      const action = e.target && e.target.closest ? e.target.closest('[data-cloud-action]') : null;
+      if (!action) return;
+      e.preventDefault();
+      if (action.dataset.cloudAction !== 'toggle-actions') closeActionMenu();
+      if (action.dataset.cloudAction === 'save') saveToCloud();
+      if (action.dataset.cloudAction === 'save-as') saveToCloud({ saveAs: true });
+      if (action.dataset.cloudAction === 'customers') toggleCloudList();
+      if (action.dataset.cloudAction === 'partner') openPartnerProfile();
+      if (action.dataset.cloudAction === 'settings') openSettingsModal();
+      if (action.dataset.cloudAction === 'customer-name') editCustomerName();
+      if (action.dataset.cloudAction === 'basket') focusBasketLink();
+      if (action.dataset.cloudAction === 'share') openShareSummary();
+      if (action.dataset.cloudAction === 'toggle-actions') toggleActionTray();
+      if (action.dataset.cloudAction === 'local-save') localSaveNow();
+      if (action.dataset.cloudAction === 'local-open') openLocalBackups();
+    });
+    document.addEventListener('input', updateCompanionIndicators, true);
+    document.addEventListener('change', updateCompanionIndicators, true);
+    document.addEventListener('input', syncNotesVisibility, true);
+    document.addEventListener('change', syncNotesVisibility, true);
+    document.addEventListener('input', renderCloudCurrent, true);
+    document.addEventListener('change', renderCloudCurrent, true);
+    document.addEventListener('click', closeActionMenuOnOutside, true);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeActionMenu(); });
+    updateCompanionIndicators();
+    syncNotesVisibility();
+    renderCloudCurrent();
+    moveTariffStatusIntoBar();
+    tuckLocalSaveCard();
   }
 
   function showConnected(on) {
-    $c('cloudPilotLogin').classList.toggle('hidden', !!on);
     $c('cloudPilotConnected').classList.toggle('hidden', !on);
+    relocateConnectedWidgets();
   }
 
   async function connect() {
     const partnerId = $c('cloudPilotPartnerId').value.trim();
     const workspaceKey = $c('cloudPilotWorkspaceKey').value;
     if (!partnerId || !workspaceKey) {
-      setStatus('Enter both the Cloud Partner ID and Workspace Key.', 'bad');
+      setStatus('Enter both the Companion Login ID and Password.', 'bad');
       return;
     }
 
@@ -150,6 +324,7 @@
       const res = await api.listCustomers(auth);
       cloudCustomers = Array.isArray(res.customers) ? res.customers : [];
       $c('cloudPilotWorkspaceKey').value = '';
+      closeConnectModal();
       showConnected(true);
       setStatus('Cloud connected ✓ ' + cloudCustomers.length + ' customer' + (cloudCustomers.length === 1 ? '' : 's') + '.', 'good');
       const current = cloudCustomers.find(c => c.customer_id === currentCloudCustomerId);
@@ -183,7 +358,7 @@
   }
 
   function renderCloudList() {
-    const wrap = $c('cloudPilotList');
+    const wrap = $c('cloudPilotListBody') || $c('cloudPilotList');
     if (!wrap) return;
     wrap.innerHTML = '';
 
@@ -192,20 +367,67 @@
       return;
     }
 
-    cloudCustomers.forEach(customer => {
+    const customers = cloudCustomers.slice().sort((a, b) => {
+      if (customerSort === 'name') return String(a.customer_name || '').localeCompare(String(b.customer_name || ''), 'en-GB', { sensitivity: 'base' });
+      return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0);
+    });
+
+    const icon = (emoji, on, grouped) =>
+      '<span class="basket-icon' + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
+
+    customers.forEach(customer => {
+      const appt = appointmentSnapshot(customer);
+      const sum = Object.assign({}, (appt && appt.summary) || {});
+      sum.basketLink = !!(sum.basketLink || customer.basket_url || (appt && appt.inputs && appt.inputs.basketLink));
+      sum.quoteShared = !!(sum.quoteShared || (appt && appt.quoteSharedAt));
+      const specialists = (appt && appt.state && appt.state._journey && appt.state._journey.specialists) || {};
+      const evUsed = !!(customer.ev_state || customer.ev_state_json || specialists.ev);
+      const cardUsed = !!(customer.card_state || customer.card_state_json || specialists.card || specialists.cashback_card);
       const row = document.createElement('div');
-      row.className = 'basket-row';
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;';
+      row.className = 'basket-row cloud-row';
 
       const usage = customer.electricity_usage_kwh != null
         ? Number(customer.electricity_usage_kwh).toLocaleString('en-GB') + ' kWh'
         : 'no electricity usage saved';
 
+      const iconsHtml =
+        '<span class="cloud-customer-icons">' +
+          icon('⚡', !!sum.energy, false) +
+          icon('🔥', !!sum.energy, false) +
+          icon('🛜', !!sum.broadband, false) +
+          icon('📱', (sum.sims || 0) >= 1, false) +
+          icon('📱', (sum.sims || 0) >= 2, false) +
+          icon('🛡️', !!sum.insurance, false) +
+          icon('🛒', !!sum.basketLink, false) +
+          icon('✉️', !!sum.quoteShared, false) +
+          '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
+          '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Card Companion">💳</span>' +
+        '</span>';
+
+      let heroTxt = '', heroColor = 'var(--good)';
+      if (sum.year1 !== undefined) {
+        if (sum.valid === false) {
+          heroTxt = 'draft';
+          heroColor = 'var(--muted)';
+        } else {
+          heroTxt = (sum.year1 < 0 ? '−£' : '£') + Math.abs(sum.year1).toLocaleString('en-GB');
+          heroColor = sum.year1 < 0 ? 'var(--bad)' : 'var(--good)';
+        }
+      }
+      const heroCell = heroTxt ? '<span style="color:' + heroColor + ';font-weight:850;">' + heroTxt + '</span>' : '<span class="sub">—</span>';
+      const dateCell = customer.updated_at ? esc(fmtDate(customer.updated_at)) : '<span class="sub">—</span>';
+      const fallbackMeta = esc(usage) + (customer.electricity_usage_revision ? ' · rev ' + Number(customer.electricity_usage_revision) : '');
+
       row.innerHTML = `
-        <div style="min-width:0;flex:1;">
-          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(customer.customer_name || 'Unnamed')}</div>
-          <div class="sub" style="font-size:10.5px;">${esc(usage)}${customer.electricity_usage_revision ? ' · rev ' + Number(customer.electricity_usage_revision) : ''}${customer.updated_at ? ' · ' + esc(fmtDate(customer.updated_at)) : ''}</div>
+        <div style="min-width:0;">
+          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${esc(customer.customer_name || 'Unnamed')}
+          </div>
+          <span class="sub cloud-row-meta" style="display:none;font-size:10.5px;">${fallbackMeta}</span>
         </div>
+        <div>${heroCell}</div>
+        <div>${iconsHtml}</div>
+        <div class="sub" style="font-size:11px;">${dateCell}</div>
       `;
 
       const btn = document.createElement('button');
@@ -220,20 +442,315 @@
     });
   }
 
+  function parseMaybeJson(value) {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    try { return JSON.parse(value); } catch (_) { return null; }
+  }
+
+  function appointmentSnapshot(customer) {
+    if (!customer) return null;
+    return parseMaybeJson(customer.appointment_state) ||
+      parseMaybeJson(customer.appointment_state_json) ||
+      parseMaybeJson(customer.appointment_snapshot) ||
+      null;
+  }
+
+  function ensureConnectModal() {
+    if ($c('cloudConnectModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cloudConnectModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" style="max-width:440px;">
+        <h3>☁️ Connect Cloud</h3>
+        <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft. Need your login details? Contact Adrian on WhatsApp.</p>
+        <div id="cloudPilotLogin">
+          <div class="field">
+            <label for="cloudPilotPartnerId">Companion Login ID</label>
+            <input type="text" id="cloudPilotPartnerId" autocomplete="off" spellcheck="false" placeholder="p_...">
+          </div>
+          <div class="field">
+            <label for="cloudPilotWorkspaceKey">Password</label>
+            <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Password">
+          </div>
+          <button class="pill" type="button" id="cloudPilotConnect" style="width:100%;">Connect Cloud</button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" type="button" id="cloudConnectClose">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    $c('cloudPilotConnect').addEventListener('click', connect);
+    $c('cloudConnectClose').addEventListener('click', closeConnectModal);
+    modal.addEventListener('click', e => { if (e.target.id === 'cloudConnectModal') closeConnectModal(); });
+  }
+
+  function openConnectModal() {
+    ensureConnectModal();
+    $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
+    $c('cloudConnectModal').classList.add('open');
+    const id = $c('cloudPilotPartnerId');
+    const key = $c('cloudPilotWorkspaceKey');
+    setTimeout(() => ((id && !id.value) ? id : key).focus(), 80);
+  }
+
+  function closeConnectModal() {
+    const modal = $c('cloudConnectModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function ensureCustomerModal() {
+    if ($c('cloudCustomerModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cloudCustomerModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" style="width:min(100%,900px);max-width:900px;">
+        <h3>☁️ Cloud customers</h3>
+        <p class="sub">Load a Cloud customer into this Companion.</p>
+        <div class="cloud-table-head">
+          <button class="cloud-sort" type="button" id="cloudSortName">Name</button>
+          <span>Saving</span>
+          <span>Basket</span>
+          <button class="cloud-sort" type="button" id="cloudSortDate">Recent</button>
+          <span></span>
+        </div>
+        <div id="cloudPilotListBody"></div>
+        <div class="modal-actions">
+          <button class="btn-ghost" type="button" id="cloudCustomerClose">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    $c('cloudCustomerClose').addEventListener('click', closeCloudList);
+    modal.addEventListener('click', e => { if (e.target.id === 'cloudCustomerModal') closeCloudList(); });
+    $c('cloudSortDate').addEventListener('click', () => setCustomerSort('date'));
+    $c('cloudSortName').addEventListener('click', () => setCustomerSort('name'));
+  }
+
+  function setCustomerSort(sort) {
+    customerSort = sort === 'name' ? 'name' : 'date';
+    localStorage.setItem('apptCloudPilotCustomerSort', customerSort);
+    $c('cloudSortDate').textContent = customerSort === 'date' ? 'Recent ↓' : 'Recent';
+    $c('cloudSortName').textContent = customerSort === 'name' ? 'Name ↑' : 'Name';
+    renderCloudList();
+  }
+
   async function toggleCloudList() {
-    const wrap = $c('cloudPilotList');
-    if (!wrap.classList.contains('hidden')) {
-      wrap.classList.add('hidden');
+    if (!getAuth()) {
+      openConnectModal();
+      setStatus('Connect Cloud to list customers.');
       return;
     }
     setStatus('Loading Cloud customers...');
     try {
       await refreshCustomers();
-      wrap.classList.remove('hidden');
+      openCloudList();
       setStatus('Cloud customers refreshed ✓', 'good');
     } catch (err) {
       setStatus((err && err.message) || String(err), 'bad');
     }
+  }
+
+  function openCloudList() {
+    ensureCustomerModal();
+    setCustomerSort(customerSort);
+    $c('cloudCustomerModal').classList.add('open');
+  }
+
+  function closeCloudList() {
+    const modal = $c('cloudCustomerModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function focusBasketLink() {
+    const cashback = $c('cashbackCard');
+    if (cashback) cashback.classList.remove('hidden');
+    const details = $c('basketLinkDetails');
+    if (details) details.open = true;
+    const input = $c('basketLink');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => input.focus(), 250);
+    }
+  }
+
+  function editCustomerName() {
+    const el = $c('customerName');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.focus(), 250);
+  }
+
+  function openShareSummary() {
+    const btn = $c('openCardBtn');
+    if (btn) btn.click();
+  }
+
+  function localSaveNow() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.remove('hidden');
+    const btn = $c('saveProfileBtn');
+    if (btn) btn.click();
+    if (saves) setTimeout(() => saves.classList.add('hidden'), 300);
+  }
+
+  function openLocalBackups() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.remove('hidden');
+    const btn = $c('loadProfileBtn');
+    if (btn) btn.click();
+    if (saves) saves.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function tuckLocalSaveCard() {
+    const saves = $c('savesCard');
+    if (saves) saves.classList.add('hidden');
+  }
+
+  function toggleActionTray() {
+    const menu = $c('cloudMenuPopover');
+    if (!menu) return;
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    const btn = $c('cloudActionMenu');
+    if (btn) {
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.title = open ? 'Hide actions' : 'Show actions';
+    }
+  }
+
+  function closeActionMenu() {
+    const menu = $c('cloudMenuPopover');
+    if (menu) menu.classList.remove('open');
+    const btn = $c('cloudActionMenu');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.title = 'Show actions';
+    }
+  }
+
+  function closeActionMenuOnOutside(e) {
+    const card = $c('cloudPilotCard');
+    const menu = $c('cloudMenuPopover');
+    if (!card || !menu || !menu.classList.contains('open')) return;
+    if (card.contains(e.target)) return;
+    closeActionMenu();
+  }
+
+  function moveTariffStatusIntoBar() {
+    const tariff = $c('tariffStatus');
+    const slot = $c('cloudTariffSlot');
+    if (tariff && slot && tariff.parentNode !== slot) slot.appendChild(tariff);
+  }
+
+  function openPartnerProfile() {
+    if ($c('partnerSettingsBtn')) $c('partnerSettingsBtn').click();
+    enhancePartnerPrompt();
+  }
+
+  function openSettingsModal() {
+    ensureSettingsModal();
+    relocateConnectedWidgets();
+    $c('cloudSettingsModal').classList.add('open');
+  }
+
+  function closeSettingsModal() {
+    const modal = $c('cloudSettingsModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function ensureSettingsModal() {
+    if ($c('cloudSettingsModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cloudSettingsModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" style="max-width:440px;">
+        <h3>⚙️ Cloud settings</h3>
+        <p class="sub">Cloud session, partner details, device backup and recovery tools.</p>
+        <div class="cloud-settings-list">
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsPartner"><span class="menu-ico">👤</span><span>Partner details</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsConnect"><span class="menu-ico">☁️</span><span>Connect Cloud</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsReload"><span class="menu-ico">🔄</span><span>Reload current from Cloud</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalSave"><span class="menu-ico">💻💾</span><span>Local backup save</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsLocalOpen"><span class="menu-ico">📂</span><span>Open local backup</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsContact"><span class="menu-ico">📞</span><span>Contact Adrian Croft / WhatsApp</span></button>
+          <button class="pill cloud-menu-item" type="button" id="cloudSettingsDisconnect"><span class="menu-ico">⏻</span><span>Disconnect Cloud for this session</span></button>
+        </div>
+        <div id="cloudSettingsDynamic" style="margin-top:.75rem;"></div>
+        <div class="cloud-about">
+          <h4>About Appointment Companion</h4>
+          <p>Appointment Companion is a pet project by Adrian Croft, built to support conversations during or after UW appointments. It helps make the bigger picture easier to see: the customer's first-year position, bundle benefits and Partner income, so the decision feels clearer.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" type="button" id="cloudSettingsClose">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    $c('cloudSettingsClose').addEventListener('click', closeSettingsModal);
+    modal.addEventListener('click', e => { if (e.target.id === 'cloudSettingsModal') closeSettingsModal(); });
+    $c('cloudSettingsPartner').addEventListener('click', () => {
+      closeSettingsModal();
+      openPartnerProfile();
+    });
+    $c('cloudSettingsConnect').addEventListener('click', () => {
+      closeSettingsModal();
+      openConnectModal();
+    });
+    $c('cloudSettingsReload').addEventListener('click', () => {
+      closeSettingsModal();
+      reloadCurrent();
+    });
+    $c('cloudSettingsLocalSave').addEventListener('click', () => {
+      closeSettingsModal();
+      localSaveNow();
+    });
+    $c('cloudSettingsLocalOpen').addEventListener('click', () => {
+      closeSettingsModal();
+      openLocalBackups();
+    });
+    const contact = $c('cloudSettingsContact');
+    if (ADRIAN_WHATSAPP_URL) {
+      contact.addEventListener('click', () => window.open(ADRIAN_WHATSAPP_URL, '_blank', 'noopener'));
+    } else {
+      contact.disabled = true;
+      contact.title = 'WhatsApp contact details are not configured in this build.';
+    }
+    $c('cloudSettingsDisconnect').addEventListener('click', () => {
+      closeSettingsModal();
+      disconnect();
+    });
+  }
+
+  function enhancePartnerPrompt() {
+    const existing = $c('partnerLocalBackupTools');
+    if (existing) existing.remove();
+  }
+
+  function relocateConnectedWidgets() {
+    ensureSettingsModal();
+    const target = $c('cloudSettingsDynamic');
+    if (!target) return;
+    ['cloudPilotDeviceBox', 'cloudPilotAutosaveState', 'cloudPilotPresenceState'].forEach(id => {
+      const el = $c(id);
+      if (el && el.parentNode !== target) target.appendChild(el);
+    });
+  }
+
+  function observeConnectedWidgets() {
+    const connected = $c('cloudPilotConnected');
+    if (!connected || connectedWidgetObserver) return;
+    connectedWidgetObserver = new MutationObserver(relocateConnectedWidgets);
+    connectedWidgetObserver.observe(connected, { childList: true });
+  }
+
+  async function reloadCurrent() {
+    if (!currentCloudCustomerId) return setStatus('No linked Cloud customer to reload yet.', 'bad');
+    await loadCustomer(currentCloudCustomerId);
   }
 
   async function loadCustomer(customerId) {
@@ -262,6 +779,7 @@
       }
 
       setCurrent(customer);
+      syncNotesVisibility();
       renderCloudList();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -283,9 +801,13 @@
     };
   }
 
-  async function saveToCloud() {
+  async function saveToCloud(opts) {
+    opts = opts || {};
     const auth = getAuth();
-    if (!auth) return setStatus('Cloud is not connected.', 'bad');
+    if (!auth) {
+      openConnectModal();
+      return setStatus('Connect Cloud before saving.');
+    }
     if (typeof window.serializeForm !== 'function') return setStatus('Appointment Companion save function not available.', 'bad');
 
     const data = window.serializeForm();
@@ -299,15 +821,15 @@
 
     const btn = $c('cloudPilotSave');
     btn.disabled = true;
-    setStatus('Saving ' + name + ' to Cloud...');
+    setStatus((opts.saveAs ? 'Saving a new Cloud scenario for ' : 'Saving ') + name + ' to Cloud...');
 
     try {
       let existing = null;
 
-      if (currentCloudCustomerId) {
+      if (!opts.saveAs && currentCloudCustomerId) {
         const got = await api.getCustomer(auth, currentCloudCustomerId);
         existing = got.customer || null;
-      } else {
+      } else if (!opts.saveAs) {
         await refreshCustomers();
         const matches = cloudCustomers.filter(c => String(c.customer_name || '').trim().toLowerCase() === name.toLowerCase());
         if (matches.length === 1) {
@@ -330,17 +852,20 @@
       const res = await api.saveCustomer(auth, payload);
       const saved = res.customer;
       if (!saved) throw new Error('Cloud did not return the saved customer.');
+      stashCloudLocalBackup(data, saved, 'saved');
 
       setCurrent(saved);
+      syncNotesVisibility();
       await refreshCustomers();
-      $c('cloudPilotList').classList.remove('hidden');
-      setStatus(saved.customer_name + ' saved to Cloud ✓', 'good');
-      btn.textContent = '✓ Saved to Cloud';
-      setTimeout(() => { btn.textContent = '☁️ Save to Cloud'; }, 1600);
+      setStatus(saved.customer_name + ' saved to Cloud ✓ Local backup kept.', 'good');
+      btn.classList.add('good');
+      setTimeout(() => { btn.classList.remove('good'); }, 1600);
     } catch (err) {
-      setStatus((err && err.message) || String(err), 'bad');
+      const backedUp = stashCloudLocalBackup(data, null, 'cloud_failed');
+      setStatus('Cloud save failed. ' + (backedUp ? 'Local backup kept on this device. ' : '') + ((err && err.message) || String(err)), 'bad');
     } finally {
       btn.disabled = false;
+      updateCompanionIndicators();
     }
   }
 
@@ -359,6 +884,7 @@
       await refreshCustomers();
       const current = cloudCustomers.find(c => c.customer_id === currentCloudCustomerId);
       setCurrent(current || null);
+      syncNotesVisibility();
       setStatus('Cloud connected ✓ ' + cloudCustomers.length + ' customer' + (cloudCustomers.length === 1 ? '' : 's') + '.', 'good');
     } catch (err) {
       clearAuth();
