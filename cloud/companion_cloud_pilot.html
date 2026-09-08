@@ -313,15 +313,15 @@ label.active-tier { color:var(--purple); font-weight:700; }
 <body>
 
 <div class="wrap">
-  <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
-    <div style="flex:1 1 auto;min-width:0;">
+  <header>
+    <!-- Shared tariff-status dashboard. Same widget on every tool.
+         data-feed-url must point at the live "anyone can access" feed deployment. -->
+    <div id="tariffStatus" style="margin:.15rem 0 .65rem;"
+         data-feed-url="https://script.google.com/macros/s/AKfycbw-TllTpk_dbFjHhmojgeai9gKNGRzRaA_BtMooVSLeqvg614mONQyrpElC4M8vqP51/exec"></div>
+    <div>
       <h1>💰 Appointment Companion <span class="beta-badge">Beta</span></h1>
       <p>What they pay now. What they'd pocket in year one.</p>
     </div>
-    <!-- Shared tariff-status dashboard, pinned top-right. Same widget on every tool.
-         data-feed-url must point at the live "anyone can access" feed deployment. -->
-    <div id="tariffStatus" style="flex:0 0 auto;margin-top:.2rem;"
-         data-feed-url="https://script.google.com/macros/s/AKfycbw-TllTpk_dbFjHhmojgeai9gKNGRzRaA_BtMooVSLeqvg614mONQyrpElC4M8vqP51/exec"></div>
   </header>
 
   <!-- Customer & household -->

@@ -311,7 +311,7 @@
     if (!wrap) return;
 
     const style = document.createElement('style');
-    style.textContent = '.evBridgeBar{margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:center;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button.primary{background:#7a42c8;color:white}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}';
+    style.textContent = '.evBridgeBar{margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end;flex-wrap:wrap}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button.primary{background:#7a42c8;color:white}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeActions .ev-tray-action,.evBridgeActions .evCloudShare{display:none}.evBridgeActions.open{width:100%}.evBridgeActions.open .ev-tray-action,.evBridgeActions.open .evCloudShare{display:inline-flex}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}';
     document.head.appendChild(style);
 
     const bar = document.createElement('div');
@@ -321,7 +321,7 @@
       : 'Appointment and basket context inherited';
 
     bar.className = 'evBridgeBar';
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="save" id="evBridgeSaveNow" title="Save now" aria-label="Save now">💾</button><button type="button" class="primary" data-ev-action="return" id="evBridgeReturn" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button></div></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
+    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" class="ev-tray-action" data-ev-action="save" id="evBridgeSaveNow" title="Save now" aria-label="Save now">💾</button><button type="button" class="ev-tray-action primary" data-ev-action="return" id="evBridgeReturn" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button><button type="button" data-ev-action="settings" title="EV settings" aria-label="EV settings">⚙️</button></div></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
 
@@ -361,6 +361,29 @@
         appointment_state: launch.appointment_state,
         basket_url: launch.basket_url
       });
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="menu"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const actions = btn.closest('.evBridgeActions');
+        if (!actions) return;
+        const open = !actions.classList.contains('open');
+        actions.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.title = open ? 'Hide actions' : 'Show actions';
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="settings"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const settings = Array.from(document.querySelectorAll('details')).find(function (details) {
+          return /Settings & assumptions/i.test(details.textContent || '');
+        });
+        if (settings) {
+          settings.open = true;
+          settings.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       });
     });
   }

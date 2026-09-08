@@ -14,6 +14,8 @@
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const AUTOSAVE_DELAY_MS = 4000;
+  const AUTOSAVE_BATCH_DELAY_MS = 12000;
+  const AUTOSAVE_MIN_CHANGES = 3;
 
   let armed = false;
   let dirty = false;
@@ -23,7 +25,9 @@
   let lastSeenFingerprint = '';
   let baselineUpdatedAt = '';
   let autosaveTimer = null;
+  let batchTimer = null;
   let pollTimer = null;
+  let changeCount = 0;
 
   function getAuth() {
     try {
@@ -79,8 +83,10 @@
 
   async function establishBaseline(message) {
     clearTimeout(autosaveTimer);
+    clearTimeout(batchTimer);
     dirty = false;
     conflict = false;
+    changeCount = 0;
     const fp = fingerprint();
     baselineFingerprint = fp;
     lastSeenFingerprint = fp;
@@ -97,9 +103,14 @@
   function markDirty() {
     if (!armed || saving || conflict) return;
     dirty = true;
-    setUi('● Unsaved changes - autosaving after you pause...', 'warn');
+    changeCount++;
+    const remaining = Math.max(AUTOSAVE_MIN_CHANGES - changeCount, 0);
+    setUi(remaining
+      ? '● Unsaved changes - autosaving after ' + remaining + ' more change' + (remaining === 1 ? '' : 's') + ', or after a pause.'
+      : '● Unsaved changes - autosaving after you pause...', 'warn');
     clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(tryAutosave, AUTOSAVE_DELAY_MS);
+    autosaveTimer = setTimeout(tryAutosave, changeCount >= AUTOSAVE_MIN_CHANGES ? AUTOSAVE_DELAY_MS : AUTOSAVE_BATCH_DELAY_MS);
+    if (!batchTimer) batchTimer = setTimeout(tryAutosave, AUTOSAVE_BATCH_DELAY_MS);
   }
 
   async function tryAutosave() {
@@ -110,6 +121,8 @@
     if (!auth || !id || !saveBtn) return;
 
     saving = true;
+    clearTimeout(batchTimer);
+    batchTimer = null;
     setUi('☁️ Autosaving...', '');
     try {
       const latest = await fetchCurrentMeta();
@@ -181,7 +194,10 @@
         armed = false;
         dirty = false;
         conflict = false;
+        changeCount = 0;
         clearTimeout(autosaveTimer);
+        clearTimeout(batchTimer);
+        batchTimer = null;
         setUi('💾 Autosave paused - Cloud disconnected.', '');
       }
     }).observe(status, { childList: true, characterData: true, subtree: true });

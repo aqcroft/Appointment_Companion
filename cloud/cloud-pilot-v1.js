@@ -183,13 +183,16 @@
         #cloudPilotCard .cloud-current-name{font-size:12px;font-weight:750;color:var(--ink)}
         #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;gap:6px}
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
-        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
         #cloudPilotCard .cloudicon{width:36px;height:36px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
         #cloudPilotCard .cloudicon:disabled{opacity:.38;cursor:default}
         #cloudPilotCard .cloudicon.good{border-color:rgba(29,155,80,.35);background:rgba(29,155,80,.08)}
         #cloudPilotCard .state-on{border-color:rgba(29,155,80,.38);background:rgba(29,155,80,.08);box-shadow:inset 0 -2px 0 rgba(29,155,80,.38)}
         #cloudPilotCard .cloudtool-unbuilt{cursor:default}
-        #cloudPilotCard .cloudActionToggle{display:none}
+        #cloudPilotCard .cloudActionToggle{display:inline-flex}
+        #cloudPilotCard .cloud-tray-action{display:none!important}
+        #cloudPilotCard .cloudicons.open{width:100%;justify-content:flex-end}
+        #cloudPilotCard .cloudicons.open .cloud-tray-action{display:inline-flex!important}
         #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(190px,1fr) 112px 74px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
         #cloudCustomerModal .cloud-sort{border:0;background:transparent;color:var(--purple);font:inherit;font-weight:850;text-transform:uppercase;padding:0;cursor:pointer;text-align:left}
         #cloudCustomerModal .cloud-customer-icons{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0}
@@ -198,7 +201,7 @@
         #cloudCustomerModal .cloud-companion-mini.on{opacity:1;filter:none}
         #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(150px,1.3fr) 74px minmax(190px,1fr) 112px 74px;gap:8px;align-items:center}
         @media(max-width:720px){#cloudCustomerModal .cloud-table-head{display:none}#cloudCustomerModal .cloud-row{display:flex;align-items:center;justify-content:space-between}.cloud-row-meta{display:block!important}}
-        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicons{margin-left:auto}#cloudPilotCard .cloudActionToggle{display:inline-flex}.cloud-tray-action{display:none!important}#cloudPilotCard .cloudicons.open{width:100%;justify-content:space-between}#cloudPilotCard .cloudicons.open .cloud-tray-action{display:inline-flex!important}#cloudPilotCard .cloudicons.open #cloudPilotSettings,#cloudPilotCard .cloudicons.open #cloudActionMenu{order:20}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}}
+        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicons.open{justify-content:space-between}#cloudPilotCard .cloudicons.open #cloudPilotSettings,#cloudPilotCard .cloudicons.open #cloudActionMenu{order:20}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}}
       </style>
       <div class="cloudbar">
         <div class="cloudwho">
@@ -207,7 +210,7 @@
         </div>
         <div class="cloudicons">
           <button class="cloudicon cloud-tray-action" type="button" id="cloudBasketShortcut" data-cloud-action="basket" title="Basket link" aria-label="Basket link">🛒</button>
-          <button class="cloudicon cloud-tray-action" type="button" id="cloudShareShortcut" data-cloud-action="share" title="Share summary" aria-label="Share summary">↗</button>
+          <button class="cloudicon cloud-tray-action" type="button" id="cloudShareShortcut" data-cloud-action="share" title="Share summary" aria-label="Share summary">📤</button>
           <button class="cloudicon cloud-tray-action" type="button" id="cloudCompanionEv" title="EV Companion" aria-label="EV Companion">🚙</button>
           <span class="cloudicon cloud-tray-action cloudtool-unbuilt" id="cloudCompanionCard" title="Cashback Card Companion">💳</span>
           <button class="cloudicon cloud-tray-action" type="button" id="cloudPilotSave" data-cloud-action="save" title="Save to Cloud and keep a local backup" aria-label="Save to Cloud">💾</button>
@@ -225,7 +228,7 @@
       <div id="cloudPilotList" class="hidden" style="margin-top:.7rem;"></div>
     `;
     const header = document.querySelector('.wrap header');
-    if (header && header.parentNode) header.insertAdjacentElement('afterend', card);
+    if (header && header.parentNode) header.insertAdjacentElement('beforebegin', card);
     else anchor.parentNode.insertBefore(card, anchor);
     ensureConnectModal();
     ensureCustomerModal();
