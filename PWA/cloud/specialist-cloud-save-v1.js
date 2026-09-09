@@ -84,6 +84,7 @@
       electricity_usage_basis: customer.electricity_usage_basis || '',
       electricity_usage_source: customer.electricity_usage_source || '',
       electricity_usage_captured_at: customer.electricity_usage_captured_at || '',
+      electricity_usage_revision: customer.electricity_usage_revision || 0,
       gas_usage_kwh: customer.gas_usage_kwh,
       appointment_state_json: appointmentState,
       ev_state_json: opts.legacy_ev_state ? clone(state) : clone(customer.ev_state),

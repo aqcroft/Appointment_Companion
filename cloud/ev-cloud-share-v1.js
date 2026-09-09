@@ -6,6 +6,7 @@
 
   const shareApi = global.AppointmentCompanionSpecialistShare;
   if (!shareApi) return;
+  if (!new URL(global.location.href).searchParams.get('ac_launch') || !sessionStorage.getItem('apptCloudPilotCurrentCustomer')) return;
 
   const $ = function (id) { return document.getElementById(id); };
   let sharing = false;

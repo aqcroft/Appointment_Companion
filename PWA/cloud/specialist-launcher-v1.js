@@ -71,9 +71,23 @@
   async function launch(spec, btn) {
     const customerId = currentCustomerId();
     const auth = getAuth();
-    const label = spec.label || 'this Companion';
+    const contextApi = global.AppointmentCompanionCustomerContext;
+    const draftCustomer = contextApi && typeof contextApi.currentDraft === 'function' ? contextApi.currentDraft() : {};
     if (!customerId) {
-      setCloudStatus('Load a Cloud customer before opening ' + label + '.', 'bad');
+      if (!bridge) {
+        setCloudStatus('Companion Bridge is not ready.', 'bad');
+        return;
+      }
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      bridge.launch(spec.url, spec.tool_id, {
+        customer_id: '',
+        extra: {
+          customer: draftCustomer,
+          draft: true,
+          specialist_label: spec.label || spec.tool_id
+        }
+      });
       return;
     }
     if (!auth || !api || !bridge) {
@@ -85,7 +99,10 @@
     btn.setAttribute('aria-busy', 'true');
 
     try {
-      await saveBeforeLaunch();
+      const dirtyApi = global.AppointmentCompanionCloudDirtyState;
+      const canDetermineDirty = dirtyApi && typeof dirtyApi.isReady === 'function' && dirtyApi.isReady() && typeof dirtyApi.isDirty === 'function';
+      const needsSave = !canDetermineDirty || dirtyApi.isDirty();
+      if (needsSave) await saveBeforeLaunch();
       const res = await api.getCustomer(auth, customerId);
       const customer = res && res.customer;
       if (!customer) throw new Error('Cloud customer was not returned.');

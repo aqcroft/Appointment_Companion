@@ -215,8 +215,15 @@
   function applyReturn(payload) {
     if (!payload || !payload.result) return null;
     const result = payload.result;
-    const j = getJourney();
 
+    // Restore the originating form first: its wrapped restore also restores the
+    // launch-time journey. Specialist changes must be merged after that so the
+    // older launch snapshot cannot overwrite the returning tool state/patch.
+    if (result.appointment_state && typeof global.restoreForm === 'function') {
+      global.restoreForm(clone(result.appointment_state));
+    }
+
+    const j = getJourney();
     if (result.tool_state !== undefined && payload.target_tool_id) {
       j.specialists[payload.target_tool_id] = clone(result.tool_state);
     }
@@ -225,9 +232,6 @@
     }
     setJourney(j);
 
-    if (result.appointment_state && typeof global.restoreForm === 'function') {
-      global.restoreForm(clone(result.appointment_state));
-    }
     if (result.basket_url !== undefined) setBasketUrl(result.basket_url);
 
     global.dispatchEvent(new CustomEvent('ac:bridge:return', { detail: clone(payload) }));
@@ -243,6 +247,7 @@
     if (!payload) return null;
     const envelope = readJson(LAUNCH_PREFIX + launchId, null);
     applyReturn(payload);
+    global.__appointmentCompanionSpecialistReturn = true;
     sessionStorage.removeItem(RETURN_PREFIX + launchId);
     sessionStorage.removeItem(ACTIVE_LAUNCH_KEY);
 
@@ -263,6 +268,14 @@
     return patch;
   }
 
+  function setPendingCustomerPatch(patch) {
+    if (!patch || typeof patch !== 'object') return null;
+    const j = getJourney();
+    j.pending_customer_patch = Object.assign({}, j.pending_customer_patch || {}, clone(patch));
+    setJourney(j);
+    return clone(j.pending_customer_patch);
+  }
+
   const api = {
     version: VERSION,
     toolId: document.body && document.body.dataset && document.body.dataset.companionTool
@@ -274,6 +287,7 @@
     launch: launch,
     receive: receiveLaunch,
     returnToOrigin: returnToOrigin,
+    setPendingCustomerPatch: setPendingCustomerPatch,
     consumePendingCustomerPatch: consumePendingCustomerPatch,
     currentCustomerId: currentCustomerId,
     currentBasketUrl: currentBasketUrl,

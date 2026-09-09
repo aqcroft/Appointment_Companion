@@ -13,12 +13,20 @@
   if (!bridge) return;
 
   const RETURN_SAVE_KEY = 'apptCompanionSpecialistReturnNeedsSaveV1';
-  const launch = bridge.receive();
-  if (!launch || launch.target_tool_id !== 'ev') return;
+  const DRAFT_KEY = 'apptCompanionEvDraftV1';
+  const receivedLaunch = bridge.receive();
+  if (receivedLaunch && receivedLaunch.target_tool_id !== 'ev') return;
+  const launch = receivedLaunch || {
+    target_tool_id: 'ev', customer_id: '', appointment_state: null, basket_url: '',
+    extra: { draft: true, customer: {} }
+  };
 
   const $ = function (id) { return document.getElementById(id); };
   const customer = launch.extra && launch.extra.customer ? launch.extra.customer : {};
-  const journeyState = bridge.getToolState('ev');
+  const linked = !!(receivedLaunch && launch.customer_id && customer.customer_id);
+  let localDraft = null;
+  try { localDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) {}
+  const journeyState = bridge.getToolState('ev') || (!linked ? localDraft : null);
   const cloudEvState = customer.ev_state || null;
 
   let hydrating = true;
@@ -81,6 +89,8 @@
       vehicle_icon: raw.vehicle_icon || raw.icon || '',
       annual_mileage: raw.annual_mileage != null ? raw.annual_mileage : raw.mileage,
       home_usage_kwh: raw.home_usage_kwh,
+      home_usage_mode: raw.home_usage_mode || raw.usage_mode || '',
+      home_usage_source: raw.home_usage_source || '',
       uw_services: raw.uw_services,
       region: raw.region,
       ev_offpeak_pct: raw.ev_offpeak_pct,
@@ -154,12 +164,19 @@
     if (state.stress_pct != null) click('#stressButtons button[data-stress="' + Number(state.stress_pct) + '"]');
     if (state.period) click('#periodToggle button[data-period="' + state.period + '"]');
 
-    // Canonical Cloud home usage always wins over specialist experimentation.
-    setCanonicalUsage(customer.electricity_usage_kwh);
+    // A known Main Companion figure wins over specialist defaults and estimates.
+    if (customer.electricity_usage_kwh != null && Number.isFinite(Number(customer.electricity_usage_kwh))) {
+      setCanonicalUsage(customer.electricity_usage_kwh);
+    } else if (state.home_usage_mode === 'custom' && state.home_usage_kwh != null) {
+      setCanonicalUsage(state.home_usage_kwh);
+    } else if (state.home_usage_mode) {
+      click('#usagePills button[data-use="' + state.home_usage_mode + '"]');
+    }
   }
 
   function captureState() {
     const vehicle = active('#vehiclePills .vpill');
+    const usage = active('#usagePills button');
     const service = active('#serviceButtons button');
     const period = active('#periodToggle button');
     const stress = active('#stressButtons button');
@@ -172,6 +189,8 @@
       vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙',
       annual_mileage: num('miles'),
       home_usage_kwh: num('houseKwh'),
+      home_usage_mode: usage ? String(usage.dataset.use || '') : '',
+      home_usage_source: customer.electricity_usage_kwh != null ? String(customer.electricity_usage_source || 'legacy/unknown') : '',
       uw_services: service ? Number(service.dataset.tier) + 1 : 3,
       region: num('region'),
       ev_offpeak_pct: num('evTimingSlider'),
@@ -194,6 +213,22 @@
     const copy = Object.assign({}, state || {});
     delete copy.updated_at;
     return JSON.stringify(copy);
+  }
+
+  function stashDraft(state) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch (_) {}
+    bridge.setToolState('ev', state);
+  }
+
+  function customerUsageContribution(state) {
+    if (customer.electricity_usage_kwh != null || !state || state.home_usage_mode !== 'custom' || !Number.isFinite(Number(state.home_usage_kwh)) || Number(state.home_usage_kwh) <= 0) return null;
+    return {
+      electricity_usage_kwh: Math.round(Number(state.home_usage_kwh)),
+      electricity_usage_mode: 'known',
+      electricity_usage_source: 'manual',
+      electricity_usage_basis: 'EV Companion',
+      electricity_usage_captured_at: new Date().toISOString()
+    };
   }
 
   function setSaveUi(text, tone) {
@@ -227,16 +262,24 @@
 
   async function saveNow(force) {
     if (hydrating) return;
-    if (!cloudSave || typeof cloudSave.save !== 'function') {
-      setSaveUi('⚠️ Cloud autosave unavailable', 'bad');
-      return;
-    }
-
     const state = captureState();
     const fp = fingerprint(state);
     if (!force && fp === lastSavedFingerprint) {
       dirty = false;
-      setSaveUi('✓ Saved to Cloud', 'good');
+      setSaveUi(linked ? '✓ Saved to Cloud' : '✓ Draft saved on this device', 'good');
+      return;
+    }
+
+    stashDraft(state);
+    if (!linked) {
+      lastSavedFingerprint = fp;
+      dirty = false;
+      setSaveUi('✓ Draft saved on this device', 'good');
+      return;
+    }
+    if (!cloudSave || typeof cloudSave.save !== 'function') {
+      dirty = true;
+      setSaveUi('⚠️ Cloud autosave unavailable - local backup kept', 'bad');
       return;
     }
 
@@ -322,10 +365,14 @@
     bar.id = 'evBridgeBar';
     const usage = customer.electricity_usage_kwh != null
       ? Number(customer.electricity_usage_kwh).toLocaleString('en-GB') + ' kWh home usage inherited'
-      : 'Appointment and basket context inherited';
+      : linked ? 'Appointment and basket context inherited' : 'Draft saved on this device until linked to a Cloud customer';
+    const displayName = linked
+      ? '☁️ ' + (customer.customer_name || 'Cloud customer')
+      : '📝 ' + (customer.customer_name ? customer.customer_name + ' · EV draft' : 'Standalone EV draft');
+    const returnLabel = receivedLaunch ? 'Save and return to Companion' : 'Save and open Appointment Companion';
 
     bar.className = 'evBridgeBar';
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">☁️ ' + escapeHtml(customer.customer_name || 'Cloud customer') + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="Save and return to Companion" aria-label="Save and return to Companion">↩</button><button type="button" data-ev-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>Save and return to Companion</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">✓ Cloud autosave on</div>';
+    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">' + escapeHtml(displayName) + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="' + escapeHtml(returnLabel) + '" aria-label="' + escapeHtml(returnLabel) + '">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>' + escapeHtml(returnLabel) + '</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">' + (linked ? '✓ Cloud autosave on' : '✓ Local draft autosave on') + '</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
 
@@ -360,13 +407,21 @@
       }
 
       const state = captureState();
-      bridge.setToolState('ev', state);
-      sessionStorage.setItem(RETURN_SAVE_KEY, '1');
-      bridge.returnToOrigin({
-        tool_state: state,
-        appointment_state: launch.appointment_state,
-        basket_url: launch.basket_url
-      });
+      stashDraft(state);
+      const customerPatch = customerUsageContribution(state);
+      if (customerPatch && typeof bridge.setPendingCustomerPatch === 'function') bridge.setPendingCustomerPatch(customerPatch);
+      if (receivedLaunch) {
+        if (linked) sessionStorage.setItem(RETURN_SAVE_KEY, '1');
+        else sessionStorage.removeItem(RETURN_SAVE_KEY);
+        bridge.returnToOrigin({
+          tool_state: state,
+          customer_patch: customerPatch,
+          appointment_state: launch.appointment_state,
+          basket_url: launch.basket_url
+        });
+      } else {
+        global.location.href = new URL('../../cloud/', global.location.href).href;
+      }
       });
     });
 
@@ -392,13 +447,6 @@
           settings.open = true;
           settings.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      });
-    });
-
-    document.querySelectorAll('[data-ev-action="card"]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        closeEvMenus();
-        window.location.href = new URL('./cashback-card-companion.html', window.location.href).href;
       });
     });
 
@@ -431,7 +479,7 @@
     lastSavedFingerprint = fingerprint(captureState());
     dirty = false;
     hydrating = false;
-    setSaveUi('✓ Cloud autosave on', 'good');
+    setSaveUi(linked ? '✓ Cloud autosave on' : '✓ Local draft autosave on', 'good');
     armAutosave();
   }
 

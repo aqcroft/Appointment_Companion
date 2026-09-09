@@ -29,6 +29,12 @@
   let pollTimer = null;
   let changeCount = 0;
 
+  window.AppointmentCompanionCloudDirtyState = {
+    isReady: () => armed && !!baselineFingerprint,
+    isDirty: () => dirty || saving || (armed && !!baselineFingerprint && fingerprint() !== baselineFingerprint),
+    hasConflict: () => conflict
+  };
+
   function getAuth() {
     try {
       const a = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');

@@ -18,8 +18,9 @@
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
-  const ONBOARDING_KEY = 'apptCompanionOnboardingCompleteV1';
-  const ONBOARDING_STEP_KEY = 'apptCompanionOnboardingStepV1';
+  const ONBOARDING_STATE_KEY = 'apptCompanionOnboardingStateV2';
+  const LEGACY_ONBOARDING_KEY = 'apptCompanionOnboardingCompleteV1';
+  const LEGACY_ONBOARDING_STEP_KEY = 'apptCompanionOnboardingStepV1';
   const ADRIAN_WHATSAPP_URL = 'https://api.whatsapp.com/send?phone=447787400800';
   const ADRIAN_TEL_URL = 'tel:+447787400800';
 
@@ -31,6 +32,8 @@
   let connectedWidgetObserver = null;
   let loadingDepth = 0;
   let activeSettingsSection = 'hub';
+  let onboardingPartnerSuspended = false;
+  let onboardingExplicit = false;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -252,7 +255,19 @@
         #cloudLoadingOverlay strong{display:block;font-size:16px;color:var(--purple)}
         #cloudLoadingOverlay p{margin:.35rem 0 0;font-size:12px;color:var(--muted)}
         @keyframes cloudSpin{to{transform:rotate(360deg)}}
-        @media(max-width:720px){#cloudCustomerModal .cloud-table-head{display:none}#cloudCustomerModal .cloud-row{display:flex;align-items:center;justify-content:space-between}.cloud-row-meta{display:block!important}}
+        @media(max-width:720px){
+          #cloudCustomerModal{padding:12px}
+          #cloudCustomerModal .basket-prompt-card{width:100%!important;max-width:100%!important;max-height:calc(100dvh - 24px);overflow:auto;padding:14px}
+          #cloudCustomerModal .cloud-table-head{display:none}
+          #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"identity saving" "meta meta" "icons icons" "date action";gap:7px 12px;align-items:center;min-width:0;overflow:hidden;padding:.75rem;margin-bottom:.65rem}
+          #cloudCustomerModal .cloud-row-identity{grid-area:identity;min-width:0}
+          #cloudCustomerModal .cloud-row-saving{grid-area:saving;text-align:right;font-size:17px}
+          #cloudCustomerModal .cloud-row-meta{grid-area:meta;display:block!important;font-size:11px!important}
+          #cloudCustomerModal .cloud-row-icons{grid-area:icons;min-width:0}
+          #cloudCustomerModal .cloud-customer-icons{display:flex;flex-wrap:wrap;gap:5px 7px;max-width:100%}
+          #cloudCustomerModal .cloud-row-date{grid-area:date;font-size:11px!important;min-width:0}
+          #cloudCustomerModal .cloud-row-action{grid-area:action;min-height:44px!important;min-width:86px;padding:8px 14px!important;justify-self:end}
+        }
         @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
       </style>
       <div class="cloudbar">
@@ -319,6 +334,13 @@
     document.addEventListener('change', renderCloudCurrent, true);
     document.addEventListener('click', closeActionMenuOnOutside, true);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeActionMenu(); });
+    const usageInput = $c('electricityUsageKwh');
+    const usageSource = $c('electricityUsageSource');
+    if (usageInput) usageInput.addEventListener('input', noteUsageEdit);
+    if (usageSource) usageSource.addEventListener('change', noteUsageEdit);
+    window.AppointmentCompanionCustomerContext = { currentDraft: draftCustomerContext };
+    applyPendingCustomerPatch();
+    updateUsageHint();
     updateCompanionIndicators();
     syncNotesVisibility();
     renderCloudCurrent();
@@ -328,29 +350,120 @@
     maybeStartOnboarding();
   }
 
+  function usageSourceLabel(source) {
+    return ({
+      customer_bill: 'Customer bill',
+      uw_quote: 'UW quote',
+      manual: 'Other / manual',
+      estimate: 'Estimate',
+      'legacy/unknown': 'Unknown / legacy'
+    })[String(source || '')] || '';
+  }
+
+  function formUsage() {
+    const input = $c('electricityUsageKwh');
+    const value = input && input.value !== '' ? Number(input.value) : null;
+    const kwh = Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+    const sourceEl = $c('electricityUsageSource');
+    const capturedEl = $c('electricityUsageCapturedAt');
+    const basisEl = $c('electricityUsageBasis');
+    return {
+      electricity_usage_kwh: kwh,
+      electricity_usage_source: kwh ? String((sourceEl && sourceEl.value) || 'legacy/unknown') : '',
+      electricity_usage_captured_at: kwh ? String((capturedEl && capturedEl.value) || new Date().toISOString()) : '',
+      electricity_usage_basis: kwh ? String((basisEl && basisEl.value) || '') : ''
+    };
+  }
+
+  function applyCanonicalUsage(customer) {
+    if (!customer || customer.electricity_usage_kwh == null || !Number.isFinite(Number(customer.electricity_usage_kwh))) return;
+    const input = $c('electricityUsageKwh');
+    const source = $c('electricityUsageSource');
+    const captured = $c('electricityUsageCapturedAt');
+    const basis = $c('electricityUsageBasis');
+    if (input) input.value = Math.round(Number(customer.electricity_usage_kwh));
+    if (source) source.value = customer.electricity_usage_source || 'legacy/unknown';
+    if (captured) captured.value = customer.electricity_usage_captured_at || '';
+    if (basis) basis.value = customer.electricity_usage_basis || '';
+    updateUsageHint();
+  }
+
+  function updateUsageHint() {
+    const hint = $c('electricityUsageHint');
+    if (!hint) return;
+    const usage = formUsage();
+    const label = usageSourceLabel(usage.electricity_usage_source);
+    hint.textContent = usage.electricity_usage_kwh
+      ? usage.electricity_usage_kwh.toLocaleString('en-GB') + ' kWh/year' + (label ? ' · ' + label : '')
+      : 'Useful when the figure is already available; it is not required for the appointment.';
+  }
+
+  function noteUsageEdit() {
+    const captured = $c('electricityUsageCapturedAt');
+    const basis = $c('electricityUsageBasis');
+    if (captured) captured.value = $c('electricityUsageKwh') && $c('electricityUsageKwh').value ? new Date().toISOString() : '';
+    if (basis) basis.value = '';
+    updateUsageHint();
+  }
+
+  function draftCustomerContext() {
+    const usage = formUsage();
+    return Object.assign({
+      customer_id: currentCloudCustomerId || '',
+      customer_name: String(($c('customerName') && $c('customerName').value) || '').trim()
+    }, usage);
+  }
+
+  function applyPendingCustomerPatch() {
+    const bridge = window.AppointmentCompanionBridge;
+    if (!bridge || typeof bridge.consumePendingCustomerPatch !== 'function') return;
+    const patch = bridge.consumePendingCustomerPatch();
+    if (!patch || patch.electricity_usage_kwh == null) return;
+    const existing = formUsage();
+    if (existing.electricity_usage_kwh != null) return;
+    applyCanonicalUsage(patch);
+    setStatus('Annual electricity usage brought back from EV Companion ✓', 'good');
+  }
+
   function showConnected(on) {
     $c('cloudPilotConnected').classList.toggle('hidden', !on);
     relocateConnectedWidgets();
   }
 
-  async function connect() {
-    const partnerId = $c('cloudPilotPartnerId').value.trim();
-    const workspaceKey = $c('cloudPilotWorkspaceKey').value;
+  function setInlineConnectError(id, message) {
+    const el = id && $c(id);
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.toggle('hidden', !message);
+  }
+
+  async function connect(options) {
+    const opts = options || {};
+    const partnerId = String(opts.partnerId !== undefined ? opts.partnerId : ($c('cloudPilotPartnerId') && $c('cloudPilotPartnerId').value) || '').trim();
+    const enteredKey = String(opts.workspaceKey !== undefined ? opts.workspaceKey : ($c('cloudPilotWorkspaceKey') && $c('cloudPilotWorkspaceKey').value) || '');
+    const sessionAuth = getAuth();
+    const canReuseSession = !enteredKey && sessionAuth && sessionAuth.partner_id === partnerId;
+    const workspaceKey = canReuseSession ? sessionAuth.workspace_key : enteredKey;
+    const errorId = opts.errorId || 'cloudConnectError';
+    setInlineConnectError(errorId, '');
     if (!partnerId || !workspaceKey) {
-      setStatus('Enter both the Companion Login ID and Password.', 'bad');
+      const message = 'Enter both the Companion Login ID and Password.';
+      setInlineConnectError(errorId, message);
+      setStatus(message, 'bad');
       return false;
     }
 
-    const btn = $c('cloudPilotConnect');
+    const btn = opts.button || $c('cloudPilotConnect');
     btn.disabled = true;
     setStatus('Connecting...');
     showLoading('Connecting to Companion...', 'Checking your Companion Login ID and Password.');
     try {
-      const auth = setAuth(partnerId, workspaceKey);
-      const res = await api.listCustomers(auth);
+      const candidateAuth = { partner_id: partnerId, workspace_key: workspaceKey };
+      const res = await api.listCustomers(candidateAuth);
+      setAuth(partnerId, workspaceKey);
       cloudCustomers = Array.isArray(res.customers) ? res.customers : [];
       $c('cloudPilotWorkspaceKey').value = '';
-      closeConnectModal();
+      if (!opts.keepModal) closeConnectModal();
       showConnected(true);
       setStatus('Cloud connected ✓ ' + cloudCustomers.length + ' customer' + (cloudCustomers.length === 1 ? '' : 's') + '.', 'good');
       const current = cloudCustomers.find(c => c.customer_id === currentCloudCustomerId);
@@ -358,9 +471,11 @@
       renderCloudList();
       return true;
     } catch (err) {
-      clearAuth();
-      showConnected(false);
-      setStatus((err && err.message) || String(err), 'bad');
+      if (canReuseSession) clearAuth();
+      if (!getAuth()) showConnected(false);
+      const message = 'Login failed - please check your Companion Login ID and Password and try again.';
+      setInlineConnectError(errorId, message);
+      setStatus(message, 'bad');
       return false;
     } finally {
       hideLoading();
@@ -448,23 +563,24 @@
       }
       const heroCell = heroTxt ? '<span style="color:' + heroColor + ';font-weight:850;">' + heroTxt + '</span>' : '<span class="sub">—</span>';
       const dateCell = customer.updated_at ? esc(fmtDate(customer.updated_at)) : '<span class="sub">—</span>';
-      const fallbackMeta = esc(usage) + (customer.electricity_usage_revision ? ' · rev ' + Number(customer.electricity_usage_revision) : '');
+      const sourceLabel = usageSourceLabel(customer.electricity_usage_source) || (customer.electricity_usage_kwh != null ? 'Unknown / legacy' : '');
+      const fallbackMeta = esc(usage) + (sourceLabel ? ' · ' + esc(sourceLabel) : '') + (customer.electricity_usage_revision ? ' · rev ' + Number(customer.electricity_usage_revision) : '');
 
       row.innerHTML = `
-        <div style="min-width:0;">
+        <div class="cloud-row-identity" style="min-width:0;">
           <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(customer.customer_name || 'Unnamed')}
           </div>
-          <span class="sub cloud-row-meta" style="display:none;font-size:10.5px;">${fallbackMeta}</span>
         </div>
-        <div>${heroCell}</div>
-        <div>${iconsHtml}</div>
-        <div class="sub" style="font-size:11px;">${dateCell}</div>
+        <div class="cloud-row-saving">${heroCell}</div>
+        <span class="sub cloud-row-meta" style="display:none;font-size:10.5px;">${fallbackMeta}</span>
+        <div class="cloud-row-icons">${iconsHtml}</div>
+        <div class="sub cloud-row-date" style="font-size:11px;">Updated ${dateCell}</div>
       `;
 
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'pill';
+      btn.className = 'pill cloud-row-action';
       btn.style.cssText = 'min-height:36px;padding:6px 12px;flex:0;';
       btn.textContent = customer.customer_id === currentCloudCustomerId ? 'Linked' : 'Load';
       btn.disabled = customer.customer_id === currentCloudCustomerId;
@@ -505,7 +621,9 @@
           <div class="field">
             <label for="cloudPilotWorkspaceKey">Password</label>
             <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Password">
+            <p class="sub hidden" id="cloudSessionPasswordNote" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>
           </div>
+          <p class="sub hidden" id="cloudConnectError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
           <button class="pill" type="button" id="cloudPilotConnect" style="width:100%;">Connect Cloud</button>
           <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener" style="margin-top:.55rem;"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
         </div>
@@ -515,7 +633,7 @@
       </div>
     `;
     document.body.appendChild(modal);
-    $c('cloudPilotConnect').addEventListener('click', connect);
+    $c('cloudPilotConnect').addEventListener('click', () => connect());
     $c('cloudConnectClose').addEventListener('click', closeConnectModal);
     modal.addEventListener('click', e => { if (e.target.id === 'cloudConnectModal') closeConnectModal(); });
   }
@@ -523,9 +641,17 @@
   function openConnectModal() {
     ensureConnectModal();
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
+    const auth = getAuth();
+    const note = $c('cloudSessionPasswordNote');
+    if (note) note.classList.toggle('hidden', !auth);
+    const key = $c('cloudPilotWorkspaceKey');
+    if (key) {
+      key.value = '';
+      key.placeholder = auth ? '•••••••• (available this session)' : 'Password';
+    }
+    setInlineConnectError('cloudConnectError', '');
     $c('cloudConnectModal').classList.add('open');
     const id = $c('cloudPilotPartnerId');
-    const key = $c('cloudPilotWorkspaceKey');
     setTimeout(() => ((id && !id.value) ? id : key).focus(), 80);
   }
 
@@ -635,7 +761,28 @@
   }
 
   function openCardPlaceholder() {
-    window.location.href = new URL('../cashback-card-companion.html', window.location.href).href;
+    ensureCardPlaceholderModal();
+    closeActionMenu();
+    $c('cashbackPlaceholderModal').classList.add('open');
+    setTimeout(() => $c('cashbackPlaceholderClose').focus(), 40);
+  }
+
+  function ensureCardPlaceholderModal() {
+    if ($c('cashbackPlaceholderModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cashbackPlaceholderModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="cashbackPlaceholderTitle" style="max-width:390px;">
+        <h3 id="cashbackPlaceholderTitle">Cashback Card Companion</h3>
+        <p class="sub">Coming soon</p>
+        <div class="modal-actions"><button class="btn-ghost" type="button" id="cashbackPlaceholderClose">Close</button></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    const close = () => modal.classList.remove('open');
+    $c('cashbackPlaceholderClose').addEventListener('click', close);
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
   }
 
   function localSaveNow() {
@@ -720,27 +867,70 @@
     }
   }
 
+  function defaultOnboardingState() {
+    return { version: 2, step: 'connect', complete: false, suspended: '' };
+  }
+
+  function readOnboardingState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ONBOARDING_STATE_KEY) || 'null');
+      if (saved && saved.version === 2) {
+        if (!['connect', 'device', 'partner', 'ready'].includes(saved.step)) saved.step = 'connect';
+        return Object.assign(defaultOnboardingState(), saved);
+      }
+    } catch (_) {}
+
+    const migrated = defaultOnboardingState();
+    migrated.complete = localStorage.getItem(LEGACY_ONBOARDING_KEY) === '1';
+    const legacyStep = localStorage.getItem(LEGACY_ONBOARDING_STEP_KEY);
+    if (['connect', 'device', 'partner', 'ready'].includes(legacyStep)) migrated.step = legacyStep;
+    writeOnboardingState(migrated);
+    return migrated;
+  }
+
+  function writeOnboardingState(state) {
+    const next = Object.assign(defaultOnboardingState(), state || {});
+    localStorage.setItem(ONBOARDING_STATE_KEY, JSON.stringify(next));
+    localStorage.removeItem(LEGACY_ONBOARDING_KEY);
+    localStorage.removeItem(LEGACY_ONBOARDING_STEP_KEY);
+    return next;
+  }
+
   function onboardingComplete() {
-    localStorage.setItem(ONBOARDING_KEY, '1');
-    localStorage.removeItem(ONBOARDING_STEP_KEY);
+    writeOnboardingState({ step: 'ready', complete: true, suspended: '' });
+    onboardingExplicit = false;
   }
 
   function onboardingStep() {
-    return localStorage.getItem(ONBOARDING_STEP_KEY) || 'connect';
+    return readOnboardingState().step;
   }
 
-  function setOnboardingStep(step) {
-    localStorage.setItem(ONBOARDING_STEP_KEY, step);
+  function setOnboardingStep(step, options) {
+    const state = readOnboardingState();
+    state.step = step;
+    state.suspended = options && options.suspended ? options.suspended : '';
+    writeOnboardingState(state);
     renderOnboardingStep(step);
   }
 
-  function maybeStartOnboarding() {
-    if (localStorage.getItem(ONBOARDING_KEY) === '1') return;
+  function openOnboarding() {
     ensureOnboardingModal();
+    const state = readOnboardingState();
+    state.suspended = '';
+    writeOnboardingState(state);
     const prompt = $c('partnerPrompt');
-    if (prompt && onboardingStep() !== 'partner') prompt.classList.remove('open');
-    renderOnboardingStep(onboardingStep());
+    const settings = $c('cloudSettingsModal');
+    if (prompt) prompt.classList.remove('open');
+    if (settings) settings.classList.remove('open');
+    renderOnboardingStep(state.step);
     $c('cloudOnboardingModal').classList.add('open');
+  }
+
+  function maybeStartOnboarding() {
+    const state = readOnboardingState();
+    if (state.complete) return;
+    if (window.__appointmentCompanionSpecialistReturn || new URL(location.href).searchParams.has('ac_return')) return;
+    openOnboarding();
   }
 
   function ensureOnboardingModal() {
@@ -759,7 +949,13 @@
       </div>
     `;
     document.body.appendChild(modal);
-    $c('cloudOnboardingLater').addEventListener('click', () => modal.classList.remove('open'));
+    $c('cloudOnboardingLater').addEventListener('click', () => {
+      const state = readOnboardingState();
+      state.suspended = '';
+      writeOnboardingState(state);
+      modal.classList.remove('open');
+      onboardingExplicit = false;
+    });
     $c('cloudOnboardingNext').addEventListener('click', advanceOnboarding);
   }
 
@@ -770,11 +966,13 @@
     const next = $c('cloudOnboardingNext');
     const later = $c('cloudOnboardingLater');
     if (step === 'connect') {
+      const auth = getAuth();
       title.textContent = 'Step 1 - Connect to Companion';
       body.innerHTML = `
         <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft.</p>
         <div class="field"><label for="onboardLoginId">Companion Login ID</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
-        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off"></div>
+        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (available this session)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
+        <p class="sub hidden" id="cloudOnboardingError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
         <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
       `;
       next.textContent = 'Connect';
@@ -812,7 +1010,13 @@
       const pw = $c('onboardPassword');
       if ($c('cloudPilotPartnerId') && id) $c('cloudPilotPartnerId').value = id.value;
       if ($c('cloudPilotWorkspaceKey') && pw) $c('cloudPilotWorkspaceKey').value = pw.value;
-      const ok = await connect();
+      const ok = await connect({
+        partnerId: id && id.value,
+        workspaceKey: pw && pw.value,
+        errorId: 'cloudOnboardingError',
+        button: $c('cloudOnboardingNext'),
+        keepModal: true
+      });
       if (ok) setOnboardingStep('device');
       return;
     }
@@ -857,12 +1061,26 @@
   }
 
   function openPartnerProfile() {
+    const onboarding = $c('cloudOnboardingModal');
+    if (onboarding && onboarding.classList.contains('open')) {
+      const state = readOnboardingState();
+      state.step = 'partner';
+      state.suspended = 'partner';
+      writeOnboardingState(state);
+      onboardingPartnerSuspended = true;
+      onboarding.classList.remove('open');
+    }
+    closeSettingsModal();
     if ($c('partnerSettingsBtn')) $c('partnerSettingsBtn').click();
     enhancePartnerPrompt();
   }
 
   function openSettingsModal(section) {
     ensureSettingsModal();
+    const onboarding = $c('cloudOnboardingModal');
+    const partner = $c('partnerPrompt');
+    if (onboarding) onboarding.classList.remove('open');
+    if (partner) partner.classList.remove('open');
     relocateConnectedWidgets();
     showSettingsSection(section || 'hub');
     $c('cloudSettingsModal').classList.add('open');
@@ -957,9 +1175,12 @@
     });
     $c('cloudSettingsOnboarding').addEventListener('click', () => {
       closeSettingsModal();
-      localStorage.removeItem(ONBOARDING_KEY);
-      setOnboardingStep('connect');
-      $c('cloudOnboardingModal').classList.add('open');
+      onboardingExplicit = true;
+      const state = readOnboardingState();
+      state.step = 'connect';
+      state.suspended = '';
+      writeOnboardingState(state);
+      openOnboarding();
     });
     $c('cloudSettingsConnect').addEventListener('click', () => {
       closeSettingsModal();
@@ -986,6 +1207,23 @@
   function enhancePartnerPrompt() {
     const existing = $c('partnerLocalBackupTools');
     if (existing) existing.remove();
+    const prompt = $c('partnerPrompt');
+    if (!prompt || prompt.dataset.onboardingWatched) return;
+    prompt.dataset.onboardingWatched = '1';
+    let wasOpen = prompt.classList.contains('open');
+    new MutationObserver(() => {
+      const isOpen = prompt.classList.contains('open');
+      if (wasOpen && !isOpen && onboardingPartnerSuspended) {
+        onboardingPartnerSuspended = false;
+        const state = readOnboardingState();
+        state.suspended = '';
+        state.step = getPartnerProfile() ? 'ready' : 'partner';
+        writeOnboardingState(state);
+        renderOnboardingStep(state.step);
+        $c('cloudOnboardingModal').classList.add('open');
+      }
+      wasOpen = isOpen;
+    }).observe(prompt, { attributes: true, attributeFilter: ['class'] });
   }
 
   function relocateConnectedWidgets() {
@@ -1029,6 +1267,7 @@
       const appt = customer.appointment_state;
       if (appt && appt.inputs && appt.state && typeof window.restoreForm === 'function') {
         window.restoreForm(appt);
+        applyCanonicalUsage(customer);
         setStatus(customer.customer_name + ' loaded from Cloud ✓', 'good');
       } else {
         if (typeof window.resetForm === 'function') window.resetForm();
@@ -1038,6 +1277,7 @@
         if (notesEl) notesEl.value = customer.private_notes || '';
         const basketEl = $c('basketLink');
         if (basketEl) basketEl.value = customer.basket_url || '';
+        applyCanonicalUsage(customer);
         if (typeof window.calc === 'function') window.calc();
         setStatus(customer.customer_name + ' is linked. No full Appointment Companion state existed yet, so a fresh form has been started for this Cloud customer.', 'good');
       }
@@ -1063,6 +1303,7 @@
       electricity_usage_basis: existing.electricity_usage_basis || '',
       electricity_usage_source: existing.electricity_usage_source || '',
       electricity_usage_captured_at: existing.electricity_usage_captured_at || '',
+      electricity_usage_revision: existing.electricity_usage_revision || 0,
       gas_usage_kwh: existing.gas_usage_kwh,
       ev_state_json: existing.ev_state == null ? null : existing.ev_state
     };
@@ -1108,9 +1349,18 @@
         }
       }
 
-      const payload = Object.assign({}, preservedCustomerFields(existing), {
+      const usage = formUsage();
+      const priorUsage = existing && existing.electricity_usage_kwh != null ? Number(existing.electricity_usage_kwh) : null;
+      const usageChanged = priorUsage !== usage.electricity_usage_kwh || String((existing && existing.electricity_usage_source) || '') !== usage.electricity_usage_source;
+      const usageRevision = usage.electricity_usage_kwh == null
+        ? 0
+        : usageChanged ? Number((existing && existing.electricity_usage_revision) || 0) + 1 : Number((existing && existing.electricity_usage_revision) || 1);
+      const payload = Object.assign({}, preservedCustomerFields(existing), usage, {
         customer_id: existing ? existing.customer_id : '',
         customer_name: name,
+        electricity_usage_mode: usage.electricity_usage_kwh == null ? '' : 'known',
+        electricity_usage_preset: '',
+        electricity_usage_revision: usageRevision,
         appointment_state_json: data,
         basket_url: (data.inputs && data.inputs.basketLink) ? String(data.inputs.basketLink).trim() : '',
         private_notes: data.notes || ''
