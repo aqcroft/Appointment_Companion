@@ -36,6 +36,20 @@
   let onboardingPartnerSuspended = false;
   let onboardingExplicit = false;
   let workingRecordTimer = null;
+  let currentCloudSynced = false;
+
+  function setBackupIcon(id, good, title) {
+    const el = $c(id);
+    if (!el) return;
+    const state = good ? 'ok' : 'warn';
+    if (id === 'cloudConnectionState') {
+      el.innerHTML = '<img src="status-icons/cloud-' + state + '.svg" alt="" aria-hidden="true">';
+    } else {
+      el.innerHTML = '<picture><source media="(any-pointer: coarse), (max-width: 620px)" srcset="status-icons/mobile-' + state + '.svg"><img src="status-icons/desktop-' + state + '.svg" alt="" aria-hidden="true"></picture>';
+    }
+    el.classList.toggle('warn', !good);
+    el.title = title;
+  }
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -81,14 +95,7 @@
     if (!el) return;
     el.textContent = text;
     el.style.color = kind === 'bad' ? '#c43b3b' : kind === 'good' ? '#1d7f45' : 'var(--muted)';
-    const cloud = $c('cloudConnectionState');
-    if (cloud) {
-      const good = kind === 'good' || /connected|saved to Cloud/i.test(text || '');
-      const bad = kind === 'bad';
-      cloud.textContent = good ? '☁️✓' : bad ? '☁️⚠️' : getAuth() ? '☁️✓' : '☁️';
-      cloud.className = 'cloud-health' + (bad ? ' warn' : '');
-      cloud.title = text || (good ? 'Cloud connection healthy' : 'Cloud not connected');
-    }
+    setBackupIcon('cloudConnectionState', currentCloudSynced, currentCloudSynced ? 'Current record synced to Cloud' : 'Current record is not synced to Cloud');
   }
 
   function localBackupId(customerId, name) {
@@ -172,13 +179,12 @@
     const cls = tiny ? ' cloud-mini-icon' : '';
     const icon = (emoji, on, grouped) =>
       '<span class="basket-icon' + cls + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
-    return icon('⚡', !!sum.energy, false) +
-      icon('🔥', !!sum.energy, false) +
+    return '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service">⚡🔥</span>' +
       icon('🛜', !!sum.broadband, false) +
       icon('📱', (sum.sims || 0) >= 1, false) +
       icon('📱', (sum.sims || 0) >= 2, false) +
       icon('🛡️', !!sum.insurance, false) +
-      icon('🛒', !!sum.basketLink, false) +
+      '<span class="basket-icon' + cls + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
       icon('✉️', !!sum.quoteShared, false);
   }
 
@@ -199,7 +205,6 @@
     sum.quoteShared = !!(sum.quoteShared || data.quoteSharedAt);
     const specialists = (data.state && data.state._journey && data.state._journey.specialists) || {};
     const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
-    const cardUsed = !!((currentCloudCustomer && (currentCloudCustomer.card_state || currentCloudCustomer.card_state_json)) || specialists.card || specialists.cashback_card || ($c('includeCashback') && $c('includeCashback').checked));
     const nameEl = $c('customerName');
     // The editable name is the source of truth: never leave a loaded name in
     // the shell after the form has deliberately become a new blank draft.
@@ -207,7 +212,7 @@
     el.innerHTML = '<button class="cloud-current-name" type="button" data-cloud-action="customer-name" title="Edit customer name">' + esc(name) + '</button>' +
       '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-        '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Card Companion">💳</span>' +
+        '<span class="cloud-companion-mini" title="Cashback Challenge (not yet available)">💳</span>' +
       '</span>';
   }
 
@@ -229,8 +234,9 @@
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
         #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
-        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:6px;min-width:0;margin-top:.48rem}
-        #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:1}
+        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:3px;min-width:0;margin-top:.48rem;white-space:nowrap}
+        #cloudPilotCard .cloud-status-label{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.01em}
+        #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:0 1 auto}
         #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
         #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;width:100%;justify-content:space-between}
         #cloudPilotCard .cloudicon{width:40px;height:40px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
@@ -251,9 +257,12 @@
         #cloudRecentModal .cloud-current-icons{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
         #cloudRecentModal .cloud-mini-icon{font-size:13px}
         #cloudRecentModal .basket-prompt-card{display:grid;gap:9px;max-height:calc(100dvh - 32px);overflow:auto}
-        #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:.22rem .38rem;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);font-size:12px;font-weight:800;white-space:nowrap}
+        #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;width:28px;height:30px;padding:0;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);white-space:nowrap}
+        #cloudPilotCard .cloud-health img{display:block;width:20px;height:20px}
         #cloudPilotCard .cloud-health.warn{border-color:rgba(217,138,0,.58);background:#fffaf0}
         #cloudPilotCard .cloud-local-state{margin:0}
+        #cloudPilotCard .basket-energy,#cloudRecentModal .basket-energy,#cloudCustomerModal .basket-energy{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 4px;border:1px solid rgba(122,66,200,.16);border-radius:999px;background:#f8f5fe;font-size:12px;letter-spacing:-2px}
+        #cloudPilotCard .basket-energy.could,#cloudRecentModal .basket-energy.could,#cloudCustomerModal .basket-energy.could{opacity:.35;filter:grayscale(1)}
         #cloudPilotCard .sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
         .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
         .whatsapp-ico{width:18px;height:18px;border-radius:50%;background:#25D366;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;line-height:1}
@@ -309,7 +318,7 @@
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
         </div>
       </div>
-      <div class="cloud-health-row"><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span id="cloudConnectionState" class="cloud-health" title="Cloud not connected">☁️</span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally">📱✓</span></div>
+      <div class="cloud-health-row"><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div>
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
@@ -516,11 +525,14 @@
     const target = eventOrDelay && eventOrDelay.target;
     if (target && target.closest && target.closest('#cloudPilotCard,#cloudConnectModal,#cloudCustomerModal,#cloudSettingsModal,#cloudOnboardingModal,#cashbackPlaceholderModal')) return;
     const delay = typeof eventOrDelay === 'number' ? eventOrDelay : 180;
+    if (eventOrDelay && eventOrDelay.target) {
+      currentCloudSynced = false;
+      setBackupIcon('cloudConnectionState', false, 'Current record has changes not yet synced to Cloud');
+    }
     const state = $c('cloudLocalState');
     if (state) {
-      state.textContent = '📱…';
       state.title = 'Saving working copy locally';
-      state.classList.remove('warn');
+      setBackupIcon('cloudLocalState', false, 'Saving working copy locally');
     }
     clearTimeout(workingRecordTimer);
     workingRecordTimer = setTimeout(() => {
@@ -534,9 +546,7 @@
         }
       }
       if (state) {
-        state.textContent = saved ? '📱✓' : '📱⚠️';
-        state.title = saved ? 'Working copy saved locally' : 'Local working copy could not be saved';
-        state.classList.toggle('warn', !saved);
+        setBackupIcon('cloudLocalState', saved, saved ? 'Working copy saved locally on this device' : 'Local working copy needs attention');
       }
     }, Math.max(0, delay));
   }
@@ -622,12 +632,7 @@
 
   function showConnected(on) {
     $c('cloudPilotConnected').classList.toggle('hidden', !on);
-    const cloud = $c('cloudConnectionState');
-    if (cloud) {
-      cloud.textContent = on ? '☁️✓' : '☁️';
-      cloud.classList.remove('warn');
-      cloud.title = on ? 'Cloud connection healthy' : 'Cloud not connected';
-    }
+    setBackupIcon('cloudConnectionState', currentCloudSynced, currentCloudSynced ? 'Current record synced to Cloud' : 'Current record is not synced to Cloud');
     relocateConnectedWidgets();
   }
 
@@ -741,16 +746,15 @@
 
       const iconsHtml =
         '<span class="cloud-customer-icons">' +
-          icon('⚡', !!sum.energy, false) +
-          icon('🔥', !!sum.energy, false) +
+          '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service">⚡🔥</span>' +
           icon('🛜', !!sum.broadband, false) +
           icon('📱', (sum.sims || 0) >= 1, false) +
           icon('📱', (sum.sims || 0) >= 2, false) +
           icon('🛡️', !!sum.insurance, false) +
-          icon('🛒', !!sum.basketLink, false) +
+          '<span class="basket-icon' + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
           icon('✉️', !!sum.quoteShared, false) +
           '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-          '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Card Companion">💳</span>' +
+          '<span class="cloud-companion-mini" title="Cashback Challenge (not yet available)">💳</span>' +
         '</span>';
 
       let heroTxt = '', heroColor = 'var(--good)';
@@ -843,6 +847,7 @@
   function openConnectModal() {
     ensureConnectModal();
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
+    setBackupIcon('cloudLocalState', false, 'Working copy is being checked on this device');
     setStatus(getAuth() ? 'Cloud connection healthy' : 'Cloud not connected', getAuth() ? 'good' : '');
     const auth = getAuth();
     const note = $c('cloudSessionPasswordNote');
@@ -1508,6 +1513,8 @@
       }
 
       setCurrent(customer);
+      currentCloudSynced = true;
+      setBackupIcon('cloudConnectionState', true, 'Current record synced to Cloud');
       scheduleWorkingRecordSave(0);
       syncNotesVisibility();
       renderCloudList();
@@ -1604,6 +1611,7 @@
       stashCloudLocalBackup(data, saved, 'saved');
 
       setCurrent(saved);
+      currentCloudSynced = true;
       syncNotesVisibility();
       await refreshCustomers();
       setStatus(saved.customer_name + ' saved to Cloud ✓ Local backup kept.', 'good');

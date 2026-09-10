@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 24" role="img" aria-label="Local save issue on desktop device">
+  <rect x="4.2" y="3.2" width="20.5" height="13.2" rx="1.8" fill="#1F2937"/>
+  <rect x="6.3" y="5.1" width="16.3" height="9.1" rx=".7" fill="#FFFFFF" opacity=".84"/>
+  <path d="M2.4 18h24.1l-1.8 2H4.1L2.4 18Z" fill="#1F2937"/>
+  <circle cx="27" cy="17.1" r="5.2" fill="#E58A00" stroke="#FFFFFF" stroke-width="1.2"/>
+  <path d="M27 14.3v3.6" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="27" cy="20" r=".9" fill="#FFFFFF"/>
+</svg>

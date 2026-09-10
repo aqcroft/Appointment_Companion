@@ -161,8 +161,9 @@
       '.tstat-warning strong{display:block;margin-bottom:.15rem;color:#725300;}' +
       '.tstat-panel.tstat-main .tstat-top{gap:.3rem;min-width:0;}' +
       '.tstat-panel.tstat-main .tstat-label{display:none;}' +
-      '.tstat-panel.tstat-main .tstat-btn{min-height:30px;padding:.22rem .45rem;font-size:.72rem;white-space:nowrap;}' +
-      '.tstat-panel.tstat-main .tstat-season{font-size:.72rem;min-width:0;}' +
+      '.tstat-panel.tstat-main .tstat-btn{min-height:30px;padding:.22rem .38rem;font-size:.68rem;white-space:nowrap;}' +
+      '.tstat-panel.tstat-main .tstat-season{font-size:.68rem;min-width:0;gap:.2rem;}' +
+      '.tstat-panel.tstat-main .tstat-quarter{font-weight:800;}.tstat-panel.tstat-main .tstat-part{font-weight:700;}.tstat-panel.tstat-main .tstat-part.good{color:var(--good,#1d9b50);}.tstat-panel.tstat-main .tstat-part.warn{color:var(--amber,#d98a00);}' +
       '.tstat-panel.tstat-main .tstat-refresh{display:none;}' +
       '.tstat-modal{position:fixed;inset:0;z-index:14500;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(20,15,30,.55);}' +
       '.tstat-modal.open{display:flex}.tstat-modal-card{width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;border-radius:16px;padding:18px;background:#fff;box-shadow:0 18px 55px rgba(38,22,79,.28);}.tstat-modal-card h3{margin:0 0:.5rem;color:var(--purple,#7a42c8);font-size:18px}.tstat-modal-card p{margin:.35rem 0;color:var(--muted,#6b6b76);font-size:13px;line-height:1.4}.tstat-modal-card .pill{margin-top:.8rem;}' +
@@ -316,7 +317,7 @@
           (names.length ? '<div><strong>Loaded tariffs:</strong> ' + names.join(', ') + '</div>' : '') +
           (checked ? '<div>Latest-series check: ' + checked + '</div>' : '<div>Latest-series verification is not currently supplied by the feed.</div>');
       }
-      if (latest && latest !== loaded) fixedBtn.querySelector('strong').textContent = 'Fixed ' + loaded + ' ⚠️';
+      if (mainShell && loaded !== '—') fixedBtn.querySelector('strong').textContent = 'Fixed ' + loaded + (latest && latest !== loaded ? ' ⚠️' : ' ✓');
 
       var standard = rowByType(rows, 'variable');
       var ev = rowByType(rows, 'variable_ev');
@@ -338,6 +339,14 @@
       if (standardFresh === null || evFresh === null) combinedState = 'red';
       else if (standardFresh === false || evFresh === false) combinedState = 'amber';
       setBtnState(seasonBtn, combinedState);
+
+      if (mainShell) {
+        var standardMark = standardFresh === true ? '✓' : standardFresh === false ? '⚠️' : '—';
+        var evMark = evFresh === true ? '✓' : evFresh === false ? '⚠️' : '—';
+        var standardClass = standardFresh === true ? 'good' : standardFresh === false ? 'warn' : '';
+        var evClass = evFresh === true ? 'good' : evFresh === false ? 'warn' : '';
+        seasonBtn.innerHTML = '<span class="tstat-quarter">' + (qi ? qi.short : 'Price Cap') + '</span><span aria-hidden="true">|</span><span class="tstat-part ' + standardClass + '">Std ' + standardMark + '</span><span class="tstat-part ' + evClass + '">EV ' + evMark + '</span>';
+      }
 
       if (combinedState === 'green') {
         seasonState.textContent = '✓ Current';
@@ -379,7 +388,6 @@
         (checked ? '<p>Last checked: ' + checked + '</p>' : '');
       if (mainShell) {
         if (quarterMismatch) {
-          seasonBtn.textContent = (qi ? qi.short + ' Price Cap' : 'Price Cap') + ' ⚠️';
           openSeasonMismatch = function () { showMismatchModal(detail, key); };
         } else openSeasonMismatch = null;
         if (mismatch && !sessionStorage.getItem(key)) showMismatchModal(detail, key);

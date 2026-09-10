@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const s = document.createElement('script');
-  s.src = '../tariff-status.js?v=20260910-step1-final';
+  s.src = '../tariff-status.js?v=20260910-status1';
   s.async = false;
   document.head.appendChild(s);
 })();
