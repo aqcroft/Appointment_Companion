@@ -234,8 +234,8 @@
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
         #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
-        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:3px;min-width:0;margin-top:.48rem;white-space:nowrap}
-        #cloudPilotCard .cloud-status-label{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.01em}
+        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:2px;min-width:0;margin-top:.48rem;white-space:nowrap}
+        #cloudPilotCard .cloud-status-label{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0}
         #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:0 1 auto}
         #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
         #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;width:100%;justify-content:space-between}
@@ -257,8 +257,8 @@
         #cloudRecentModal .cloud-current-icons{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
         #cloudRecentModal .cloud-mini-icon{font-size:13px}
         #cloudRecentModal .basket-prompt-card{display:grid;gap:9px;max-height:calc(100dvh - 32px);overflow:auto}
-        #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;width:28px;height:30px;padding:0;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);white-space:nowrap}
-        #cloudPilotCard .cloud-health img{display:block;width:20px;height:20px}
+        #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;width:25px;height:28px;padding:0;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);white-space:nowrap}
+        #cloudPilotCard .cloud-health img{display:block;width:18px;height:18px}
         #cloudPilotCard .cloud-health.warn{border-color:rgba(217,138,0,.58);background:#fffaf0}
         #cloudPilotCard .cloud-local-state{margin:0}
         #cloudPilotCard .basket-energy,#cloudRecentModal .basket-energy,#cloudCustomerModal .basket-energy{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 4px;border:1px solid rgba(122,66,200,.16);border-radius:999px;background:#f8f5fe;font-size:12px;letter-spacing:-2px}
@@ -318,9 +318,10 @@
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
         </div>
       </div>
-      <div class="cloud-health-row"><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div>
+      <div class="cloud-health-row"><span class="cloud-status-label">Status</span><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div>
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
+        <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
@@ -354,6 +355,7 @@
       if (action.dataset.cloudAction === 'save-as') saveToCloud({ saveAs: true });
       if (action.dataset.cloudAction === 'all-customers') toggleCloudList();
       if (action.dataset.cloudAction === 'recent-customers') openRecentCustomers();
+      if (action.dataset.cloudAction === 'new-customer') startNewCustomer();
       if (action.dataset.cloudAction === 'partner') openPartnerProfile();
       if (action.dataset.cloudAction === 'settings') openSettingsModal();
       if (action.dataset.cloudAction === 'customer-name') editCustomerName();
@@ -978,9 +980,13 @@
 
   function startNewCustomer() {
     if (!canReplaceWorkingCustomer()) return;
-    if (typeof window.resetForm === 'function') window.resetForm();
     const bridge = window.AppointmentCompanionBridge;
+    if (bridge && typeof bridge.saveAppointmentState === 'function') {
+      try { bridge.saveAppointmentState(); } catch (_) {}
+    }
+    if (typeof window.resetForm === 'function') window.resetForm();
     if (bridge && typeof bridge.clearWorkingRecord === 'function') bridge.clearWorkingRecord();
+    document.dispatchEvent(new CustomEvent('ac:main-reset'));
     setCurrent(null);
     closeCloudList();
     scheduleWorkingRecordSave(0);
@@ -1629,8 +1635,13 @@
   async function boot() {
     buildPanel();
     const bridge = window.AppointmentCompanionBridge;
+    let localRecord = null;
+    if (bridge && typeof bridge.getWorkingRecord === 'function') {
+      try { localRecord = bridge.getWorkingRecord(); } catch (_) {}
+    }
+    setBackupIcon('cloudLocalState', !!(localRecord && (localRecord.appointment_state || localRecord.customer_name)), localRecord ? 'Working copy saved locally on this device' : 'No saved working copy on this device yet');
     if (!currentCloudCustomerId && bridge && typeof bridge.getWorkingRecord === 'function') {
-      const record = bridge.getWorkingRecord();
+      const record = localRecord;
       const name = $c('customerName');
       if (record && record.appointment_state && name && !String(name.value || '').trim() && typeof window.restoreForm === 'function') {
         try {

@@ -161,8 +161,8 @@
       '.tstat-warning strong{display:block;margin-bottom:.15rem;color:#725300;}' +
       '.tstat-panel.tstat-main .tstat-top{gap:.3rem;min-width:0;}' +
       '.tstat-panel.tstat-main .tstat-label{display:none;}' +
-      '.tstat-panel.tstat-main .tstat-btn{min-height:30px;padding:.22rem .38rem;font-size:.68rem;white-space:nowrap;}' +
-      '.tstat-panel.tstat-main .tstat-season{font-size:.68rem;min-width:0;gap:.2rem;}' +
+      '.tstat-panel.tstat-main .tstat-btn{min-height:28px;padding:.2rem .3rem;font-size:.61rem;white-space:nowrap;}' +
+      '.tstat-panel.tstat-main .tstat-season{font-size:.61rem;min-width:0;gap:.16rem;}' +
       '.tstat-panel.tstat-main .tstat-quarter{font-weight:800;}.tstat-panel.tstat-main .tstat-part{font-weight:700;}.tstat-panel.tstat-main .tstat-part.good{color:var(--good,#1d9b50);}.tstat-panel.tstat-main .tstat-part.warn{color:var(--amber,#d98a00);}' +
       '.tstat-panel.tstat-main .tstat-refresh{display:none;}' +
       '.tstat-modal{position:fixed;inset:0;z-index:14500;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(20,15,30,.55);}' +
@@ -317,7 +317,7 @@
           (names.length ? '<div><strong>Loaded tariffs:</strong> ' + names.join(', ') + '</div>' : '') +
           (checked ? '<div>Latest-series check: ' + checked + '</div>' : '<div>Latest-series verification is not currently supplied by the feed.</div>');
       }
-      if (mainShell && loaded !== '—') fixedBtn.querySelector('strong').textContent = 'Fixed ' + loaded + (latest && latest !== loaded ? ' ⚠️' : ' ✓');
+      if (mainShell && loaded !== '—') fixedBtn.querySelector('strong').textContent = 'Fixed ' + loaded + (latest && latest !== loaded ? ' ⚠️' : ' ✅');
 
       var standard = rowByType(rows, 'variable');
       var ev = rowByType(rows, 'variable_ev');
@@ -341,8 +341,8 @@
       setBtnState(seasonBtn, combinedState);
 
       if (mainShell) {
-        var standardMark = standardFresh === true ? '✓' : standardFresh === false ? '⚠️' : '—';
-        var evMark = evFresh === true ? '✓' : evFresh === false ? '⚠️' : '—';
+        var standardMark = standardFresh === true ? '✅' : standardFresh === false ? '⚠️' : '—';
+        var evMark = evFresh === true ? '✅' : evFresh === false ? '⚠️' : '—';
         var standardClass = standardFresh === true ? 'good' : standardFresh === false ? 'warn' : '';
         var evClass = evFresh === true ? 'good' : evFresh === false ? 'warn' : '';
         seasonBtn.innerHTML = '<span class="tstat-quarter">' + (qi ? qi.short : 'Price Cap') + '</span><span aria-hidden="true">|</span><span class="tstat-part ' + standardClass + '">Std ' + standardMark + '</span><span class="tstat-part ' + evClass + '">EV ' + evMark + '</span>';
