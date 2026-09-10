@@ -192,7 +192,7 @@
     fixedBtn.type = 'button';
     fixedBtn.className = 'tstat-btn tstat-fixed is-check';
     fixedBtn.setAttribute('aria-expanded', 'false');
-    fixedBtn.innerHTML = '<span aria-hidden="true">🔒</span><strong>—</strong>';
+    fixedBtn.innerHTML = mainShell ? '<strong>—</strong>' : '<span aria-hidden="true">🔒</span><strong>—</strong>';
 
     var seasonBtn = document.createElement('button');
     seasonBtn.type = 'button';
@@ -257,8 +257,12 @@
       seasonBtn.setAttribute('aria-expanded', openPanel === 'variable' ? 'true' : 'false');
     }
 
+    var openSeasonMismatch = null;
     fixedBtn.addEventListener('click', function () { setPanel('fixed'); });
-    seasonBtn.addEventListener('click', function () { setPanel('variable'); });
+    seasonBtn.addEventListener('click', function () {
+      if (openSeasonMismatch) return openSeasonMismatch();
+      setPanel('variable');
+    });
     refreshBtn.addEventListener('click', check);
 
     function setBtnState(btn, state) {
@@ -376,8 +380,8 @@
       if (mainShell) {
         if (quarterMismatch) {
           seasonBtn.textContent = (qi ? qi.short + ' Price Cap' : 'Price Cap') + ' ⚠️';
-          seasonBtn.onclick = function () { showMismatchModal(detail, key); };
-        } else seasonBtn.onclick = null;
+          openSeasonMismatch = function () { showMismatchModal(detail, key); };
+        } else openSeasonMismatch = null;
         if (mismatch && !sessionStorage.getItem(key)) showMismatchModal(detail, key);
       }
     }
