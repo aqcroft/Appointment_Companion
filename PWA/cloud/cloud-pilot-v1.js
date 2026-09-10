@@ -236,8 +236,11 @@
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
         #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
-        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:2px;min-width:0;margin-top:.48rem;white-space:nowrap}
+        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:0;min-width:0;margin-top:.48rem;white-space:nowrap}
         #cloudPilotCard .cloud-status-label{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0}
+        #cloudPilotCard .cloud-status-primary{font-size:10px;font-weight:850;color:var(--ink)}
+        #cloudPilotCard .cloud-health-right{display:flex;align-items:center;gap:5px;min-width:0;margin-left:auto}
+        #cloudPilotCard .cloud-health-tariffs,#cloudPilotCard .cloud-health-backup{display:flex;align-items:center;gap:2px;min-width:0}
         #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:0 1 auto}
         #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
         #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;width:100%;justify-content:space-between}
@@ -312,6 +315,7 @@
           #cloudCustomerModal .cloud-row-actions{grid-area:action;justify-self:end}
           #cloudCustomerModal .cloud-row-action{min-height:44px!important;min-width:70px;padding:8px 10px!important}
         }
+        @media(max-width:430px){#cloudPilotCard .cloud-health-right{gap:3px}#cloudPilotCard .cloud-health-tariffs,#cloudPilotCard .cloud-health-backup{gap:1px}#cloudPilotCard .cloud-health-row .cloud-status-label{font-size:8.5px}#cloudPilotCard .cloud-health-row .cloud-status-primary{font-size:9.5px}#cloudPilotCard .cloud-tariff-slot .tstat-panel.tstat-main .tstat-btn{padding:.18rem .25rem;font-size:.58rem}}
         @media(max-width:620px){#cloudPilotCard{padding:.65rem!important}#cloudPilotCard .cloud-menu-popover{left:.65rem;right:.65rem;width:auto}}
       </style>
       <div class="cloudbar">
@@ -324,7 +328,7 @@
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
         </div>
       </div>
-      <div class="cloud-health-row"><span class="cloud-status-label">Status</span><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div>
+      <div class="cloud-health-row"><span class="cloud-status-label cloud-status-primary">Status</span><div class="cloud-health-right"><div class="cloud-health-tariffs"><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div></div><div class="cloud-health-backup"><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div></div></div>
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
