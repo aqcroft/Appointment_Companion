@@ -216,7 +216,7 @@
     var fixedDetail = document.createElement('div');
     fixedDetail.className = 'tstat-detail';
     fixedDetail.hidden = true;
-    fixedDetail.innerHTML = '<div class="tstat-detail-head"><strong class="tstat-fixed-title">🔒 Fixed tariff version</strong><span class="tstat-state tstat-fixed-state">Checking...</span></div><div class="tstat-lines tstat-fixed-lines">Loading fixed tariff version...</div>';
+    fixedDetail.innerHTML = '<div class="tstat-detail-head"><strong class="tstat-fixed-title">Fixed tariff version</strong><span class="tstat-state tstat-fixed-state">Checking...</span></div><div class="tstat-lines tstat-fixed-lines">Loading fixed tariff version...</div>';
     mount.appendChild(fixedDetail);
 
     var variableDetail = document.createElement('div');
@@ -290,7 +290,7 @@
       var fixedTitle = fixedDetail.querySelector('.tstat-fixed-title');
 
       fixedBtn.querySelector('strong').textContent = mainShell ? 'Fixed ' + loaded : loaded;
-      fixedTitle.textContent = '🔒 Fixed ' + loaded;
+      fixedTitle.textContent = 'Fixed tariff version';
 
       var fixedWarn = '';
       if (loaded === '—') {
@@ -312,6 +312,7 @@
           (names.length ? '<div><strong>Loaded tariffs:</strong> ' + names.join(', ') + '</div>' : '') +
           (checked ? '<div>Latest-series check: ' + checked + '</div>' : '<div>Latest-series verification is not currently supplied by the feed.</div>');
       }
+      if (latest && latest !== loaded) fixedBtn.querySelector('strong').textContent = 'Fixed ' + loaded + ' ⚠️';
 
       var standard = rowByType(rows, 'variable');
       var ev = rowByType(rows, 'variable_ev');
@@ -361,7 +362,9 @@
       warning.innerHTML = warnings.join('<br><br>');
       warning.hidden = mainShell || !warnings.length;
 
-      var mismatch = standardFresh === false || evFresh === false || (latest && latest !== loaded);
+      var fixedMismatch = !!(latest && latest !== loaded);
+      var quarterMismatch = standardFresh === false || evFresh === false;
+      var mismatch = quarterMismatch || fixedMismatch;
       var actualStandard = sf && st ? fmt(sf) + ' to ' + fmt(st) : 'unavailable';
       var actualEv = ef && et ? fmt(ef) + ' to ' + fmt(et) : 'unavailable';
       var key = 'apptCompanionTariffMismatchAckV1:' + [now, sf, st, ef, et, loaded, latest].join('|');
@@ -371,12 +374,11 @@
         '<p><strong>Fixed series:</strong> Fixed ' + loaded + (latest ? ' (latest feed series: Fixed ' + latest + ')' : '') + (latest && latest !== loaded ? ' ⚠️' : ' ✓') + '</p>' +
         (checked ? '<p>Last checked: ' + checked + '</p>' : '');
       if (mainShell) {
-        seasonBtn.classList.toggle('is-amber', mismatch);
-        if (mismatch) {
+        if (quarterMismatch) {
           seasonBtn.textContent = (qi ? qi.short + ' Price Cap' : 'Price Cap') + ' ⚠️';
           seasonBtn.onclick = function () { showMismatchModal(detail, key); };
-          if (!sessionStorage.getItem(key)) showMismatchModal(detail, key);
         } else seasonBtn.onclick = null;
+        if (mismatch && !sessionStorage.getItem(key)) showMismatchModal(detail, key);
       }
     }
 

@@ -201,7 +201,9 @@
     const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
     const cardUsed = !!((currentCloudCustomer && (currentCloudCustomer.card_state || currentCloudCustomer.card_state_json)) || specialists.card || specialists.cashback_card || ($c('includeCashback') && $c('includeCashback').checked));
     const nameEl = $c('customerName');
-    const name = String((nameEl && nameEl.value) || data.customerName || (currentCloudCustomer && currentCloudCustomer.customer_name) || '').trim() || 'New customer';
+    // The editable name is the source of truth: never leave a loaded name in
+    // the shell after the form has deliberately become a new blank draft.
+    const name = String((nameEl && nameEl.value) || '').trim() || 'New customer';
     el.innerHTML = '<button class="cloud-current-name" type="button" data-cloud-action="customer-name" title="Edit customer name">' + esc(name) + '</button>' +
       '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
@@ -242,9 +244,13 @@
         #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
         #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
-        #cloudPilotCard .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;min-height:40px;padding:7px 9px;border:1px solid rgba(122,66,200,.14);border-radius:9px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
-        #cloudPilotCard .cloud-recent-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800}
-        #cloudPilotCard .cloud-recent-meta{display:block;margin-top:2px;font-size:10px;color:var(--muted)}
+        #cloudPilotCard .cloud-recent-item,#cloudRecentModal .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:52px;padding:9px 11px;border:1px solid rgba(122,66,200,.14);border-radius:10px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+        #cloudPilotCard .cloud-recent-name,#cloudRecentModal .cloud-recent-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800}
+        #cloudPilotCard .cloud-recent-meta,#cloudRecentModal .cloud-recent-meta{display:block;margin-top:3px;font-size:11px;color:var(--muted)}
+        #cloudRecentModal .cloud-recent-list{display:grid;gap:7px;max-height:min(48dvh,360px);overflow:auto;padding:1px}
+        #cloudRecentModal .cloud-current-icons{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+        #cloudRecentModal .cloud-mini-icon{font-size:13px}
+        #cloudRecentModal .basket-prompt-card{display:grid;gap:9px;max-height:calc(100dvh - 32px);overflow:auto}
         #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:.22rem .38rem;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);font-size:12px;font-weight:800;white-space:nowrap}
         #cloudPilotCard .cloud-health.warn{border-color:rgba(217,138,0,.58);background:#fffaf0}
         #cloudPilotCard .cloud-local-state{margin:0}
@@ -580,7 +586,7 @@
   function ensureRecentCustomersModal() {
     if ($c('cloudRecentModal')) return;
     const modal = document.createElement('div');
-    modal.id = 'cloudRecentModal'; modal.className = 'basket-prompt-modal';
+    modal.id = 'cloudRecentModal'; modal.className = 'basket-prompt cloud-recent-modal';
     modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="cloudRecentTitle"><h3 id="cloudRecentTitle">Recent customers / scenarios</h3><div id="cloudRecentList" class="cloud-recent-list"></div><button class="pill" type="button" data-cloud-recent="all">☁️ View all Cloud customers</button><button class="pill" type="button" data-cloud-recent="close">Close</button></div>';
     modal.addEventListener('click', e => { if (e.target === modal || e.target.dataset.cloudRecent === 'close') closeRecentCustomers(); if (e.target.dataset.cloudRecent === 'all') { closeRecentCustomers(); toggleCloudList(); } });
     document.body.appendChild(modal);
