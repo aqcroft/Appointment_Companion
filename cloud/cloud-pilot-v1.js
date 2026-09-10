@@ -172,6 +172,8 @@
     }
     renderCloudCurrent();
     renderRecentCustomers();
+    const deleteAction = $c('cloudDeleteCurrent');
+    if (deleteAction) deleteAction.disabled = !currentCloudCustomerId;
   }
 
   function summaryIconHtml(sum, tiny) {
@@ -250,7 +252,10 @@
         #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
         #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
-        #cloudPilotCard .cloud-recent-item,#cloudRecentModal .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:52px;padding:9px 11px;border:1px solid rgba(122,66,200,.14);border-radius:10px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+        #cloudPilotCard .cloud-recent-item,#cloudRecentModal .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;width:100%;min-height:52px}
+        #cloudPilotCard .cloud-recent-load,#cloudRecentModal .cloud-recent-load{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:52px;padding:9px 11px;border:1px solid rgba(122,66,200,.14);border-radius:10px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+        #cloudPilotCard .cloud-row-delete,#cloudRecentModal .cloud-recent-delete{width:34px;height:34px;padding:0;border:1px solid rgba(160,48,48,.20);border-radius:9px;background:#fff;color:#9c3838;font-size:15px;cursor:pointer;opacity:.72}
+        #cloudPilotCard .cloud-row-delete:hover,#cloudRecentModal .cloud-recent-delete:hover{opacity:1;background:#fff6f6}
         #cloudPilotCard .cloud-recent-name,#cloudRecentModal .cloud-recent-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800}
         #cloudPilotCard .cloud-recent-meta,#cloudRecentModal .cloud-recent-meta{display:block;margin-top:3px;font-size:11px;color:var(--muted)}
         #cloudRecentModal .cloud-recent-list{display:grid;gap:7px;max-height:min(48dvh,360px);overflow:auto;padding:1px}
@@ -277,7 +282,7 @@
         #cloudSettingsModal .cloud-about{margin-top:.8rem;padding:.75rem;border:1px solid var(--line);border-radius:10px;background:#fbfaff}
         #cloudSettingsModal .cloud-about h4{margin:0 0 .35rem;color:var(--purple);font-size:13px}
         #cloudSettingsModal .cloud-about p{margin:0;font-size:12px;line-height:1.45;color:var(--muted)}
-        #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 74px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
+        #cloudCustomerModal .cloud-table-head{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 118px;gap:8px;align-items:center;margin:.7rem 0 .3rem;padding:0 .75rem;color:var(--muted);font-size:10px;font-weight:850;text-transform:uppercase}
         #cloudCustomerModal .cloud-sort{border:0;background:transparent;color:var(--purple);font:inherit;font-weight:850;text-transform:uppercase;padding:0;cursor:pointer;text-align:left}
         #cloudCustomerModal .cloud-customer-icons{display:flex;align-items:center;gap:7px;font-size:14px;min-width:0}
         #cloudCustomerModal .cloud-customer-icons .basket-icon{width:22px;height:22px}
@@ -285,7 +290,7 @@
         #cloudCustomerModal .cloud-companion-mini.on{opacity:1;filter:none}
         #cloudCustomerModal .cloud-service-head{display:inline-flex;align-items:center;gap:5px}
         #cloudCustomerModal .cloud-service-head span{cursor:help}
-        #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 74px;gap:8px;align-items:center}
+        #cloudCustomerModal .cloud-row{display:grid;grid-template-columns:minmax(118px,.9fr) 74px minmax(260px,1.5fr) 112px 118px;gap:8px;align-items:center}
         #cloudLoadingOverlay{position:fixed;inset:0;z-index:14000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.22);backdrop-filter:blur(2px)}
         #cloudLoadingOverlay.open{display:flex}
         #cloudLoadingOverlay .loading-card{width:min(320px,calc(100vw - 36px));padding:22px;border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 18px 55px rgba(38,22,79,.24);text-align:center}
@@ -304,7 +309,8 @@
           #cloudCustomerModal .cloud-row-icons{grid-area:icons;min-width:0}
           #cloudCustomerModal .cloud-customer-icons{display:flex;flex-wrap:wrap;gap:5px 7px;max-width:100%}
           #cloudCustomerModal .cloud-row-date{grid-area:date;font-size:11px!important;min-width:0}
-          #cloudCustomerModal .cloud-row-action{grid-area:action;min-height:44px!important;min-width:86px;padding:8px 14px!important;justify-self:end}
+          #cloudCustomerModal .cloud-row-actions{grid-area:action;justify-self:end}
+          #cloudCustomerModal .cloud-row-action{min-height:44px!important;min-width:70px;padding:8px 10px!important}
         }
         @media(max-width:620px){#cloudPilotCard{padding:.65rem!important}#cloudPilotCard .cloud-menu-popover{left:.65rem;right:.65rem;width:auto}}
       </style>
@@ -322,6 +328,7 @@
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudDeleteCurrent" data-cloud-action="delete-current" disabled><span class="menu-ico">🗑️</span><span>Delete current customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
@@ -356,6 +363,7 @@
       if (action.dataset.cloudAction === 'all-customers') toggleCloudList();
       if (action.dataset.cloudAction === 'recent-customers') openRecentCustomers();
       if (action.dataset.cloudAction === 'new-customer') startNewCustomer();
+      if (action.dataset.cloudAction === 'delete-current') requestDeleteCustomer(currentCloudCustomerId, currentCloudCustomer && currentCloudCustomer.customer_name);
       if (action.dataset.cloudAction === 'partner') openPartnerProfile();
       if (action.dataset.cloudAction === 'settings') openSettingsModal();
       if (action.dataset.cloudAction === 'customer-name') editCustomerName();
@@ -586,12 +594,21 @@
     const rows = readRecentCustomers().slice(0, 5);
     wrap.innerHTML = '';
     rows.forEach(row => {
+      const item = document.createElement('div');
+      item.className = 'cloud-recent-item';
       const button = document.createElement('button');
-      button.type = 'button'; button.className = 'cloud-recent-item';
+      button.type = 'button'; button.className = 'cloud-recent-load';
       const icons = summaryIconHtml(row.summary || {}, true) + (row.has_ev ? '<span title="EV Companion">🚙</span>' : '');
       button.innerHTML = '<span><span class="cloud-recent-name">' + esc(row.customer_name || 'Unnamed') + '</span><span class="cloud-recent-meta">Updated ' + esc(fmtDate(row.updated_at)) + '</span></span><span class="cloud-current-icons">' + icons + '</span>';
       button.addEventListener('click', () => { closeRecentCustomers(); if (!getAuth()) { openConnectModal(); setStatus('Connect Cloud to load this recent customer.'); return; } loadCustomer(row.customer_id); });
-      wrap.appendChild(button);
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'cloud-recent-delete';
+      remove.textContent = '🗑️'; remove.title = 'Delete ' + (row.customer_name || 'customer');
+      remove.setAttribute('aria-label', remove.title);
+      remove.addEventListener('click', () => requestDeleteCustomer(row.customer_id, row.customer_name));
+      item.appendChild(button);
+      item.appendChild(remove);
+      wrap.appendChild(item);
     });
   }
 
@@ -786,6 +803,9 @@
         <div class="sub cloud-row-date" style="font-size:11px;">Updated ${dateCell}</div>
       `;
 
+      const actions = document.createElement('div');
+      actions.className = 'cloud-row-actions';
+      actions.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;gap:6px;';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pill cloud-row-action';
@@ -793,7 +813,14 @@
       btn.textContent = customer.customer_id === currentCloudCustomerId ? 'Linked' : 'Load';
       btn.disabled = customer.customer_id === currentCloudCustomerId;
       btn.addEventListener('click', () => loadCustomer(customer.customer_id));
-      row.appendChild(btn);
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'cloud-row-delete';
+      remove.textContent = '🗑️'; remove.title = 'Delete ' + (customer.customer_name || 'customer');
+      remove.setAttribute('aria-label', remove.title);
+      remove.addEventListener('click', () => requestDeleteCustomer(customer.customer_id, customer.customer_name));
+      actions.appendChild(btn);
+      actions.appendChild(remove);
+      row.appendChild(actions);
       wrap.appendChild(row);
     });
   }
@@ -993,6 +1020,103 @@
     setStatus('New local customer draft ready. Cloud is only used when you choose Save.', 'good');
     const name = $c('customerName');
     if (name) setTimeout(() => name.focus(), 80);
+  }
+
+  function ensureDeleteCustomerModal() {
+    if ($c('cloudDeleteCustomerModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'basket-prompt';
+    modal.id = 'cloudDeleteCustomerModal';
+    modal.innerHTML = `
+      <div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="cloudDeleteCustomerTitle" style="max-width:420px;">
+        <h3 id="cloudDeleteCustomerTitle">Delete customer?</h3>
+        <p class="sub" id="cloudDeleteCustomerText">This will permanently delete this customer profile and its saved Companion data.</p>
+        <p class="sub hidden" id="cloudDeleteCustomerError" role="alert" style="margin:0;color:#c43b3b;font-weight:750;"></p>
+        <div class="modal-actions"><button class="btn-ghost" type="button" id="cloudDeleteCustomerCancel">Cancel</button><button class="btn-share" type="button" id="cloudDeleteCustomerConfirm" style="background:#a33232;">🗑️ Delete customer</button></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    $c('cloudDeleteCustomerCancel').addEventListener('click', closeDeleteCustomerModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeDeleteCustomerModal(); });
+    $c('cloudDeleteCustomerConfirm').addEventListener('click', confirmDeleteCustomer);
+  }
+
+  let deleteCandidate = null;
+  function closeDeleteCustomerModal() {
+    const modal = $c('cloudDeleteCustomerModal');
+    if (modal) modal.classList.remove('open');
+    deleteCandidate = null;
+  }
+
+  function requestDeleteCustomer(customerId, customerName) {
+    if (!customerId) return;
+    if (!getAuth()) {
+      openConnectModal();
+      setStatus('Connect Cloud to delete a customer.');
+      return;
+    }
+    ensureDeleteCustomerModal();
+    deleteCandidate = { customer_id: String(customerId), customer_name: String(customerName || 'this customer') };
+    $c('cloudDeleteCustomerTitle').textContent = 'Delete ' + deleteCandidate.customer_name + '?';
+    $c('cloudDeleteCustomerText').textContent = 'This will permanently delete this customer profile and its saved Companion data.';
+    setInlineConnectError('cloudDeleteCustomerError', '');
+    $c('cloudDeleteCustomerConfirm').disabled = false;
+    $c('cloudDeleteCustomerModal').classList.add('open');
+    setTimeout(() => $c('cloudDeleteCustomerCancel').focus(), 50);
+  }
+
+  function removeCustomerLocalState(customerId) {
+    const id = String(customerId || '');
+    try {
+      const recent = readRecentCustomers().filter(row => String(row.customer_id || '') !== id);
+      localStorage.setItem(RECENT_CUSTOMERS_KEY, JSON.stringify(recent));
+    } catch (_) {}
+    try {
+      const saves = JSON.parse(localStorage.getItem(LOCAL_BACKUP_KEY) || '[]');
+      const kept = Array.isArray(saves) ? saves.filter(rec => {
+        const backupId = rec && rec.data && rec.data.cloud_backup && rec.data.cloud_backup.customer_id;
+        return String(rec && rec.id || '') !== localBackupId(id, '') && String(backupId || '') !== id;
+      }) : [];
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(kept));
+      if (typeof window.renderSavesList === 'function') window.renderSavesList();
+    } catch (_) {}
+  }
+
+  function resetAfterCustomerDeletion() {
+    const bridge = window.AppointmentCompanionBridge;
+    if (typeof window.resetForm === 'function') window.resetForm();
+    if (bridge && typeof bridge.clearWorkingRecord === 'function') bridge.clearWorkingRecord();
+    document.dispatchEvent(new CustomEvent('ac:main-reset'));
+    setCurrent(null);
+    currentCloudSynced = false;
+    scheduleWorkingRecordSave(0);
+    syncNotesVisibility();
+  }
+
+  async function confirmDeleteCustomer() {
+    const candidate = deleteCandidate;
+    if (!candidate) return;
+    const auth = getAuth();
+    if (!auth) return requestDeleteCustomer(candidate.customer_id, candidate.customer_name);
+    const confirm = $c('cloudDeleteCustomerConfirm');
+    confirm.disabled = true;
+    setInlineConnectError('cloudDeleteCustomerError', '');
+    try {
+      await api.deleteCustomer(auth, candidate.customer_id);
+      const wasCurrent = candidate.customer_id === currentCloudCustomerId;
+      removeCustomerLocalState(candidate.customer_id);
+      cloudCustomers = cloudCustomers.filter(customer => String(customer.customer_id || '') !== candidate.customer_id);
+      if (wasCurrent) resetAfterCustomerDeletion();
+      renderRecentCustomers();
+      renderCloudList();
+      closeDeleteCustomerModal();
+      setStatus(candidate.customer_name + ' deleted from Cloud ✓', 'good');
+    } catch (err) {
+      const message = 'Cloud deletion failed. Nothing was removed locally. ' + ((err && err.message) || String(err));
+      setInlineConnectError('cloudDeleteCustomerError', message);
+      setStatus(message, 'bad');
+      confirm.disabled = false;
+    }
   }
 
   function openCardPlaceholder() {

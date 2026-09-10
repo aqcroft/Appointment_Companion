@@ -4,7 +4,7 @@
    project. It deliberately does not alter the existing Partners/Customers/Shares
    schema. The Presence sheet is created automatically on first use.
 
-   ONE small edit is required in the existing doPost(e), immediately after:
+   TWO small edits are required in the existing doPost(e), immediately after:
 
      if (!action) throw new Error('Missing action.');
 
@@ -12,6 +12,9 @@
 
      const presenceResponse = handlePresenceAction_(action, body);
      if (presenceResponse) return json_(presenceResponse);
+
+     const deleteResponse = handleCustomerDeleteAction_(action, body);
+     if (deleteResponse) return json_(deleteResponse);
 
    Then deploy a new version of the existing Web App.
 */
@@ -31,6 +34,50 @@ const PRESENCE_HEADERS_ = [
 ];
 const PRESENCE_ACTIVE_MS_ = 120000;
 const PRESENCE_PRUNE_MS_ = 7 * 24 * 60 * 60 * 1000;
+
+/*
+  Canonical customer delete action. This is intentionally a small add-on to
+  the existing Cloud project: it reuses its requirePartner_, getCustomer_,
+  sheetToObjects_ and json_ helpers, so authentication and ownership remain
+  exactly the same as the other customer actions.
+*/
+function handleCustomerDeleteAction_(action, body) {
+  if (action !== 'deleteCustomer') return null;
+
+  const partner = requirePartner_(body);
+  const customerId = String(body.customer_id || '').trim();
+  if (!customerId) throw new Error('Missing customer_id.');
+
+  // getCustomer_ is the ownership check: a different Partner cannot obtain
+  // the record and therefore cannot delete it or any related data.
+  getCustomer_(partner.partner_id, customerId);
+
+  const removed = {
+    customers: deleteOwnedCustomerRows_('Customers', partner.partner_id, customerId),
+    shares: deleteOwnedCustomerRows_('Shares', partner.partner_id, customerId),
+    presence: deleteOwnedCustomerRows_(PRESENCE_SHEET_NAME_, partner.partner_id, customerId)
+  };
+  if (!removed.customers) throw new Error('Customer could not be deleted.');
+
+  return { ok: true, deleted_customer_id: customerId, removed: removed };
+}
+
+function deleteOwnedCustomerRows_(sheetName, partnerId, customerId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+
+  const rows = sheetToObjects_(sheet);
+  const matches = rows
+    .filter(r =>
+      String(r.customer_id || '') === customerId &&
+      String(r.partner_id || '') === String(partnerId)
+    )
+    .map(r => r.__row)
+    .sort((a, b) => b - a);
+
+  matches.forEach(row => sheet.deleteRow(row));
+  return matches.length;
+}
 
 function handlePresenceAction_(action, body) {
   if (

@@ -108,14 +108,17 @@
     try {
       let customer = await shareApi.getCurrentCustomer();
       const workspace = global.AppointmentCompanionEvWorkspace;
-      let name = String((workspace && workspace.getCustomerName && workspace.getCustomerName()) || customer.customer_name || '').trim();
+      const linked = !!(workspace && workspace.isLinked && workspace.isLinked());
+      // A linked EV journey identifies the customer by ID. Its share must use
+      // the freshly fetched Main-owned canonical name, never a specialist copy.
+      let name = String(linked ? customer.customer_name : ((workspace && workspace.getCustomerName && workspace.getCustomerName()) || customer.customer_name || '')).trim();
       if (!name) {
         name = String(global.prompt ? global.prompt('Who is this EV summary for? Add the customer name to personalise the share.', '') || '' : '').trim();
         if (!name) throw new Error('Add the customer name before sharing.');
         if (workspace && workspace.setCustomerName) workspace.setCustomerName(name);
         if (workspace && workspace.saveNow) await workspace.saveNow();
         customer = await shareApi.getCurrentCustomer();
-      } else if (workspace && workspace.saveNow && name !== String(customer.customer_name || '').trim()) {
+      } else if (!linked && workspace && workspace.saveNow && name !== String(customer.customer_name || '').trim()) {
         await workspace.saveNow();
         customer = await shareApi.getCurrentCustomer();
       }

@@ -96,6 +96,13 @@
       }, authPayload(auth)));
     },
 
+    async deleteCustomer(auth, customerId) {
+      return post(Object.assign({
+        action: 'deleteCustomer',
+        customer_id: String(customerId || '').trim()
+      }, authPayload(auth)));
+    },
+
     async createShare(auth, payload) {
       return post(Object.assign({ action: 'createShare' }, payload || {}, authPayload(auth)));
     },

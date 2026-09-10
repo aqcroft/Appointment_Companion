@@ -74,7 +74,9 @@
     let appointmentState = clone(customer.appointment_state || opts.appointment_state || {});
     if (!appointmentState || typeof appointmentState !== 'object') appointmentState = {};
     appointmentState._journey = bridge.getJourney();
-    const customerName = String(opts.customer_name || (state && state.customer_name) || customer.customer_name || '').trim();
+    // Main Companion is the canonical customer owner. Specialist state can
+    // contain a historic display name, but must never replace this value.
+    const customerName = String(customer.customer_name || '').trim();
     if (customerName) {
       appointmentState.customerName = customerName;
       if (appointmentState.inputs && typeof appointmentState.inputs === 'object') appointmentState.inputs.customerName = customerName;
@@ -82,7 +84,7 @@
 
     const payload = {
       customer_id: customer.customer_id,
-      customer_name: customerName || customer.customer_name,
+      customer_name: customerName,
       electricity_usage_kwh: customer.electricity_usage_kwh,
       electricity_usage_day_kwh: customer.electricity_usage_day_kwh,
       electricity_usage_night_kwh: customer.electricity_usage_night_kwh,
