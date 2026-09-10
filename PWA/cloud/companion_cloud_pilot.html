@@ -44,6 +44,7 @@ body {
 
 /* ===== Header ===== */
 header { padding: 0.5rem 0 1rem; }
+header.app-shell-anchor { height: 0; margin: 0; padding: 0; overflow: hidden; }
 header h1 { font-size: 20px; font-weight: 800; color: var(--purple); letter-spacing: -0.3px; }
 header p { font-size: 12.5px; color: var(--muted); }
 .beta-badge {
@@ -327,15 +328,11 @@ label.active-tier { color:var(--purple); font-weight:700; }
 <body>
 
 <div class="wrap">
-  <header>
+  <header class="app-shell-anchor">
     <!-- Shared tariff-status dashboard. Same widget on every tool.
          data-feed-url must point at the live "anyone can access" feed deployment. -->
-    <div id="tariffStatus" style="margin:.15rem 0 .65rem;"
+    <div id="tariffStatus" data-tariff-shell="main" style="margin:.15rem 0 .65rem;"
          data-feed-url="https://script.google.com/macros/s/AKfycbw-TllTpk_dbFjHhmojgeai9gKNGRzRaA_BtMooVSLeqvg614mONQyrpElC4M8vqP51/exec"></div>
-    <div>
-      <h1>💰 Appointment Companion <span class="beta-badge">Beta</span></h1>
-      <p>What they pay now. What they'd pocket in year one.</p>
-    </div>
   </header>
 
   <!-- Customer & household -->

@@ -113,6 +113,18 @@
     return keys[0];
   }
 
+  function fixedNames(rows, series) {
+    var names = [];
+    rows.forEach(function (r) {
+      var type = String(pick(r, ['tariff_type', 'tariffType']) || '').toLowerCase();
+      if (type !== 'fixed') return;
+      var name = String(pick(r, ['tariff_name', 'tariffName']) || '').trim();
+      var rowSeries = String(pick(r, ['fixed_series', 'fixedSeries']) || '').replace(/\D/g, '');
+      if (name && (!series || !rowSeries || rowSeries === series) && names.indexOf(name) < 0) names.push(name);
+    });
+    return names;
+  }
+
   function latestFixed(meta) {
     var v = meta && (meta.latestFixedSeries != null ? meta.latestFixedSeries : meta.latest_fixed_series);
     return v == null ? '' : String(v).replace(/\D/g, '');
@@ -147,6 +159,13 @@
       '.tstat-lines{display:grid;gap:.18rem;}' +
       '.tstat-warning{border-color:rgba(217,138,0,.45);background:#fffaf0;color:#725300;line-height:1.35;}' +
       '.tstat-warning strong{display:block;margin-bottom:.15rem;color:#725300;}' +
+      '.tstat-panel.tstat-main .tstat-top{gap:.3rem;min-width:0;}' +
+      '.tstat-panel.tstat-main .tstat-label{display:none;}' +
+      '.tstat-panel.tstat-main .tstat-btn{min-height:30px;padding:.22rem .45rem;font-size:.72rem;white-space:nowrap;}' +
+      '.tstat-panel.tstat-main .tstat-season{font-size:.72rem;min-width:0;}' +
+      '.tstat-panel.tstat-main .tstat-refresh{display:none;}' +
+      '.tstat-modal{position:fixed;inset:0;z-index:14500;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(20,15,30,.55);}' +
+      '.tstat-modal.open{display:flex}.tstat-modal-card{width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;border-radius:16px;padding:18px;background:#fff;box-shadow:0 18px 55px rgba(38,22,79,.28);}.tstat-modal-card h3{margin:0 0:.5rem;color:var(--purple,#7a42c8);font-size:18px}.tstat-modal-card p{margin:.35rem 0;color:var(--muted,#6b6b76);font-size:13px;line-height:1.4}.tstat-modal-card .pill{margin-top:.8rem;}' +
       '@media(max-width:520px){.tstat-detail,.tstat-warning{width:min(330px,88vw);}.tstat-panel{gap:.25rem}.tstat-btn{min-height:28px}}';
     var st = document.createElement('style');
     st.id = 'tariff-status-styles';
@@ -156,8 +175,10 @@
 
   function mountOne(mount) {
     var feedUrl = mount.getAttribute('data-feed-url') || '';
+    var mainShell = mount.getAttribute('data-tariff-shell') === 'main';
     var openPanel = '';
     mount.classList.add('tstat-panel');
+    if (mainShell) mount.classList.add('tstat-main');
     mount.innerHTML = '';
 
     var top = document.createElement('div');
@@ -209,6 +230,25 @@
     warning.hidden = true;
     mount.appendChild(warning);
 
+    function ensureMismatchModal() {
+      var modal = document.getElementById('tariffMismatchModal');
+      if (modal) return modal;
+      modal = document.createElement('div');
+      modal.id = 'tariffMismatchModal'; modal.className = 'tstat-modal';
+      modal.innerHTML = '<div class="tstat-modal-card" role="dialog" aria-modal="true" aria-labelledby="tariffMismatchTitle"><h3 id="tariffMismatchTitle">Tariff data needs checking</h3><div id="tariffMismatchBody"></div><button type="button" class="pill" id="tariffMismatchGotIt">Got it</button></div>';
+      modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.remove('open'); });
+      modal.querySelector('#tariffMismatchGotIt').addEventListener('click', function () { modal.classList.remove('open'); if (modal.dataset.key) sessionStorage.setItem(modal.dataset.key, '1'); });
+      document.body.appendChild(modal); return modal;
+    }
+
+    function showMismatchModal(html, key) {
+      if (!mainShell) return;
+      var modal = ensureMismatchModal();
+      modal.dataset.key = key || '';
+      modal.querySelector('#tariffMismatchBody').innerHTML = html;
+      modal.classList.add('open');
+    }
+
     function setPanel(which) {
       openPanel = openPanel === which ? '' : which;
       fixedDetail.hidden = openPanel !== 'fixed';
@@ -242,13 +282,14 @@
       }
 
       var loaded = fixedSeries(rows);
+      var names = fixedNames(rows, loaded);
       var latest = latestFixed(meta);
       var checked = meta.checkedAt || meta.checked_at || '';
       var fixedState = fixedDetail.querySelector('.tstat-fixed-state');
       var fixedLines = fixedDetail.querySelector('.tstat-fixed-lines');
       var fixedTitle = fixedDetail.querySelector('.tstat-fixed-title');
 
-      fixedBtn.querySelector('strong').textContent = loaded;
+      fixedBtn.querySelector('strong').textContent = mainShell ? 'Fixed ' + loaded : loaded;
       fixedTitle.textContent = '🔒 Fixed ' + loaded;
 
       var fixedWarn = '';
@@ -261,13 +302,14 @@
         setBtnState(fixedBtn, 'amber');
         fixedState.textContent = '⚠️ Check version';
         stateClass(fixedState, 'stale');
-        fixedLines.innerHTML = '<div>Fixed ' + loaded + ' is loaded.</div><div>Feed metadata reports Fixed ' + latest + ' as the latest published series.</div>';
+        fixedLines.innerHTML = '<div>Fixed ' + loaded + ' is loaded.</div>' + (names.length ? '<div><strong>Loaded tariffs:</strong> ' + names.join(', ') + '</div>' : '') + '<div>Feed metadata reports Fixed ' + latest + ' as the latest published series.</div>';
         fixedWarn = '<strong>⚠️ FIXED TARIFF VERSION MISMATCH</strong>Fixed ' + loaded + ' is loaded, but the feed says Fixed ' + latest + ' is the latest published series.';
       } else {
         setBtnState(fixedBtn, 'green');
         fixedState.textContent = latest ? '✓ Current' : '✓ Loaded';
         stateClass(fixedState, 'good');
         fixedLines.innerHTML = '<div>Fixed ' + loaded + ' suite is loaded' + (latest ? ' and matches the latest published series recorded by the feed.' : '.') + '</div>' +
+          (names.length ? '<div><strong>Loaded tariffs:</strong> ' + names.join(', ') + '</div>' : '') +
           (checked ? '<div>Latest-series check: ' + checked + '</div>' : '<div>Latest-series verification is not currently supplied by the feed.</div>');
       }
 
@@ -284,7 +326,7 @@
       var seasonLines = variableDetail.querySelector('.tstat-season-lines');
       var seasonTitle = variableDetail.querySelector('.tstat-season-title');
 
-      seasonBtn.textContent = qi ? qi.icon : '◷';
+      seasonBtn.textContent = qi ? (mainShell ? qi.short + ' Price Cap' : qi.icon) : 'Price Cap';
       seasonTitle.textContent = (qi ? qi.icon + ' ' + qi.name + ' ' : '') + 'variable tariff period';
 
       var combinedState = 'green';
@@ -303,7 +345,7 @@
         stateClass(seasonState, 'bad');
       }
 
-      seasonBtn.setAttribute('aria-label', qi ? (qi.name + ' variable tariff period ' + qi.short + ' ' + qi.year) : 'Variable tariff period');
+      seasonBtn.setAttribute('aria-label', qi ? (qi.short + ' ' + qi.year + ' Price Cap') : 'Variable tariff period');
       seasonLines.innerHTML =
         '<div><strong>Standard variable:</strong> ' + (sf && st ? fmt(sf) + ' to ' + fmt(st) : 'validity dates unavailable') + ' ' + (standardFresh === true ? '✓' : standardFresh === false ? '⚠️' : '—') + '</div>' +
         '<div><strong>EV variable:</strong> ' + (ef && et ? fmt(ef) + ' to ' + fmt(et) : 'validity dates unavailable') + ' ' + (evFresh === true ? '✓' : evFresh === false ? '⚠️' : '—') + '</div>';
@@ -317,7 +359,25 @@
       if (variableWarn) warnings.push(variableWarn);
       if (fixedWarn) warnings.push(fixedWarn);
       warning.innerHTML = warnings.join('<br><br>');
-      warning.hidden = !warnings.length;
+      warning.hidden = mainShell || !warnings.length;
+
+      var mismatch = standardFresh === false || evFresh === false || (latest && latest !== loaded);
+      var actualStandard = sf && st ? fmt(sf) + ' to ' + fmt(st) : 'unavailable';
+      var actualEv = ef && et ? fmt(ef) + ' to ' + fmt(et) : 'unavailable';
+      var key = 'apptCompanionTariffMismatchAckV1:' + [now, sf, st, ef, et, loaded, latest].join('|');
+      var detail = '<p><strong>Today should use:</strong> ' + (currentQuarter ? currentQuarter.short + ' ' + currentQuarter.year : now) + ' Price Cap.</p>' +
+        '<p><strong>Standard variable:</strong> ' + actualStandard + ' ' + (standardFresh === true ? '✓' : '⚠️') + '</p>' +
+        '<p><strong>EV variable:</strong> ' + actualEv + ' ' + (evFresh === true ? '✓' : '⚠️') + '</p>' +
+        '<p><strong>Fixed series:</strong> Fixed ' + loaded + (latest ? ' (latest feed series: Fixed ' + latest + ')' : '') + (latest && latest !== loaded ? ' ⚠️' : ' ✓') + '</p>' +
+        (checked ? '<p>Last checked: ' + checked + '</p>' : '');
+      if (mainShell) {
+        seasonBtn.classList.toggle('is-amber', mismatch);
+        if (mismatch) {
+          seasonBtn.textContent = (qi ? qi.short + ' Price Cap' : 'Price Cap') + ' ⚠️';
+          seasonBtn.onclick = function () { showMismatchModal(detail, key); };
+          if (!sessionStorage.getItem(key)) showMismatchModal(detail, key);
+        } else seasonBtn.onclick = null;
+      }
     }
 
     function showFailure(message) {

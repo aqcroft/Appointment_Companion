@@ -81,6 +81,14 @@
     if (!el) return;
     el.textContent = text;
     el.style.color = kind === 'bad' ? '#c43b3b' : kind === 'good' ? '#1d7f45' : 'var(--muted)';
+    const cloud = $c('cloudConnectionState');
+    if (cloud) {
+      const good = kind === 'good' || /connected|saved to Cloud/i.test(text || '');
+      const bad = kind === 'bad';
+      cloud.textContent = good ? '☁️✓' : bad ? '☁️⚠️' : getAuth() ? '☁️✓' : '☁️';
+      cloud.className = 'cloud-health' + (bad ? ' warn' : '');
+      cloud.title = text || (good ? 'Cloud connection healthy' : 'Cloud not connected');
+    }
   }
 
   function localBackupId(customerId, name) {
@@ -212,19 +220,18 @@
     card.innerHTML = `
       <style>
         #cloudPilotCard{position:relative}
-        #cloudPilotCard .cloudbar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
-        #cloudPilotCard .cloudwho{min-width:0;flex:1}
-        #cloudPilotCard .cloudwho strong{display:block;font-size:13px;color:var(--purple);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        #cloudPilotCard .cloud-current-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-top:2px}
+        #cloudPilotCard .cloudbar{display:flex;align-items:center;min-width:0}
+        #cloudPilotCard .cloud-current-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-top:.42rem;padding-top:.42rem;border-top:1px solid rgba(122,66,200,.12)}
         #cloudPilotCard .cloud-current-name{border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:750;color:var(--ink);cursor:pointer}
         #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;gap:6px}
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
         #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
-        #cloudPilotCard .cloud-tariff-slot{margin-top:.48rem}
+        #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:6px;min-width:0;margin-top:.48rem}
+        #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:1}
         #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
-        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;flex-shrink:0;justify-content:flex-end;margin-left:auto}
-        #cloudPilotCard .cloudicon{width:36px;height:36px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
+        #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;width:100%;justify-content:space-between}
+        #cloudPilotCard .cloudicon{width:40px;height:40px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
         #cloudPilotCard .cloudicon:disabled{opacity:.38;cursor:default}
         #cloudPilotCard .cloudicon.good{border-color:rgba(29,155,80,.35);background:rgba(29,155,80,.08)}
         #cloudPilotCard .state-on{border-color:rgba(29,155,80,.38);background:rgba(29,155,80,.08);box-shadow:inset 0 -2px 0 rgba(29,155,80,.38)}
@@ -235,13 +242,13 @@
         #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
         #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
-        #cloudPilotCard .cloud-recent{margin-top:.55rem;border-top:1px solid rgba(122,66,200,.12);padding-top:.45rem}
-        #cloudPilotCard .cloud-recent summary{cursor:pointer;color:var(--purple);font-size:12px;font-weight:800;list-style-position:inside}
-        #cloudPilotCard .cloud-recent-list{display:grid;gap:5px;margin-top:.45rem}
         #cloudPilotCard .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;min-height:40px;padding:7px 9px;border:1px solid rgba(122,66,200,.14);border-radius:9px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
         #cloudPilotCard .cloud-recent-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800}
         #cloudPilotCard .cloud-recent-meta{display:block;margin-top:2px;font-size:10px;color:var(--muted)}
-        #cloudPilotCard .cloud-local-state{margin-top:.38rem;font-size:10.5px;color:#1d7f45;font-weight:700}
+        #cloudPilotCard .cloud-health{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:.22rem .38rem;border:1px solid rgba(29,155,80,.38);border-radius:999px;background:rgba(29,155,80,.06);font-size:12px;font-weight:800;white-space:nowrap}
+        #cloudPilotCard .cloud-health.warn{border-color:rgba(217,138,0,.58);background:#fffaf0}
+        #cloudPilotCard .cloud-local-state{margin:0}
+        #cloudPilotCard .sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
         .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
         .whatsapp-ico{width:18px;height:18px;border-radius:50%;background:#25D366;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;line-height:1}
         #cloudSettingsModal .cloud-settings-list{display:grid;gap:8px;margin-top:.75rem}
@@ -284,15 +291,11 @@
           #cloudCustomerModal .cloud-row-date{grid-area:date;font-size:11px!important;min-width:0}
           #cloudCustomerModal .cloud-row-action{grid-area:action;min-height:44px!important;min-width:86px;padding:8px 14px!important;justify-self:end}
         }
-        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start;flex-wrap:wrap}#cloudPilotCard .cloudicons{width:100%;justify-content:space-between;margin-left:0}#cloudPilotCard .cloudicon{width:40px;height:40px;font-size:18px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
+        @media(max-width:620px){#cloudPilotCard{padding:.65rem!important}#cloudPilotCard .cloud-menu-popover{left:.65rem;right:.65rem;width:auto}}
       </style>
       <div class="cloudbar">
-        <div class="cloudwho">
-          <strong>☁️ Cloud workspace</strong>
-          <div id="cloudPilotCurrent" class="cloud-current-line"></div>
-        </div>
         <div class="cloudicons">
-          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCustomerShortcut" data-cloud-action="customers" title="Open customers" aria-label="Open customers">👥</button>
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCustomerShortcut" data-cloud-action="recent-customers" title="Recent customers" aria-label="Recent customers">👥</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudSaveShortcut" data-cloud-action="save" title="Save current customer" aria-label="Save current customer">💾</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionEv" data-cloud-action="ev" title="EV Companion" aria-label="EV Companion">🚙</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionCard" data-cloud-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button>
@@ -300,14 +303,10 @@
           <button class="cloudicon cloudActionToggle" type="button" id="cloudActionMenu" data-cloud-action="toggle-actions" title="Show actions" aria-label="Show actions">☰</button>
         </div>
       </div>
-      <div id="cloudTariffSlot" class="cloud-tariff-slot"></div>
-      <div id="cloudLocalState" class="cloud-local-state" aria-live="polite">✓ Working copy saved locally</div>
-      <details id="cloudRecent" class="cloud-recent">
-        <summary>Recent customers / scenarios</summary>
-        <div id="cloudRecentList" class="cloud-recent-list"></div>
-      </details>
+      <div class="cloud-health-row"><div id="cloudTariffSlot" class="cloud-tariff-slot"></div><span id="cloudConnectionState" class="cloud-health" title="Cloud not connected">☁️</span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally">📱✓</span></div>
+      <div id="cloudPilotCurrent" class="cloud-current-line"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
-        <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="customers"><span class="menu-ico">👥</span><span>Customers / load customer</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
@@ -317,7 +316,7 @@
       <div id="cloudPilotConnected" class="hidden">
       </div>
 
-      <div id="cloudPilotStatus" class="sub" style="margin-top:.65rem;min-height:1.2em;">Not connected.</div>
+      <div id="cloudPilotStatus" class="sr-status" aria-live="polite">Not connected.</div>
       <div id="cloudPilotList" class="hidden" style="margin-top:.7rem;"></div>
     `;
     const header = document.querySelector('.wrap header');
@@ -338,7 +337,8 @@
       if (action.dataset.cloudAction !== 'toggle-actions') closeActionMenu();
       if (action.dataset.cloudAction === 'save') saveToCloud();
       if (action.dataset.cloudAction === 'save-as') saveToCloud({ saveAs: true });
-      if (action.dataset.cloudAction === 'customers') toggleCloudList();
+      if (action.dataset.cloudAction === 'all-customers') toggleCloudList();
+      if (action.dataset.cloudAction === 'recent-customers') openRecentCustomers();
       if (action.dataset.cloudAction === 'partner') openPartnerProfile();
       if (action.dataset.cloudAction === 'settings') openSettingsModal();
       if (action.dataset.cloudAction === 'customer-name') editCustomerName();
@@ -512,8 +512,9 @@
     const delay = typeof eventOrDelay === 'number' ? eventOrDelay : 180;
     const state = $c('cloudLocalState');
     if (state) {
-      state.textContent = 'Saving working copy locally…';
-      state.style.color = 'var(--muted)';
+      state.textContent = '📱…';
+      state.title = 'Saving working copy locally';
+      state.classList.remove('warn');
     }
     clearTimeout(workingRecordTimer);
     workingRecordTimer = setTimeout(() => {
@@ -527,8 +528,9 @@
         }
       }
       if (state) {
-        state.textContent = saved ? '✓ Working copy saved locally' : '⚠ Local working copy could not be saved';
-        state.style.color = saved ? '#1d7f45' : '#a85b00';
+        state.textContent = saved ? '📱✓' : '📱⚠️';
+        state.title = saved ? 'Working copy saved locally' : 'Local working copy could not be saved';
+        state.classList.toggle('warn', !saved);
       }
     }, Math.max(0, delay));
   }
@@ -562,28 +564,30 @@
 
   function renderRecentCustomers() {
     const wrap = $c('cloudRecentList');
-    const details = $c('cloudRecent');
-    if (!wrap || !details) return;
+    if (!wrap) return;
     const rows = readRecentCustomers().slice(0, 5);
-    details.classList.toggle('hidden', !rows.length);
     wrap.innerHTML = '';
     rows.forEach(row => {
       const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'cloud-recent-item';
+      button.type = 'button'; button.className = 'cloud-recent-item';
       const icons = summaryIconHtml(row.summary || {}, true) + (row.has_ev ? '<span title="EV Companion">🚙</span>' : '');
       button.innerHTML = '<span><span class="cloud-recent-name">' + esc(row.customer_name || 'Unnamed') + '</span><span class="cloud-recent-meta">Updated ' + esc(fmtDate(row.updated_at)) + '</span></span><span class="cloud-current-icons">' + icons + '</span>';
-      button.addEventListener('click', () => {
-        if (!getAuth()) {
-          openConnectModal();
-          setStatus('Connect Cloud to load this recent customer.');
-          return;
-        }
-        loadCustomer(row.customer_id);
-      });
+      button.addEventListener('click', () => { closeRecentCustomers(); if (!getAuth()) { openConnectModal(); setStatus('Connect Cloud to load this recent customer.'); return; } loadCustomer(row.customer_id); });
       wrap.appendChild(button);
     });
   }
+
+  function ensureRecentCustomersModal() {
+    if ($c('cloudRecentModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'cloudRecentModal'; modal.className = 'basket-prompt-modal';
+    modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="cloudRecentTitle"><h3 id="cloudRecentTitle">Recent customers / scenarios</h3><div id="cloudRecentList" class="cloud-recent-list"></div><button class="pill" type="button" data-cloud-recent="all">☁️ View all Cloud customers</button><button class="pill" type="button" data-cloud-recent="close">Close</button></div>';
+    modal.addEventListener('click', e => { if (e.target === modal || e.target.dataset.cloudRecent === 'close') closeRecentCustomers(); if (e.target.dataset.cloudRecent === 'all') { closeRecentCustomers(); toggleCloudList(); } });
+    document.body.appendChild(modal);
+  }
+
+  function openRecentCustomers() { ensureRecentCustomersModal(); renderRecentCustomers(); $c('cloudRecentModal').classList.add('open'); }
+  function closeRecentCustomers() { const modal = $c('cloudRecentModal'); if (modal) modal.classList.remove('open'); }
 
   function applyPendingCustomerPatch() {
     const bridge = window.AppointmentCompanionBridge;
@@ -612,6 +616,12 @@
 
   function showConnected(on) {
     $c('cloudPilotConnected').classList.toggle('hidden', !on);
+    const cloud = $c('cloudConnectionState');
+    if (cloud) {
+      cloud.textContent = on ? '☁️✓' : '☁️';
+      cloud.classList.remove('warn');
+      cloud.title = on ? 'Cloud connection healthy' : 'Cloud not connected';
+    }
     relocateConnectedWidgets();
   }
 
@@ -827,6 +837,7 @@
   function openConnectModal() {
     ensureConnectModal();
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
+    setStatus(getAuth() ? 'Cloud connection healthy' : 'Cloud not connected', getAuth() ? 'good' : '');
     const auth = getAuth();
     const note = $c('cloudSessionPasswordNote');
     if (note) note.classList.toggle('hidden', !auth);
