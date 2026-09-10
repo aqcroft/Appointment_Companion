@@ -74,11 +74,18 @@
     let appointmentState = clone(customer.appointment_state || opts.appointment_state || {});
     if (!appointmentState || typeof appointmentState !== 'object') appointmentState = {};
     appointmentState._journey = bridge.getJourney();
+    const customerName = String(opts.customer_name || (state && state.customer_name) || customer.customer_name || '').trim();
+    if (customerName) {
+      appointmentState.customerName = customerName;
+      if (appointmentState.inputs && typeof appointmentState.inputs === 'object') appointmentState.inputs.customerName = customerName;
+    }
 
     const payload = {
       customer_id: customer.customer_id,
-      customer_name: customer.customer_name,
+      customer_name: customerName || customer.customer_name,
       electricity_usage_kwh: customer.electricity_usage_kwh,
+      electricity_usage_day_kwh: customer.electricity_usage_day_kwh,
+      electricity_usage_night_kwh: customer.electricity_usage_night_kwh,
       electricity_usage_mode: customer.electricity_usage_mode || '',
       electricity_usage_preset: customer.electricity_usage_preset || '',
       electricity_usage_basis: customer.electricity_usage_basis || '',
@@ -86,6 +93,10 @@
       electricity_usage_captured_at: customer.electricity_usage_captured_at || '',
       electricity_usage_revision: customer.electricity_usage_revision || 0,
       gas_usage_kwh: customer.gas_usage_kwh,
+      gas_usage_source: customer.gas_usage_source || '',
+      gas_usage_captured_at: customer.gas_usage_captured_at || '',
+      energy_has_electricity: customer.energy_has_electricity !== false,
+      energy_has_gas: customer.energy_has_gas !== false,
       appointment_state_json: appointmentState,
       ev_state_json: opts.legacy_ev_state ? clone(state) : clone(customer.ev_state),
       basket_url: opts.basket_url !== undefined ? String(opts.basket_url || '') : String(customer.basket_url || ''),
@@ -97,6 +108,11 @@
     const saved = savedResponse && savedResponse.customer;
     if (!saved) throw new Error('Cloud did not return the saved customer.');
     stashLocalBackup(toolId, state, saved, 'saved');
+    if (bridge && typeof bridge.updateWorkingRecord === 'function') bridge.updateWorkingRecord({
+      customer_id: saved.customer_id,
+      customer_name: saved.customer_name,
+      appointment_state: appointmentState
+    });
 
     emit('saved', { tool_id: toolId, customer_id: id, customer: clone(saved) });
     return saved;

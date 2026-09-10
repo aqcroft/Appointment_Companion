@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v2';
+const CACHE_NAME = 'appointment-companion-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -26,6 +26,7 @@ const APP_SHELL = [
   './companion/ev/index.html',
   './companion/ev/share-view-v1.js',
   './v16c-ev.html',
+  './tariff-cache-v1.js',
   './v13-ev.js',
   './v16b-hero.js',
   './v14-ev.css',
@@ -64,13 +65,20 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  const update = fetch(request).then(response => {
+    if (response && response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+    }
+    return response;
+  });
+
+  // Static Companion views switch instantly from the application shell while
+  // a newer copy is fetched in the background for the next visit.
+  event.waitUntil(update.catch(() => undefined));
   event.respondWith(
-    fetch(request)
-      .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        return response;
-      })
-      .catch(() => caches.match(request).then(cached => cached || caches.match('./cloud/')))
+    caches.match(request)
+      .then(cached => cached || update)
+      .catch(() => caches.match('./cloud/'))
   );
 });

@@ -142,13 +142,15 @@ function startCompanion(payload){
   companionStarted=true;
   document.documentElement.classList.add('shared-started');
 
-  loadScript('v13-ev.js').then(function(){
+  loadScript('tariff-cache-v1.js?v=20260910-feedback1').then(function(){
+    return loadScript('v13-ev.js?v=20260910-feedback1');
+  }).then(function(){
     if(payload)applyPayload(payload);
     return loadScript('v16b-hero.js');
   }).then(function(){
     return loadScript('v16c-table.js');
   }).then(function(){
-    return loadScript('v15-freshness.js');
+    return loadScript('v15-freshness.js?v=20260910-feedback1');
   }).catch(function(){
     var lm=$('loadingModal');
     if(lm)lm.style.display='none';
@@ -165,8 +167,15 @@ function makeLink(){
     return null;
   }
   $('shareCustomerName').classList.remove('error');
+  window.dispatchEvent(new CustomEvent('ac:ev-share-name',{detail:{name:name}}));
   var data=capture(name);
-  return location.href.split('#')[0]+'#p='+b64urlEncode(JSON.stringify(data));
+  var url=new URL(location.href.split('#')[0]);
+  url.searchParams.delete('s');
+  url.searchParams.delete('ac_launch');
+  url.searchParams.delete('ac_return');
+  var slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
+  if(slug)url.searchParams.set('for',slug);
+  return url.toString()+'#p='+b64urlEncode(JSON.stringify(data));
 }
 
 function copyText(text){
@@ -189,7 +198,7 @@ function shareCurrent(){
   if(!link)return;
   var name=cleanName($('shareCustomerName').value);
   if(navigator.share){
-    navigator.share({title:'UW EV Tariff Companion',text:'Hi '+name+', this EV comparison has been set up for you.',url:link})
+    navigator.share({title:'UW EV Tariff Companion',text:'Hi '+name+' - I prepared this EV comparison for you.',url:link})
       .then(function(){showToast('Personalised link ready')})
       .catch(function(e){if(e&&e.name!=='AbortError')copyText(link).then(function(){showToast('Link copied')})});
   }else{

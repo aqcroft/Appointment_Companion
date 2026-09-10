@@ -11,14 +11,15 @@
   </style>
 </head>
 <body>
-  <div class="msg" id="loader">🚙 Loading EV Companion Cloud pilot…</div>
+  <div class="msg" id="loader">🚙 Opening EV Companion…</div>
   <script>
   (async function(){
     try {
-      const response = await fetch('./v16c-ev.html', { cache: 'no-store' });
+      const assetVersion = '20260910-feedback1';
+      const response = await fetch('./v16c-ev.html?v=' + assetVersion);
       if (!response.ok) throw new Error('EV source returned HTTP ' + response.status);
       let html = await response.text();
-      const inject = '<script>document.body.dataset.companionTool="ev";<\/script><script src="./cloud-client-v1.js"><\/script><script src="./cloud/device-identity-v1.js"><\/script><script src="./cloud/companion-bridge-v1.js"><\/script><script src="./cloud/specialist-cloud-save-v1.js"><\/script><script src="./cloud/specialist-share-v1.js"><\/script><script src="./cloud/ev-bridge-pilot-v1.js"><\/script><script src="./cloud/ev-cloud-share-v1.js"><\/script>';
+      const inject = '<script>document.body.dataset.companionTool="ev";<\/script><script src="./cloud-client-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/device-identity-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/companion-bridge-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/specialist-cloud-save-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/specialist-share-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/ev-bridge-pilot-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud/ev-cloud-share-v1.js?v=' + assetVersion + '"><\/script>';
       if (!/<\/body>/i.test(html)) throw new Error('EV source has no closing body tag.');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open();

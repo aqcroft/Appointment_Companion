@@ -18,6 +18,7 @@
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
+  const RECENT_CUSTOMERS_KEY = 'apptCompanionRecentCustomersV1';
   const ONBOARDING_STATE_KEY = 'apptCompanionOnboardingStateV2';
   const LEGACY_ONBOARDING_KEY = 'apptCompanionOnboardingCompleteV1';
   const LEGACY_ONBOARDING_STEP_KEY = 'apptCompanionOnboardingStepV1';
@@ -34,6 +35,7 @@
   let activeSettingsSection = 'hub';
   let onboardingPartnerSuspended = false;
   let onboardingExplicit = false;
+  let workingRecordTimer = null;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -145,7 +147,16 @@
     currentCloudCustomerId = customer && customer.customer_id ? customer.customer_id : '';
     if (currentCloudCustomerId) sessionStorage.setItem(CURRENT_CUSTOMER_KEY, currentCloudCustomerId);
     else sessionStorage.removeItem(CURRENT_CUSTOMER_KEY);
+    const bridge = window.AppointmentCompanionBridge;
+    if (customer && bridge && typeof bridge.updateWorkingRecord === 'function') {
+      bridge.updateWorkingRecord({
+        customer_id: currentCloudCustomerId,
+        customer_name: String(customer.customer_name || '').trim()
+      });
+      rememberRecentCustomer(customer);
+    }
     renderCloudCurrent();
+    renderRecentCustomers();
   }
 
   function summaryIconHtml(sum, tiny) {
@@ -182,9 +193,7 @@
     const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
     const cardUsed = !!((currentCloudCustomer && (currentCloudCustomer.card_state || currentCloudCustomer.card_state_json)) || specialists.card || specialists.cashback_card || ($c('includeCashback') && $c('includeCashback').checked));
     const nameEl = $c('customerName');
-    const name = currentCloudCustomer && currentCloudCustomer.customer_name
-      ? currentCloudCustomer.customer_name
-      : String(data.customerName || (nameEl && nameEl.value) || '').trim() || 'New customer';
+    const name = String((nameEl && nameEl.value) || data.customerName || (currentCloudCustomer && currentCloudCustomer.customer_name) || '').trim() || 'New customer';
     el.innerHTML = '<button class="cloud-current-name" type="button" data-cloud-action="customer-name" title="Edit customer name">' + esc(name) + '</button>' +
       '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
@@ -226,6 +235,13 @@
         #cloudPilotCard .cloud-menu-popover.open{display:grid;gap:6px}
         #cloudPilotCard .cloud-menu-popover .cloud-menu-item{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px}
         #cloudPilotCard .cloud-menu-popover .menu-ico{width:1.6em;text-align:center}
+        #cloudPilotCard .cloud-recent{margin-top:.55rem;border-top:1px solid rgba(122,66,200,.12);padding-top:.45rem}
+        #cloudPilotCard .cloud-recent summary{cursor:pointer;color:var(--purple);font-size:12px;font-weight:800;list-style-position:inside}
+        #cloudPilotCard .cloud-recent-list{display:grid;gap:5px;margin-top:.45rem}
+        #cloudPilotCard .cloud-recent-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;min-height:40px;padding:7px 9px;border:1px solid rgba(122,66,200,.14);border-radius:9px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
+        #cloudPilotCard .cloud-recent-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800}
+        #cloudPilotCard .cloud-recent-meta{display:block;margin-top:2px;font-size:10px;color:var(--muted)}
+        #cloudPilotCard .cloud-local-state{margin-top:.38rem;font-size:10.5px;color:#1d7f45;font-weight:700}
         .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
         .whatsapp-ico{width:18px;height:18px;border-radius:50%;background:#25D366;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;line-height:1}
         #cloudSettingsModal .cloud-settings-list{display:grid;gap:8px;margin-top:.75rem}
@@ -268,7 +284,7 @@
           #cloudCustomerModal .cloud-row-date{grid-area:date;font-size:11px!important;min-width:0}
           #cloudCustomerModal .cloud-row-action{grid-area:action;min-height:44px!important;min-width:86px;padding:8px 14px!important;justify-self:end}
         }
-        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start}#cloudPilotCard .cloudicon{width:34px;height:34px;font-size:17px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
+        @media(max-width:620px){#cloudPilotCard .cloudbar{align-items:flex-start;flex-wrap:wrap}#cloudPilotCard .cloudicons{width:100%;justify-content:space-between;margin-left:0}#cloudPilotCard .cloudicon{width:40px;height:40px;font-size:18px}#cloudPilotCard .cloud-menu-popover{left:.75rem;right:.75rem;width:auto}}
       </style>
       <div class="cloudbar">
         <div class="cloudwho">
@@ -276,6 +292,8 @@
           <div id="cloudPilotCurrent" class="cloud-current-line"></div>
         </div>
         <div class="cloudicons">
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCustomerShortcut" data-cloud-action="customers" title="Open customers" aria-label="Open customers">👥</button>
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudSaveShortcut" data-cloud-action="save" title="Save current customer" aria-label="Save current customer">💾</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionEv" data-cloud-action="ev" title="EV Companion" aria-label="EV Companion">🚙</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionCard" data-cloud-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudShareShortcut" data-cloud-action="share" title="Share summary" aria-label="Share summary">📤</button>
@@ -283,6 +301,11 @@
         </div>
       </div>
       <div id="cloudTariffSlot" class="cloud-tariff-slot"></div>
+      <div id="cloudLocalState" class="cloud-local-state" aria-live="polite">✓ Working copy saved locally</div>
+      <details id="cloudRecent" class="cloud-recent">
+        <summary>Recent customers / scenarios</summary>
+        <div id="cloudRecentList" class="cloud-recent-list"></div>
+      </details>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="customers"><span class="menu-ico">👥</span><span>Customers / load customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
@@ -332,30 +355,52 @@
     document.addEventListener('change', syncNotesVisibility, true);
     document.addEventListener('input', renderCloudCurrent, true);
     document.addEventListener('change', renderCloudCurrent, true);
+    document.addEventListener('input', scheduleWorkingRecordSave, true);
+    document.addEventListener('change', scheduleWorkingRecordSave, true);
     document.addEventListener('click', closeActionMenuOnOutside, true);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeActionMenu(); });
-    const usageInput = $c('electricityUsageKwh');
-    const usageSource = $c('electricityUsageSource');
-    if (usageInput) usageInput.addEventListener('input', noteUsageEdit);
-    if (usageSource) usageSource.addEventListener('change', noteUsageEdit);
+    ['electricityUsageKwh', 'electricityUsageDayKwh', 'electricityUsageNightKwh'].forEach(id => {
+      const el = $c(id);
+      if (el) el.addEventListener('input', noteUsageEdit);
+    });
+    ['electricityUsageSource', 'gasUsageSource'].forEach(id => {
+      const el = $c(id);
+      if (el) el.addEventListener('change', noteUsageEdit);
+    });
+    const gasUsage = $c('gasUsageKwh');
+    if (gasUsage) gasUsage.addEventListener('input', noteUsageEdit);
+    ['energyHasElectricity', 'energyHasGas'].forEach(id => {
+      const el = $c(id);
+      if (el) el.addEventListener('change', syncEnergyUsageSections);
+    });
     window.AppointmentCompanionCustomerContext = { currentDraft: draftCustomerContext };
     applyPendingCustomerPatch();
     updateUsageHint();
     updateCompanionIndicators();
     syncNotesVisibility();
     renderCloudCurrent();
+    renderRecentCustomers();
     moveTariffStatusIntoBar();
     tuckLocalSaveCard();
     ensureLoadingOverlay();
+    document.addEventListener('ac:main-reset', () => setTimeout(() => {
+      const bridge = window.AppointmentCompanionBridge;
+      if (bridge && typeof bridge.clearWorkingRecord === 'function') bridge.clearWorkingRecord();
+      setCurrent(null);
+      scheduleWorkingRecordSave(0);
+      syncEnergyUsageSections();
+    }, 0));
+    syncEnergyUsageSections();
     maybeStartOnboarding();
   }
 
   function usageSourceLabel(source) {
     return ({
       customer_bill: 'Customer bill',
-      uw_quote: 'UW quote',
-      manual: 'Other / manual',
-      estimate: 'Estimate',
+      uw_quote: 'UW quote / national database',
+      manual: 'Manual / customer supplied',
+      other: 'Other',
+      estimate: 'Estimate / modelling',
       'legacy/unknown': 'Unknown / legacy'
     })[String(source || '')] || '';
   }
@@ -367,24 +412,50 @@
     const sourceEl = $c('electricityUsageSource');
     const capturedEl = $c('electricityUsageCapturedAt');
     const basisEl = $c('electricityUsageBasis');
+    const dayEl = $c('electricityUsageDayKwh');
+    const nightEl = $c('electricityUsageNightKwh');
+    const day = dayEl && dayEl.value !== '' && Number.isFinite(Number(dayEl.value)) ? Math.round(Number(dayEl.value)) : null;
+    const night = nightEl && nightEl.value !== '' && Number.isFinite(Number(nightEl.value)) ? Math.round(Number(nightEl.value)) : null;
+    const gasEl = $c('gasUsageKwh');
+    const gasValue = gasEl && gasEl.value !== '' ? Number(gasEl.value) : null;
+    const gas = Number.isFinite(gasValue) && gasValue > 0 ? Math.round(gasValue) : null;
+    const gasSourceEl = $c('gasUsageSource');
+    const gasCapturedEl = $c('gasUsageCapturedAt');
     return {
       electricity_usage_kwh: kwh,
       electricity_usage_source: kwh ? String((sourceEl && sourceEl.value) || 'legacy/unknown') : '',
       electricity_usage_captured_at: kwh ? String((capturedEl && capturedEl.value) || new Date().toISOString()) : '',
-      electricity_usage_basis: kwh ? String((basisEl && basisEl.value) || '') : ''
+      electricity_usage_basis: kwh ? String((basisEl && basisEl.value) || '') : '',
+      electricity_usage_day_kwh: day,
+      electricity_usage_night_kwh: night,
+      gas_usage_kwh: gas,
+      gas_usage_source: gas ? String((gasSourceEl && gasSourceEl.value) || 'legacy/unknown') : '',
+      gas_usage_captured_at: gas ? String((gasCapturedEl && gasCapturedEl.value) || new Date().toISOString()) : '',
+      energy_has_electricity: !!($c('energyHasElectricity') && $c('energyHasElectricity').checked),
+      energy_has_gas: !!($c('energyHasGas') && $c('energyHasGas').checked)
     };
   }
 
   function applyCanonicalUsage(customer) {
-    if (!customer || customer.electricity_usage_kwh == null || !Number.isFinite(Number(customer.electricity_usage_kwh))) return;
+    if (!customer) return;
     const input = $c('electricityUsageKwh');
     const source = $c('electricityUsageSource');
     const captured = $c('electricityUsageCapturedAt');
     const basis = $c('electricityUsageBasis');
-    if (input) input.value = Math.round(Number(customer.electricity_usage_kwh));
-    if (source) source.value = customer.electricity_usage_source || 'legacy/unknown';
-    if (captured) captured.value = customer.electricity_usage_captured_at || '';
-    if (basis) basis.value = customer.electricity_usage_basis || '';
+    if (customer.electricity_usage_kwh != null && Number.isFinite(Number(customer.electricity_usage_kwh))) {
+      if (input) input.value = Math.round(Number(customer.electricity_usage_kwh));
+      if (source) source.value = customer.electricity_usage_source || 'legacy/unknown';
+      if (captured) captured.value = customer.electricity_usage_captured_at || '';
+      if (basis) basis.value = customer.electricity_usage_basis || '';
+    }
+    if ($c('electricityUsageDayKwh') && customer.electricity_usage_day_kwh != null) $c('electricityUsageDayKwh').value = Math.round(Number(customer.electricity_usage_day_kwh));
+    if ($c('electricityUsageNightKwh') && customer.electricity_usage_night_kwh != null) $c('electricityUsageNightKwh').value = Math.round(Number(customer.electricity_usage_night_kwh));
+    if ($c('gasUsageKwh') && customer.gas_usage_kwh != null) $c('gasUsageKwh').value = Math.round(Number(customer.gas_usage_kwh));
+    if ($c('gasUsageSource') && customer.gas_usage_kwh != null) $c('gasUsageSource').value = customer.gas_usage_source || 'legacy/unknown';
+    if ($c('gasUsageCapturedAt') && customer.gas_usage_kwh != null) $c('gasUsageCapturedAt').value = customer.gas_usage_captured_at || '';
+    if ($c('energyHasElectricity') && customer.energy_has_electricity !== undefined) $c('energyHasElectricity').checked = !!customer.energy_has_electricity;
+    if ($c('energyHasGas') && customer.energy_has_gas !== undefined) $c('energyHasGas').checked = !!customer.energy_has_gas;
+    syncEnergyUsageSections();
     updateUsageHint();
   }
 
@@ -399,30 +470,144 @@
   }
 
   function noteUsageEdit() {
+    const day = $c('electricityUsageDayKwh');
+    const night = $c('electricityUsageNightKwh');
+    if (day && night && day.value !== '' && night.value !== '') {
+      const total = Math.max(0, Number(day.value) || 0) + Math.max(0, Number(night.value) || 0);
+      if ($c('electricityUsageKwh')) $c('electricityUsageKwh').value = Math.round(total);
+    }
     const captured = $c('electricityUsageCapturedAt');
     const basis = $c('electricityUsageBasis');
     if (captured) captured.value = $c('electricityUsageKwh') && $c('electricityUsageKwh').value ? new Date().toISOString() : '';
     if (basis) basis.value = '';
+    const gasCaptured = $c('gasUsageCapturedAt');
+    if (gasCaptured) gasCaptured.value = $c('gasUsageKwh') && $c('gasUsageKwh').value ? new Date().toISOString() : '';
+    updateUsageHint();
+  }
+
+  function syncEnergyUsageSections(event) {
+    const electricity = $c('energyHasElectricity');
+    const gas = $c('energyHasGas');
+    if (electricity && gas && !electricity.checked && !gas.checked) {
+      if (event && event.target === electricity) gas.checked = true;
+      else electricity.checked = true;
+    }
+    if ($c('electricityUsageSection')) $c('electricityUsageSection').classList.toggle('hidden', electricity && !electricity.checked);
+    if ($c('gasUsageSection')) $c('gasUsageSection').classList.toggle('hidden', gas && !gas.checked);
     updateUsageHint();
   }
 
   function draftCustomerContext() {
     const usage = formUsage();
-    return Object.assign({
+    const working = currentCloudCustomer ? JSON.parse(JSON.stringify(currentCloudCustomer)) : {};
+    return Object.assign(working, {
       customer_id: currentCloudCustomerId || '',
       customer_name: String(($c('customerName') && $c('customerName').value) || '').trim()
     }, usage);
+  }
+
+  function scheduleWorkingRecordSave(eventOrDelay) {
+    const target = eventOrDelay && eventOrDelay.target;
+    if (target && target.closest && target.closest('#cloudPilotCard,#cloudConnectModal,#cloudCustomerModal,#cloudSettingsModal,#cloudOnboardingModal,#cashbackPlaceholderModal')) return;
+    const delay = typeof eventOrDelay === 'number' ? eventOrDelay : 180;
+    const state = $c('cloudLocalState');
+    if (state) {
+      state.textContent = 'Saving working copy locally…';
+      state.style.color = 'var(--muted)';
+    }
+    clearTimeout(workingRecordTimer);
+    workingRecordTimer = setTimeout(() => {
+      const bridge = window.AppointmentCompanionBridge;
+      let saved = false;
+      if (bridge && typeof bridge.saveAppointmentState === 'function') {
+        try {
+          saved = !!bridge.saveAppointmentState();
+        } catch (err) {
+          console.warn('Local working copy could not be saved.', err);
+        }
+      }
+      if (state) {
+        state.textContent = saved ? '✓ Working copy saved locally' : '⚠ Local working copy could not be saved';
+        state.style.color = saved ? '#1d7f45' : '#a85b00';
+      }
+    }, Math.max(0, delay));
+  }
+
+  function readRecentCustomers() {
+    try {
+      const rows = JSON.parse(localStorage.getItem(RECENT_CUSTOMERS_KEY) || '[]');
+      return Array.isArray(rows) ? rows.filter(row => row && row.customer_id).slice(0, 12) : [];
+    } catch (_) { return []; }
+  }
+
+  function rememberRecentCustomer(customer) {
+    if (!customer || !customer.customer_id) return;
+    const appt = appointmentSnapshot(customer) || {};
+    const row = {
+      customer_id: String(customer.customer_id),
+      customer_name: String(customer.customer_name || 'Unnamed'),
+      updated_at: customer.updated_at || new Date().toISOString(),
+      summary: Object.assign({}, appt.summary || {}),
+      has_ev: !!(customer.ev_state || customer.ev_state_json || (appt.state && appt.state._journey && appt.state._journey.specialists && appt.state._journey.specialists.ev))
+    };
+    const rows = readRecentCustomers().filter(item => item.customer_id !== row.customer_id);
+    rows.unshift(row);
+    try { localStorage.setItem(RECENT_CUSTOMERS_KEY, JSON.stringify(rows.slice(0, 12))); } catch (_) {}
+  }
+
+  function rememberCustomerList(customers) {
+    (customers || []).slice().sort((a, b) => new Date(a.updated_at || 0) - new Date(b.updated_at || 0)).forEach(rememberRecentCustomer);
+    renderRecentCustomers();
+  }
+
+  function renderRecentCustomers() {
+    const wrap = $c('cloudRecentList');
+    const details = $c('cloudRecent');
+    if (!wrap || !details) return;
+    const rows = readRecentCustomers().slice(0, 5);
+    details.classList.toggle('hidden', !rows.length);
+    wrap.innerHTML = '';
+    rows.forEach(row => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cloud-recent-item';
+      const icons = summaryIconHtml(row.summary || {}, true) + (row.has_ev ? '<span title="EV Companion">🚙</span>' : '');
+      button.innerHTML = '<span><span class="cloud-recent-name">' + esc(row.customer_name || 'Unnamed') + '</span><span class="cloud-recent-meta">Updated ' + esc(fmtDate(row.updated_at)) + '</span></span><span class="cloud-current-icons">' + icons + '</span>';
+      button.addEventListener('click', () => {
+        if (!getAuth()) {
+          openConnectModal();
+          setStatus('Connect Cloud to load this recent customer.');
+          return;
+        }
+        loadCustomer(row.customer_id);
+      });
+      wrap.appendChild(button);
+    });
   }
 
   function applyPendingCustomerPatch() {
     const bridge = window.AppointmentCompanionBridge;
     if (!bridge || typeof bridge.consumePendingCustomerPatch !== 'function') return;
     const patch = bridge.consumePendingCustomerPatch();
-    if (!patch || patch.electricity_usage_kwh == null) return;
+    if (!patch) return;
+    let changed = false;
+    if (patch.customer_name !== undefined) {
+      const name = $c('customerName');
+      if (name && String(patch.customer_name || '').trim() && name.value !== String(patch.customer_name || '').trim()) {
+        name.value = String(patch.customer_name || '').trim();
+        changed = true;
+      }
+    }
     const existing = formUsage();
-    if (existing.electricity_usage_kwh != null) return;
-    applyCanonicalUsage(patch);
-    setStatus('Annual electricity usage brought back from EV Companion ✓', 'good');
+    if (patch.electricity_usage_kwh != null && existing.electricity_usage_kwh == null) {
+      applyCanonicalUsage(patch);
+      changed = true;
+    }
+    if (changed) {
+      if (typeof window.calc === 'function') window.calc();
+      scheduleWorkingRecordSave(0);
+      setStatus('Customer details brought back from EV Companion ✓', 'good');
+    }
   }
 
   function showConnected(on) {
@@ -497,6 +682,7 @@
     if (!auth) throw new Error('Cloud is not connected.');
     const res = await api.listCustomers(auth);
     cloudCustomers = Array.isArray(res.customers) ? res.customers : [];
+    rememberCustomerList(cloudCustomers);
     renderCloudList();
     return cloudCustomers;
   }
@@ -678,11 +864,13 @@
         </div>
         <div id="cloudPilotListBody"></div>
         <div class="modal-actions">
+          <button class="btn-share" type="button" id="cloudCustomerNew">New customer</button>
           <button class="btn-ghost" type="button" id="cloudCustomerClose">Close</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+    $c('cloudCustomerNew').addEventListener('click', startNewCustomer);
     $c('cloudCustomerClose').addEventListener('click', closeCloudList);
     modal.addEventListener('click', e => { if (e.target.id === 'cloudCustomerModal') closeCloudList(); });
     $c('cloudSortDate').addEventListener('click', () => setCustomerSort('date'));
@@ -758,6 +946,25 @@
   function openShareSummary() {
     const btn = $c('openCardBtn');
     if (btn) btn.click();
+  }
+
+  function canReplaceWorkingCustomer() {
+    const dirtyApi = window.AppointmentCompanionCloudDirtyState;
+    if (!dirtyApi || typeof dirtyApi.isDirty !== 'function' || !dirtyApi.isDirty()) return true;
+    return confirm('This customer has Cloud changes that have not finished syncing. A local working copy is safe on this device. Continue without syncing first?');
+  }
+
+  function startNewCustomer() {
+    if (!canReplaceWorkingCustomer()) return;
+    if (typeof window.resetForm === 'function') window.resetForm();
+    const bridge = window.AppointmentCompanionBridge;
+    if (bridge && typeof bridge.clearWorkingRecord === 'function') bridge.clearWorkingRecord();
+    setCurrent(null);
+    closeCloudList();
+    scheduleWorkingRecordSave(0);
+    setStatus('New local customer draft ready. Cloud is only used when you choose Save.', 'good');
+    const name = $c('customerName');
+    if (name) setTimeout(() => name.focus(), 80);
   }
 
   function openCardPlaceholder() {
@@ -1255,6 +1462,7 @@
 
   async function loadCustomer(customerId, opts) {
     opts = opts || {};
+    if (!opts.force && customerId !== currentCloudCustomerId && !canReplaceWorkingCustomer()) return;
     const auth = getAuth();
     if (!auth) return setStatus('Cloud is not connected.', 'bad');
     setStatus('Loading customer...');
@@ -1264,7 +1472,7 @@
       const customer = res.customer;
       if (!customer) throw new Error('Customer was not returned by Cloud.');
 
-      const appt = customer.appointment_state;
+      const appt = appointmentSnapshot(customer);
       if (appt && appt.inputs && appt.state && typeof window.restoreForm === 'function') {
         window.restoreForm(appt);
         applyCanonicalUsage(customer);
@@ -1283,6 +1491,7 @@
       }
 
       setCurrent(customer);
+      scheduleWorkingRecordSave(0);
       syncNotesVisibility();
       renderCloudList();
       closeCloudList();
@@ -1304,7 +1513,13 @@
       electricity_usage_source: existing.electricity_usage_source || '',
       electricity_usage_captured_at: existing.electricity_usage_captured_at || '',
       electricity_usage_revision: existing.electricity_usage_revision || 0,
+      electricity_usage_day_kwh: existing.electricity_usage_day_kwh,
+      electricity_usage_night_kwh: existing.electricity_usage_night_kwh,
       gas_usage_kwh: existing.gas_usage_kwh,
+      gas_usage_source: existing.gas_usage_source || '',
+      gas_usage_captured_at: existing.gas_usage_captured_at || '',
+      energy_has_electricity: existing.energy_has_electricity,
+      energy_has_gas: existing.energy_has_gas,
       ev_state_json: existing.ev_state == null ? null : existing.ev_state
     };
   }
@@ -1388,6 +1603,21 @@
 
   async function boot() {
     buildPanel();
+    const bridge = window.AppointmentCompanionBridge;
+    if (!currentCloudCustomerId && bridge && typeof bridge.getWorkingRecord === 'function') {
+      const record = bridge.getWorkingRecord();
+      const name = $c('customerName');
+      if (record && record.appointment_state && name && !String(name.value || '').trim() && typeof window.restoreForm === 'function') {
+        try {
+          window.restoreForm(record.appointment_state);
+          setStatus('Local working customer restored ✓', 'good');
+        } catch (_) {}
+      } else if (record && record.customer_name && name && !String(name.value || '').trim()) {
+        name.value = String(record.customer_name);
+        if (typeof window.calc === 'function') window.calc();
+        renderCloudCurrent();
+      }
+    }
     const auth = getAuth();
     if (!auth) {
       showConnected(false);

@@ -16,6 +16,7 @@
   const RETURN_PREFIX = 'apptCompanionReturnV1:';
   const ACTIVE_LAUNCH_KEY = 'apptCompanionActiveLaunchV1';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
+  const WORKING_RECORD_KEY = 'apptCompanionWorkingRecordV1';
   const TTL_MS = 2 * 60 * 60 * 1000;
 
   function makeId(prefix) {
@@ -42,6 +43,61 @@
   function writeJson(key, value) {
     sessionStorage.setItem(key, JSON.stringify(value));
     return value;
+  }
+
+  function getWorkingRecord() {
+    try {
+      const record = JSON.parse(localStorage.getItem(WORKING_RECORD_KEY) || 'null');
+      if (record && typeof record === 'object') {
+        const leakedLoginId = /^p_[a-f0-9]{20,}$/i.test(String(record.customer_name || '').trim());
+        if (leakedLoginId) {
+          record.customer_name = '';
+          if (record.appointment_state && typeof record.appointment_state === 'object') {
+            record.appointment_state.customerName = '';
+            if (record.appointment_state.inputs && typeof record.appointment_state.inputs === 'object') {
+              record.appointment_state.inputs.customerName = '';
+            }
+          }
+          try { localStorage.setItem(WORKING_RECORD_KEY, JSON.stringify(record)); } catch (_) {}
+        }
+        return record;
+      }
+      return {
+        version: VERSION, customer_id: '', customer_name: '', appointment_state: null,
+        specialists: {}, updated_at: ''
+      };
+    } catch (_) {
+      return { version: VERSION, customer_id: '', customer_name: '', appointment_state: null, specialists: {}, updated_at: '' };
+    }
+  }
+
+  function updateWorkingRecord(patch) {
+    const current = getWorkingRecord();
+    const next = Object.assign({}, current, clone(patch || {}));
+    if (/^p_[a-f0-9]{20,}$/i.test(String(next.customer_name || '').trim())) {
+      next.customer_name = '';
+      if (next.appointment_state && typeof next.appointment_state === 'object') {
+        next.appointment_state.customerName = '';
+        if (next.appointment_state.inputs && typeof next.appointment_state.inputs === 'object') next.appointment_state.inputs.customerName = '';
+      }
+    }
+    if (!next.specialists || typeof next.specialists !== 'object') next.specialists = {};
+    next.version = VERSION;
+    const currentComparable = Object.assign({}, current);
+    const nextComparable = Object.assign({}, next);
+    delete currentComparable.updated_at;
+    delete nextComparable.updated_at;
+    if (JSON.stringify(currentComparable) === JSON.stringify(nextComparable)) return clone(current);
+    next.updated_at = new Date().toISOString();
+    try { localStorage.setItem(WORKING_RECORD_KEY, JSON.stringify(next)); } catch (_) {}
+    global.dispatchEvent(new CustomEvent('ac:working-record', { detail: clone(next) }));
+    return clone(next);
+  }
+
+  function clearWorkingRecord() {
+    try { localStorage.removeItem(WORKING_RECORD_KEY); } catch (_) {}
+    setJourney(emptyJourney());
+    global.dispatchEvent(new CustomEvent('ac:working-record', { detail: getWorkingRecord() }));
   }
 
   function emptyJourney() {
@@ -118,7 +174,16 @@
       originalRestore = global.restoreForm;
       const wrappedRestore = function (data) {
         if (data && data._journey) setJourney(data._journey);
-        return originalRestore.apply(this, arguments);
+        const result = originalRestore.apply(this, arguments);
+        if (data && typeof data === 'object') {
+          updateWorkingRecord({
+            customer_id: currentCustomerId(),
+            customer_name: String(data.customerName || '').trim(),
+            appointment_state: clone(data),
+            specialists: clone(getJourney().specialists || {})
+          });
+        }
+        return result;
       };
       wrappedRestore.__acBridgeWrapped = true;
       global.restoreForm = wrappedRestore;
@@ -128,7 +193,14 @@
   function captureAppointmentState() {
     wrapStateFunctions();
     if (typeof global.serializeForm !== 'function') return null;
-    return clone(global.serializeForm());
+    const data = clone(global.serializeForm());
+    updateWorkingRecord({
+      customer_id: currentCustomerId(),
+      customer_name: String(data.customerName || '').trim(),
+      appointment_state: clone(data),
+      specialists: clone((data._journey && data._journey.specialists) || {})
+    });
+    return data;
   }
 
   function setToolState(toolId, state) {
@@ -137,6 +209,10 @@
     const j = getJourney();
     j.specialists[key] = clone(state);
     setJourney(j);
+    const record = getWorkingRecord();
+    const specialists = Object.assign({}, record.specialists || {});
+    specialists[key] = clone(state);
+    updateWorkingRecord({ specialists: specialists });
     return clone(j.specialists[key]);
   }
 
@@ -229,6 +305,7 @@
     }
     if (result.customer_patch && typeof result.customer_patch === 'object') {
       j.pending_customer_patch = Object.assign({}, j.pending_customer_patch || {}, clone(result.customer_patch));
+      updateWorkingRecord(result.customer_patch);
     }
     setJourney(j);
 
@@ -273,6 +350,7 @@
     const j = getJourney();
     j.pending_customer_patch = Object.assign({}, j.pending_customer_patch || {}, clone(patch));
     setJourney(j);
+    updateWorkingRecord(patch);
     return clone(j.pending_customer_patch);
   }
 
@@ -291,7 +369,11 @@
     consumePendingCustomerPatch: consumePendingCustomerPatch,
     currentCustomerId: currentCustomerId,
     currentBasketUrl: currentBasketUrl,
-    captureAppointmentState: captureAppointmentState
+    captureAppointmentState: captureAppointmentState,
+    getWorkingRecord: function () { return clone(getWorkingRecord()); },
+    updateWorkingRecord: updateWorkingRecord,
+    clearWorkingRecord: clearWorkingRecord,
+    saveAppointmentState: captureAppointmentState
   };
 
   global.AppointmentCompanionBridge = api;

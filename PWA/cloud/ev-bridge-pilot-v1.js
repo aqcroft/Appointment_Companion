@@ -8,6 +8,8 @@
 (function (global) {
   'use strict';
 
+  if (document.documentElement.classList.contains('shared-view')) return;
+
   const bridge = global.AppointmentCompanionBridge;
   const cloudSave = global.AppointmentCompanionSpecialistCloud;
   if (!bridge) return;
@@ -22,12 +24,15 @@
   };
 
   const $ = function (id) { return document.getElementById(id); };
-  const customer = launch.extra && launch.extra.customer ? launch.extra.customer : {};
+  const workingRecord = typeof bridge.getWorkingRecord === 'function' ? bridge.getWorkingRecord() : {};
+  const customer = Object.assign({}, workingRecord || {}, launch.extra && launch.extra.customer ? launch.extra.customer : {});
+  if (!customer.customer_name && workingRecord && workingRecord.customer_name) customer.customer_name = workingRecord.customer_name;
   const linked = !!(receivedLaunch && launch.customer_id && customer.customer_id);
   let localDraft = null;
   try { localDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) {}
   const journeyState = bridge.getToolState('ev') || (!linked ? localDraft : null);
   const cloudEvState = customer.ev_state || null;
+  if (!customer.customer_name && journeyState && journeyState.customer_name) customer.customer_name = journeyState.customer_name;
 
   let hydrating = true;
   let dirty = false;
@@ -89,6 +94,7 @@
       vehicle_icon: raw.vehicle_icon || raw.icon || '',
       annual_mileage: raw.annual_mileage != null ? raw.annual_mileage : raw.mileage,
       home_usage_kwh: raw.home_usage_kwh,
+      customer_name: raw.customer_name || '',
       home_usage_mode: raw.home_usage_mode || raw.usage_mode || '',
       home_usage_source: raw.home_usage_source || '',
       uw_services: raw.uw_services,
@@ -172,6 +178,11 @@
     } else if (state.home_usage_mode) {
       click('#usagePills button[data-use="' + state.home_usage_mode + '"]');
     }
+    if (customer.electricity_usage_day_kwh != null && customer.electricity_usage_night_kwh != null) {
+      if ($('e7ActualWrap') && $('e7ActualWrap').hidden) click('#e7ActualToggle');
+      setInput('e7DayActualInput', customer.electricity_usage_day_kwh, 'change');
+      setInput('e7NightActualInput', customer.electricity_usage_night_kwh, 'change');
+    }
   }
 
   function captureState() {
@@ -185,6 +196,7 @@
     return {
       schema_version: 1,
       tool_version: '16C',
+      customer_name: currentCustomerName(),
       vehicle_efficiency_mi_kwh: vehicle ? Number(vehicle.dataset.eff) : 3.2,
       vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙',
       annual_mileage: num('miles'),
@@ -218,17 +230,49 @@
   function stashDraft(state) {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch (_) {}
     bridge.setToolState('ev', state);
+    if (typeof bridge.updateWorkingRecord === 'function') bridge.updateWorkingRecord({
+      customer_id: linked ? String(customer.customer_id || launch.customer_id || '') : '',
+      customer_name: String(state.customer_name || ''),
+      specialists: Object.assign({}, (bridge.getWorkingRecord && bridge.getWorkingRecord().specialists) || {}, { ev: state })
+    });
   }
 
   function customerUsageContribution(state) {
-    if (customer.electricity_usage_kwh != null || !state || state.home_usage_mode !== 'custom' || !Number.isFinite(Number(state.home_usage_kwh)) || Number(state.home_usage_kwh) <= 0) return null;
-    return {
-      electricity_usage_kwh: Math.round(Number(state.home_usage_kwh)),
-      electricity_usage_mode: 'known',
-      electricity_usage_source: 'manual',
-      electricity_usage_basis: 'EV Companion',
-      electricity_usage_captured_at: new Date().toISOString()
-    };
+    if (!state) return null;
+    const patch = {};
+    if (String(state.customer_name || '').trim()) patch.customer_name = String(state.customer_name).trim();
+    if (customer.electricity_usage_kwh == null && state.home_usage_mode === 'custom' && Number.isFinite(Number(state.home_usage_kwh)) && Number(state.home_usage_kwh) > 0) {
+      patch.electricity_usage_kwh = Math.round(Number(state.home_usage_kwh));
+      patch.electricity_usage_mode = 'known';
+      patch.electricity_usage_source = 'manual';
+      patch.electricity_usage_basis = 'EV Companion';
+      patch.electricity_usage_captured_at = new Date().toISOString();
+      if (state.e7_actual && state.e7_day_kwh != null && state.e7_night_kwh != null) {
+        patch.electricity_usage_day_kwh = Math.round(Number(state.e7_day_kwh));
+        patch.electricity_usage_night_kwh = Math.round(Number(state.e7_night_kwh));
+      }
+    }
+    return Object.keys(patch).length ? patch : null;
+  }
+
+  function currentCustomerName() {
+    const field = document.querySelector('[data-ev-customer-name]');
+    return String((field && field.value) || customer.customer_name || '').trim();
+  }
+
+  function setCustomerName(value, schedule) {
+    const name = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    customer.customer_name = name;
+    document.querySelectorAll('[data-ev-customer-name]').forEach(function (input) {
+      if (input.value !== name) input.value = name;
+    });
+    if ($('shareCustomerName') && $('shareCustomerName').value !== name) $('shareCustomerName').value = name;
+    if (typeof bridge.updateWorkingRecord === 'function') bridge.updateWorkingRecord({
+      customer_id: linked ? String(customer.customer_id || launch.customer_id || '') : '',
+      customer_name: name
+    });
+    if (schedule && !hydrating) scheduleSave(900);
+    return name;
   }
 
   function setSaveUi(text, tone) {
@@ -297,7 +341,8 @@
       await cloudSave.save('ev', state, {
         appointment_state: launch.appointment_state,
         basket_url: launch.basket_url,
-        legacy_ev_state: true
+        legacy_ev_state: true,
+        customer_name: state.customer_name
       });
       lastSavedFingerprint = fp;
       dirty = false;
@@ -329,7 +374,7 @@
 
   function relevantTarget(target) {
     if (!target || !target.closest) return false;
-    return !!target.closest('#vehiclePills,#usagePills,#serviceButtons,#periodToggle,#stressButtons,#miles,#houseKwh,#region,#evTimingSlider,#e7TimingSlider,#e7ActualToggle,#e7DayActualInput,#e7NightActualInput,#awayPct,#awayRate,#effOverride,#knownEvKwh,#dualFuel');
+    return !!target.closest('#vehiclePills,#usagePills,#serviceButtons,#periodToggle,#stressButtons,#miles,#houseKwh,#region,#evTimingSlider,#e7TimingSlider,#e7ActualToggle,#e7DayActualInput,#e7NightActualInput,#awayPct,#awayRate,#effOverride,#knownEvKwh,#dualFuel,#shareCustomerName,[data-ev-customer-name]');
   }
 
   function armAutosave() {
@@ -358,7 +403,7 @@
     if (!wrap) return;
 
     const style = document.createElement('style');
-    style.textContent = '.evBridgeBar{position:relative;margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeMenu{position:absolute;right:.7rem;top:calc(100% - .2rem);z-index:30;width:min(300px,calc(100vw - 30px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none;gap:6px}.evBridgeMenu.open{display:grid}.evBridgeMenu button{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px;font-size:14px}.evBridgeMenu .menu-ico{width:1.6em;text-align:center}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}@media(max-width:620px){.evBridgeMenu{left:.7rem;right:.7rem;width:auto}}';
+    style.textContent = '.evBridgeBar{position:relative;margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px}.evBridgeBar .name input{width:min(260px,100%);min-width:0;padding:6px 8px;border:1px solid rgba(122,66,200,.22);border-radius:8px;background:#fff;font:750 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeMenu{position:absolute;right:.7rem;top:calc(100% - .2rem);z-index:30;width:min(300px,calc(100vw - 30px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none;gap:6px}.evBridgeMenu.open{display:grid}.evBridgeMenu button{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px;font-size:14px}.evBridgeMenu .menu-ico{width:1.6em;text-align:center}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}#evReturnTransition{position:fixed;inset:0;z-index:100001;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.24);backdrop-filter:blur(2px)}#evReturnTransition.open{display:flex}#evReturnTransition>div{width:min(330px,calc(100vw - 36px));padding:22px;border-radius:16px;background:#fff;color:#26164f;box-shadow:0 18px 55px rgba(38,22,79,.24);text-align:center;font:800 16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}@media(max-width:620px){.evBridgeMenu{left:.7rem;right:.7rem;width:auto}.evBridgeBar .top{align-items:center}}';
     document.head.appendChild(style);
 
     const bar = document.createElement('div');
@@ -366,13 +411,11 @@
     const usage = customer.electricity_usage_kwh != null
       ? Number(customer.electricity_usage_kwh).toLocaleString('en-GB') + ' kWh home usage inherited'
       : linked ? 'Appointment and basket context inherited' : 'Draft saved on this device until linked to a Cloud customer';
-    const displayName = linked
-      ? '☁️ ' + (customer.customer_name || 'Cloud customer')
-      : '📝 ' + (customer.customer_name ? customer.customer_name + ' · EV draft' : 'Standalone EV draft');
+    const displayName = String(customer.customer_name || '').trim();
     const returnLabel = receivedLaunch ? 'Save and return to Companion' : 'Save and open Appointment Companion';
 
     bar.className = 'evBridgeBar';
-    bar.innerHTML = '<div class="top"><div class="meta"><div class="name">' + escapeHtml(displayName) + '</div><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="' + escapeHtml(returnLabel) + '" aria-label="' + escapeHtml(returnLabel) + '">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>' + escapeHtml(returnLabel) + '</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">' + (linked ? '✓ Cloud autosave on' : '✓ Local draft autosave on') + '</div>';
+    bar.innerHTML = '<div class="top"><div class="meta"><label class="name"><span>' + (linked ? '☁️' : '📝') + '</span><input type="text" data-ev-customer-name autocomplete="off" value="' + escapeHtml(displayName) + '" placeholder="Customer name (optional)" aria-label="Customer name"></label><div class="sub">' + escapeHtml(usage) + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="' + escapeHtml(returnLabel) + '" aria-label="' + escapeHtml(returnLabel) + '">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>' + escapeHtml(returnLabel) + '</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">' + (linked ? '✓ Cloud autosave on' : '✓ Local draft autosave on') + '</div>';
 
     wrap.insertBefore(bar, wrap.firstChild);
 
@@ -383,7 +426,17 @@
     wrap.appendChild(bottom);
 
     const share = $('shareSetup');
-    if (share) share.hidden = true;
+    if (share) share.hidden = linked;
+    setCustomerName(displayName, false);
+
+    document.querySelectorAll('[data-ev-customer-name]').forEach(function (input) {
+      input.addEventListener('input', function () { setCustomerName(input.value, true); });
+    });
+    if ($('shareCustomerName')) {
+      $('shareCustomerName').value = displayName;
+      $('shareCustomerName').addEventListener('input', function () { setCustomerName(this.value, true); });
+    }
+    global.addEventListener('ac:ev-share-name', function (event) { setCustomerName(event && event.detail && event.detail.name, true); });
 
     document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -397,11 +450,19 @@
       btn.addEventListener('click', async function () {
       closeEvMenus();
       btn.disabled = true;
-      showNotice('Saving and returning to Companion…', '');
+      let transition = $('evReturnTransition');
+      if (!transition) {
+        transition = document.createElement('div');
+        transition.id = 'evReturnTransition';
+        transition.innerHTML = '<div>↩ Returning to Appointment Companion…<div style="margin-top:5px;font-size:12px;font-weight:600;color:#6b6b76">Keeping this customer workspace together.</div></div>';
+        document.body.appendChild(transition);
+      }
+      transition.classList.add('open');
       clearTimeout(saveTimer);
       await saveNow(true);
 
       if (dirty) {
+        transition.classList.remove('open');
         btn.disabled = false;
         return;
       }
@@ -482,6 +543,13 @@
     setSaveUi(linked ? '✓ Cloud autosave on' : '✓ Local draft autosave on', 'good');
     armAutosave();
   }
+
+  global.AppointmentCompanionEvWorkspace = {
+    getCustomerName: currentCustomerName,
+    setCustomerName: function (name) { return setCustomerName(name, true); },
+    saveNow: function () { clearTimeout(saveTimer); return saveNow(true); },
+    isLinked: function () { return linked; }
+  };
 
   function waitUntilReady() {
     let attempts = 0;

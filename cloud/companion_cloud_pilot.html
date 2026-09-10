@@ -85,6 +85,9 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .money input { padding-left: 26px; }
 .usage-capture { margin: 0 0 0.8rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 10px; background: #fbfaff; }
 .usage-capture .field:last-of-type { margin-bottom: 0.35rem; }
+.usage-capture details { margin: 0 0 0.75rem; }
+.usage-capture details summary { cursor: pointer; color: var(--purple); font-size: 13px; font-weight: 750; }
+.usage-capture .usage-section { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
 .kwh-input { display: flex; align-items: center; gap: 8px; }
 .kwh-input input { min-width: 0; }
 .kwh-input span { flex: 0 0 auto; color: var(--muted); font-size: 13px; font-weight: 650; }
@@ -338,7 +341,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- Customer & household -->
   <div class="card">
     <div class="field">
-      <input type="text" id="customerName" placeholder="Customer name (FIRST name only)" autocomplete="off">
+      <input type="text" id="customerName" placeholder="Customer name (e.g. Mitch or Julietta & Andy)" autocomplete="off">
     </div>
     <div class="pills" style="margin-bottom: 0.6rem;">
       <button class="pill" id="pillHomeowner" type="button">🏠 Homeowner</button>
@@ -384,26 +387,64 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
 
     <div class="usage-capture">
-      <div class="field">
-        <label for="electricityUsageKwh">Annual electricity usage <span class="sub">(optional)</span></label>
-        <div class="kwh-input">
-          <input type="number" id="electricityUsageKwh" inputmode="numeric" min="0" step="1" placeholder="e.g. 3800">
-          <span>kWh/year</span>
+      <label>Energy services</label>
+      <div class="row2">
+        <div class="switchrow"><span class="lbl">⚡ Electricity</span><span class="switch"><input type="checkbox" id="energyHasElectricity" checked><span class="track"></span></span></div>
+        <div class="switchrow"><span class="lbl">🔥 Gas</span><span class="switch"><input type="checkbox" id="energyHasGas" checked><span class="track"></span></span></div>
+      </div>
+
+      <div id="electricityUsageSection" class="usage-section">
+        <div class="field">
+          <label for="electricityUsageKwh">Electricity annual usage <span class="sub">(optional)</span></label>
+          <div class="kwh-input">
+            <input type="number" id="electricityUsageKwh" inputmode="numeric" min="0" step="1" placeholder="e.g. 3800">
+            <span>kWh/year</span>
+          </div>
         </div>
+        <div class="field">
+          <label for="electricityUsageSource">Source</label>
+          <select id="electricityUsageSource">
+            <option value="">Choose when known</option>
+            <option value="customer_bill">Customer bill</option>
+            <option value="uw_quote">UW quote / national database</option>
+            <option value="manual">Manual / customer supplied</option>
+            <option value="other">Other</option>
+            <option value="estimate">Estimate / modelling</option>
+            <option value="legacy/unknown">Unknown / legacy</option>
+          </select>
+        </div>
+        <details id="electricityUsageDetails">
+          <summary>Optional peak / off-peak split</summary>
+          <div class="row2" style="margin-top:.65rem;">
+            <div class="field"><label for="electricityUsageDayKwh">Peak / day kWh</label><input type="number" id="electricityUsageDayKwh" inputmode="numeric" min="0" step="1" placeholder="Unknown"></div>
+            <div class="field"><label for="electricityUsageNightKwh">Off-peak / night kWh</label><input type="number" id="electricityUsageNightKwh" inputmode="numeric" min="0" step="1" placeholder="Unknown"></div>
+          </div>
+          <p class="sub">When both figures are entered, the annual total is calculated automatically. A missing split is kept unknown.</p>
+        </details>
+        <input type="hidden" id="electricityUsageCapturedAt">
+        <input type="hidden" id="electricityUsageBasis">
+        <p class="sub" id="electricityUsageHint">Useful when the figure is already available; it is not required for the appointment.</p>
       </div>
-      <div class="field">
-        <label for="electricityUsageSource">Source</label>
-        <select id="electricityUsageSource">
-          <option value="">Choose when known</option>
-          <option value="customer_bill">Customer bill</option>
-          <option value="uw_quote">UW quote</option>
-          <option value="manual">Other / manual</option>
-          <option value="legacy/unknown">Unknown / legacy</option>
-        </select>
+
+      <div id="gasUsageSection" class="usage-section">
+        <div class="field">
+          <label for="gasUsageKwh">Gas annual usage <span class="sub">(optional)</span></label>
+          <div class="kwh-input"><input type="number" id="gasUsageKwh" inputmode="numeric" min="0" step="1" placeholder="e.g. 11500"><span>kWh/year</span></div>
+        </div>
+        <div class="field">
+          <label for="gasUsageSource">Source</label>
+          <select id="gasUsageSource">
+            <option value="">Choose when known</option>
+            <option value="customer_bill">Customer bill</option>
+            <option value="uw_quote">UW quote / national database</option>
+            <option value="manual">Manual / customer supplied</option>
+            <option value="other">Other</option>
+            <option value="estimate">Estimate / modelling</option>
+            <option value="legacy/unknown">Unknown / legacy</option>
+          </select>
+        </div>
+        <input type="hidden" id="gasUsageCapturedAt">
       </div>
-      <input type="hidden" id="electricityUsageCapturedAt">
-      <input type="hidden" id="electricityUsageBasis">
-      <p class="sub" id="electricityUsageHint">Useful when the figure is already available; it is not required for the appointment.</p>
     </div>
 
     <div class="switchrow" style="margin-bottom: 0.6rem;">
@@ -920,9 +961,14 @@ const CONFIG = {
   mobile: {
     maxSims: 5,
     servicesCountedMax: 2,   // mobile contributes at most 2 to the service count
+    qualification: {
+      // Current confirmed behaviour. Update product units here after UW publishes
+      // the new rule; calculation code must not infer qualification from SIM count.
+      previewPlan: 'essentialMax'
+    },
     plans: {
-      unlimitedMax: { label: "Unlimited", first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
-      essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }
+      unlimitedMax: { label: "Unlimited", qualifyingUnits: 1, first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
+      essentialMax: { label: "Essentials", qualifyingUnits: 1, first: 5,  extra: 5,  note: "£5/m all year" }
       // bestOfBoth parked: avg £2.50/m relied on the customer downgrading after the free months — reinstate here if needed
 
     }
@@ -1265,6 +1311,14 @@ function priceSims(includedSims) {
   });
 }
 
+function mobileQualificationUnits(includedSims) {
+  const units = (includedSims || []).reduce((total, sim) => {
+    const product = CONFIG.mobile.plans[sim && sim.uwPlan];
+    return total + Math.max(0, Number(product && product.qualifyingUnits) || 0);
+  }, 0);
+  return Math.min(units, CONFIG.mobile.servicesCountedMax);
+}
+
 /* ---------- cashback ---------- */
 $('spendSlider').addEventListener('input', e => { $('spendDisplay').textContent = e.target.value; calc(); });
 $('includeCashback').addEventListener('change', e => {
@@ -1280,8 +1334,8 @@ function serviceCounts() {
   if (state.services.broadband) count++;
   // Mobile only qualifies when bundled with energy or broadband
   if (state.services.mobile && (state.services.energy || state.services.broadband)) {
-    const inc = Object.values(state.sims).filter(s => s.include).length;
-    count += Math.min(Math.max(inc, 1), CONFIG.mobile.servicesCountedMax);
+    const included = Object.values(state.sims).filter(s => s.include);
+    count += Math.max(mobileQualificationUnits(included), included.length ? 0 : 1);
   }
   return count;
 }
@@ -1302,12 +1356,13 @@ function compute(previewSims = 0) {
 
   // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
   const energyOrBb = state.services.energy || state.services.broadband;
-  const includedSimsCount = state.services.mobile ? Object.values(state.sims).filter(s => s.include).length : 0;
+  const includedSims = state.services.mobile ? Object.values(state.sims).filter(s => s.include) : [];
+  const includedSimsCount = includedSims.length;
   // Selecting Mobile counts as 1 service straight away (same as broadband);
   // a 2nd included SIM lifts it to 2 (the cap). Validation still requires
   // SIM details before the card can open or be shared.
   const realMobileContribution = (energyOrBb && state.services.mobile)
-    ? Math.min(Math.max(includedSimsCount, 1), CONFIG.mobile.servicesCountedMax)
+    ? Math.max(mobileQualificationUnits(includedSims), includedSimsCount ? 0 : 1)
     : 0;
   const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
   // Capped at 4: welcomeBonus/lowMonthlyCaps are only defined up to 5 (and cap out at 4
@@ -1322,7 +1377,8 @@ function compute(previewSims = 0) {
   const maxPreview = state.services.energy
     ? Math.min(availableSlots, Math.max(0, 2 - (baseCount - 1)))
     : availableSlots;
-  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const previewProduct = CONFIG.mobile.plans[CONFIG.mobile.qualification.previewPlan] || {};
+  const previewApplied = Math.min(previewSims * Math.max(0, Number(previewProduct.qualifyingUnits) || 0), availableSlots, maxPreview);
   const mobilePresent = state.services.mobile || previewApplied > 0;
   const count = baseCount + previewApplied;
 
@@ -2146,7 +2202,19 @@ function buildShareUrl() {
   const encoded = b64urlEncode(JSON.stringify(result.data));
   // Single-page consolidation: the shared link now points at THIS page —
   // the #d= payload switches it into read-only customer view on load.
-  return location.href.split('#')[0] + '#d=' + encoded;
+  const url = new URL(location.href.split('#')[0]);
+  const slug = ($('customerName').value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  if (slug) url.searchParams.set('for', slug);
+  return url.toString() + '#d=' + encoded;
+}
+
+function requireCustomerNameForShare() {
+  if (($('customerName').value || '').trim()) return true;
+  showSaveGate('Personalise this share', 'Add the customer name first. It will stay with this working customer and appear in the shared message.', 'Add name', () => {
+    $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => $('customerName').focus(), 350);
+  });
+  return false;
 }
 
 window.AppointmentCompanionQuoteSharedAt = '';
@@ -2187,12 +2255,14 @@ function continueCopyShareLink() {
   });
 }
 $('shareBtn').addEventListener('click', () => {
+  if (!requireCustomerNameForShare()) return;
   if (!requirePartnerSetup()) return;   // no sharing until name + link are set
   if (!basketLink()) return openBasketPrompt('whatsapp');
   continueShareViaWhatsApp();
 });
 
 $('copyLinkBtn').addEventListener('click', () => {
+  if (!requireCustomerNameForShare()) return;
   if (!requirePartnerSetup()) return;   // no sharing until name + link are set
   if (!basketLink()) return openBasketPrompt('copy');
   continueCopyShareLink();
@@ -2230,6 +2300,8 @@ function resetForm() {
   if ($('apptNotes')) $('apptNotes').value = '';
   window.AppointmentCompanionQuoteSharedAt = '';
   document.querySelectorAll('input[type="checkbox"]').forEach(i => { i.checked = i.id === 'includeCashback'; i.disabled = false; });
+  if ($('energyHasElectricity')) $('energyHasElectricity').checked = true;
+  if ($('energyHasGas')) $('energyHasGas').checked = true;
   $('spendSlider').value = CONFIG.cashback.slider.default;
   $('spendDisplay').textContent = CONFIG.cashback.slider.default;
   state.services = { energy: false, broadband: false, mobile: false };
@@ -2258,6 +2330,8 @@ function resetForm() {
   document.querySelector('[data-cbtier="med"] .pct').textContent = CB_LABELS.med + ' ✓';
   $('energyCombinedNow').classList.remove('hidden');
   $('cashbackInner').classList.remove('hidden');
+  if ($('electricityUsageSection')) $('electricityUsageSection').classList.remove('hidden');
+  if ($('gasUsageSection')) $('gasUsageSection').classList.remove('hidden');
   $('basketLinkDetails').open = false;
   closeBasketPrompt();
   $('simList').innerHTML = '';
@@ -2275,7 +2349,7 @@ function resetForm() {
   document.querySelector('[data-oneoff="refund"]').classList.add('on');
   calc();
 }
-$('resetBtn').addEventListener('click', () => { if (confirm('Reset all figures?')) resetForm(); });
+$('resetBtn').addEventListener('click', () => { if (confirm('Reset all figures?')) { resetForm(); document.dispatchEvent(new CustomEvent('ac:main-reset')); } });
 
 /* ================================================================
    SAVE / LOAD PROFILES + NOTES  (additive — leaves calc/share intact)
@@ -2287,6 +2361,7 @@ function serializeForm() {
   const inputs = {};
   document.querySelectorAll('input, textarea, select').forEach(el => {
     if (!el.id || el.type === 'file') return;
+    if (el.closest && el.closest('#cloudPilotCard,#cloudConnectModal,#cloudCustomerModal,#cloudSettingsModal,#cloudOnboardingModal,#cashbackPlaceholderModal')) return;
     inputs[el.id] = (el.type === 'checkbox') ? el.checked : el.value;
   });
   const bbPkgOn = document.querySelector('[data-bbpkg].on');
@@ -2370,6 +2445,8 @@ function restoreForm(saved) {
   $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
   $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
   $('boilerCoverFreeRow').classList.toggle('hidden', !$('boilerCoverToggle').checked);
+  if ($('electricityUsageSection')) $('electricityUsageSection').classList.toggle('hidden', $('energyHasElectricity') && !$('energyHasElectricity').checked);
+  if ($('gasUsageSection')) $('gasUsageSection').classList.toggle('hidden', $('energyHasGas') && !$('energyHasGas').checked);
 
   // bundle-rate panel (🥪)
   const bundleOpen = !!(saved.ui && saved.ui.bundlePanelOpen);

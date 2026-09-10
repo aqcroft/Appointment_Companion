@@ -13,8 +13,8 @@
   const api = window.AppointmentCompanionCloud;
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
-  const AUTOSAVE_DELAY_MS = 4000;
-  const AUTOSAVE_BATCH_DELAY_MS = 12000;
+  const AUTOSAVE_DELAY_MS = 1800;
+  const AUTOSAVE_BATCH_DELAY_MS = 6000;
   const AUTOSAVE_MIN_CHANGES = 3;
 
   let armed = false;

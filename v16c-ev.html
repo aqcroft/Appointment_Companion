@@ -32,7 +32,7 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 </div>
 
 <div class="loading" id="loadingModal" role="status" aria-live="polite">
-  <div class="loading-card"><div class="spinner"></div><div class="loading-title" id="loadingTitle">Loading live UW tariff data…</div><div class="loading-copy" id="loadingCopy">Checking the latest rates before calculating.</div></div>
+  <div class="loading-card"><div class="spinner"></div><div class="loading-title" id="loadingTitle">Checking latest tariff data…</div><div class="loading-copy" id="loadingCopy">A saved tariff snapshot will be used immediately when available.</div></div>
 </div>
 
 <div class="wrap">
@@ -70,7 +70,7 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
     <small>The current home usage, car, mileage and settings will travel with the link.</small>
   </div>
   <div class="share-setup-row">
-    <input id="shareCustomerName" type="text" autocomplete="off" placeholder="Customer first name - e.g. Mitch" aria-label="Customer first name">
+    <input id="shareCustomerName" type="text" autocomplete="off" placeholder="Customer name - e.g. Mitch" aria-label="Customer name">
     <button type="button" id="createShareBtn">📤 Share</button>
   </div>
 </section>
@@ -179,7 +179,7 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 <div class="share-toast" id="shareToast" role="status" aria-live="polite"></div>
 
 <!-- v16C deliberately loads the live-data calculator scripts only after OK on a personalised link. -->
-<script src="v16c-sharing.js"></script>
+<script src="v16c-sharing.js?v=20260910-feedback1"></script>
 <script src="pwa-register.js"></script>
 </body>
 </html>

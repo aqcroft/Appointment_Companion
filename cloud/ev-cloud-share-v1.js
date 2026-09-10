@@ -67,8 +67,13 @@
     if (global.prompt) global.prompt(text, url);
   }
 
-  function shareUrl(token) {
-    return new URL('./companion/ev/?s=' + encodeURIComponent(token), global.location.href).href;
+  function shareUrl(token, customerName) {
+    const url = new URL('./companion/ev/', global.location.href);
+    const slug = String(customerName || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28);
+    const suffix = String(token || '').replace(/[^a-z0-9]/gi, '').slice(-4).toLowerCase();
+    if (slug) url.searchParams.set('for', slug + (suffix ? '-' + suffix : ''));
+    url.searchParams.set('s', String(token || ''));
+    return url.href;
   }
 
   async function copyText(text) {
@@ -101,25 +106,36 @@
     }
 
     try {
-      const customer = await shareApi.getCurrentCustomer();
+      let customer = await shareApi.getCurrentCustomer();
+      const workspace = global.AppointmentCompanionEvWorkspace;
+      let name = String((workspace && workspace.getCustomerName && workspace.getCustomerName()) || customer.customer_name || '').trim();
+      if (!name) {
+        name = String(global.prompt ? global.prompt('Who is this EV summary for? Add the customer name to personalise the share.', '') || '' : '').trim();
+        if (!name) throw new Error('Add the customer name before sharing.');
+        if (workspace && workspace.setCustomerName) workspace.setCustomerName(name);
+        if (workspace && workspace.saveNow) await workspace.saveNow();
+        customer = await shareApi.getCurrentCustomer();
+      } else if (workspace && workspace.saveNow && name !== String(customer.customer_name || '').trim()) {
+        await workspace.saveNow();
+        customer = await shareApi.getCurrentCustomer();
+      }
       const snapshot = {
         schema_version: 1,
         view_type: 'ev',
-        customer_name: customer.customer_name || '',
+        customer_name: name || customer.customer_name || '',
         electricity_usage_kwh: customer.electricity_usage_kwh,
         electricity_usage_revision: customer.electricity_usage_revision || 0,
         ev_state: captureState()
       };
 
       const share = await shareApi.create('ev', snapshot);
-      const url = shareUrl(share.token);
-      const name = customer.customer_name || 'there';
+      const url = shareUrl(share.token, name);
 
       if (navigator.share) {
         try {
           await navigator.share({
             title: 'UW EV Tariff Companion',
-            text: 'Hi ' + name + ', this EV comparison has been set up for you.',
+            text: 'Hi ' + name + ' - I prepared this EV comparison for you.',
             url: url
           });
           showToast('Cloud share ready');

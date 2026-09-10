@@ -15,6 +15,42 @@
   const RETURN_SAVE_KEY = 'apptCompanionSpecialistReturnNeedsSaveV1';
   const specs = [];
   const wiredTopButtons = new Set();
+  const prefetchedTools = new Set();
+
+  function showTransition(title, copy) {
+    let overlay = document.getElementById('companionViewTransition');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'companionViewTransition';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:15000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.24);backdrop-filter:blur(2px);';
+      overlay.innerHTML = '<div style="width:min(330px,calc(100vw - 36px));padding:22px;border-radius:16px;background:#fff;color:#26164f;box-shadow:0 18px 55px rgba(38,22,79,.24);text-align:center;font-family:system-ui,-apple-system,Segoe UI,sans-serif"><div style="font-size:30px;margin-bottom:8px">🚙</div><strong data-transition-title style="display:block;font-size:16px;color:#7a42c8"></strong><p data-transition-copy style="margin:.35rem 0 0;font-size:12px;color:#6b6b76"></p></div>';
+      document.body.appendChild(overlay);
+    }
+    overlay.querySelector('[data-transition-title]').textContent = title || 'Opening Companion…';
+    overlay.querySelector('[data-transition-copy]').textContent = copy || '';
+    overlay.style.display = 'flex';
+  }
+
+  function hideTransition() {
+    const overlay = document.getElementById('companionViewTransition');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  function prefetch(spec) {
+    const key = String(spec && spec.tool_id || '');
+    if (!key || prefetchedTools.has(key)) return;
+    prefetchedTools.add(key);
+    const run = function () {
+      const assets = key === 'ev'
+        ? [spec.url, '../v16c-ev.html', '../tariff-cache-v1.js', '../v13-ev.js', '../v16b-hero.js', '../v14-ev.css', '../v15-ev.css', '../v15-freshness.js', '../v16c-ev.css', '../v16c-sharing.js', '../v16c-table.js']
+        : [spec.url];
+      assets.forEach(function (asset) {
+        try { fetch(new URL(asset, global.location.href).href, { cache: 'force-cache', credentials: 'same-origin' }).catch(function () {}); } catch (_) {}
+      });
+    };
+    if ('requestIdleCallback' in global) global.requestIdleCallback(run, { timeout: 1800 });
+    else setTimeout(run, 500);
+  }
 
   function getAuth() {
     try {
@@ -69,12 +105,14 @@
   }
 
   async function launch(spec, btn) {
+    showTransition('Opening ' + (spec.label || 'Companion') + '…', 'Saving the local working copy.');
     const customerId = currentCustomerId();
     const auth = getAuth();
     const contextApi = global.AppointmentCompanionCustomerContext;
     const draftCustomer = contextApi && typeof contextApi.currentDraft === 'function' ? contextApi.currentDraft() : {};
     if (!customerId) {
       if (!bridge) {
+        hideTransition();
         setCloudStatus('Companion Bridge is not ready.', 'bad');
         return;
       }
@@ -91,6 +129,7 @@
       return;
     }
     if (!auth || !api || !bridge) {
+      hideTransition();
       setCloudStatus('Cloud/Companion Bridge is not ready.', 'bad');
       return;
     }
@@ -103,9 +142,7 @@
       const canDetermineDirty = dirtyApi && typeof dirtyApi.isReady === 'function' && dirtyApi.isReady() && typeof dirtyApi.isDirty === 'function';
       const needsSave = !canDetermineDirty || dirtyApi.isDirty();
       if (needsSave) await saveBeforeLaunch();
-      const res = await api.getCustomer(auth, customerId);
-      const customer = res && res.customer;
-      if (!customer) throw new Error('Cloud customer was not returned.');
+      const customer = Object.assign({}, draftCustomer, { customer_id: customerId });
 
       bridge.launch(spec.url, spec.tool_id, {
         basket_url: customer.basket_url || bridge.currentBasketUrl(),
@@ -115,6 +152,7 @@
         }
       });
     } catch (err) {
+      hideTransition();
       btn.disabled = false;
       btn.removeAttribute('aria-busy');
       setCloudStatus((err && err.message) || String(err), 'bad');
@@ -130,6 +168,7 @@
       btn.setAttribute('aria-label', spec.label || spec.tool_id);
       btn.addEventListener('click', function () { launch(spec, btn); });
       wiredTopButtons.add(id);
+      prefetch(spec);
     });
   }
 
@@ -140,6 +179,7 @@
     if (at >= 0) specs[at] = Object.assign({}, spec);
     else specs.push(Object.assign({}, spec));
     render();
+    prefetch(spec);
   }
 
   function syncReturnedSpecialist() {
