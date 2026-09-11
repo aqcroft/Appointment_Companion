@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion — Consolidated v1</title>
-  <meta name="description" content="Isolated consolidated Appointment Companion test build">
+  <title>Appointment Companion v2.0</title>
+  <meta name="description" content="Appointment Companion local-first PWA">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <link rel="manifest" href="./manifest.webmanifest">
@@ -12,11 +12,11 @@
   <style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
 </head>
 <body>
-  <div class="msg" id="loader">🔄 Opening the consolidated Companion…</div>
+  <div class="msg" id="loader">🔄 Opening Appointment Companion…</div>
   <script>
   (async function () {
     try {
-      var version = '20260911-v1.9-toolbar2';
+      var version = '20260911-v2.0';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
@@ -38,12 +38,11 @@
         '<script src="../consolidated-v1/service-ui-polish-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/specialist-launcher-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script>' +
-        '<script src="../consolidated-v1/toolbar-polish-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/consolidated-controller-v1.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
-      document.getElementById('loader').textContent = '❌ Consolidated Companion could not load: ' + ((error && error.message) || String(error));
+      document.getElementById('loader').textContent = '❌ Appointment Companion could not load: ' + ((error && error.message) || String(error));
     }
   })();
   </script>
