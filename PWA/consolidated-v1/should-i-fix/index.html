@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Should I Fix? v2.1</title>
+  <title>Should I Fix? v2.2</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
@@ -13,7 +13,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260911-v2.1';
+      var version = '20260912-v2.2';
       var response = await fetch('../../cloud-test/should-i-fix-pilot-v2.html?v=' + version);
       if (!response.ok) throw new Error('Should I Fix donor returned HTTP ' + response.status);
       var html = await response.text();
