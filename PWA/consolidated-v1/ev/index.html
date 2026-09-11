@@ -15,7 +15,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260911-consolidated3';
+      var version = '20260911-v1.9-shell1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var linked = params.has('ac_launch');
@@ -34,6 +34,7 @@
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
       }
+      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script>';
       /* A generic URL intentionally receives no Bridge/Journey scripts, so it
          cannot inherit state from a previous linked customer on this device. */
       html = html.replace(/<\/body>/i, inject + '</body>');
