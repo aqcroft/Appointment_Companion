@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>UW EV Tariff Companion — Local-first test</title><meta name="robots" content="noindex"><meta name="theme-color" content="#7a42c8">
+  <link rel="manifest" href="../manifest.webmanifest"><link rel="icon" href="../../app-icon.svg" type="image/svg+xml">
+  <style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
+</head>
+<body><div class="msg" id="loader">🚙 Opening the local-first EV Companion…</div>
+<script>
+(async function () {
+  try {
+    var v = '20260911-localfirst3';
+    window.__AC_LOCAL_FIRST = true;
+    window.__AC_LOCAL_ONLY = new URL(location.href).searchParams.get('local') === '1';
+    var res = await fetch('../../v16c-ev.html?v=' + v); if (!res.ok) throw new Error('EV source returned HTTP ' + res.status);
+    var html = await res.text(); if (!/<\/body>/i.test(html)) throw new Error('EV source is incomplete.');
+    html = html.replace(/href="manifest\.webmanifest"/i, 'href="local-first/manifest.webmanifest"');
+    html = html.replace(/<script src="pwa-register\.js"><\/script>/i, '<script src="local-first/pwa-register.js?v=' + v + '"><\/script>');
+    html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_LOCAL_ONLY=' + (window.__AC_LOCAL_ONLY ? 'true' : 'false') + ';<\/script><script src="local-first/tariff-fetch-local-first-v1.js?v=' + v + '"><\/script>');
+    var inject = '<script>document.body.dataset.companionTool="ev";<\/script><script src="cloud-client-v1.js?v=' + v + '"><\/script><script src="local-first/device-identity-v1.js?v=' + v + '"><\/script><script src="local-first/companion-bridge-v1.js?v=' + v + '"><\/script><script src="local-first/local-customer-store-v1.js?v=' + v + '"><\/script><script src="cloud/specialist-share-v1.js?v=' + v + '"><\/script><script src="local-first/ev-bridge-pilot-v1.js?v=' + v + '"><\/script><script src="local-first/ev-cloud-share-v1.js?v=' + v + '"><\/script>';
+    html = html.replace(/<\/body>/i, inject + '</body>'); document.open(); document.write(html); document.close();
+  } catch (error) { document.getElementById('loader').textContent = '❌ EV Companion could not load: ' + ((error && error.message) || String(error)); }
+})();
+</script></body></html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Appointment Companion — Local-first test</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#7a42c8">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="../app-icon.svg" type="image/svg+xml">
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}
+    .msg{padding:24px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="msg" id="loader">💾 Opening the local-first Companion…</div>
+  <script>
+  (async function () {
+    try {
+      var assetVersion = '20260911-localfirst3';
+      window.__AC_LOCAL_FIRST = true;
+      window.__AC_LOCAL_ONLY = new URL(location.href).searchParams.get('local') === '1';
+      var response = await fetch('./companion_local_first.html?v=' + assetVersion);
+      if (!response.ok) throw new Error('Companion source returned HTTP ' + response.status);
+      var html = await response.text();
+      if (!/<\/body>/i.test(html)) throw new Error('Companion source is incomplete.');
+      var flags = '<script>window.__AC_LOCAL_FIRST=true;window.__AC_LOCAL_ONLY=' + (window.__AC_LOCAL_ONLY ? 'true' : 'false') + ';<\/script>';
+      var scripts = flags +
+        '<script src="../cloud-client-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./device-identity-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./companion-bridge-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./local-customer-store-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./shell-pilot-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./specialist-launcher-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./specialists-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./local-first-controller-v1.js?v=' + assetVersion + '"><\/script>';
+      html = html.replace(/<\/body>/i, scripts + '</body>');
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (error) {
+      document.getElementById('loader').textContent = '❌ Local-first Companion could not load: ' + (error && error.message ? error.message : String(error));
+    }
+  })();
+  </script>
+</body>
+</html>

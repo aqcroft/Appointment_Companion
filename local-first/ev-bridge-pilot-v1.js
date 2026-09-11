@@ -1,0 +1,574 @@
+/* EV Companion Bridge pilot v1
+   Implements the generic Companion Bridge contract for the EV specialist tool.
+   v16C itself remains untouched.
+
+   Specialist edits autosave to the local customer record first. Background Cloud
+   reconciliation is owned by the local-first controller in the Main Companion.
+*/
+(function (global) {
+  'use strict';
+
+  if (document.documentElement.classList.contains('shared-view')) return;
+
+  const bridge = global.AppointmentCompanionBridge;
+  const localStore = global.AppointmentCompanionLocalStore;
+  if (!bridge) return;
+
+  const RETURN_SAVE_KEY = 'apptCompanionSpecialistReturnNeedsSaveV1';
+  const DRAFT_KEY = 'apptCompanionEvDraftV1';
+  const receivedLaunch = bridge.receive();
+  if (receivedLaunch && receivedLaunch.target_tool_id !== 'ev') return;
+  const launch = receivedLaunch || {
+    target_tool_id: 'ev', customer_id: '', appointment_state: null, basket_url: '',
+    extra: { draft: true, customer: {} }
+  };
+
+  const $ = function (id) { return document.getElementById(id); };
+  const workingRecord = typeof bridge.getWorkingRecord === 'function' ? bridge.getWorkingRecord() : {};
+  const customer = Object.assign({}, workingRecord || {}, launch.extra && launch.extra.customer ? launch.extra.customer : {});
+  if (!customer.customer_name && workingRecord && workingRecord.customer_name) customer.customer_name = workingRecord.customer_name;
+  const currentLocalId = String((launch.extra && launch.extra.local_id) || customer.local_id || sessionStorage.getItem('apptCompanionLocalFirstCurrentV1') || '');
+  const linked = !!(receivedLaunch && (currentLocalId || (launch.customer_id && customer.customer_id)));
+  let localDraft = null;
+  try { localDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) {}
+  const journeyState = bridge.getToolState('ev') || (!linked ? localDraft : null);
+  const cloudEvState = customer.ev_state || null;
+  if (!linked && !customer.customer_name && journeyState && journeyState.customer_name) customer.customer_name = journeyState.customer_name;
+
+  let hydrating = true;
+  let dirty = false;
+  let saving = false;
+  let pendingSave = false;
+  let saveTimer = null;
+  let changeBurst = 0;
+  let lastSavedFingerprint = '';
+
+  function linkedSaveText(active) {
+    if (!linked) return active ? '✓ Local draft autosave on' : '✓ Draft saved on this device';
+    if (global.__AC_LOCAL_ONLY) return active ? '✓ Device autosave on · Cloud paused' : '✓ Saved on this device · Cloud paused';
+    return active ? '✓ Device autosave on · Cloud follows in background' : '✓ Saved on this device · Cloud sync queued';
+  }
+
+  function click(selector) {
+    const el = document.querySelector(selector);
+    if (el) el.click();
+  }
+
+  function trigger(el, type) {
+    if (!el) return;
+    el.dispatchEvent(new Event(type || 'input', { bubbles: true }));
+  }
+
+  function num(id) {
+    const el = $(id);
+    if (!el || el.value === '') return null;
+    const n = Number(el.value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function active(selector) {
+    return document.querySelector(selector + '.on');
+  }
+
+  function setInput(id, value, type) {
+    const el = $(id);
+    if (!el || value === undefined || value === null) return;
+    el.value = value;
+    trigger(el, type || 'input');
+  }
+
+  function setCanonicalUsage(kwh) {
+    if (kwh === null || kwh === undefined || !Number.isFinite(Number(kwh))) return;
+    document.querySelectorAll('#usagePills button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.use === 'custom');
+    });
+    const customWrap = $('customWrap');
+    if (customWrap) customWrap.classList.add('show');
+    const house = $('houseKwh');
+    if (house) {
+      house.value = Number(kwh);
+      if (typeof house.oninput === 'function') house.oninput();
+      else trigger(house, 'input');
+    }
+  }
+
+  function normaliseState(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    return {
+      schema_version: raw.schema_version || 1,
+      tool_version: raw.tool_version || '16C',
+      vehicle_efficiency_mi_kwh: raw.vehicle_efficiency_mi_kwh != null ? raw.vehicle_efficiency_mi_kwh : raw.efficiency_mi_kwh,
+      vehicle_icon: raw.vehicle_icon || raw.icon || '',
+      annual_mileage: raw.annual_mileage != null ? raw.annual_mileage : raw.mileage,
+      home_usage_kwh: raw.home_usage_kwh,
+      // Older linked EV states stored a custom figure in home_usage_kwh. Treat
+      // that as an EV-only override when they explicitly identified it as one.
+      home_usage_override_kwh: raw.home_usage_override_kwh != null ? raw.home_usage_override_kwh : (raw.home_usage_source === 'ev_override' ? raw.home_usage_kwh : null),
+      customer_name: raw.customer_name || '',
+      home_usage_mode: raw.home_usage_mode || raw.usage_mode || '',
+      home_usage_source: raw.home_usage_source || '',
+      uw_services: raw.uw_services,
+      region: raw.region,
+      ev_offpeak_pct: raw.ev_offpeak_pct,
+      e7_offpeak_pct: raw.e7_offpeak_pct,
+      e7_actual: raw.e7_actual,
+      e7_day_kwh: raw.e7_day_kwh,
+      e7_night_kwh: raw.e7_night_kwh,
+      away_pct: raw.away_pct,
+      away_rate_p_kwh: raw.away_rate_p_kwh,
+      efficiency_override_mi_kwh: raw.efficiency_override_mi_kwh,
+      known_ev_kwh: raw.known_ev_kwh,
+      dual_fuel: raw.dual_fuel,
+      period: raw.period,
+      stress_pct: raw.stress_pct,
+      updated_at: raw.updated_at || ''
+    };
+  }
+
+  function timeOf(raw) {
+    const t = Date.parse(raw && raw.updated_at ? raw.updated_at : '');
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  function newestStartingState() {
+    const a = normaliseState(journeyState || {});
+    const b = normaliseState(cloudEvState || {});
+    if (!journeyState) return b;
+    if (!cloudEvState) return a;
+    return timeOf(b) > timeOf(a) ? b : a;
+  }
+
+  function applyState() {
+    const state = newestStartingState();
+
+    if (state.vehicle_efficiency_mi_kwh != null) {
+      const vehicle = document.querySelector('#vehiclePills .vpill[data-eff="' + state.vehicle_efficiency_mi_kwh + '"]');
+      if (vehicle) vehicle.click();
+    }
+
+    if (state.annual_mileage != null) setInput('miles', state.annual_mileage, 'input');
+
+    if (state.uw_services != null) {
+      const tier = Math.max(0, Math.min(2, Number(state.uw_services) - 1));
+      click('#serviceButtons button[data-tier="' + tier + '"]');
+    }
+
+    if (state.region != null && $('region')) {
+      $('region').value = String(state.region);
+      trigger($('region'), 'change');
+    }
+
+    if (state.away_pct != null) setInput('awayPct', state.away_pct, 'input');
+    if (state.away_rate_p_kwh != null) setInput('awayRate', state.away_rate_p_kwh, 'input');
+    if (state.efficiency_override_mi_kwh != null) setInput('effOverride', state.efficiency_override_mi_kwh, 'input');
+    if (state.known_ev_kwh != null) setInput('knownEvKwh', state.known_ev_kwh, 'input');
+
+    if (state.dual_fuel !== undefined && state.dual_fuel !== null && $('dualFuel')) {
+      $('dualFuel').checked = !!state.dual_fuel;
+      trigger($('dualFuel'), 'change');
+    }
+
+    if (state.ev_offpeak_pct != null) setInput('evTimingSlider', state.ev_offpeak_pct, 'input');
+    if (state.e7_offpeak_pct != null) setInput('e7TimingSlider', state.e7_offpeak_pct, 'input');
+
+    if (state.e7_actual) {
+      if ($('e7ActualWrap') && $('e7ActualWrap').hidden) click('#e7ActualToggle');
+      if (state.e7_day_kwh != null) setInput('e7DayActualInput', state.e7_day_kwh, 'change');
+      if (state.e7_night_kwh != null) setInput('e7NightActualInput', state.e7_night_kwh, 'change');
+    }
+
+    if (state.stress_pct != null) click('#stressButtons button[data-stress="' + Number(state.stress_pct) + '"]');
+    if (state.period) click('#periodToggle button[data-period="' + state.period + '"]');
+
+    // An explicit EV assumption wins, otherwise inherit Main's canonical fact.
+    if (state.home_usage_override_kwh != null && Number.isFinite(Number(state.home_usage_override_kwh))) {
+      setCanonicalUsage(state.home_usage_override_kwh);
+    } else if (customer.electricity_usage_kwh != null && Number.isFinite(Number(customer.electricity_usage_kwh))) {
+      setCanonicalUsage(customer.electricity_usage_kwh);
+    } else if (state.home_usage_mode === 'custom' && state.home_usage_kwh != null) {
+      setCanonicalUsage(state.home_usage_kwh);
+    } else if (state.home_usage_mode) {
+      click('#usagePills button[data-use="' + state.home_usage_mode + '"]');
+    }
+    if (customer.electricity_usage_day_kwh != null && customer.electricity_usage_night_kwh != null) {
+      if ($('e7ActualWrap') && $('e7ActualWrap').hidden) click('#e7ActualToggle');
+      setInput('e7DayActualInput', customer.electricity_usage_day_kwh, 'change');
+      setInput('e7NightActualInput', customer.electricity_usage_night_kwh, 'change');
+    }
+  }
+
+  function captureState() {
+    const vehicle = active('#vehiclePills .vpill');
+    const usage = active('#usagePills button');
+    const service = active('#serviceButtons button');
+    const period = active('#periodToggle button');
+    const stress = active('#stressButtons button');
+    const e7Actual = $('e7ActualWrap') ? !$('e7ActualWrap').hidden : false;
+
+    const profileUsage = customer.electricity_usage_kwh != null && Number.isFinite(Number(customer.electricity_usage_kwh)) ? Number(customer.electricity_usage_kwh) : null;
+    const homeUsage = num('houseKwh');
+    const explicitOverride = linked && Number.isFinite(homeUsage) && (profileUsage == null || homeUsage !== profileUsage) ? homeUsage : null;
+
+    return {
+      schema_version: 1,
+      tool_version: '16C',
+      customer_name: linked ? '' : currentCustomerName(),
+      vehicle_efficiency_mi_kwh: vehicle ? Number(vehicle.dataset.eff) : 3.2,
+      vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙',
+      annual_mileage: num('miles'),
+      home_usage_kwh: homeUsage,
+      home_usage_override_kwh: explicitOverride,
+      home_usage_mode: usage ? String(usage.dataset.use || '') : '',
+      home_usage_source: explicitOverride != null ? 'ev_override' : (profileUsage != null ? 'customer_profile' : (homeUsage != null ? 'ev_only' : '')),
+      uw_services: service ? Number(service.dataset.tier) + 1 : 3,
+      region: num('region'),
+      ev_offpeak_pct: num('evTimingSlider'),
+      e7_offpeak_pct: num('e7TimingSlider'),
+      e7_actual: e7Actual,
+      e7_day_kwh: e7Actual ? num('e7DayActualInput') : null,
+      e7_night_kwh: e7Actual ? num('e7NightActualInput') : null,
+      away_pct: num('awayPct'),
+      away_rate_p_kwh: num('awayRate'),
+      efficiency_override_mi_kwh: num('effOverride'),
+      known_ev_kwh: num('knownEvKwh'),
+      dual_fuel: $('dualFuel') ? !!$('dualFuel').checked : true,
+      period: period ? period.dataset.period : 'month',
+      stress_pct: stress ? Number(stress.dataset.stress || 0) : 0,
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function fingerprint(state) {
+    const copy = Object.assign({}, state || {});
+    delete copy.updated_at;
+    return JSON.stringify(copy);
+  }
+
+  function stashDraft(state) {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch (_) {}
+    bridge.setToolState('ev', state);
+    if (typeof bridge.updateWorkingRecord === 'function') bridge.updateWorkingRecord({
+      customer_id: linked ? String(customer.customer_id || launch.customer_id || '') : '',
+      customer_name: linked ? String(customer.customer_name || '') : String(state.customer_name || ''),
+      specialists: Object.assign({}, (bridge.getWorkingRecord && bridge.getWorkingRecord().specialists) || {}, { ev: state })
+    });
+    return currentLocalId && localStore && typeof localStore.updateSpecialist === 'function'
+      ? localStore.updateSpecialist(currentLocalId, 'ev', state)
+      : Promise.resolve(null);
+  }
+
+  function currentCustomerName() {
+    if (linked) return String(customer.customer_name || '').trim();
+    const field = document.querySelector('[data-ev-customer-name]');
+    return String((field && field.value) || customer.customer_name || '').trim();
+  }
+
+  function setCustomerName(value, schedule) {
+    if (linked) return String(customer.customer_name || '').trim();
+    const name = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    customer.customer_name = name;
+    document.querySelectorAll('[data-ev-customer-name]').forEach(function (input) {
+      if (input.value !== name) input.value = name;
+    });
+    if ($('shareCustomerName') && $('shareCustomerName').value !== name) $('shareCustomerName').value = name;
+    if (typeof bridge.updateWorkingRecord === 'function') bridge.updateWorkingRecord({
+      customer_id: linked ? String(customer.customer_id || launch.customer_id || '') : '',
+      customer_name: name
+    });
+    if (schedule && !hydrating) scheduleSave(900);
+    return name;
+  }
+
+  function setSaveUi(text, tone) {
+    document.querySelectorAll('.evBridgeSaveState').forEach(function (el) {
+      el.textContent = text;
+      el.style.color = tone === 'bad' ? '#c43b3b' : tone === 'warn' ? '#8a6400' : tone === 'good' ? '#1d7f45' : '#6b6b76';
+    });
+    showNotice(text, tone);
+  }
+
+  function showNotice(text, tone) {
+    let notice = $('evBridgeNotice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'evBridgeNotice';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      document.body.appendChild(notice);
+    }
+    notice.textContent = text;
+    notice.className = 'show ' + (tone || '');
+    clearTimeout(showNotice.timer);
+    showNotice.timer = setTimeout(function () { notice.classList.remove('show'); }, tone === 'bad' ? 5200 : 1800);
+  }
+
+  function setSaveButtonsDisabled(disabled) {
+    document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
+      btn.disabled = !!disabled;
+    });
+  }
+
+  async function saveNow(force) {
+    if (hydrating) return;
+    const state = captureState();
+    const fp = fingerprint(state);
+    if (!force && fp === lastSavedFingerprint) {
+      dirty = false;
+      setSaveUi(linkedSaveText(false), 'good');
+      return;
+    }
+    if (saving) {
+      pendingSave = true;
+      return;
+    }
+
+    saving = true;
+    dirty = true;
+    setSaveUi('💾 Saving on this device…', '');
+    setSaveButtonsDisabled(true);
+
+    try {
+      await stashDraft(state);
+      lastSavedFingerprint = fp;
+      dirty = false;
+      setSaveUi(linkedSaveText(false), 'good');
+    } catch (err) {
+      dirty = true;
+      setSaveUi('⚠️ Local EV save needs attention. ' + ((err && err.message) || String(err)), 'bad');
+    } finally {
+      saving = false;
+      changeBurst = 0;
+      setSaveButtonsDisabled(false);
+      if (pendingSave) {
+        pendingSave = false;
+        setTimeout(function () { saveNow(false); }, 50);
+      }
+    }
+  }
+
+  function scheduleSave(delay) {
+    if (hydrating) return;
+    changeBurst++;
+    dirty = true;
+    setSaveUi('● Unsaved change - autosaving…', 'warn');
+    clearTimeout(saveTimer);
+    const coalescedDelay = delay == null ? (changeBurst >= 3 ? 1000 : 4000) : delay;
+    saveTimer = setTimeout(function () { saveNow(false); }, coalescedDelay);
+  }
+
+  function relevantTarget(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest('#vehiclePills,#usagePills,#serviceButtons,#periodToggle,#stressButtons,#miles,#houseKwh,#region,#evTimingSlider,#e7TimingSlider,#e7ActualToggle,#e7DayActualInput,#e7NightActualInput,#awayPct,#awayRate,#effOverride,#knownEvKwh,#dualFuel,#shareCustomerName,[data-ev-customer-name]');
+  }
+
+  function armAutosave() {
+    document.addEventListener('input', function (e) {
+      if (relevantTarget(e.target)) scheduleSave();
+    }, true);
+
+    document.addEventListener('change', function (e) {
+      if (relevantTarget(e.target)) scheduleSave(changeBurst >= 2 ? 900 : 2200);
+    }, true);
+
+    document.addEventListener('click', function (e) {
+      if (relevantTarget(e.target)) scheduleSave(changeBurst >= 2 ? 900 : 2200);
+    }, true);
+
+    global.addEventListener('beforeunload', function (e) {
+      if (!dirty && !saving) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  }
+
+  function addBridgeBar() {
+    if ($('evBridgeBar')) return;
+    const wrap = document.querySelector('.wrap');
+    if (!wrap) return;
+
+    const style = document.createElement('style');
+    style.textContent = '.evBridgeBar{position:relative;margin:0 0 .75rem;padding:.62rem .7rem;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:#faf7ff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar.bottom{margin:1rem 0 .25rem}.evBridgeBar .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.evBridgeBar .meta{min-width:0;flex:1}.evBridgeBar .name{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px}.evBridgeBar .name input{width:min(260px,100%);min-width:0;padding:6px 8px;border:1px solid rgba(122,66,200,.22);border-radius:8px;background:#fff;font:750 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}.evBridgeBar .sub{font-size:10.5px;opacity:.72;margin-top:2px}.evBridgeBar .usage-action{width:auto;height:auto;min-height:0;margin:3px 0 0;padding:2px 5px;border-radius:6px;font-size:10px;vertical-align:middle}.evBridgeActions{display:flex;gap:5px;flex:0;justify-content:flex-end}.evBridgeBar button{width:36px;height:36px;border:1px solid rgba(122,66,200,.3);border-radius:10px;background:white;color:#7a42c8;font-size:17px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.evBridgeBar button:disabled{opacity:.45;cursor:default}.evBridgeMenu{position:absolute;right:.7rem;top:calc(100% - .2rem);z-index:30;width:min(300px,calc(100vw - 30px));padding:.45rem;border:1px solid rgba(122,66,200,.18);border-radius:12px;background:white;box-shadow:0 16px 40px rgba(38,22,79,.18);display:none;gap:6px}.evBridgeMenu.open{display:grid}.evBridgeMenu button{width:100%;min-height:40px;justify-content:flex-start;text-align:left;gap:9px;font-size:14px}.evBridgeMenu .menu-ico{width:1.6em;text-align:center}.evBridgeSaveState{margin-top:.4rem;font-size:10.8px;font-weight:700}#evBridgeNotice{position:fixed;left:50%;top:16px;transform:translate(-50%,-10px);z-index:100000;min-width:min(340px,calc(100vw - 28px));max-width:420px;padding:11px 14px;border-radius:12px;background:#26164f;color:white;box-shadow:0 10px 30px rgba(38,22,79,.24);font:750 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}#evBridgeNotice.show{opacity:1;transform:translate(-50%,0)}#evBridgeNotice.bad{background:#8f2424}#evBridgeNotice.warn{background:#7a5a00}#evBridgeNotice.good{background:#1d7f45}#evReturnTransition{position:fixed;inset:0;z-index:100001;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(38,22,79,.24);backdrop-filter:blur(2px)}#evReturnTransition.open{display:flex}#evReturnTransition>div{width:min(330px,calc(100vw - 36px));padding:22px;border-radius:16px;background:#fff;color:#26164f;box-shadow:0 18px 55px rgba(38,22,79,.24);text-align:center;font:800 16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}@media(max-width:620px){.evBridgeMenu{left:.7rem;right:.7rem;width:auto}.evBridgeBar .top{align-items:center}}';
+    document.head.appendChild(style);
+
+    const bar = document.createElement('div');
+    bar.id = 'evBridgeBar';
+    const initialState = newestStartingState();
+    const profileUsage = customer.electricity_usage_kwh != null && Number.isFinite(Number(customer.electricity_usage_kwh)) ? Number(customer.electricity_usage_kwh) : null;
+    const overrideUsage = initialState.home_usage_override_kwh != null && Number.isFinite(Number(initialState.home_usage_override_kwh)) ? Number(initialState.home_usage_override_kwh) : null;
+    const usage = linked ? (overrideUsage != null
+      ? 'Home usage: ' + overrideUsage.toLocaleString('en-GB') + ' kWh · EV adjustment <button class="usage-action" type="button" data-ev-action="use-profile-usage">Use profile figure ' + (profileUsage != null ? profileUsage.toLocaleString('en-GB') : '') + '</button>'
+      : profileUsage != null
+        ? 'Home usage: ' + profileUsage.toLocaleString('en-GB') + ' kWh · From customer profile <button class="usage-action" type="button" data-ev-action="adjust-profile-usage">Adjust for this EV comparison</button>'
+        : 'No home usage saved in customer profile · Enter or estimate a figure for this EV comparison')
+      : 'Draft saved on this device until linked to a customer';
+    const displayName = String(customer.customer_name || '').trim();
+    const returnLabel = receivedLaunch ? 'Save and return to Companion' : 'Save and open Appointment Companion';
+
+    bar.className = 'evBridgeBar';
+    const nameMarkup = linked ? '<div class="name"><span>💾</span><span>' + escapeHtml(displayName || 'Linked customer') + '</span></div>' : '<label class="name"><span>📝</span><input type="text" data-ev-customer-name autocomplete="off" value="' + escapeHtml(displayName) + '" placeholder="Customer name (optional)" aria-label="Customer name"></label>';
+    bar.innerHTML = '<div class="top"><div class="meta">' + nameMarkup + '<div class="sub">' + usage + '</div></div><div class="evBridgeActions"><button type="button" data-ev-action="return" title="' + escapeHtml(returnLabel) + '" aria-label="' + escapeHtml(returnLabel) + '">↩</button><button type="button" data-ev-action="menu" title="Show actions" aria-label="Show actions" aria-expanded="false">☰</button></div></div><div class="evBridgeMenu"><button type="button" data-ev-action="save" id="evBridgeSaveNow"><span class="menu-ico">💾</span><span>Save now</span></button><button type="button" data-ev-action="return" id="evBridgeReturn"><span class="menu-ico">↩</span><span>' + escapeHtml(returnLabel) + '</span></button><button type="button" data-ev-action="settings"><span class="menu-ico">⚙️</span><span>EV settings</span></button></div><div class="evBridgeSaveState">' + linkedSaveText(true) + '</div>';
+
+    wrap.insertBefore(bar, wrap.firstChild);
+
+    const bottom = bar.cloneNode(true);
+    bottom.id = 'evBridgeFooterBar';
+    bottom.classList.add('bottom');
+    bottom.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
+    wrap.appendChild(bottom);
+
+    const share = $('shareSetup');
+    if (share) share.hidden = linked;
+    setCustomerName(displayName, false);
+
+    document.querySelectorAll('[data-ev-customer-name]').forEach(function (input) {
+      input.addEventListener('input', function () { setCustomerName(input.value, true); });
+    });
+    if ($('shareCustomerName')) {
+      $('shareCustomerName').value = displayName;
+      $('shareCustomerName').addEventListener('input', function () { setCustomerName(this.value, true); });
+    }
+    global.addEventListener('ac:ev-share-name', function (event) { setCustomerName(event && event.detail && event.detail.name, true); });
+
+    document.querySelectorAll('[data-ev-action="adjust-profile-usage"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { click('#usagePills button[data-use="custom"]'); const input = $('houseKwh'); if (input) { input.focus(); input.select(); } });
+    });
+    document.querySelectorAll('[data-ev-action="use-profile-usage"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (profileUsage == null) return;
+        setCanonicalUsage(profileUsage);
+        scheduleSave(0);
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="save"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        closeEvMenus();
+        clearTimeout(saveTimer);
+        saveNow(true);
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="return"]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+      closeEvMenus();
+      btn.disabled = true;
+      let transition = $('evReturnTransition');
+      if (!transition) {
+        transition = document.createElement('div');
+        transition.id = 'evReturnTransition';
+        transition.innerHTML = '<div>↩ Returning to Appointment Companion…<div style="margin-top:5px;font-size:12px;font-weight:600;color:#6b6b76">Keeping this customer workspace together.</div></div>';
+        document.body.appendChild(transition);
+      }
+      transition.classList.add('open');
+      clearTimeout(saveTimer);
+      await saveNow(true);
+
+      if (dirty) {
+        transition.classList.remove('open');
+        btn.disabled = false;
+        return;
+      }
+
+      const state = captureState();
+      await stashDraft(state);
+      if (receivedLaunch) {
+        sessionStorage.removeItem(RETURN_SAVE_KEY);
+        bridge.returnToOrigin({
+          tool_state: state,
+          customer_patch: null,
+          appointment_state: launch.appointment_state,
+          basket_url: launch.basket_url
+        });
+      } else {
+        global.location.href = new URL('../' + (global.__AC_LOCAL_ONLY ? '?local=1' : ''), global.location.href).href;
+      }
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="menu"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const bar = btn.closest('.evBridgeBar');
+        const menu = bar && bar.querySelector('.evBridgeMenu');
+        if (!menu) return;
+        const open = !menu.classList.contains('open');
+        menu.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.title = open ? 'Hide actions' : 'Show actions';
+      });
+    });
+
+    document.querySelectorAll('[data-ev-action="settings"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        closeEvMenus();
+        const settings = Array.from(document.querySelectorAll('details')).find(function (details) {
+          return /Settings & assumptions/i.test(details.textContent || '');
+        });
+        if (settings) {
+          settings.open = true;
+          settings.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.evBridgeBar')) return;
+      closeEvMenus();
+    }, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeEvMenus();
+    });
+  }
+
+  function closeEvMenus() {
+    document.querySelectorAll('.evBridgeMenu.open').forEach(function (menu) { menu.classList.remove('open'); });
+    document.querySelectorAll('[data-ev-action="menu"]').forEach(function (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.title = 'Show actions';
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function finishHydration() {
+    lastSavedFingerprint = fingerprint(captureState());
+    dirty = false;
+    hydrating = false;
+    setSaveUi(linkedSaveText(true), 'good');
+    armAutosave();
+  }
+
+  global.AppointmentCompanionEvWorkspace = {
+    getCustomerName: currentCustomerName,
+    setCustomerName: function (name) { return setCustomerName(name, true); },
+    saveNow: function () { clearTimeout(saveTimer); return saveNow(true); },
+    isLinked: function () { return linked; }
+  };
+
+  function waitUntilReady() {
+    let attempts = 0;
+    const timer = setInterval(function () {
+      attempts++;
+      const house = $('houseKwh');
+      const controlsReady = house && typeof house.oninput === 'function' && document.querySelector('#serviceButtons button');
+      if (controlsReady) {
+        clearInterval(timer);
+        addBridgeBar();
+        applyState();
+        setTimeout(finishHydration, 180);
+      } else if (attempts > 120) {
+        clearInterval(timer);
+        addBridgeBar();
+        hydrating = false;
+        setSaveUi('⚠️ EV controls did not fully initialise', 'bad');
+      }
+    }, 100);
+  }
+
+  waitUntilReady();
+})(window);
