@@ -9,11 +9,11 @@
   <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
 </head>
 <body>
-  <div class="msg" id="loader">📈 Opening Should I Fix?…</div>
+  <div class="msg" id="loader">📌 Opening Should I Fix?…</div>
   <script>
   (async function () {
     try {
-      var version = '20260911-consolidated3';
+      var version = '20260911-v1.9-shell1';
       var response = await fetch('../../cloud-test/should-i-fix-pilot-v2.html?v=' + version);
       if (!response.ok) throw new Error('Should I Fix donor returned HTTP ' + response.status);
       var html = await response.text();
@@ -27,6 +27,7 @@
         /function iframeSource\(\)\{[\s\S]*?\} frame\.src=iframeSource\(\);/,
         'function iframeSource(){const u=new URL("https://aqcroft.github.io/ShouldIFix/Oct2026.html");if(publicMode){["r","f","e","g","eh","t","o","es","eu","gs","gu"].forEach(function(k){if(params.has(k))u.searchParams.set(k,params.get(k));});return u.href;}const i=appointmentInputs(),e=Math.max(0,Number(i.electricityUsageTotalKwh||i.electricityUsageKwh)||0),g=Math.max(0,Number(i.gasUsageKwh)||0),hasE=asBool(i.energyHasElectricity,true),hasG=asBool(i.energyHasGas,true);u.searchParams.set("f",hasE&&hasG?"dual":hasG?"gas":"elec");if(hasE&&e)u.searchParams.set("e",String(Math.round(e)));if(hasG&&g)u.searchParams.set("g",String(Math.round(g)));return u.href;} frame.src=iframeSource();'
       );
+      html = html.replace(/<\/body>/i, '<script src="../specialist-features-v1.js?v=' + version + '"><\/script></body>');
       document.open();
       document.write(html);
       document.close();
