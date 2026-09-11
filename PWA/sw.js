@@ -1,40 +1,23 @@
-const CACHE_NAME = 'appointment-companion-v3';
+const CACHE_NAME = 'appointment-companion-v4';
 const APP_SHELL = [
   './',
   './index.html',
   './cloud/',
   './cloud/index.html',
-  './cloud/companion_cloud_pilot.html',
-  './cloud/tariff-status.js',
-  './cloud-client-v1.js',
-  './tariff-status.js',
-  './cloud/device-identity-v1.js',
-  './cloud/companion-bridge-v1.js',
-  './cloud/cloud-pilot-v1.js',
-  './cloud/cloud-pilot-enhancements-v1.js',
-  './cloud/cloud-pilot-safety-v1.js',
-  './cloud/cloud-presence-v1.js',
-  './cloud/specialist-launcher-v1.js',
-  './cloud/specialists-v1.js',
-  './cloud/specialist-cloud-save-v1.js',
-  './cloud/specialist-share-v1.js',
-  './cloud/ev-bridge-pilot-v1.js',
-  './cloud/ev-cloud-share-v1.js',
-  './cloud-ev-pilot.html',
-  './cashback-card-companion.html',
-  './companion/ev/',
-  './companion/ev/index.html',
-  './companion/ev/share-view-v1.js',
-  './v16c-ev.html',
-  './tariff-cache-v1.js',
-  './v13-ev.js',
-  './v16b-hero.js',
-  './v14-ev.css',
-  './v16c-ev.css',
-  './v16c-table.js',
-  './v16c-sharing.js',
-  './v15-ev.css',
-  './v15-freshness.js',
+  './consolidated-v1/',
+  './consolidated-v1/index.html',
+  './consolidated-v1/manifest.webmanifest',
+  './consolidated-v1/pwa-register.js',
+  './consolidated-v1/sw.js',
+  './consolidated-v1/tariff-fetch-v1.js',
+  './consolidated-v1/canonical-state-v1.js',
+  './consolidated-v1/canonical-controls-v1.js',
+  './consolidated-v1/local-customer-store-v2.js',
+  './consolidated-v1/consolidated-controller-v1.js',
+  './consolidated-v1/share-policy-v1.js',
+  './consolidated-v1/specialist-share-v1.js',
+  './consolidated-v1/specialist-launcher-v1.js',
+  './consolidated-v1/specialist-features-v1.js',
   './manifest.webmanifest',
   './app-icon.svg',
   './app-icon-192.png',
@@ -53,7 +36,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.indexOf('appointment-companion-v') === 0 && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -73,12 +56,10 @@ self.addEventListener('fetch', event => {
     return response;
   });
 
-  // Static Companion views switch instantly from the application shell while
-  // a newer copy is fetched in the background for the next visit.
   event.waitUntil(update.catch(() => undefined));
   event.respondWith(
-    caches.match(request)
+    caches.match(request, { ignoreSearch: true })
       .then(cached => cached || update)
-      .catch(() => caches.match('./cloud/'))
+      .catch(() => request.mode === 'navigate' ? caches.match('./consolidated-v1/index.html') : Response.error())
   );
 });
