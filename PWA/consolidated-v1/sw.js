@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-consolidated-v1-3';
+const CACHE_NAME = 'appointment-companion-consolidated-v1-4';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './pwa-register.js', './tariff-fetch-v1.js',
   './canonical-state-v1.js', './canonical-controls-v1.js', './local-customer-store-v2.js',
