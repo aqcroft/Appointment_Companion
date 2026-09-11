@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260911-consolidated3';
+      var version = '20260911-v1.9-shell1';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
