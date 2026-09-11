@@ -1,6 +1,6 @@
 /* Service-level UI polish for consolidated Appointment Companion.
    - Nests Energy fuel and Mobile SIM selectors directly beneath their service buttons.
-   - Applies subtle per-service section tints with stronger matching selected controls.
+   - Uses the current UW service colour families with darker matching controls.
 */
 (function (global) {
   'use strict';
@@ -26,34 +26,40 @@
       #servicesCard .ac-inline-subchoice[data-kind="mobile"] { grid-template-columns:repeat(5,minmax(0,1fr)); }
       #servicesCard .ac-inline-subchoice button {
         min-width:0; min-height:31px; padding:4px 3px; border-radius:8px;
-        border:1px solid rgba(38,22,79,.16); background:#fff; color:#26164f;
+        border:1px solid rgba(38,22,79,.14); background:#fff; color:#26164f;
         font:750 12px/1 system-ui; cursor:pointer;
       }
       #servicesCard .ac-inline-subchoice[data-kind="energy"] button { font-size:16px; }
 
-      /* Service palette - intentionally softer than UW quote UI. */
+      /* UW service palette sampled from the current UW service cards.
+         Soft = service identity / section tint. Strong = selected actions and toggles. */
       :root {
-        --ac-energy-soft:#fff7da; --ac-energy-strong:#a86f00;
-        --ac-broadband-soft:#eef0ff; --ac-broadband-strong:#5447a8;
-        --ac-mobile-soft:#f4edff; --ac-mobile-strong:#7a42c8;
-        --ac-insurance-soft:#eef8f4; --ac-insurance-strong:#24745e;
-        --ac-cashback-soft:#fff0f6; --ac-cashback-strong:#b72f70;
+        --ac-energy-base:#BDDEE4; --ac-energy-soft:#F1F9FA; --ac-energy-strong:#4A92A0;
+        --ac-broadband-base:#A2E2C3; --ac-broadband-soft:#F0FAF5; --ac-broadband-strong:#3C966B;
+        --ac-mobile-base:#FAD0E9; --ac-mobile-soft:#FFF2F9; --ac-mobile-strong:#BE568E;
+        --ac-insurance-base:#FFAB70; --ac-insurance-soft:#FFF3EA; --ac-insurance-strong:#D86A2B;
+        --ac-cashback-base:#C6B5E2; --ac-cashback-soft:#F6F1FB; --ac-cashback-strong:#7654A8;
       }
 
       /* Top service buttons */
+      #servicesCard [data-service="energy"] { border-color:var(--ac-energy-base)!important; }
+      #servicesCard [data-service="broadband"] { border-color:var(--ac-broadband-base)!important; }
+      #servicesCard [data-service="mobile"] { border-color:var(--ac-mobile-base)!important; }
       #servicesCard [data-service="energy"].on { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
       #servicesCard [data-service="broadband"].on { background:var(--ac-broadband-strong)!important; border-color:var(--ac-broadband-strong)!important; color:#fff!important; }
       #servicesCard [data-service="mobile"].on { background:var(--ac-mobile-strong)!important; border-color:var(--ac-mobile-strong)!important; color:#fff!important; }
 
+      #servicesCard .ac-inline-subchoice[data-kind="energy"] { background:var(--ac-energy-soft); border-radius:9px; padding:3px; }
+      #servicesCard .ac-inline-subchoice[data-kind="mobile"] { background:var(--ac-mobile-soft); border-radius:9px; padding:3px; }
       #servicesCard .ac-inline-subchoice[data-kind="energy"] button.on { background:var(--ac-energy-strong); border-color:var(--ac-energy-strong); color:#fff; }
       #servicesCard .ac-inline-subchoice[data-kind="mobile"] button.on { background:var(--ac-mobile-strong); border-color:var(--ac-mobile-strong); color:#fff; }
 
       /* Main service section shading */
-      #energyCard { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 72%)!important; border-color:rgba(168,111,0,.22)!important; }
-      #broadbandCard { background:linear-gradient(135deg,var(--ac-broadband-soft),#fff 72%)!important; border-color:rgba(84,71,168,.20)!important; }
-      #mobileCard { background:linear-gradient(135deg,var(--ac-mobile-soft),#fff 72%)!important; border-color:rgba(122,66,200,.20)!important; }
-      #insuranceCard { background:linear-gradient(135deg,var(--ac-insurance-soft),#fff 72%)!important; border-color:rgba(36,116,94,.20)!important; }
-      #cashbackCard { background:linear-gradient(135deg,var(--ac-cashback-soft),#fff 72%)!important; border-color:rgba(183,47,112,.18)!important; }
+      #energyCard { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 74%)!important; border-color:var(--ac-energy-base)!important; }
+      #broadbandCard { background:linear-gradient(135deg,var(--ac-broadband-soft),#fff 74%)!important; border-color:var(--ac-broadband-base)!important; }
+      #mobileCard { background:linear-gradient(135deg,var(--ac-mobile-soft),#fff 74%)!important; border-color:var(--ac-mobile-base)!important; }
+      #insuranceCard { background:linear-gradient(135deg,var(--ac-insurance-soft),#fff 74%)!important; border-color:var(--ac-insurance-base)!important; }
+      #cashbackCard { background:linear-gradient(135deg,var(--ac-cashback-soft),#fff 74%)!important; border-color:var(--ac-cashback-base)!important; }
 
       #energyCard h2 { color:var(--ac-energy-strong)!important; }
       #broadbandCard h2 { color:var(--ac-broadband-strong)!important; }
@@ -61,21 +67,27 @@
       #insuranceCard h2 { color:var(--ac-insurance-strong)!important; }
       #cashbackCard h2 { color:var(--ac-cashback-strong)!important; }
 
-      /* Stronger matching selected actions/toggles inside each service section */
-      #energyCard .pill.on, #energyCard button.on { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
+      /* Matching buttons, selected pills and toggles inside each service section */
+      #energyCard .pill { border-color:var(--ac-energy-base)!important; }
+      #energyCard .pill.on, #energyCard button.on, #energyCard .btn-primary { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
       #energyCard .switch input:checked + .track { background:var(--ac-energy-strong)!important; }
-      #broadbandCard .pill.on, #broadbandCard button.on { background:var(--ac-broadband-strong)!important; border-color:var(--ac-broadband-strong)!important; color:#fff!important; }
+      #broadbandCard .pill { border-color:var(--ac-broadband-base)!important; }
+      #broadbandCard .pill.on, #broadbandCard button.on, #broadbandCard .btn-primary { background:var(--ac-broadband-strong)!important; border-color:var(--ac-broadband-strong)!important; color:#fff!important; }
       #broadbandCard .switch input:checked + .track { background:var(--ac-broadband-strong)!important; }
-      #mobileCard .pill.on, #mobileCard button.on { background:var(--ac-mobile-strong)!important; border-color:var(--ac-mobile-strong)!important; color:#fff!important; }
+      #mobileCard .pill { border-color:var(--ac-mobile-base)!important; }
+      #mobileCard .pill.on, #mobileCard button.on, #mobileCard .btn-primary { background:var(--ac-mobile-strong)!important; border-color:var(--ac-mobile-strong)!important; color:#fff!important; }
       #mobileCard .switch input:checked + .track { background:var(--ac-mobile-strong)!important; }
-      #insuranceCard .pill.on, #insuranceCard button.on { background:var(--ac-insurance-strong)!important; border-color:var(--ac-insurance-strong)!important; color:#fff!important; }
+      #insuranceCard .pill { border-color:var(--ac-insurance-base)!important; }
+      #insuranceCard .pill.on, #insuranceCard button.on, #insuranceCard .btn-primary { background:var(--ac-insurance-strong)!important; border-color:var(--ac-insurance-strong)!important; color:#fff!important; }
       #insuranceCard .switch input:checked + .track { background:var(--ac-insurance-strong)!important; }
-      #cashbackCard .pill.on, #cashbackCard button.on { background:var(--ac-cashback-strong)!important; border-color:var(--ac-cashback-strong)!important; color:#fff!important; }
+      #cashbackCard .pill { border-color:var(--ac-cashback-base)!important; }
+      #cashbackCard .pill.on, #cashbackCard button.on, #cashbackCard .btn-primary { background:var(--ac-cashback-strong)!important; border-color:var(--ac-cashback-strong)!important; color:#fff!important; }
       #cashbackCard .switch input:checked + .track { background:var(--ac-cashback-strong)!important; }
 
       /* Canonical Energy detail controls inherit Energy colouring. */
-      #canonicalEnergyPanel { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 82%)!important; border-color:rgba(168,111,0,.20)!important; }
+      #canonicalEnergyPanel { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 84%)!important; border-color:var(--ac-energy-base)!important; }
       #canonicalEnergyPanel .canonical-title, #canonicalEnergyPanel .canonical-helper summary, #canonicalEnergyPanel .canonical-helper-output { color:var(--ac-energy-strong)!important; }
+      #canonicalEnergyPanel .canonical-choice button { border-color:var(--ac-energy-base)!important; }
       #canonicalEnergyPanel .canonical-choice button.on, #canonicalEnergyPanel #useSplitEstimate:not(:disabled) { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
 
       /* Original duplicated selector rows are retained for state wiring only. */
