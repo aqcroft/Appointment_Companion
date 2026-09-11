@@ -1,9 +1,9 @@
-/* Shared Companion toolbar + specialist shortcuts for Appointment Companion v2.0. */
+/* Shared Companion toolbar + specialist shortcuts for Appointment Companion v2.1. */
 (function (global) {
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
 
-  var VERSION = 'v2.0';
+  var VERSION = 'v2.1';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
@@ -52,7 +52,7 @@
       modal = document.createElement('div');
       modal.id = 'acVersionAbout';
       modal.className = 'ac-about';
-      modal.innerHTML = '<div class="ac-about-card" role="dialog" aria-modal="true" aria-labelledby="acAboutTitle"><h3 id="acAboutTitle">Appointment Companion ' + VERSION + '</h3><div style="font-size:11px;color:#6b6b76">Recent major updates</div><ul><li>One consistent Companion toolbar across Main, EV and Should I Fix.</li><li>Energy and Mobile controls now nest under their service buttons with service-specific colours.</li><li>Cloud remains local-first, with direct access to Cloud login/settings from the warning icon.</li></ul><button class="ac-about-close" type="button">Close</button></div>';
+      modal.innerHTML = '<div class="ac-about-card" role="dialog" aria-modal="true" aria-labelledby="acAboutTitle"><h3 id="acAboutTitle">Appointment Companion ' + VERSION + '</h3><div style="font-size:11px;color:#6b6b76">Recent major updates</div><ul><li>Added 🔢 as the Main Companion destination and spring-cleaned redundant EV / Fix navigation and status chrome.</li><li>Applied the agreed UW service colour families across service sections, buttons and toggles.</li><li>Cloud and device status indicators now open the relevant settings, with Cloud showing connection state rather than record-sync state.</li></ul><button class="ac-about-close" type="button">Close</button></div>';
       modal.addEventListener('click', function (e) { if (e.target === modal || e.target.closest('.ac-about-close')) modal.classList.remove('open'); });
       document.body.appendChild(modal);
     }
@@ -109,6 +109,10 @@
     }));
 
     inner.appendChild(separator());
+    inner.appendChild(specialistButton('🔢', 'Main Companion', function () {
+      if (isMain) return;
+      location.assign(new URL('./', root).href);
+    }, isMain ? 'active' : ''));
     inner.appendChild(specialistButton('📌', 'Should I Fix?', function () {
       if (isFix) return;
       if (specialistMode) location.assign(new URL('./should-i-fix/', root).href); else clickMain('cloudCompanionFix');
