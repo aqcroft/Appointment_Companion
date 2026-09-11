@@ -1,8 +1,8 @@
 {
   "name": "Appointment Companion",
   "short_name": "Companion",
-  "description": "Appointment Companion with Cloud customer saving and EV Companion support.",
-  "start_url": "cloud/",
+  "description": "Appointment Companion with local-first customer saving, Cloud sync and specialist tools.",
+  "start_url": "consolidated-v1/",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fffbe3",
@@ -30,9 +30,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Cloud Companion",
-      "short_name": "Cloud",
-      "url": "cloud/",
+      "name": "Appointment Companion",
+      "short_name": "Companion",
+      "url": "consolidated-v1/",
       "icons": [
         {
           "src": "app-icon.svg",
@@ -49,7 +49,7 @@
     {
       "name": "EV Companion",
       "short_name": "EV",
-      "url": "companion/ev/",
+      "url": "consolidated-v1/ev/",
       "icons": [
         {
           "src": "app-icon.svg",
