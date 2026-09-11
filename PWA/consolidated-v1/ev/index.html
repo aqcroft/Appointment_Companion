@@ -33,7 +33,7 @@
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
       }
-      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script>';
+      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.2.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
