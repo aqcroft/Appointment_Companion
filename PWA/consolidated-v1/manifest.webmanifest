@@ -1,7 +1,7 @@
 {
-  "name": "Appointment Companion — Consolidated v1",
-  "short_name": "Companion v1",
-  "description": "Isolated consolidated local-first Appointment Companion test build",
+  "name": "Appointment Companion v2.0",
+  "short_name": "Companion",
+  "description": "Appointment Companion local-first PWA with Cloud sync and specialist tools",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
