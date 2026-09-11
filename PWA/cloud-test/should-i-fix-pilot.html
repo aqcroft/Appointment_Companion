@@ -7,22 +7,20 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <style>
-    :root{--purple:#7a42c8;--ink:#26164f;--bg:#fffbe3;--line:#e6e2ef;--public:#008c82;--public-dark:#00695c}
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
+    :root{--purple:#7a42c8;--ink:#26164f;--bg:#fffbe3;--line:#e6e2ef}
+    *{box-sizing:border-box}html,body{height:100%;margin:0}
     body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
     .bar{height:54px;flex:0 0 54px;display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);background:#fff;box-shadow:0 2px 9px rgba(38,22,79,.06);z-index:2}
-    .bar button,.bar a{border:1px solid rgba(122,66,200,.24);background:#fff;color:var(--ink);border-radius:10px;min-height:38px;padding:7px 11px;font:inherit;font-size:13px;font-weight:750;text-decoration:none;cursor:pointer}
+    .bar button{border:1px solid rgba(122,66,200,.24);background:#fff;color:var(--ink);border-radius:10px;min-height:38px;padding:7px 11px;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
     .title{min-width:0;flex:1;font-weight:850;color:var(--purple);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .note{font-size:11px;color:#6b6b76;font-weight:650;white-space:nowrap}
     iframe{border:0;width:100%;flex:1 1 auto;min-height:0;background:#faf7ff}
-    body.public-mode .bar{display:none}
-    body.public-mode iframe{background:#f3fbfa}
-    @media(max-width:520px){.note{display:none}.bar a{display:none}}
+    body.public-mode .bar{display:none}body.public-mode iframe{background:#f3fbfa}
+    @media(max-width:520px){.note{display:none}}
   </style>
 </head>
 <body data-companion-tool="fix">
-  <div class="bar" id="partnerBar">
+  <div class="bar">
     <button type="button" id="backBtn">← Companion</button>
     <div class="title">📈 Should I Fix?</div>
     <div class="note" id="usageNote">Standalone calculator</div>
@@ -34,285 +32,146 @@
   (function(){
     'use strict';
 
-    const SHARE_ICON = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="76" cy="20" r="12"></circle><circle cx="24" cy="50" r="12"></circle><circle cx="76" cy="80" r="12"></circle><path d="M34 44 L65 26 M34 56 L65 74" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"></path></svg>';
-    const DEFAULT_QUOTE = 'https://uw.partners/adrian.croft/join';
-    const DEFAULT_BOOK = 'https://tidycal.com/aqcroft/uwpresent';
-    const DEFAULT_SITE = 'https://aqcroft.com';
-    const PUBLIC_COLOUR = '#008c82';
-    const PUBLIC_DARK = '#00695c';
-    const FORECAST_PCT = 13.06;
+    const SHARE_ICON='<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="76" cy="20" r="12"></circle><circle cx="24" cy="50" r="12"></circle><circle cx="76" cy="80" r="12"></circle><path d="M34 44 L65 26 M34 56 L65 74" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"></path></svg>';
+    const DEFAULT_QUOTE='https://uw.partners/adrian.croft/join';
+    const DEFAULT_BOOK='https://tidycal.com/aqcroft/uwpresent';
+    const DEFAULT_SITE='https://aqcroft.com';
+    const FORECAST_PCT=13.06;
+    const params=new URL(location.href).searchParams;
+    const publicMode=params.get('public')==='1';
+    if(publicMode)document.body.classList.add('public-mode');
 
-    const params = new URL(location.href).searchParams;
-    const publicMode = params.get('public') === '1';
-    if (publicMode) document.body.classList.add('public-mode');
+    const bridge=window.AppointmentCompanionBridge;
+    const envelope=!publicMode&&bridge&&typeof bridge.receive==='function'?bridge.receive():null;
+    const frame=document.getElementById('fixFrame');
+    const note=document.getElementById('usageNote');
 
-    const bridge = window.AppointmentCompanionBridge;
-    const envelope = !publicMode && bridge && typeof bridge.receive === 'function' ? bridge.receive() : null;
-    const frame = document.getElementById('fixFrame');
-    const note = document.getElementById('usageNote');
-
-    function appointmentState(){
-      return envelope && envelope.appointment_state && typeof envelope.appointment_state === 'object' ? envelope.appointment_state : {};
-    }
+    function appointmentState(){return envelope&&envelope.appointment_state&&typeof envelope.appointment_state==='object'?envelope.appointment_state:{};}
     function appointmentInputs(){
-      const state = appointmentState();
-      if (state.inputs) return state.inputs;
-      const customer = envelope && envelope.extra && envelope.extra.customer;
-      if (customer && customer.appointment_state && customer.appointment_state.inputs) return customer.appointment_state.inputs;
-      if (customer && customer.inputs) return customer.inputs;
-      return {};
+      const state=appointmentState(); if(state.inputs)return state.inputs;
+      const customer=envelope&&envelope.extra&&envelope.extra.customer;
+      if(customer&&customer.appointment_state&&customer.appointment_state.inputs)return customer.appointment_state.inputs;
+      if(customer&&customer.inputs)return customer.inputs; return {};
     }
     function appointmentName(){
-      const state = appointmentState();
-      const inputs = appointmentInputs();
-      const customer = envelope && envelope.extra && envelope.extra.customer;
-      return String(state.customerName || inputs.customerName || (customer && (customer.customer_name || customer.customerName)) || '').trim();
+      const s=appointmentState(),i=appointmentInputs(),c=envelope&&envelope.extra&&envelope.extra.customer;
+      return String(s.customerName||i.customerName||(c&&(c.customer_name||c.customerName))||'').trim();
     }
-    function appointmentBasket(){
-      const customer = envelope && envelope.extra && envelope.extra.customer;
-      return String((envelope && envelope.basket_url) || (customer && customer.basket_url) || '').trim();
-    }
-    function asBool(v, fallback){
-      if (v === true || v === false) return v;
-      if (v === 'true') return true;
-      if (v === 'false') return false;
-      return fallback;
-    }
-    function cleanName(v){ return String(v || '').trim().replace(/\s+/g,' ').slice(0,80); }
-    function safeUrl(v){
-      try { const u = new URL(String(v || '')); return u.protocol === 'https:' ? u.href : ''; }
-      catch (_) { return ''; }
-    }
-    function num(el){ const n = el && el.value !== '' ? Number(el.value) : NaN; return Number.isFinite(n) ? n : 0; }
-    function selected(doc, selector, attr){
-      const el = doc.querySelector(selector);
-      return el ? String(el.dataset[attr] || '') : '';
-    }
-    function basePublicUrl(){
-      const u = new URL(location.origin + location.pathname);
-      u.searchParams.set('public','1');
-      return u.href;
-    }
-    function copyOrShare(title, text, url, done){
-      if (navigator.share) {
-        navigator.share({title:title,text:text,url:url}).then(done).catch(function(err){
-          if (err && err.name === 'AbortError') return;
-          copyText(url).then(done).catch(function(){ prompt('Copy this link:',url); });
-        });
-        return;
-      }
-      copyText(url).then(done).catch(function(){ prompt('Copy this link:',url); });
-    }
+    function appointmentBasket(){const c=envelope&&envelope.extra&&envelope.extra.customer;return String((envelope&&envelope.basket_url)||(c&&c.basket_url)||'').trim();}
+    function asBool(v,f){if(v===true||v===false)return v;if(v==='true')return true;if(v==='false')return false;return f;}
+    function cleanName(v){return String(v||'').trim().replace(/\s+/g,' ').slice(0,80);}
+    function safeUrl(v){try{const u=new URL(String(v||''));return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
+    function num(el){const n=el&&el.value!==''?Number(el.value):NaN;return Number.isFinite(n)?n:0;}
+    function basePublicUrl(){const u=new URL(location.origin+location.pathname);u.searchParams.set('public','1');return u.href;}
     function copyText(text){
-      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
-      return new Promise(function(resolve,reject){
-        try{
-          const ta=document.createElement('textarea'); ta.value=text; ta.readOnly=true; ta.style.position='fixed'; ta.style.opacity='0';
-          document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); ok?resolve():reject(new Error('copy failed'));
-        }catch(e){reject(e)}
-      });
+      if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text);
+      return new Promise(function(resolve,reject){try{const t=document.createElement('textarea');t.value=text;t.readOnly=true;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();ok?resolve():reject(new Error('copy failed'));}catch(e){reject(e);}});
     }
-    function toast(doc,msg){
-      let el=doc.getElementById('sifInjectedToast');
-      if(!el){ el=doc.createElement('div'); el.id='sifInjectedToast'; doc.body.appendChild(el); }
-      el.textContent=msg; el.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(function(){el.classList.remove('show');},2200);
+    function copyOrShare(title,text,url,done){
+      if(navigator.share){navigator.share({title:title,text:text,url:url}).then(done).catch(function(err){if(err&&err.name==='AbortError')return;copyText(url).then(done).catch(function(){prompt('Copy this link:',url);});});return;}
+      copyText(url).then(done).catch(function(){prompt('Copy this link:',url);});
     }
+    function toast(doc,msg){let el=doc.getElementById('sifInjectedToast');if(!el){el=doc.createElement('div');el.id='sifInjectedToast';doc.body.appendChild(el);}el.textContent=msg;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(function(){el.classList.remove('show');},2200);}
 
     function iframeSource(){
-      const u = new URL('https://aqcroft.github.io/ShouldIFix/Oct2026.html');
-      if (!publicMode) return u.href;
-      ['r','f','e','g','eh','t','o','es','eu','gs','gu'].forEach(function(k){ if(params.has(k)) u.searchParams.set(k,params.get(k)); });
+      const u=new URL('https://aqcroft.github.io/ShouldIFix/Oct2026.html');
+      if(publicMode)['r','f','e','g','eh','t','o','es','eu','gs','gu'].forEach(function(k){if(params.has(k))u.searchParams.set(k,params.get(k));});
       return u.href;
     }
-    frame.src = iframeSource();
+    frame.src=iframeSource();
 
-    function installStressEngine(doc,win){
-      if (win.__sifStressInstalled) return;
-      win.__sifStressInstalled = true;
-      win.__sifStressPct = params.has('sp') ? Number(params.get('sp')) : FORECAST_PCT;
-      if (!Number.isFinite(win.__sifStressPct)) win.__sifStressPct = FORECAST_PCT;
-
-      try {
-        const script = doc.createElement('script');
-        script.textContent = `
-          window.__sifStressPct = Number.isFinite(Number(window.__sifStressPct)) ? Number(window.__sifStressPct) : 13.06;
-          capMult = function(ph, ignoredStress){
-            if(ph === 'now' || ph === 'conf') return 1;
-            var jan = 1 + (Number(window.__sifStressPct) || 0) / 100;
-            var apr = jan * 0.97895;
-            var jul = apr * 0.89827;
-            if(ph === 'jan') return jan;
-            if(ph === 'apr') return apr;
-            return jul;
-          };
-        `;
-        doc.body.appendChild(script);
-      } catch (_) {}
-
-      const oldStress = doc.getElementById('stress');
-      if (oldStress) {
-        oldStress.checked = false;
-        const oldWrap = oldStress.closest('label');
-        if (oldWrap) oldWrap.style.display = 'none';
-      }
-
-      const result = doc.getElementById('resultCard');
-      if (!result || doc.getElementById('sifStressRow')) return;
-      const row = doc.createElement('div');
-      row.id='sifStressRow'; row.className='sif-stress-row';
-      row.innerHTML='<span class="sif-stress-label">Price-cap outlook</span><div class="sif-stress-buttons" role="group" aria-label="Price-cap stress test"></div>';
-      result.insertBefore(row, result.firstChild);
-      const wrap=row.querySelector('.sif-stress-buttons');
-      const choices=[FORECAST_PCT,0,5,10,15,20];
-      choices.forEach(function(value,index){
-        const b=doc.createElement('button'); b.type='button'; b.dataset.stress=String(value);
-        b.textContent=index===0?Math.round(FORECAST_PCT)+'% FORECAST':value+'%';
-        b.className='sif-stress-btn'+(Math.abs(win.__sifStressPct-value)<0.01?' on':'')+(index===0?' forecast':'');
-        b.addEventListener('click',function(){
-          win.__sifStressPct=value;
-          wrap.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});
-          if(oldStress){ oldStress.checked=false; oldStress.dispatchEvent(new Event('input',{bubbles:true})); }
-          else if(typeof win.render==='function') win.render();
-          setTimeout(function(){patchForecastLabel(doc,win);},0);
-        });
-        wrap.appendChild(b);
-      });
-
-      const chart=doc.getElementById('chart');
-      if(chart){ new MutationObserver(function(){patchForecastLabel(doc,win);}).observe(chart,{childList:true,subtree:true}); }
-      if(oldStress) oldStress.dispatchEvent(new Event('input',{bubbles:true}));
-      setTimeout(function(){patchForecastLabel(doc,win);},20);
+    function patchForecastLabel(doc,pct){
+      const chart=doc.getElementById('chart');if(!chart)return;
+      const target=(Math.round(pct)>=0?'+':'−')+Math.abs(Math.round(pct))+'%';
+      const candidates=Array.from(chart.querySelectorAll('text')).filter(function(el){return /^[+−-]\d+%$/.test(String(el.textContent||'').trim());});
+      if(candidates.length&&candidates[0].textContent!==target)candidates[0].textContent=target;
     }
 
-    function patchForecastLabel(doc,win){
-      const chart=doc.getElementById('chart'); if(!chart) return;
-      const pct=Math.round(Number(win.__sifStressPct)||0);
-      const candidates=Array.from(chart.querySelectorAll('text')).filter(function(el){return /^[+−-]\d+%$/.test(String(el.textContent||'').trim());});
-      if(candidates.length) candidates[0].textContent=(pct>=0?'+':'−')+Math.abs(pct)+'%';
+    function installStressEngine(doc,win){
+      if(doc.getElementById('sifStressRow'))return;
+      win.__sifStressPct=params.has('sp')?Number(params.get('sp')):FORECAST_PCT;
+      if(!Number.isFinite(win.__sifStressPct))win.__sifStressPct=FORECAST_PCT;
+      win.capMult=function(ph){
+        if(ph==='now'||ph==='conf')return 1;
+        const jan=1+(Number(win.__sifStressPct)||0)/100,apr=jan*0.97895,jul=apr*0.89827;
+        if(ph==='jan')return jan;if(ph==='apr')return apr;return jul;
+      };
+      const oldStress=doc.getElementById('stress');
+      if(oldStress){oldStress.checked=false;const lab=oldStress.closest('label');if(lab)lab.style.display='none';}
+      const result=doc.getElementById('resultCard');if(!result)return;
+      const row=doc.createElement('div');row.id='sifStressRow';row.className='sif-stress-row';
+      row.innerHTML='<span class="sif-stress-label">Price-cap outlook</span><div class="sif-stress-buttons" role="group" aria-label="Price-cap stress test"></div>';
+      result.insertBefore(row,result.firstChild);
+      const wrap=row.querySelector('.sif-stress-buttons');
+      [FORECAST_PCT,0,5,10,15,20].forEach(function(value,index){
+        const b=doc.createElement('button');b.type='button';b.dataset.stress=String(value);b.textContent=index===0?Math.round(FORECAST_PCT)+'% FORECAST':value+'%';b.className='sif-stress-btn'+(Math.abs(win.__sifStressPct-value)<0.01?' on':'')+(index===0?' forecast':'');
+        b.addEventListener('click',function(){
+          win.__sifStressPct=value;wrap.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});
+          if(oldStress){oldStress.checked=false;oldStress.dispatchEvent(new Event('input',{bubbles:true}));}else if(typeof win.render==='function')win.render();
+          setTimeout(function(){patchForecastLabel(doc,win.__sifStressPct);},0);
+        });wrap.appendChild(b);
+      });
+      if(oldStress)oldStress.dispatchEvent(new Event('input',{bubbles:true}));else if(typeof win.render==='function')win.render();
+      setTimeout(function(){patchForecastLabel(doc,win.__sifStressPct);},20);
     }
 
     function currentScenario(doc,win){
-      const fuel=doc.querySelector('#fuelSeg button[aria-pressed="true"]');
-      const tariff=doc.querySelector('#fixedCard button[data-tariff][aria-pressed="true"]');
-      const out={
-        r:doc.getElementById('region')?doc.getElementById('region').value:'11',
-        f:fuel?fuel.dataset.mode:'dual',
-        e:num(doc.getElementById('elec')),
-        g:num(doc.getElementById('gas')),
-        eh:doc.getElementById('electricHeat')&&doc.getElementById('electricHeat').checked?'1':'0',
-        t:tariff?tariff.dataset.tariff:'saver',
-        sp:Number(win.__sifStressPct)||0
-      };
-      if(out.t==='custom'){
-        out.o='1'; out.es=num(doc.getElementById('mESC')); out.eu=num(doc.getElementById('mEU')); out.gs=num(doc.getElementById('mGSC')); out.gu=num(doc.getElementById('mGU'));
-      }
-      return out;
+      const fuel=doc.querySelector('#fuelSeg button[aria-pressed="true"]'),tariff=doc.querySelector('#fixedCard button[data-tariff][aria-pressed="true"]');
+      const out={r:doc.getElementById('region')?doc.getElementById('region').value:'11',f:fuel?fuel.dataset.mode:'dual',e:num(doc.getElementById('elec')),g:num(doc.getElementById('gas')),eh:doc.getElementById('electricHeat')&&doc.getElementById('electricHeat').checked?'1':'0',t:tariff?tariff.dataset.tariff:'saver',sp:Number(win.__sifStressPct)||0};
+      if(out.t==='custom'){out.o='1';out.es=num(doc.getElementById('mESC'));out.eu=num(doc.getElementById('mEU'));out.gs=num(doc.getElementById('mGSC'));out.gu=num(doc.getElementById('mGU'));}return out;
     }
-
     function personalisedUrl(doc,win){
-      const u=new URL(basePublicUrl());
-      const s=currentScenario(doc,win);
-      Object.keys(s).forEach(function(k){
-        if((k==='e'&&s.f==='gas')||(k==='g'&&s.f==='elec')||(k==='eh'&&s.eh==='0')||(k==='t'&&s.t==='saver')) return;
-        u.searchParams.set(k,String(s[k]));
-      });
-      const nameField=doc.getElementById('sifCustomerName');
-      const name=cleanName(nameField&&nameField.value);
-      if(name) u.searchParams.set('n',name);
-      const basket=safeUrl(appointmentBasket());
-      if(basket) u.searchParams.set('b',basket);
-      return u.href;
+      const u=new URL(basePublicUrl()),s=currentScenario(doc,win);
+      Object.keys(s).forEach(function(k){if((k==='e'&&s.f==='gas')||(k==='g'&&s.f==='elec')||(k==='eh'&&s.eh==='0')||(k==='t'&&s.t==='saver'))return;u.searchParams.set(k,String(s[k]));});
+      const name=cleanName((doc.getElementById('sifCustomerName')||{}).value);if(name)u.searchParams.set('n',name);
+      const basket=safeUrl(appointmentBasket());if(basket)u.searchParams.set('b',basket);return u.href;
     }
 
     function injectStyles(doc){
-      if(doc.getElementById('sifIntegrationStyles')) return;
-      const st=doc.createElement('style'); st.id='sifIntegrationStyles'; st.textContent=`
+      if(doc.getElementById('sifIntegrationStyles'))return;
+      const st=doc.createElement('style');st.id='sifIntegrationStyles';st.textContent=`
         .sif-integration-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:16px;box-shadow:0 4px 16px rgba(42,35,64,.04)}
         .sif-share-head{display:flex;align-items:center;gap:9px;justify-content:space-between;margin-bottom:10px}.sif-share-head strong{font-size:.95rem}.sif-share-actions{display:flex;gap:7px}
-        .sif-icon-btn{width:42px;height:42px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:var(--purple-deep);display:grid;place-items:center;cursor:pointer;font:800 18px/1 system-ui}
-        .sif-icon-btn svg{width:22px;height:22px;fill:currentColor;stroke:currentColor}.sif-icon-btn.primary{background:var(--grad);color:#fff;border-color:transparent}
-        .sif-name-row label{display:block;font-size:.76rem;font-weight:800;color:var(--muted);margin-bottom:5px}.sif-name-row input{width:100%;padding:10px 11px;border:1.5px solid var(--line);border-radius:10px;font:650 .92rem Nunito,system-ui;background:#fff}
-        .sif-share-help{font-size:.72rem;color:var(--muted);font-weight:650;margin-top:7px}.sif-stress-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-2px 0 11px;flex-wrap:wrap}
-        .sif-stress-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;font-weight:800;color:var(--muted)}.sif-stress-buttons{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
-        .sif-stress-btn{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:800 .68rem/1 Nunito,system-ui;padding:7px 8px;cursor:pointer}.sif-stress-btn.on{border-color:var(--purple);color:var(--purple);background:#f6f0ff}.sif-stress-btn.forecast{font-weight:900}.sif-stress-btn.forecast.on{background:var(--purple);color:#fff}
+        .sif-icon-btn{width:42px;height:42px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:var(--purple-deep);display:grid;place-items:center;cursor:pointer;font:800 18px/1 system-ui}.sif-icon-btn svg{width:22px;height:22px;fill:currentColor;stroke:currentColor}.sif-icon-btn.primary{background:var(--grad);color:#fff;border-color:transparent}
+        .sif-name-row label{display:block;font-size:.76rem;font-weight:800;color:var(--muted);margin-bottom:5px}.sif-name-row input{width:100%;padding:10px 11px;border:1.5px solid var(--line);border-radius:10px;font:650 .92rem Nunito,system-ui;background:#fff}.sif-share-help{font-size:.72rem;color:var(--muted);font-weight:650;margin-top:7px}
+        .sif-stress-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-2px 0 11px;flex-wrap:wrap}.sif-stress-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;font-weight:800;color:var(--muted)}.sif-stress-buttons{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.sif-stress-btn{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:800 .68rem/1 Nunito,system-ui;padding:7px 8px;cursor:pointer}.sif-stress-btn.on{border-color:var(--purple);color:var(--purple);background:#f6f0ff}.sif-stress-btn.forecast.on{background:var(--purple);color:#fff}
         #sifInjectedToast{position:fixed;left:50%;bottom:20px;z-index:9999;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:#26164f;color:#fff;padding:10px 14px;border-radius:999px;font:750 12px/1.2 Nunito,system-ui;transition:.18s;white-space:nowrap}#sifInjectedToast.show{opacity:1;transform:translate(-50%,0)}
         .sif-conversion{background:linear-gradient(135deg,#effaf8,#fff);border:1px solid #bfe2dd;border-radius:16px;padding:17px 16px;margin-top:16px;text-align:center}.sif-conversion h2{margin:0 0 5px!important;color:#00695c!important}.sif-conversion p{margin:0;color:#526b68;font-size:.86rem;font-weight:650}.sif-cta{display:block;margin-top:11px;padding:12px 14px;border-radius:11px;background:#008c82;color:white!important;text-decoration:none;font-weight:850}.sif-cta.secondary{background:#fff;color:#00695c!important;border:1.5px solid #bfe2dd}.sif-partner{margin-top:12px;font-size:.76rem;color:#607572;font-weight:700}.sif-partner a{color:#00695c;font-weight:850}
-        body.sif-public{background:#f3fbfa}body.sif-public header.hero{background:linear-gradient(135deg,#008c82,#00695c);box-shadow:0 12px 30px rgba(0,140,130,.2)}body.sif-public{--purple:#008c82;--purple-deep:#00695c;--pink:#008c82;--grad:linear-gradient(135deg,#008c82,#00695c);--bg:#f3fbfa;--save:#008c82;--save-soft:#d7efeb}body.sif-public .disclosure .tag{color:#008c82}
-        .sif-public-banner{font-size:.78rem;font-weight:800;color:#00695c;background:#e7f7f4;border:1px solid #bfe2dd;border-radius:10px;padding:9px 11px;margin-top:12px;text-align:center}
-        @media(max-width:560px){.sif-stress-row{align-items:flex-start}.sif-stress-buttons{justify-content:flex-start}.sif-stress-btn{padding:7px 7px}.sif-share-head{align-items:flex-start}}
-      `; doc.head.appendChild(st);
+        body.sif-public{background:#f3fbfa;--purple:#008c82;--purple-deep:#00695c;--pink:#008c82;--grad:linear-gradient(135deg,#008c82,#00695c);--bg:#f3fbfa;--save:#008c82;--save-soft:#d7efeb}body.sif-public header.hero{background:linear-gradient(135deg,#008c82,#00695c);box-shadow:0 12px 30px rgba(0,140,130,.2)}.sif-public-banner{font-size:.78rem;font-weight:800;color:#00695c;background:#e7f7f4;border:1px solid #bfe2dd;border-radius:10px;padding:9px 11px;margin-top:12px;text-align:center}
+        @media(max-width:560px){.sif-stress-row{align-items:flex-start}.sif-stress-buttons{justify-content:flex-start}.sif-share-head{align-items:flex-start}}
+      `;doc.head.appendChild(st);
     }
 
     function addEditorShareCard(doc,win){
-      const old=doc.querySelector('section.card.share'); if(old) old.style.display='none';
-      if(doc.getElementById('sifEditorShareCard')) return;
-      const card=doc.createElement('section'); card.id='sifEditorShareCard'; card.className='sif-integration-card';
+      const old=doc.querySelector('section.card.share');if(old)old.style.display='none';if(doc.getElementById('sifEditorShareCard'))return;
+      const card=doc.createElement('section');card.id='sifEditorShareCard';card.className='sif-integration-card';
       card.innerHTML='<div class="sif-share-head"><div><strong>Share</strong><div class="sif-share-help" style="margin-top:2px">Public tool or this personalised result</div></div><div class="sif-share-actions"><button type="button" class="sif-icon-btn" id="sifShareTool" title="Share public tool" aria-label="Share public tool">'+SHARE_ICON+'</button><button type="button" class="sif-icon-btn primary" id="sifShareResult" title="Share personalised result" aria-label="Share personalised result">📤</button></div></div><div class="sif-name-row"><label for="sifCustomerName">Customer name <span style="font-weight:650">(optional)</span></label><input id="sifCustomerName" type="text" autocomplete="off" placeholder="e.g. Sarah"></div><div class="sif-share-help">The public-tool share contains no customer data. The 📤 share carries the name and scenario currently on screen.</div>';
-      const fixed=doc.getElementById('fixedCard'); fixed.parentNode.insertBefore(card,fixed.nextSibling);
-      const name=appointmentName(); if(name) card.querySelector('#sifCustomerName').value=name;
-      card.querySelector('#sifShareTool').addEventListener('click',function(){
-        const url=basePublicUrl(); copyOrShare('Should I Fix?','A simple way to explore whether fixing your energy could make sense.',url,function(){toast(doc,'Public tool shared');});
-      });
-      card.querySelector('#sifShareResult').addEventListener('click',function(){
-        const name=cleanName(card.querySelector('#sifCustomerName').value); const url=personalisedUrl(doc,win);
-        copyOrShare('Your Should I Fix? comparison',name?'Hi '+name+' - here is the energy comparison we looked at.':'Here is the energy comparison we looked at.',url,function(){toast(doc,'Personalised result shared');});
-      });
+      const fixed=doc.getElementById('fixedCard');fixed.parentNode.insertBefore(card,fixed.nextSibling);const name=appointmentName();if(name)card.querySelector('#sifCustomerName').value=name;
+      card.querySelector('#sifShareTool').addEventListener('click',function(){copyOrShare('Should I Fix?','A simple way to explore whether fixing your energy could make sense.',basePublicUrl(),function(){toast(doc,'Public tool shared');});});
+      card.querySelector('#sifShareResult').addEventListener('click',function(){const name=cleanName(card.querySelector('#sifCustomerName').value),url=personalisedUrl(doc,win);copyOrShare('Your Should I Fix? comparison',name?'Hi '+name+' - here is the energy comparison we looked at.':'Here is the energy comparison we looked at.',url,function(){toast(doc,'Personalised result shared');});});
     }
 
-    function addPublicExperience(doc,win){
-      doc.body.classList.add('sif-public');
-      const old=doc.querySelector('section.card.share'); if(old) old.style.display='none';
-      const name=cleanName(params.get('n'));
-      const hero=doc.querySelector('header.hero');
-      if(hero && !doc.getElementById('sifPublicBanner')){
-        const b=doc.createElement('div'); b.id='sifPublicBanner'; b.className='sif-public-banner';
-        b.textContent=name?'Personalised comparison for '+name:'Public Should I Fix? explorer'; hero.insertAdjacentElement('afterend',b);
-      }
-      if(!doc.getElementById('sifPublicShare')){
-        const card=doc.createElement('section'); card.id='sifPublicShare'; card.className='sif-integration-card';
-        card.innerHTML='<div class="sif-share-head" style="margin-bottom:0"><div><strong>Useful? Pass it on.</strong><div class="sif-share-help" style="margin-top:2px">Shares a fresh copy with no personal data.</div></div><button type="button" class="sif-icon-btn" id="sifPublicShareBtn" title="Share this tool" aria-label="Share this tool">'+SHARE_ICON+'</button></div>';
-        const result=doc.getElementById('resultCard'); result.parentNode.insertBefore(card,result.nextSibling);
-        card.querySelector('#sifPublicShareBtn').addEventListener('click',function(){
-          copyOrShare('Should I Fix?','A simple way to explore whether fixing your energy could make sense.',basePublicUrl(),function(){toast(doc,'Fresh public tool shared');});
-        });
-      }
-      if(!doc.getElementById('sifConversion')){
-        const card=doc.createElement('section'); card.id='sifConversion'; card.className='sif-conversion';
-        const basket=safeUrl(params.get('b'));
-        card.innerHTML='<h2>Want to see your actual UW options?</h2><p>Explore an official personalised quote, or ask Adrian for a hand.</p>'+
-          (basket?'<a class="sif-cta" href="'+basket.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener">Open your UW basket →</a><a class="sif-cta secondary" href="'+DEFAULT_QUOTE+'" target="_blank" rel="noopener">Start a fresh UW quote</a>':'<a class="sif-cta" href="'+DEFAULT_QUOTE+'" target="_blank" rel="noopener">Get a personalised UW quote →</a>')+
-          '<a class="sif-cta secondary" href="'+DEFAULT_BOOK+'" target="_blank" rel="noopener">Prefer a helping hand? Book a chat</a><div class="sif-partner">Adrian Croft - UW Authorised Partner · <a href="'+DEFAULT_SITE+'" target="_blank" rel="noopener">AQCroft.com</a></div>';
-        const details=doc.querySelector('details'); details.parentNode.insertBefore(card,details);
-      }
+    function addPublicExperience(doc){
+      doc.body.classList.add('sif-public');const old=doc.querySelector('section.card.share');if(old)old.style.display='none';const name=cleanName(params.get('n')),hero=doc.querySelector('header.hero');
+      if(hero&&!doc.getElementById('sifPublicBanner')){const b=doc.createElement('div');b.id='sifPublicBanner';b.className='sif-public-banner';b.textContent=name?'Personalised comparison for '+name:'Public Should I Fix? explorer';hero.insertAdjacentElement('afterend',b);}
+      if(!doc.getElementById('sifPublicShare')){const card=doc.createElement('section');card.id='sifPublicShare';card.className='sif-integration-card';card.innerHTML='<div class="sif-share-head" style="margin-bottom:0"><div><strong>Useful? Pass it on.</strong><div class="sif-share-help" style="margin-top:2px">Shares a fresh copy with no personal data.</div></div><button type="button" class="sif-icon-btn" id="sifPublicShareBtn" title="Share this tool" aria-label="Share this tool">'+SHARE_ICON+'</button></div>';const result=doc.getElementById('resultCard');result.parentNode.insertBefore(card,result.nextSibling);card.querySelector('#sifPublicShareBtn').addEventListener('click',function(){copyOrShare('Should I Fix?','A simple way to explore whether fixing your energy could make sense.',basePublicUrl(),function(){toast(doc,'Fresh public tool shared');});});}
+      if(!doc.getElementById('sifConversion')){const card=doc.createElement('section');card.id='sifConversion';card.className='sif-conversion';const basket=safeUrl(params.get('b'));card.innerHTML='<h2>Want to see your actual UW options?</h2><p>Explore an official personalised quote, or ask Adrian for a hand.</p>'+(basket?'<a class="sif-cta" href="'+basket.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener">Open your UW basket →</a><a class="sif-cta secondary" href="'+DEFAULT_QUOTE+'" target="_blank" rel="noopener">Start a fresh UW quote</a>':'<a class="sif-cta" href="'+DEFAULT_QUOTE+'" target="_blank" rel="noopener">Get a personalised UW quote →</a>')+'<a class="sif-cta secondary" href="'+DEFAULT_BOOK+'" target="_blank" rel="noopener">Prefer a helping hand? Book a chat</a><div class="sif-partner">Adrian Croft - UW Authorised Partner · <a href="'+DEFAULT_SITE+'" target="_blank" rel="noopener">AQCroft.com</a></div>';const details=doc.querySelector('details');details.parentNode.insertBefore(card,details);}
     }
 
     function applyAppointmentUsage(doc){
-      if(publicMode) return;
-      const inputs=appointmentInputs();
-      const elec=Math.max(0,Number(inputs.electricityUsageKwh)||0); const gas=Math.max(0,Number(inputs.gasUsageKwh)||0);
-      const hasElec=asBool(inputs.energyHasElectricity,true); const hasGas=asBool(inputs.energyHasGas,true); const hasPersonal=elec>0||gas>0;
-      const fuelMode=hasElec&&hasGas?'dual':hasGas?'gas':'elec'; const fuelBtn=doc.querySelector('#fuelSeg button[data-mode="'+fuelMode+'"]'); if(fuelBtn) fuelBtn.click();
-      if(hasPersonal){
-        const customBtn=doc.getElementById('btnPersonal'); if(customBtn) customBtn.click();
-        const e=doc.getElementById('elec'),g=doc.getElementById('gas'); if(e&&elec>0)e.value=String(Math.round(elec)); if(g&&gas>0)g.value=String(Math.round(gas));
-        [e,g].forEach(function(el){if(!el)return;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}); note.textContent='Using appointment usage';
-      }else note.textContent='No saved usage - using calculator presets';
+      if(publicMode)return;const inputs=appointmentInputs(),elec=Math.max(0,Number(inputs.electricityUsageKwh)||0),gas=Math.max(0,Number(inputs.gasUsageKwh)||0),hasElec=asBool(inputs.energyHasElectricity,true),hasGas=asBool(inputs.energyHasGas,true),hasPersonal=elec>0||gas>0;
+      const fuelMode=hasElec&&hasGas?'dual':hasGas?'gas':'elec',fuelBtn=doc.querySelector('#fuelSeg button[data-mode="'+fuelMode+'"]');if(fuelBtn)fuelBtn.click();
+      if(hasPersonal){const customBtn=doc.getElementById('btnPersonal');if(customBtn)customBtn.click();const e=doc.getElementById('elec'),g=doc.getElementById('gas');if(e&&elec>0)e.value=String(Math.round(elec));if(g&&gas>0)g.value=String(Math.round(gas));[e,g].forEach(function(el){if(!el)return;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});note.textContent='Using appointment usage';}else note.textContent='No saved usage - using calculator presets';
     }
 
     function onFrameReady(){
-      let doc,win; try{doc=frame.contentDocument||frame.contentWindow.document;win=frame.contentWindow;}catch(_){return;} if(!doc||!win)return;
-      injectStyles(doc); installStressEngine(doc,win); applyAppointmentUsage(doc);
-      if(publicMode) addPublicExperience(doc,win); else addEditorShareCard(doc,win);
-      if(publicMode && params.has('sp')){ win.__sifStressPct=Number(params.get('sp'))||0; const stress=doc.getElementById('stress'); if(stress){stress.checked=false;stress.dispatchEvent(new Event('input',{bubbles:true}));} setTimeout(function(){
-        const buttons=doc.querySelectorAll('.sif-stress-btn'); buttons.forEach(function(b){b.classList.toggle('on',Math.abs(Number(b.dataset.stress)-win.__sifStressPct)<0.01);}); patchForecastLabel(doc,win);
-      },30); }
+      let doc,win;try{doc=frame.contentDocument||frame.contentWindow.document;win=frame.contentWindow;}catch(_){return;}if(!doc||!win||!doc.body)return;if(doc.body.dataset.sifEnhanced==='1')return;doc.body.dataset.sifEnhanced='1';
+      injectStyles(doc);installStressEngine(doc,win);applyAppointmentUsage(doc);if(publicMode)addPublicExperience(doc);else addEditorShareCard(doc,win);
+      if(publicMode&&params.has('sp')){win.__sifStressPct=Number(params.get('sp'))||0;const stress=doc.getElementById('stress');if(stress){stress.checked=false;stress.dispatchEvent(new Event('input',{bubbles:true}));}else if(typeof win.render==='function')win.render();setTimeout(function(){doc.querySelectorAll('.sif-stress-btn').forEach(function(b){b.classList.toggle('on',Math.abs(Number(b.dataset.stress)-win.__sifStressPct)<0.01);});patchForecastLabel(doc,win.__sifStressPct);},20);}
     }
 
-    frame.addEventListener('load',function(){setTimeout(onFrameReady,70);setTimeout(onFrameReady,400);});
-
-    document.getElementById('backBtn').addEventListener('click',function(){
-      if(bridge&&envelope&&typeof bridge.returnToOrigin==='function'){bridge.returnToOrigin({tool_state:{opened_at:new Date().toISOString()}});return;} history.back();
-    });
+    frame.addEventListener('load',function(){setTimeout(onFrameReady,100);});
+    document.getElementById('backBtn').addEventListener('click',function(){if(bridge&&envelope&&typeof bridge.returnToOrigin==='function'){bridge.returnToOrigin({tool_state:{opened_at:new Date().toISOString()}});return;}history.back();});
   })();
   </script>
 </body>
