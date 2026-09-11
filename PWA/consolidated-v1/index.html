@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260911-v1.9-shell1';
+      var version = '20260911-v1.9-service2';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
@@ -35,6 +35,7 @@
         '<script src="../consolidated-v1/share-policy-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/specialist-share-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/canonical-controls-v1.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/service-ui-polish-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/specialist-launcher-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/consolidated-controller-v1.js?v=' + version + '"><\/script>';
