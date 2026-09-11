@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion v2.1</title>
+  <title>Appointment Companion v2.2</title>
   <meta name="description" content="Appointment Companion local-first PWA">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260911-v2.1';
+      var version = '20260912-v2.2';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
