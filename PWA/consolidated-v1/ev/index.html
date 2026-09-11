@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EV Companion — Consolidated v1</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#7a42c8">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../../app-icon.svg" type="image/svg+xml">
+  <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
+</head>
+<body>
+  <div class="msg" id="loader">🚙 Opening the consolidated EV Companion…</div>
+  <script>
+  (async function () {
+    try {
+      var version = '20260911-consolidated3';
+      var params = new URL(location.href).searchParams;
+      var shared = params.has('s');
+      var linked = params.has('ac_launch');
+      var localOnly = params.get('local') === '1';
+      var response = await fetch('../../v16c-ev.html?v=' + version);
+      if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
+      var html = await response.text();
+      html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
+      html = html.replace(/href="manifest\.webmanifest"/i, 'href="consolidated-v1/manifest.webmanifest"');
+      html = html.replace(/<script src="pwa-register\.js"><\/script>/i, '<script src="consolidated-v1/pwa-register.js?v=' + version + '"><\/script>');
+
+      var common = '<script src="../cloud-client-v1.js?v=' + version + '"><\/script><script src="cloud/companion-bridge-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/share-policy-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-share-v1.js?v=' + version + '"><\/script>';
+      var inject = '';
+      if (shared) {
+        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-share-view-v1.js?v=' + version + '"><\/script>';
+      } else if (linked) {
+        inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
+      }
+      /* A generic URL intentionally receives no Bridge/Journey scripts, so it
+         cannot inherit state from a previous linked customer on this device. */
+      html = html.replace(/<\/body>/i, inject + '</body>');
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (error) {
+      document.getElementById('loader').textContent = '❌ EV Companion could not load: ' + ((error && error.message) || String(error));
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+/* Authenticated immutable specialist shares, sanitised before Cloud transmission. */
+(function (global) {
+  'use strict';
+  var api = global.AppointmentCompanionCloud, policy = global.AppointmentCompanionSharePolicy, AUTH_KEY = 'apptCloudPilotAuthSession', CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
+  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); return row && row.partner_id && row.workspace_key ? row : null; } catch (_) { return null; } }
+  function customerId() { return sessionStorage.getItem(CUSTOMER_KEY) || ''; }
+  async function getCurrentCustomer() { var credentials = auth(), id = customerId(); if (!credentials || !id || !api) throw new Error('Connect Cloud and save this customer before creating a short share link.'); var result = await api.getCustomer(credentials, id); if (!result || !result.customer) throw new Error('Customer could not be loaded for sharing.'); return result.customer; }
+  async function create(viewType, snapshot) { var credentials = auth(); if (!credentials || !api) throw new Error('Connect Cloud before creating a short share link.'); var clean = policy ? policy.specialist(viewType, snapshot) : {}; var result = await api.createShare(credentials, { view_type: String(viewType || '').toLowerCase(), snapshot: clean }); if (!result || !result.share || !result.share.token) throw new Error('Cloud did not return a share token.'); return result.share; }
+  function normalise(share) { if (!share || typeof share !== 'object') return {}; if (share.snapshot && typeof share.snapshot === 'object') return share.snapshot; if (share.snapshot_json && typeof share.snapshot_json === 'object') return share.snapshot_json; if (typeof share.snapshot_json === 'string') { try { return JSON.parse(share.snapshot_json); } catch (_) { return {}; } } return {}; }
+  async function read(viewType, token) { if (!api || !api.getShare) throw new Error('Cloud share reader is unavailable.'); var result = await api.getShare(token), share = result && result.share; if (!share) throw new Error('Share could not be loaded.'); if (String(share.view_type || '').toLowerCase() !== String(viewType || '').toLowerCase()) throw new Error('This is not the expected specialist share.'); return { share: share, snapshot: policy ? policy.specialist(viewType, normalise(share)) : {} }; }
+  global.AppointmentCompanionSpecialistShare = { getCurrentCustomer: getCurrentCustomer, create: create, read: read };
+})(window);
