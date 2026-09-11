@@ -28,7 +28,7 @@
       tool_id: 'fix',
       label: 'Should I Fix?',
       emoji: '📈',
-      url: '../cloud-test/should-i-fix-pilot.html',
+      url: '../cloud-test/should-i-fix-pilot-v2.html',
       description: 'Compare this customer\'s usage against the price cap and UW fixed tariffs.'
     });
     return true;
