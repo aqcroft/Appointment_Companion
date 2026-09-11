@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Should I Fix? - Appointment Companion test</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#7a42c8">
+  <style>
+    :root{--purple:#7a42c8;--ink:#26164f;--bg:#fffbe3;--line:#e6e2ef}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+    .bar{height:54px;flex:0 0 54px;display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);background:#fff;box-shadow:0 2px 9px rgba(38,22,79,.06);z-index:2}
+    .bar button,.bar a{border:1px solid rgba(122,66,200,.24);background:#fff;color:var(--ink);border-radius:10px;min-height:38px;padding:7px 11px;font:inherit;font-size:13px;font-weight:750;text-decoration:none;cursor:pointer}
+    .title{min-width:0;flex:1;font-weight:850;color:var(--purple);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .note{font-size:11px;color:#6b6b76;font-weight:650;white-space:nowrap}
+    iframe{border:0;width:100%;flex:1 1 auto;min-height:0;background:#faf7ff}
+    @media(max-width:520px){.note{display:none}.bar a{display:none}}
+  </style>
+</head>
+<body data-companion-tool="fix">
+  <div class="bar">
+    <button type="button" id="backBtn">← Companion</button>
+    <div class="title">📈 Should I Fix?</div>
+    <div class="note" id="usageNote">Standalone calculator</div>
+    <a href="https://aqcroft.github.io/ShouldIFix/Oct2026.html" target="_blank" rel="noopener">Open standalone ↗</a>
+  </div>
+  <iframe id="fixFrame" title="Should I Fix? calculator" src="https://aqcroft.github.io/ShouldIFix/Oct2026.html"></iframe>
+
+  <script src="../cloud/companion-bridge-v1.js"></script>
+  <script>
+  (function(){
+    'use strict';
+    const bridge = window.AppointmentCompanionBridge;
+    const envelope = bridge && typeof bridge.receive === 'function' ? bridge.receive() : null;
+    const frame = document.getElementById('fixFrame');
+    const note = document.getElementById('usageNote');
+
+    function appointmentInputs(){
+      const state = envelope && envelope.appointment_state;
+      if (state && state.inputs) return state.inputs;
+      const customer = envelope && envelope.extra && envelope.extra.customer;
+      if (customer && customer.appointment_state && customer.appointment_state.inputs) return customer.appointment_state.inputs;
+      if (customer && customer.inputs) return customer.inputs;
+      return {};
+    }
+
+    function asBool(v, fallback){
+      if (v === true || v === false) return v;
+      if (v === 'true') return true;
+      if (v === 'false') return false;
+      return fallback;
+    }
+
+    function applyAppointmentUsage(){
+      let doc;
+      try { doc = frame.contentDocument || frame.contentWindow.document; } catch (_) { return; }
+      if (!doc) return;
+
+      const inputs = appointmentInputs();
+      const elec = Math.max(0, Number(inputs.electricityUsageKwh) || 0);
+      const gas = Math.max(0, Number(inputs.gasUsageKwh) || 0);
+      const hasElec = asBool(inputs.energyHasElectricity, true);
+      const hasGas = asBool(inputs.energyHasGas, true);
+      const hasPersonal = elec > 0 || gas > 0;
+
+      const fuelMode = hasElec && hasGas ? 'dual' : hasGas ? 'gas' : 'elec';
+      const fuelBtn = doc.querySelector('#fuelSeg button[data-mode="' + fuelMode + '"]');
+      if (fuelBtn) fuelBtn.click();
+
+      if (hasPersonal) {
+        const customBtn = doc.getElementById('btnPersonal');
+        if (customBtn) customBtn.click();
+        const e = doc.getElementById('elec');
+        const g = doc.getElementById('gas');
+        if (e && elec > 0) e.value = String(Math.round(elec));
+        if (g && gas > 0) g.value = String(Math.round(gas));
+        [e,g].forEach(function(el){
+          if (!el) return;
+          el.dispatchEvent(new Event('input',{bubbles:true}));
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        });
+        note.textContent = 'Using appointment usage';
+      } else {
+        note.textContent = 'No saved usage - using calculator presets';
+      }
+    }
+
+    frame.addEventListener('load', function(){
+      setTimeout(applyAppointmentUsage, 60);
+      setTimeout(applyAppointmentUsage, 350);
+    });
+
+    document.getElementById('backBtn').addEventListener('click', function(){
+      if (bridge && envelope && typeof bridge.returnToOrigin === 'function') {
+        bridge.returnToOrigin({ tool_state: { opened_at: new Date().toISOString() } });
+        return;
+      }
+      history.back();
+    });
+  })();
+  </script>
+</body>
+</html>
