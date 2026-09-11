@@ -18,11 +18,11 @@
   <script>
   (async function(){
     try {
-      const assetVersion = '20260910-micro2';
+      const assetVersion = '20260911-fix1';
       const response = await fetch('./companion_cloud_pilot.html?v=' + assetVersion);
       if (!response.ok) throw new Error('Pilot source returned HTTP ' + response.status);
       let html = await response.text();
-      const inject = '<script src="../cloud-client-v1.js?v=' + assetVersion + '"><\/script><script src="./device-identity-v1.js?v=' + assetVersion + '"><\/script><script src="./companion-bridge-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-enhancements-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-safety-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-presence-v1.js?v=' + assetVersion + '"><\/script><script src="./specialist-launcher-v1.js?v=' + assetVersion + '"><\/script><script src="./specialists-v1.js?v=' + assetVersion + '"><\/script>';
+      const inject = '<script src="../cloud-client-v1.js?v=' + assetVersion + '"><\/script><script src="./device-identity-v1.js?v=' + assetVersion + '"><\/script><script src="./companion-bridge-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-enhancements-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-pilot-safety-v1.js?v=' + assetVersion + '"><\/script><script src="./cloud-presence-v1.js?v=' + assetVersion + '"><\/script><script src="./specialist-launcher-v1.js?v=' + assetVersion + '"><\/script><script src="./specialists-v1.js?v=' + assetVersion + '"><\/script><script src="./should-i-fix-integration-v1.js?v=' + assetVersion + '"><\/script>';
       if (!/<\/body>/i.test(html)) throw new Error('Pilot source has no closing body tag.');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open();
