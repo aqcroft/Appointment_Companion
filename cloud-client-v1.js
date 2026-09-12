@@ -124,6 +124,21 @@
 
     async leavePresence(auth, payload) {
       return post(Object.assign({ action: 'leavePresence' }, payload || {}, authPayload(auth)));
+    },
+
+    async adminPing(adminPassword) {
+      return post({
+        action: 'adminPing',
+        admin_password: String(adminPassword || '')
+      });
+    },
+
+    async adminProvisionPartner(adminPassword, payload) {
+      return post({
+        action: 'adminProvisionPartner',
+        admin_password: String(adminPassword || ''),
+        partner: payload || {}
+      });
     }
   };
 
