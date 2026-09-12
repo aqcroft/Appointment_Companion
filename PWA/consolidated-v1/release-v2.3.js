@@ -290,7 +290,7 @@
   function observe() {
     if (!isMain || document.documentElement.dataset.acV23Observed) return;
     document.documentElement.dataset.acV23Observed = '1';
-    var bodyObserver = new MutationObserver(function () { decorateConflictRows(); wireCloudStatusRoute(); updateCloudSettingsHealth(); });
+    var bodyObserver = new MutationObserver(function () { decorateConflictRows(); wireCloudStatusRoute(); });
     bodyObserver.observe(document.body,{childList:true,subtree:true});
     ['ac:cloud-authenticated','ac:cloud-disconnected','online','focus'].forEach(function (name) { global.addEventListener(name,function () { setTimeout(updateCloudSettingsHealth,150); }); });
     setInterval(function () { updateCloudSettingsHealth(); decorateConflictRows(); },3000);
