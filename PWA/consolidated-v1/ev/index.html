@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>EV Companion v2.2</title>
+  <title>EV Companion v2.3</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <link rel="manifest" href="../manifest.webmanifest">
@@ -15,7 +15,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260912-v2.2';
+      var version = '20260912-v2.3';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var linked = params.has('ac_launch');
@@ -33,7 +33,7 @@
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
       }
-      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.2.js?v=' + version + '"><\/script>';
+      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.3.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
