@@ -1,7 +1,7 @@
-const CACHE_NAME = 'appointment-companion-consolidated-v2-3';
+const CACHE_NAME = 'appointment-companion-consolidated-v2-4';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './pwa-register.js', './tariff-fetch-v1.js',
-  './canonical-state-v1.js', './canonical-controls-v1.js', './service-ui-polish-v1.js', './spring-clean-v2.js', './release-v2.3.js', './local-customer-store-v2.js',
+  './canonical-state-v1.js', './canonical-controls-v1.js', './service-ui-polish-v1.js', './spring-clean-v2.js', './release-v2.3.js', './release-v2.4.js', './local-customer-store-v2.js',
   './consolidated-controller-v1.js', './share-policy-v1.js', './specialist-share-v1.js',
   './specialist-launcher-v1.js', './specialist-features-v1.js',
   './ev/', './ev/index.html', './ev-share-adapter-v1.js', './ev-share-view-v1.js', './ev-return-v1.js',
