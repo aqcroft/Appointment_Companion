@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v13';
+const CACHE_NAME = 'appointment-companion-v14';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,8 @@ const APP_SHELL = [
   './consolidated-v1/release-v2.3.js',
   './consolidated-v1/release-v2.4.js',
   './consolidated-v1/release-v2.41.js',
+  './consolidated-v1/release-v2.42.js',
+  './consolidated-v1/persistence-guard-v2.42.js',
   './consolidated-v1/local-customer-store-v2.js',
   './consolidated-v1/consolidated-controller-v1.js',
   './consolidated-v1/share-policy-v1.js',
