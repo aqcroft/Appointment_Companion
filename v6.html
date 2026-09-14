@@ -272,6 +272,34 @@ function priceSims(includedSims) {
     "  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText(g('dt', '')) + '. Not a formal quote.';",
     "  $('scEstimateNote').textContent = 'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.';");
 
+  // Income Protector is no longer addable on an appointment. Keep the internal
+  // checkbox as a hidden, permanently zero-value compatibility shim so older saved
+  // profiles cannot break the v6 calculation engine.
+  replaceExact('boiler cover card heading',
+    '<h2>🛡️ Insurance</h2>',
+    '<h2>🛡️ Boiler Cover</h2>');
+  replaceExact('boiler cover card note',
+    '<p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can\'t advise or compare. Toggle on what\'s in the customer\'s basket.</p>',
+    '<p class="sub" style="margin-bottom:0.6rem;">FCA regulated — no advice or comparison. Toggle on if Boiler Cover is in the customer\'s basket.</p>');
+  replaceExact('remove Income Protector control',
+`    <div class="switchrow">
+      <span class="lbl">Income Protector <span class="sub">£16/m</span></span>
+      <span class="switch"><input type="checkbox" id="incomeProtectorToggle"><span class="track"></span></span>
+    </div>`,
+`    <input type="checkbox" id="incomeProtectorToggle" class="hidden" aria-hidden="true" tabindex="-1">`);
+  replaceExact('disable Income Protector price',
+    '    incomeProtector: 16,   // £/m fixed rate',
+    '    incomeProtector: 0,    // legacy compatibility only — not addable on an appointment');
+  replaceExact('hide boiler card for tenants',
+    "  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));",
+    "  ['servicesCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));\n  $('insuranceCard').classList.toggle('hidden', which !== 'homeowner');");
+  replaceExact('summary boiler cover row',
+    '<tr id="scInsuranceRow" class="hidden"><td>🛡️ Insurance</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>',
+    '<tr id="scInsuranceRow" class="hidden"><td>🛡️ Boiler Cover</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>');
+  replaceExact('basket boiler cover title',
+    '<span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>',
+    '<span class="basket-icon could" id="biInsurance" title="Boiler Cover">🛡️</span>');
+
   replaceExact('saved version marker',
     "    app: 'appointment-companion', v: 2,",
     "    app: 'appointment-companion', v: 6,");
