@@ -1,0 +1,15 @@
+{
+  "name": "Appointment Companion V3",
+  "short_name": "Companion V3",
+  "description": "Local-first UW appointment companion",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f3ff",
+  "theme_color": "#5d2ca8",
+  "icons": [
+    { "src": "./assets/icons/app-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/icons/app-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+
