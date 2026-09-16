@@ -11,8 +11,10 @@
     var swUrl = new URL('sw.js', rootUrl).href;
     var scopeUrl = rootUrl.href;
 
-    navigator.serviceWorker.register(swUrl, { scope: scopeUrl }).catch(function () {
-      // Install support is a convenience; the tool must still work without it.
-    });
+    navigator.serviceWorker.register(swUrl, { scope: scopeUrl, updateViaCache: 'none' })
+      .then(function (registration) { return registration.update(); })
+      .catch(function () {
+        // Install support is a convenience; the tool must still work without it.
+      });
   });
 })();
