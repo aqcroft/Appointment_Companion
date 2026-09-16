@@ -13,7 +13,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260916-v2.42-sharegate1';
+      var version = '20260916-v2.42-sharegate2';
       var response = await fetch('../../cloud-test/should-i-fix-pilot-v2.html?v=' + version);
       if (!response.ok) throw new Error('Should I Fix donor returned HTTP ' + response.status);
       var html = await response.text();
