@@ -15,12 +15,24 @@
   <script>
   (async function () {
     try {
-      var version = '20260916-v2.42-evsharefix1';
+      var version = '20260916-v2.42-evsharefix2';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var legacyShared = /^p=/.test(location.hash.slice(1));
       var linked = params.has('ac_launch');
       var localOnly = params.get('local') === '1';
+
+      /* Old personalised #p= links belong to the original v16C reader. Send
+         them there directly instead of document-writing that reader into the
+         consolidated shell. This keeps already-sent customer links working. */
+      if (legacyShared && !shared) {
+        var legacyUrl = new URL('../../v16c-ev.html', location.href);
+        legacyUrl.search = location.search;
+        legacyUrl.hash = location.hash;
+        location.replace(legacyUrl.href);
+        return;
+      }
+
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
@@ -34,9 +46,7 @@
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-compat-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
       }
-      /* Legacy #p= links are still rendered by v16c-sharing.js. Keep the
-         consolidated Partner toolbar/release scripts out of that customer view. */
-      if (!shared && !legacyShared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.3.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.4.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.41.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.42.js?v=' + version + '"><\/script>';
+      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.3.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.4.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.41.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.42.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
