@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v15';
+const CACHE_NAME = 'appointment-companion-v16';
 const APP_SHELL = [
   './',
   './index.html',
@@ -25,11 +25,13 @@ const APP_SHELL = [
   './consolidated-v1/specialist-share-v1.js',
   './consolidated-v1/specialist-launcher-v1.js',
   './consolidated-v1/specialist-features-v1.js',
+  './consolidated-v1/fix-share-gate-v1.js',
   './consolidated-v1/ev/',
   './consolidated-v1/ev/index.html',
   './consolidated-v1/ev-share-adapter-v1.js',
   './consolidated-v1/ev-share-compat-v1.js',
   './consolidated-v1/ev-share-view-v1.js',
+  './consolidated-v1/ev-customer-contact-v1.js',
   './consolidated-v1/ev-return-v1.js',
   './consolidated-v1/should-i-fix/',
   './consolidated-v1/should-i-fix/index.html',
