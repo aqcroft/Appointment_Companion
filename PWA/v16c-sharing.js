@@ -24,6 +24,10 @@ function b64urlDecode(str){
 }
 function cleanName(s){return String(s||'').trim().replace(/\s+/g,' ').slice(0,80)}
 function safeCarIcon(s){return ['🚗','🚙','🚘','🚐'].indexOf(s)>=0?s:'🚙'}
+function safeHttps(value){
+  try{var u=new URL(String(value||'').trim());return u.protocol==='https:'?u.href:''}catch(_){return ''}
+}
+function escapeAttr(value){return String(value||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}
 function showToast(msg){
   var el=$('shareToast');
   if(!el)return;
@@ -51,14 +55,14 @@ function loadScript(src){
   });
 }
 
-function capture(name){
+function capture(name,basket){
   var vehicle=activeButton('#vehiclePills .vpill');
   var usage=activeButton('#usagePills button');
   var service=activeButton('#serviceButtons button');
   var period=activeButton('#periodToggle button');
   var stress=activeButton('#stressButtons button');
   var e7Actual=!$('e7ActualWrap').hidden;
-  return {
+  var data={
     v:'16C',
     n:cleanName(name),
     ts:new Date().toISOString(),
@@ -82,6 +86,9 @@ function capture(name){
     pe:period?period.dataset.period:'month',
     st:stress?parseInt(stress.dataset.stress,10)||0:0
   };
+  var safeBasket=safeHttps(basket);
+  if(safeBasket)data.b=safeBasket;
+  return data;
 }
 
 function setInput(id,value,type){
@@ -158,17 +165,11 @@ function startCompanion(payload){
   });
 }
 
-function makeLink(){
-  var name=cleanName($('shareCustomerName').value);
-  if(!name){
-    $('shareCustomerName').classList.add('error');
-    $('shareCustomerName').focus();
-    showToast('Add the customer name first');
-    return null;
-  }
-  $('shareCustomerName').classList.remove('error');
+function makeLink(name,basket){
+  name=cleanName(name);
+  if(!name)return null;
   window.dispatchEvent(new CustomEvent('ac:ev-share-name',{detail:{name:name}}));
-  var data=capture(name);
+  var data=capture(name,basket);
   var url=new URL(location.href.split('#')[0]);
   url.searchParams.delete('s');
   url.searchParams.delete('ac_launch');
@@ -193,17 +194,56 @@ function copyText(text){
   });
 }
 
-function shareCurrent(){
-  var link=makeLink();
+function ensureGateStyle(){
+  if(document.getElementById('acEvLegacyShareGateStyle'))return;
+  var st=document.createElement('style');
+  st.id='acEvLegacyShareGateStyle';
+  st.textContent='.ac-ev-share-gate{position:fixed;inset:0;z-index:20000;background:rgba(38,22,79,.48);display:flex;align-items:center;justify-content:center;padding:16px}.ac-ev-share-gate-card{width:min(430px,100%);background:#fff;color:#26164f;border-radius:17px;padding:17px;box-shadow:0 20px 60px rgba(38,22,79,.28);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}.ac-ev-share-gate-card h3{margin:0 0 5px;font-size:18px}.ac-ev-share-gate-card p{margin:.3rem 0 .8rem;color:#6b6b76;font-size:12px;line-height:1.45}.ac-ev-share-gate-card label{display:block;font-size:11px;font-weight:800;margin:9px 0 5px}.ac-ev-share-gate-card input{width:100%;box-sizing:border-box;border:1.5px solid #e4dfec;border-radius:10px;padding:10px 11px;font:650 12px system-ui;color:#26164f}.ac-ev-share-gate-card .hint{font-size:10px;color:#81788d;margin-top:5px}.ac-ev-share-gate-actions{display:grid;gap:7px;margin-top:13px}.ac-ev-share-gate-actions button{min-height:42px;border:1px solid rgba(122,66,200,.2);border-radius:10px;background:#fff;color:#26164f;font:800 13px system-ui;cursor:pointer}.ac-ev-share-gate-actions button.primary{background:#7a42c8;color:#fff;border-color:#7a42c8}.ac-ev-share-gate-error{min-height:16px;margin-top:5px;color:#a33232;font-size:10px;font-weight:700}';
+  document.head.appendChild(st);
+}
+
+function chooseShareOptions(){
+  ensureGateStyle();
+  return new Promise(function(resolve){
+    var overlay=document.createElement('div');
+    overlay.className='ac-ev-share-gate';
+    var existingName=cleanName($('shareCustomerName')&&$('shareCustomerName').value);
+    overlay.innerHTML='<div class="ac-ev-share-gate-card" role="dialog" aria-modal="true"><h3>📤 Share personalised EV comparison</h3><p>Add the customer name, then choose whether this is part of a wider UW quote.</p><label for="acEvShareName">Customer name</label><input id="acEvShareName" type="text" autocomplete="off" value="'+escapeAttr(existingName)+'" placeholder="e.g. Richard Sharpe"><label for="acEvShareBasket">UW basket / quote link <span style="font-weight:600">(optional)</span></label><input id="acEvShareBasket" type="url" inputmode="url" placeholder="https://..."><div class="hint">Include the basket when it removes a step for the customer.</div><div class="ac-ev-share-gate-error" id="acEvShareGateError"></div><div class="ac-ev-share-gate-actions"><button type="button" class="primary" data-choice="include">Include basket and share</button><button type="button" data-choice="plain">Share without basket</button><button type="button" data-choice="cancel">Cancel</button></div></div>';
+    function done(value){overlay.remove();resolve(value)}
+    overlay.addEventListener('click',function(e){
+      if(e.target===overlay)return done({cancelled:true});
+      var choice=e.target&&e.target.dataset&&e.target.dataset.choice;
+      if(!choice)return;
+      if(choice==='cancel')return done({cancelled:true});
+      var name=cleanName(overlay.querySelector('#acEvShareName').value);
+      if(!name){overlay.querySelector('#acEvShareGateError').textContent='Add the customer name first.';overlay.querySelector('#acEvShareName').focus();return}
+      if(choice==='plain')return done({cancelled:false,name:name,basket:''});
+      var raw=overlay.querySelector('#acEvShareBasket').value.trim();
+      var basket=safeHttps(raw);
+      if(!basket){overlay.querySelector('#acEvShareGateError').textContent=raw?'Please use a valid https:// basket link.':'Add a basket link, or choose Share without basket.';return}
+      done({cancelled:false,name:name,basket:basket});
+    });
+    document.body.appendChild(overlay);
+    setTimeout(function(){var input=overlay.querySelector('#acEvShareName');if(input)input.focus()},0);
+  });
+}
+
+async function shareCurrent(){
+  var choice=await chooseShareOptions();
+  if(!choice||choice.cancelled)return;
+  if($('shareCustomerName'))$('shareCustomerName').value=choice.name;
+  var link=makeLink(choice.name,choice.basket);
   if(!link)return;
-  var name=cleanName($('shareCustomerName').value);
   if(navigator.share){
-    navigator.share({title:'UW EV Tariff Companion',text:'Hi '+name+' - I prepared this EV comparison for you.',url:link})
-      .then(function(){showToast('Personalised link ready')})
-      .catch(function(e){if(e&&e.name!=='AbortError')copyText(link).then(function(){showToast('Link copied')})});
-  }else{
-    copyText(link).then(function(){showToast('Personalised link copied')}).catch(function(){window.prompt('Copy this personalised link:',link)});
+    try{
+      await navigator.share({title:'UW EV Tariff Companion',text:'Hi '+choice.name+' - I prepared this EV comparison for you.',url:link});
+      showToast('Personalised link ready');
+      return;
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+    }
   }
+  copyText(link).then(function(){showToast('Personalised link copied')}).catch(function(){window.prompt('Copy this personalised link:',link)});
 }
 
 function prepareShared(raw){
@@ -215,6 +255,10 @@ function prepareShared(raw){
     $('splashName').textContent=name;
     $('welcomeName').textContent=name;
     $('customerWelcome').hidden=false;
+
+    /* Hand the optional basket to the shared customer contact treatment. */
+    window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||'')};
+    loadScript('consolidated-v1/ev-customer-contact-v1.js?v=20260916-sharegate2').catch(function(){});
 
     var splashIcons=document.querySelector('.personal-splash-icon');
     if(splashIcons)splashIcons.textContent=safeCarIcon(p.vi)+'  🔌  🏠';
