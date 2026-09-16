@@ -33,6 +33,8 @@ Individual deletion and multi-select deletion both create a tombstone. When conn
 
 `js/state/cloud-client.js` owns the current Apps Script API contract. Credentials remain in session storage using the existing session key so V3 can coexist with the current PWA. They are never placed in a customer share.
 
+Cloud saves pass through `toLegacyCompatibleAppointment()` in `js/state/migrations.js`. It emits a schema-v1-compatible projection for the existing PWA and embeds the complete V3 state at `ui_state._v3Appointment`. On read, current schema-v1 fields overlay the embedded copy. This compatibility boundary can be removed only after the old PWA acceptance window closes and the Cloud contract is migrated deliberately.
+
 `js/state/reconciliation.js` performs three-way reconciliation against the last acknowledged Cloud snapshot:
 
 - identical values are accepted

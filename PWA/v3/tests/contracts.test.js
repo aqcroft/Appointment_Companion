@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { migrateAppointment } from '../js/state/migrations.js';
+import { migrateAppointment, toLegacyCompatibleAppointment } from '../js/state/migrations.js';
 import { reconcileSnapshots } from '../js/state/reconciliation.js';
 import { buildShareData } from '../js/summary/share-data.js';
 import { createAppointment } from '../js/state/canonical-state.js';
@@ -26,6 +26,39 @@ test('legacy SIM IDs migrate and historic Income Protector is discarded', () => 
 test('schema-v3 historic Income Protector flags are also stripped', () => {
   const migrated = migrateAppointment({ schemaVersion: 3, person: { name: 'Historic' }, services: { energy: true, incomeProtector: true } });
   assert.deepEqual(Object.keys(migrated.services).sort(), ['boilerCover', 'broadband', 'energy', 'mobile']);
+});
+
+test('Cloud compatibility envelope remains readable by schema-v1 and V3 adapters', () => {
+  const appointment = createAppointment('Coexistence Test');
+  appointment.services.energy = true;
+  appointment.services.mobile = true;
+  appointment.energy.region = '12';
+  appointment.energy.annualElectricityKwh = 3456;
+  appointment.energy.currentCostMode = 'split';
+  appointment.energy.currentElectricityMonthly = 70;
+  appointment.mobile.simCount = 2;
+  appointment.mobile.sims = [
+    { name: 'One', include: true, planId: 'essentialMax', currentMonthly: 9, exitFee: 0 },
+    { name: 'Two', include: true, planId: 'unlimitedMax', currentMonthly: 20, exitFee: 10 }
+  ];
+  const envelope = toLegacyCompatibleAppointment(appointment);
+  assert.equal(envelope.schema_version, 1);
+  assert.equal(envelope.canonical.customerName, 'Coexistence Test');
+  assert.equal(envelope.canonical.energy.electricityUsageTotalKwh, 3456);
+  const roundTrip = migrateAppointment(envelope);
+  assert.equal(roundTrip.energy.region, '12');
+  assert.equal(roundTrip.energy.currentCostMode, 'split');
+  assert.equal(roundTrip.mobile.sims[1].planId, 'unlimitedMax');
+  assert.equal(roundTrip.mobile.sims[1].exitFee, 10);
+
+  envelope.canonical.customerName = 'Edited in old PWA';
+  envelope.canonical.energy.region = '14';
+  envelope.canonical.energy.electricityUsageTotalKwh = 4100;
+  const afterLegacyEdit = migrateAppointment(envelope);
+  assert.equal(afterLegacyEdit.person.name, 'Edited in old PWA');
+  assert.equal(afterLegacyEdit.energy.region, '14');
+  assert.equal(afterLegacyEdit.energy.annualElectricityKwh, 4100);
+  assert.equal(afterLegacyEdit.mobile.sims[1].exitFee, 10);
 });
 
 test('one-sided populated changes merge without a false conflict', () => {

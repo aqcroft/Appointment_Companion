@@ -1,7 +1,7 @@
 import { cloudClient } from './cloud-client.js';
 import { customerStore } from './customer-store.js';
 import { clone } from './canonical-state.js';
-import { migrateAppointment } from './migrations.js';
+import { migrateAppointment, toLegacyCompatibleAppointment } from './migrations.js';
 import { reconcileSnapshots, remoteVersion } from './reconciliation.js';
 
 export const AUTH_KEY = 'apptCloudPilotAuthSession';
@@ -41,7 +41,7 @@ function cloudPayload(row) {
     ...(row.cloud_customer || {}),
     customer_id: row.cloud_id || '',
     customer_name: appointment.person.name,
-    appointment_state_json: appointment,
+    appointment_state_json: toLegacyCompatibleAppointment(appointment),
     basket_url: appointment.summary.basketUrl || '',
     private_notes: appointment.summary.privateNotes || '',
     electricity_usage_kwh: energy.annualElectricityKwh || null,

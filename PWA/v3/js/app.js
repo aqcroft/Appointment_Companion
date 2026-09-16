@@ -28,6 +28,7 @@ let view = 'launchpad';
 let section = 'save';
 let autosaveTimer = null;
 let syncTimer = null;
+let syncRetryMs = 2500;
 let selectedPeople = new Set();
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -124,12 +125,15 @@ function scheduleSync(delay = 900) {
     try {
       setSaveState('Cloud syncing…');
       await syncAll();
+      syncRetryMs = 2500;
       people = await customerStore.list();
       if (currentRecord) currentRecord = await customerStore.get(currentRecord.local_id);
       setSaveState('Saved · Cloud synced', 'good');
       if (view === 'more') render();
     } catch {
       setSaveState('Saved locally · Cloud pending');
+      syncRetryMs = Math.min(syncRetryMs * 2, 120000);
+      scheduleSync(syncRetryMs);
     }
   }, delay);
 }
@@ -440,6 +444,7 @@ async function deletePeople(ids) {
   }
   peopleDialog.close();
   render();
+  scheduleSync(50);
   toast(`${unique.length} ${unique.length === 1 ? 'person' : 'people'} removed. Cloud acknowledgement may still be pending.`);
 }
 
@@ -603,6 +608,7 @@ async function boot() {
   if (migration.imported) toast(`${migration.imported} existing ${migration.imported === 1 ? 'profile' : 'profiles'} copied safely into V3.`);
   scheduleSync(500);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => setSaveState('Saved locally · PWA update pending'));
+  setInterval(() => scheduleSync(0), 45000);
 }
 
 boot().catch(error => {

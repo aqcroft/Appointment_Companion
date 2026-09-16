@@ -21,6 +21,8 @@ The completion marker `v3-import-2026-09-15` is stored in V3's own `meta` store.
 
 Existing Cloud IDs are preserved. V3 therefore updates the same Cloud customer instead of creating a duplicate. The old and new local databases can coexist; when each app synchronises, the current Cloud ID remains the cross-version identity.
 
+During the acceptance period, Cloud writes use a schema-v1-compatible envelope. The fields understood by the checked-in consolidated PWA are projected into its `canonical` and `ui_state` shapes, while the complete normalised V3 appointment is retained in `ui_state._v3Appointment`. V3 reads that embedded state back and then overlays any newer schema-v1 fields, so an edit made by the old PWA is not hidden by a stale V3 snapshot. This keeps the shared Cloud record readable in both directions without making the legacy local database writable.
+
 Partners should avoid editing the same person simultaneously in V3 and the old PWA. V3 uses the last acknowledged Cloud snapshot for three-way reconciliation and surfaces genuine same-field changes instead of silently choosing a winner.
 
 ## Schema defaults
@@ -51,4 +53,3 @@ Existing `specialist_state`, EV state and basket URLs are copied. Basket URLs ar
 ## Rollback
 
 Because import is copy-only, returning to the old PWA does not require a database rollback. Removing V3's own IndexedDB database would remove V3-local changes, but would not alter the legacy database. Do not remove either database during the real-world acceptance period.
-

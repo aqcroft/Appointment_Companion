@@ -20,25 +20,26 @@ function legacyState(source) {
   if (raw.schema_version === 1 && raw.canonical) {
     const c = raw.canonical;
     const ui = raw.ui_state || {};
-    const appointment = createAppointment(c.customerName || '');
-    appointment.person.homeStatus = c.homeStatus || null;
+    const appointment = ui._v3Appointment ? normaliseAppointment(ui._v3Appointment) : createAppointment(c.customerName || '');
+    appointment.person.name = c.customerName || appointment.person.name;
+    appointment.person.homeStatus = c.homeStatus || appointment.person.homeStatus;
     appointment.services = {
       ...appointment.services,
       ...(c.selectedServices || {}),
       boilerCover: bool(c.selectedServices?.boilerCover || ui.inputs?.boilerCoverToggle || ui.inputs?.boilerCover)
     };
-    appointment.energy.region = String(c.energy?.region || legacyInput(ui, 'region', '11'));
-    appointment.energy.fuel = c.energy?.energyFuelSelection === 'both' ? 'dual' : c.energy?.energyFuelSelection || 'dual';
-    appointment.energy.annualElectricityKwh = number(c.energy?.electricityUsageTotalKwh);
-    appointment.energy.annualGasKwh = number(c.energy?.gasUsageKwh);
-    appointment.energy.electricityProfile = c.energy?.electricityProfile || 'standard';
+    appointment.energy.region = String(c.energy?.region || legacyInput(ui, 'region', appointment.energy.region || '11'));
+    appointment.energy.fuel = c.energy?.energyFuelSelection === 'both' ? 'dual' : c.energy?.energyFuelSelection || appointment.energy.fuel;
+    if (c.energy?.electricityUsageTotalKwh != null) appointment.energy.annualElectricityKwh = number(c.energy.electricityUsageTotalKwh);
+    if (c.energy?.gasUsageKwh != null) appointment.energy.annualGasKwh = number(c.energy.gasUsageKwh);
+    appointment.energy.electricityProfile = c.energy?.electricityProfile || appointment.energy.electricityProfile;
     appointment.energy.peakOffPeak = appointment.energy.electricityProfile !== 'standard';
-    appointment.energy.dayKwh = number(c.energy?.electricityUsageDayKwh);
-    appointment.energy.nightKwh = number(c.energy?.electricityUsageNightKwh);
-    appointment.mobile.simCount = number(c.mobile?.simCount) || 1;
-    appointment.summary.basketUrl = c.basketUrl || '';
-    appointment.summary.privateNotes = c.privateNotes || '';
-    appointment.summary.lastSharedAt = c.lastQuoteSharedAt || '';
+    if (c.energy?.electricityUsageDayKwh != null) appointment.energy.dayKwh = number(c.energy.electricityUsageDayKwh);
+    if (c.energy?.electricityUsageNightKwh != null) appointment.energy.nightKwh = number(c.energy.electricityUsageNightKwh);
+    appointment.mobile.simCount = number(c.mobile?.simCount) || appointment.mobile.simCount;
+    appointment.summary.basketUrl = c.basketUrl || appointment.summary.basketUrl;
+    appointment.summary.privateNotes = c.privateNotes || appointment.summary.privateNotes;
+    appointment.summary.lastSharedAt = c.lastQuoteSharedAt || appointment.summary.lastSharedAt;
     return overlayLegacyUi(appointment, ui);
   }
   return overlayLegacyUi(createAppointment(raw.customerName || legacyInput(raw, 'customerName')), raw);
@@ -53,28 +54,28 @@ function overlayLegacyUi(appointment, ui = {}) {
   appointment.services.broadband ||= bool(state.services?.broadband);
   appointment.services.mobile ||= bool(state.services?.mobile);
   appointment.services.boilerCover ||= bool(inputs.boilerCoverToggle || inputs.boilerCover);
-  appointment.energy.currentMonthly = number(inputs.currentEnergyMonthly);
-  appointment.energy.currentElectricityMonthly = number(inputs.currentElecMonthly);
-  appointment.energy.currentGasMonthly = number(inputs.currentGasMonthly);
-  appointment.energy.currentCostMode = bool(inputs.useBillCosts) ? 'annual' : bool(inputs.splitEnergyToggle) ? 'split' : 'monthly';
-  appointment.energy.annualElectricityCost = number(inputs.elecAnnualCost);
-  appointment.energy.annualGasCost = number(inputs.gasAnnualCost);
-  appointment.energy.electricityExitFee = number(inputs.currentElecExitFee || inputs.currentEnergyExitFee);
-  appointment.energy.gasExitFee = number(inputs.currentGasExitFee);
-  appointment.energy.uwMonthly = number(inputs.uwEnergyMonthly);
-  appointment.energy.uwTier1 = number(inputs.uwEnergyTier1);
-  appointment.energy.uwTier2 = number(inputs.uwEnergyTier2);
-  appointment.energy.uwTier3 = number(inputs.uwEnergyTier3);
-  appointment.energy.uwQuoteMode = appointment.energy.uwTier1 || appointment.energy.uwTier2 || appointment.energy.uwTier3 ? 'tiers' : 'single';
+  if (inputs.currentEnergyMonthly !== undefined) appointment.energy.currentMonthly = number(inputs.currentEnergyMonthly);
+  if (inputs.currentElecMonthly !== undefined) appointment.energy.currentElectricityMonthly = number(inputs.currentElecMonthly);
+  if (inputs.currentGasMonthly !== undefined) appointment.energy.currentGasMonthly = number(inputs.currentGasMonthly);
+  if (inputs.useBillCosts !== undefined || inputs.splitEnergyToggle !== undefined) appointment.energy.currentCostMode = bool(inputs.useBillCosts) ? 'annual' : bool(inputs.splitEnergyToggle) ? 'split' : 'monthly';
+  if (inputs.elecAnnualCost !== undefined) appointment.energy.annualElectricityCost = number(inputs.elecAnnualCost);
+  if (inputs.gasAnnualCost !== undefined) appointment.energy.annualGasCost = number(inputs.gasAnnualCost);
+  if (inputs.currentElecExitFee !== undefined || inputs.currentEnergyExitFee !== undefined) appointment.energy.electricityExitFee = number(inputs.currentElecExitFee || inputs.currentEnergyExitFee);
+  if (inputs.currentGasExitFee !== undefined) appointment.energy.gasExitFee = number(inputs.currentGasExitFee);
+  if (inputs.uwEnergyMonthly !== undefined) appointment.energy.uwMonthly = number(inputs.uwEnergyMonthly);
+  if (inputs.uwEnergyTier1 !== undefined) appointment.energy.uwTier1 = number(inputs.uwEnergyTier1);
+  if (inputs.uwEnergyTier2 !== undefined) appointment.energy.uwTier2 = number(inputs.uwEnergyTier2);
+  if (inputs.uwEnergyTier3 !== undefined) appointment.energy.uwTier3 = number(inputs.uwEnergyTier3);
+  if (inputs.uwEnergyTier1 !== undefined || inputs.uwEnergyTier2 !== undefined || inputs.uwEnergyTier3 !== undefined) appointment.energy.uwQuoteMode = appointment.energy.uwTier1 || appointment.energy.uwTier2 || appointment.energy.uwTier3 ? 'tiers' : 'single';
   appointment.energy.annualElectricityKwh ||= number(inputs.electricityUsageTotalKwh || inputs.electricityUsageKwh);
   appointment.energy.annualGasKwh ||= number(inputs.gasUsageKwh);
   appointment.energy.dayKwh ||= number(inputs.electricityUsageDayKwh);
   appointment.energy.nightKwh ||= number(inputs.electricityUsageNightKwh);
-  appointment.broadband.currentMonthly = number(inputs.currentBroadbandMonthly);
-  appointment.broadband.uwMonthly = number(inputs.uwBroadbandMonthly);
-  appointment.broadband.exitFee = number(inputs.currentBroadbandExitFee);
-  appointment.broadband.wholeHomeWifi = bool(inputs.wholeHomeWifiToggle);
-  appointment.broadband.freeMonthsOffer = bool(inputs.bbFreeMonthsToggle);
+  if (inputs.currentBroadbandMonthly !== undefined) appointment.broadband.currentMonthly = number(inputs.currentBroadbandMonthly);
+  if (inputs.uwBroadbandMonthly !== undefined) appointment.broadband.uwMonthly = number(inputs.uwBroadbandMonthly);
+  if (inputs.currentBroadbandExitFee !== undefined) appointment.broadband.exitFee = number(inputs.currentBroadbandExitFee);
+  if (inputs.wholeHomeWifiToggle !== undefined) appointment.broadband.wholeHomeWifi = bool(inputs.wholeHomeWifiToggle);
+  if (inputs.bbFreeMonthsToggle !== undefined) appointment.broadband.freeMonthsOffer = bool(inputs.bbFreeMonthsToggle);
   const legacySims = state.sims || ui.sims || {};
   const simValues = Array.isArray(legacySims) ? legacySims : Object.keys(legacySims).sort().map(key => legacySims[key]);
   if (simValues.length) {
@@ -96,6 +97,83 @@ function overlayLegacyUi(appointment, ui = {}) {
 
 export function migrateAppointment(input) {
   return legacyState(parse(input) || {});
+}
+
+export function toLegacyCompatibleAppointment(input) {
+  const appointment = normaliseAppointment(input);
+  const energy = appointment.energy;
+  const sims = Object.fromEntries(appointment.mobile.sims.map((sim, index) => [`sim${index + 1}`, {
+    name: sim.name,
+    include: sim.include,
+    uwPlan: sim.planId,
+    monthlyCost: sim.currentMonthly,
+    exitFee: sim.exitFee
+  }]));
+  return {
+    app: 'appointment-companion',
+    schema_version: 1,
+    saved_at: new Date().toISOString(),
+    canonical: {
+      customerName: appointment.person.name,
+      homeStatus: appointment.person.homeStatus,
+      selectedServices: { ...appointment.services },
+      basketUrl: appointment.summary.basketUrl,
+      privateNotes: appointment.summary.privateNotes,
+      lastQuoteSharedAt: appointment.summary.lastSharedAt,
+      energy: {
+        region: energy.region,
+        energyFuelSelection: energy.fuel === 'dual' ? 'both' : energy.fuel,
+        electricityUsageTotalKwh: energy.annualElectricityKwh || null,
+        gasUsageKwh: energy.annualGasKwh || null,
+        electricityUsageSource: energy.usageSource,
+        gasUsageSource: energy.usageSource,
+        electricityProfile: energy.electricityProfile,
+        electricityUsageDayKwh: energy.dayKwh || null,
+        electricityUsageNightKwh: energy.nightKwh || null
+      },
+      mobile: { simCount: appointment.mobile.simCount }
+    },
+    ui_state: {
+      _v3Appointment: appointment,
+      inputs: {
+        customerName: appointment.person.name,
+        basketLink: appointment.summary.basketUrl,
+        energyHasElectricity: energy.fuel !== 'gas',
+        energyHasGas: energy.fuel !== 'electricity',
+        electricityUsageTotalKwh: energy.annualElectricityKwh || '',
+        electricityUsageKwh: energy.annualElectricityKwh || '',
+        gasUsageKwh: energy.annualGasKwh || '',
+        electricityUsageDayKwh: energy.dayKwh || '',
+        electricityUsageNightKwh: energy.nightKwh || '',
+        electricityProfile: energy.electricityProfile,
+        currentEnergyMonthly: energy.currentMonthly || '',
+        currentElecMonthly: energy.currentElectricityMonthly || '',
+        currentGasMonthly: energy.currentGasMonthly || '',
+        useBillCosts: energy.currentCostMode === 'annual',
+        splitEnergyToggle: energy.currentCostMode === 'split',
+        elecAnnualCost: energy.annualElectricityCost || '',
+        gasAnnualCost: energy.annualGasCost || '',
+        currentElecExitFee: energy.electricityExitFee || '',
+        currentGasExitFee: energy.gasExitFee || '',
+        uwEnergyMonthly: energy.uwMonthly || '',
+        uwEnergyTier1: energy.uwTier1 || '',
+        uwEnergyTier2: energy.uwTier2 || '',
+        uwEnergyTier3: energy.uwTier3 || '',
+        currentBroadbandMonthly: appointment.broadband.currentMonthly || '',
+        uwBroadbandMonthly: appointment.broadband.uwMonthly || '',
+        currentBroadbandExitFee: appointment.broadband.exitFee || '',
+        wholeHomeWifiToggle: appointment.broadband.wholeHomeWifi,
+        bbFreeMonthsToggle: appointment.broadband.freeMonthsOffer,
+        boilerCoverToggle: appointment.services.boilerCover
+      },
+      state: {
+        homeowner: appointment.person.homeStatus,
+        services: { energy: appointment.services.energy, broadband: appointment.services.broadband, mobile: appointment.services.mobile },
+        simCount: appointment.mobile.simCount,
+        sims
+      }
+    }
+  };
 }
 
 export function migrateRecord(candidate = {}) {
@@ -123,4 +201,3 @@ export function migrateRecord(candidate = {}) {
     updated_at: candidate.updated_at || candidate.savedAt || ''
   };
 }
-

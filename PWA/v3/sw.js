@@ -1,4 +1,4 @@
-const CACHE = 'appointment-companion-v3-20260915-1';
+const CACHE = 'appointment-companion-v3-20260916-2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/app-icon-192.png', './assets/icons/app-icon-512.png',
@@ -39,4 +39,3 @@ self.addEventListener('fetch', event => {
     return response;
   })));
 });
-
