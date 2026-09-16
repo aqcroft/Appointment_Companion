@@ -27,13 +27,15 @@ PWA/v3/
 ├── js/
 │   ├── app.js
 │   ├── appointment/
-│   │   └── calculations.js
+│   │   ├── calculations.js
+│   │   └── upgrade-preview.js
 │   ├── config/
 │   │   ├── tools.js
 │   │   └── version.js
 │   ├── data/
 │   │   └── tariff-client.js
 │   ├── energy/
+│   │   ├── indicative-cost.js
 │   │   └── split-helper.js
 │   ├── rules/
 │   │   └── uw-rules-2026-10-01.js
@@ -49,6 +51,7 @@ PWA/v3/
 │   │   ├── migrations.js
 │   │   └── reconciliation.js
 │   └── summary/
+│       ├── history.js
 │       ├── share-data.js
 │       └── share-policy.js
 ├── tests/
@@ -85,14 +88,14 @@ The main entry point is `PWA/v3/index.html`. It loads `js/app.js`, which boots s
 | Local storage / IndexedDB | `js/state/customer-store.js` owns IndexedDB `apptCompanionV3`; `js/app.js` uses session/local storage only for current-person selection and Partner branding; `js/data/tariff-client.js` owns its last-good tariff cache |
 | Cloud sync | API transport in `js/state/cloud-client.js`; orchestration, tombstones and conflict resolution in `js/state/cloud-sync.js`; field-wise three-way merge in `js/state/reconciliation.js`; coexistence envelope in `js/state/migrations.js` |
 | Service selection | 2x2 service cards and compact fuel/SIM choices in `js/app.js`; valid persisted service flags in `js/state/canonical-state.js` |
-| Energy logic | Inputs/workspace in `js/app.js`; derived costs in `js/appointment/calculations.js`; E7 arithmetic in `js/energy/split-helper.js`; tariff/service rules in `js/rules/uw-rules-2026-10-01.js` |
+| Energy logic | Progressive input workspace and source selection in `js/app.js`; separate UW/database and bill facts in canonical state; derived costs in `js/appointment/calculations.js`; central-feed indicative costs in `js/energy/indicative-cost.js`; E7 arithmetic in `js/energy/split-helper.js`; tariff/service rules in `js/rules/uw-rules-2026-10-01.js` |
 | Broadband logic | Inputs/package selection in `js/app.js`; package prices and offer constants in the rule module; monthly and introductory-benefit calculations in `js/appointment/calculations.js` |
 | Mobile logic | SIM UI in `js/app.js`; SIM normalisation in canonical state; plans, prices, service contribution and additional-Unlimited benefit in the rule module; totals in calculations |
 | Insurance/service-count logic | Homeowner-only Boiler Cover and all Service count/Energy tariff/Welcome Bonus derivation in `js/rules/uw-rules-2026-10-01.js`; tenant enforcement in canonical state and UI |
-| Summary/share view | Partner summary rendering in `js/app.js`; calculated payload/text/link generation in `js/summary/share-data.js`; explicit field and HTTPS allowlist in `js/summary/share-policy.js` |
+| Summary/share view | Partner summary rendering in `js/app.js`; calculated payload/text/link generation in `js/summary/share-data.js`; explicit field and HTTPS allowlist in `js/summary/share-policy.js`; lightweight reopenable snapshots in `js/summary/history.js`; non-mutating Upgrade suggestions in `js/appointment/upgrade-preview.js` |
 | Customer-shared view | `#share=...` boot path and `renderCustomerView()` in `js/app.js`, using sanitised data decoded by `js/summary/share-data.js` |
 | Basket link handling | `appointment.summary.basketUrl` in canonical state; editing in `js/app.js`; Cloud projection in `js/state/cloud-sync.js`; HTTPS-only customer exposure in the share policy |
-| Tariff data integration | Generic stale-while-revalidate/last-good cache in `js/data/tariff-client.js`; the owned EV runtime also contains `tools/ev/tariff-cache-v1.js` |
+| Tariff data integration | Central feed endpoint plus stale-while-revalidate/last-good cache in `js/data/tariff-client.js`; tariff-to-usage conversion in `js/energy/indicative-cost.js`; the owned EV runtime also contains `tools/ev/tariff-cache-v1.js` |
 | EV integration | URL/context contract in `js/specialists/launcher.js`; V3-owned EV runtime in `tools/ev/`; prefill/return adapter in `tools/ev/v3-context.js` |
 | Should I Fix integration | Stable external URL in `js/config/tools.js`; person, region, fuel and usage query mapping in `js/specialists/launcher.js` |
 | Admin/settings | More screen in `js/app.js`: people/deletion, optional Cloud credentials, conflicts and Partner branding; Cloud credentials are session-only through `js/state/cloud-sync.js` |
@@ -121,6 +124,11 @@ The consolidated PWA supplied the architectural contracts: local-first customer 
 - Blank unnamed visits do not create customer records. The person's name is the persistence gate.
 - Service count, Energy tariff and Welcome Bonus are separate derived outputs rather than one overloaded count.
 - Customer shares are explicit allowlisted snapshots and exclude notes, credentials, sync metadata and admin controls.
+- The Services overview no longer exposes per-service financial comparisons before the whole-basket reveal.
+- Mobile and Broadband lead with package selection and centrally owned rule prices; confirmed manual prices remain available only where the existing engine supports them.
+- Energy retains both UW/database and optional bill annual usage, with an explicit active source for each fuel; entering a bill figure never overwrites the UW/database figure.
+- Partner and customer summaries use the same figures but intentionally different visual treatments. Cashback remains folded into the effective monthly basket position and an Upgrade preview is available in both.
+- Profile activity now stores a bounded, reopenable summary snapshot with date, headline, services and relevant tools instead of only logging text.
 - Solar is parked; Connector and Partner-opportunity sections are placeholders rather than unfinished workflows.
 
 ## Rule determination
@@ -141,6 +149,10 @@ All three outputs are derived by `deriveUwRules()` in `js/rules/uw-rules-2026-10
 6. Cloud writes use a temporary schema-v1-compatible envelope with full V3 state embedded at `ui_state._v3Appointment`, allowing coexistence with the old PWA.
 7. Deletion creates a local tombstone, attempts immediate Cloud deletion when possible, and retries later when offline or unavailable.
 
+Energy usage is saved as parallel per-fuel candidates (`electricityUwKwh` / `electricityBillKwh` and gas equivalents) plus a selected source. The legacy-compatible active `annualElectricityKwh` and `annualGasKwh` values are recalculated from that selection. Normalisation, legacy import and Cloud overlay preserve both candidates wherever present; changing the selected source does not delete either candidate.
+
+Summary history is part of the person's bounded `activity` collection. Saving or actually sharing a summary appends a compact customer-safe snapshot containing the headline, services and tools used. The profile reopens that snapshot read-only, so current canonical appointment state is neither replaced nor rolled back.
+
 ## Specialist data exchange
 
 Specialist URLs are centralised in `js/config/tools.js`; Cloud is not used as specialist transport.
@@ -155,6 +167,8 @@ Specialist URLs are centralised in `js/config/tools.js`; Cloud is not used as sp
 - The Cloud schema-v1 compatibility envelope is transitional and should be retired only with a deliberate Cloud contract migration after old-PWA coexistence ends.
 - Array conflicts, including per-SIM state, are reconciled atomically rather than field-by-field.
 - Shared summaries live in the URL fragment. They are serverless and private from the server, but URL length limits constrain future payload growth.
+- Summary history is intentionally bounded to the six most recent summary entries and is not searchable CRM data.
+- The indicative Energy adapter depends on the central tariff feed's documented row fields. Confirmed quotes remain the authoritative route for final customer pricing.
 - Should I Fix is currently one-way context transfer; PET has no person-linked state return.
 - Connector, Partner opportunity and Solar are intentionally not implemented.
 - Live Cloud, production service-worker/offline installation, real legacy-device migration, and physical-phone WhatsApp/clipboard flows still require deployment acceptance testing.
@@ -163,11 +177,11 @@ Specialist URLs are centralised in `js/config/tools.js`; Cloud is not used as sp
 
 ## Safe hook for a future UI/UX redesign
 
-Redesign the presentation layer at `index.html`, `assets/app.css`, and the render/event-controller portions of `js/app.js`. Preserve the public data and behaviour boundaries in:
+The approved UI/UX overlay was applied at the intended seam: `index.html`, `assets/app.css`, and the render/event-controller portions of `js/app.js`. Future visual iteration should stay at the same seam. Preserve the public data and behaviour boundaries in:
 
 - `js/state/` for schemas, persistence, migration and sync;
 - `js/rules/uw-rules-2026-10-01.js` for business rules;
-- `js/appointment/calculations.js` and `js/energy/split-helper.js` for arithmetic;
+- `js/appointment/calculations.js`, `js/appointment/upgrade-preview.js`, `js/energy/indicative-cost.js` and `js/energy/split-helper.js` for arithmetic and simulations;
 - `js/summary/` for the share contract;
 - `js/specialists/launcher.js` and `js/config/tools.js` for tool contracts.
 

@@ -19,6 +19,8 @@
 | Manual Energy adjustment | advanced Energy | Preserved | accidental default use |
 | UW quote/tier capture | Energy workspace | Preserved | indicative vs confirmed |
 | Region/shared usage | canonical Energy | Added | migration defaults |
+| Parallel UW + bill usage | canonical Energy + Energy workspace | Added | active-source migration |
+| Central indicative Energy tiers | `energy/indicative-cost.js` | Added | feed schema/freshness |
 | Economy 7 split helper | `energy/split-helper.js` | Preserved/enhanced | zero/sample handling |
 | E7 vs Standard | profile Energy insight | Added | overstated result |
 | EV current tariff detail | Energy + owned EV tool | Preserved | context prefill |
@@ -37,6 +39,9 @@
 | Referral/National League | appointment benefits | Preserved | eligibility |
 | Recurring/one-off adjustments | advanced appointment | Preserved | monthly/yearly mix |
 | Summary/sticky result | appointment/summary | Preserved | total mismatch |
+| Effective monthly Cashback position | calculations + whole-basket summary | Added | confusing service vs effective cost |
+| Upgrade preview | cloned calculation in `appointment/upgrade-preview.js` | Added | accidental state mutation |
+| Reopenable summary history | `summary/history.js` + profile dialog | Added | oversized activity records |
 | Share/copy/WhatsApp | summary | Preserved | private-state leak |
 | Optional basket link | summary/share | Preserved | summary gating |
 | Partner branding | More/share payload | Preserved | share identity |
@@ -46,4 +51,3 @@
 | Should I Fix standalone | external stable contract | Preserved | context query drift |
 | PWA/offline/cache | V3 service worker | Preserved, V3-owned | stale calculations |
 | Solar | none | Parked | scope creep |
-

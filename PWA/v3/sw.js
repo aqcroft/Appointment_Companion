@@ -1,12 +1,13 @@
-const CACHE = 'appointment-companion-v3-20260916-2';
+const CACHE = 'appointment-companion-v3-20260916-3';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/app-icon-192.png', './assets/icons/app-icon-512.png',
   './js/app.js', './js/config/version.js', './js/config/tools.js',
   './js/state/canonical-state.js', './js/state/migrations.js', './js/state/customer-store.js',
   './js/state/cloud-client.js', './js/state/cloud-sync.js', './js/state/reconciliation.js',
-  './js/rules/uw-rules-2026-10-01.js', './js/appointment/calculations.js',
-  './js/energy/split-helper.js', './js/summary/share-policy.js', './js/summary/share-data.js',
+  './js/rules/uw-rules-2026-10-01.js', './js/appointment/calculations.js', './js/appointment/upgrade-preview.js',
+  './js/energy/split-helper.js', './js/energy/indicative-cost.js',
+  './js/summary/share-policy.js', './js/summary/share-data.js', './js/summary/history.js',
   './js/shell/unsaved-work-guard.js', './js/specialists/launcher.js', './js/data/tariff-client.js',
   './tools/ev/index.html', './tools/ev/v14-ev.css', './tools/ev/v15-ev.css', './tools/ev/v16c-ev.css',
   './tools/ev/v16c-sharing.js', './tools/ev/tariff-cache-v1.js', './tools/ev/v13-ev.js',

@@ -12,7 +12,7 @@ V3 persists customer facts in the schema-v3 appointment state:
 
 - neutral person name and home status
 - selected service presence
-- shared Energy region, fuel, usage and electricity profile
+- shared Energy region, fuel, parallel UW/database and optional bill usage, the selected calculation source, and electricity profile
 - appointment inputs for Energy, Broadband, Mobile, Boiler Cover, Cashback Card and adjustments
 - optional basket link and private notes
 - lightweight activity and standalone specialist state
@@ -58,17 +58,21 @@ Cloud is backup, sync and cross-device support. No Cloud credential or connectio
 - homeowner-only Boiler Cover at £25/month with no introductory benefit
 - retired Income Protector always contributes £0
 
-`js/appointment/calculations.js` consumes facts and rule results. UI code does not duplicate the rule arithmetic.
+`js/appointment/calculations.js` consumes facts and rule results. It also owns the effective monthly basket position, including the Cashback Card contribution. UI code does not duplicate the rule arithmetic. `js/appointment/upgrade-preview.js` evaluates a cloned appointment through the same calculation boundary and never mutates saved state.
 
 ## Appointment and Energy
 
-The main application presents a 2x2 service overview, then progressively reveals service detail. Energy supports monthly, split electricity/gas and annual bill-cost routes; exit fees; single or bundle-tier UW quote capture; shared region and annual usage; Economy 7/EV day-night details; a day/night split helper; a derived E7-vs-standard insight; and an advanced manual adjustment.
+The approved UI overlay keeps the permanent Save Money / Make Money / Tools / More shell, a name-first launchpad with three recent people, a person profile hub, a service overview, progressive service workspaces and distinct Partner/customer summary treatments. The active person remains context throughout the shell. Boiler Cover is not rendered for tenants.
+
+Energy is one progressive-disclosure workspace. It supports monthly, split electricity/gas and annual bill-cost routes; exit fees; confirmed UW quote capture; Economy 7/EV day-night details; a day/night split helper; a derived E7-vs-standard insight; and an advanced manual adjustment. For each applicable fuel, canonical state retains the UW/database annual usage and an optional customer-bill annual usage independently. A selected source drives the compatibility `annual*Kwh` calculation input; selecting or entering a bill value does not overwrite the UW/database value. `js/energy/indicative-cost.js` converts the central tariff feed into indicative bundle-tier costs without recreating an unofficial quote engine.
 
 Broadband, per-SIM Mobile, Cashback Card, recurring adjustment, one-off adjustment, referral and National League behavior remain available without dominating the common path.
 
 ## Sharing
 
-`js/summary/share-policy.js` is an explicit allowlist. `js/summary/share-data.js` produces a compact, customer-safe hash payload used by the same V3 entry point. The customer view contains current/UW costs, the three rule outputs, valid benefits and first-year result. It excludes private notes, Cloud credentials, sync metadata and Partner controls. Basket links are optional and restricted to HTTPS.
+`js/summary/share-policy.js` is an explicit allowlist. `js/summary/share-data.js` produces a compact, customer-safe hash payload used by the same V3 entry point. Partner and customer views use the same figures but have deliberately distinct visual treatments. Both preserve the first-year hero, basket strip, total monthly Current/UW/Saving comparison, expandable detail and Upgrade preview. The customer view excludes private notes, Cloud credentials, sync metadata and Partner controls. Basket links are optional and restricted to HTTPS.
+
+`js/summary/history.js` owns lightweight, reopenable summary activity. Each entry stores its date, headline result, included services, relevant tools used and a compact customer-safe figure snapshot. The profile shows the most recent entries; reopening one is read-only and does not restore or mutate current appointment facts. This is intentionally an activity/history boundary, not a CRM record model.
 
 ## Specialist contracts
 

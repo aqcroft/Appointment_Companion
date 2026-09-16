@@ -37,6 +37,9 @@ New V3 fields receive safe defaults:
 - Boiler Cover monthly price: £25
 - Boiler introductory benefit: £0
 - specialist state: empty object
+- Energy active usage source: UW/database when no populated legacy source exists
+
+Legacy active Energy usage is copied into the corresponding source candidate. A legacy `actual` source maps to the bill candidate only when a positive value exists. V3 never infers a populated bill value from an empty legacy record. Once migrated, UW/database and bill candidates remain independent for electricity and gas, while the selected candidate continues to populate the compatibility `annualElectricityKwh` / `annualGasKwh` fields used by calculations and older Cloud projections.
 
 Derived Service count, Energy tariff, Welcome Bonus and totals are recalculated from current facts and the October 2026 rule module.
 
