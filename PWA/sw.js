@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v14';
+const CACHE_NAME = 'appointment-companion-v15';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,6 +27,10 @@ const APP_SHELL = [
   './consolidated-v1/specialist-features-v1.js',
   './consolidated-v1/ev/',
   './consolidated-v1/ev/index.html',
+  './consolidated-v1/ev-share-adapter-v1.js',
+  './consolidated-v1/ev-share-compat-v1.js',
+  './consolidated-v1/ev-share-view-v1.js',
+  './consolidated-v1/ev-return-v1.js',
   './consolidated-v1/should-i-fix/',
   './consolidated-v1/should-i-fix/index.html',
   './manifest.webmanifest',
@@ -52,6 +56,14 @@ self.addEventListener('activate', event => {
   );
 });
 
+function cacheResponse(request, response) {
+  if (response && response.ok) {
+    const copy = response.clone();
+    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+  }
+  return response;
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -59,18 +71,27 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  const update = fetch(request).then(response => {
-    if (response && response.ok) {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-    }
-    return response;
-  });
+  /* Always prefer the current network document when online. This prevents an
+     installed PWA from reopening an older consolidated shell indefinitely. */
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => cacheResponse(request, response))
+        .catch(() => caches.match('./consolidated-v1/index.html'))
+    );
+    return;
+  }
 
-  event.waitUntil(update.catch(() => undefined));
+  const update = fetch(request).then(response => cacheResponse(request, response));
   event.respondWith(
-    caches.match(request, { ignoreSearch: true })
-      .then(cached => cached || update)
-      .catch(() => request.mode === 'navigate' ? caches.match('./consolidated-v1/index.html') : Response.error())
+    caches.match(request)
+      .then(cached => {
+        if (cached) {
+          event.waitUntil(update.catch(() => undefined));
+          return cached;
+        }
+        return update;
+      })
+      .catch(() => Response.error())
   );
 });
