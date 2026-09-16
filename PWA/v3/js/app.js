@@ -545,6 +545,11 @@ document.addEventListener('input', event => {
   if (target.dataset.field === 'benefits.referral' && target.checked) appointment.benefits.nationalLeague = false;
   if (target.dataset.field === 'benefits.nationalLeague' && target.checked) appointment.benefits.referral = false;
   markChanged();
+  const billUsageMatch = target.dataset.field.match(/^energy\.(electricity|gas)BillKwh$/);
+  if (billUsageMatch) {
+    const button = document.querySelector(`[data-choice="energy.${billUsageMatch[1]}UsageSource"][data-value="bill"]`);
+    if (button) button.disabled = !(Number(target.value) > 0);
+  }
   updateLiveResults();
 });
 
