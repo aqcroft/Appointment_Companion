@@ -34,7 +34,7 @@ export function createAppointment(name = '') {
       electricityExitFee: 0, gasExitFee: 0,
       uwQuoteMode: 'single', uwMonthly: 0, uwTier1: 0, uwTier2: 0, uwTier3: 0,
       quoteStatus: 'indicative', adjustmentEnabled: false, adjustmentTarget: 'current',
-      adjustmentPeriod: 'monthly', adjustmentAmount: 0, e7StandardAnnualSaving: 0
+      adjustmentPeriod: 'monthly', adjustmentAmount: 0, e7StandardAnnualCost: 0
     },
     broadband: {
       currentMonthly: 0, uwMonthly: 0, packageId: '', wholeHomeWifi: false,
@@ -88,7 +88,7 @@ export function normaliseAppointment(input = {}) {
   ['annualElectricityKwh', 'annualGasKwh', 'dayKwh', 'nightKwh', 'splitSampleDayKwh', 'splitSampleNightKwh',
     'currentMonthly', 'currentElectricityMonthly', 'currentGasMonthly', 'annualElectricityCost', 'annualGasCost',
     'currentDayRate', 'currentNightRate', 'currentStandingCharge', 'electricityExitFee', 'gasExitFee',
-    'uwMonthly', 'uwTier1', 'uwTier2', 'uwTier3', 'adjustmentAmount', 'e7StandardAnnualSaving'
+    'uwMonthly', 'uwTier1', 'uwTier2', 'uwTier3', 'adjustmentAmount', 'e7StandardAnnualCost'
   ].forEach(key => { out.energy[key] = finite(out.energy[key]); });
   out.mobile.simCount = Math.max(1, Math.min(5, Math.round(finite(out.mobile.simCount, 1))));
   out.mobile.sims = Array.from({ length: out.mobile.simCount }, (_, index) => {
@@ -106,6 +106,7 @@ export function normaliseAppointment(input = {}) {
   out.summary.basketUrl = text(out.summary.basketUrl, 500);
   out.summary.privateNotes = String(out.summary.privateNotes || '').slice(0, 5000);
   out.activity = Array.isArray(out.activity) ? out.activity.slice(-20) : [];
+  delete out.energy.e7StandardAnnualSaving;
   delete out.incomeProtector;
   return out;
 }

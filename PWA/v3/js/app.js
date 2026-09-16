@@ -1,7 +1,8 @@
 import { VERSION } from './config/version.js';
 import { TOOLS } from './config/tools.js';
 import { calculateAppointment } from './appointment/calculations.js';
-import { calculateAnnualDayNightSplit } from './energy/split-helper.js';
+import { calculateAnnualDayNightSplit, calculateEconomy7AnnualCost } from './energy/split-helper.js';
+import { UW_RULES_2026_10_01 } from './rules/uw-rules-2026-10-01.js';
 import { createAppointment, createSim, clone, normaliseAppointment, normaliseName, REGIONS } from './state/canonical-state.js';
 import { customerStore } from './state/customer-store.js';
 import { getCloudAuth, setCloudAuth, syncAll, markDeleted, resolveConflict } from './state/cloud-sync.js';
@@ -215,6 +216,7 @@ function renderLaunchpad(query = '') {
         <button class="primary" type="submit">Start</button>
       </form>
       <div id="duplicateWarning"></div>
+      <div id="personSearchResults"></div>
     </section>
     <section class="card">
       <div class="section-title"><div><div class="eyebrow">Quick return</div><h2>Recent people</h2></div><button class="quiet" type="button" data-manage-people>All people</button></div>
@@ -274,17 +276,19 @@ function serviceCard(name, icon, label, detail) {
 function renderEnergy() {
   const energy = appointment.energy;
   const split = calculateAnnualDayNightSplit(energy.annualElectricityKwh, energy.splitSampleDayKwh, energy.splitSampleNightKwh);
+  const e7CurrentAnnual = calculateEconomy7AnnualCost({ dayKwh: energy.dayKwh, nightKwh: energy.nightKwh, dayRate: energy.currentDayRate, nightRate: energy.currentNightRate, standingCharge: energy.currentStandingCharge });
+  const e7Saving = e7CurrentAnnual && energy.e7StandardAnnualCost ? e7CurrentAnnual - energy.e7StandardAnnualCost : 0;
   return `<section class="card" id="energyPanel"><div class="section-title"><div><div class="eyebrow">Energy</div><h2>Keep the common case simple</h2></div><span class="hint">Indicative - based on usage entered.</span></div>
     <div class="grid-2"><label class="field"><span>Region</span><select data-field="energy.region">${REGIONS.map(([id, label]) => `<option value="${id}"${selected(energy.region, id)}>${id} ${label}</option>`).join('')}</select></label><label class="field"><span>Usage source</span><select data-field="energy.usageSource"><option value="actual"${selected(energy.usageSource, 'actual')}>From bill / actual</option><option value="estimated"${selected(energy.usageSource, 'estimated')}>Estimated</option></select></label></div>
     <div class="subpanel"><span class="hint">Fuel</span><div class="pills"><button class="pill${on(energy.fuel, 'electricity')}" type="button" data-choice="energy.fuel" data-value="electricity">Electricity only</button><button class="pill${on(energy.fuel, 'gas')}" type="button" data-choice="energy.fuel" data-value="gas">Gas only</button><button class="pill${on(energy.fuel, 'dual')}" type="button" data-choice="energy.fuel" data-value="dual">Dual fuel</button></div></div>
     <div class="grid-2 subpanel">
-      ${energy.fuel !== 'gas' ? `<label class="field"><span>Annual electricity usage (kWh)</span>${field('energy.annualElectricityKwh', energy.annualElectricityKwh, 'type="number" inputmode="numeric" min="0"')}</label>` : ''}
-      ${energy.fuel !== 'electricity' ? `<label class="field"><span>Annual gas usage (kWh)</span>${field('energy.annualGasKwh', energy.annualGasKwh, 'type="number" inputmode="numeric" min="0"')}</label>` : ''}
+      ${energy.fuel !== 'gas' ? `<label class="field"><span>Annual electricity usage (kWh)</span>${field('energy.annualElectricityKwh', energy.annualElectricityKwh, 'type="number" inputmode="numeric" min="0"')}<span class="pills"><button class="pill" type="button" data-estimate-path="energy.annualElectricityKwh" data-estimate-value="1600">Low</button><button class="pill" type="button" data-estimate-path="energy.annualElectricityKwh" data-estimate-value="2500">Typical</button><button class="pill" type="button" data-estimate-path="energy.annualElectricityKwh" data-estimate-value="3800">High</button></span></label>` : ''}
+      ${energy.fuel !== 'electricity' ? `<label class="field"><span>Annual gas usage (kWh)</span>${field('energy.annualGasKwh', energy.annualGasKwh, 'type="number" inputmode="numeric" min="0"')}<span class="pills"><button class="pill" type="button" data-estimate-path="energy.annualGasKwh" data-estimate-value="7500">Low</button><button class="pill" type="button" data-estimate-path="energy.annualGasKwh" data-estimate-value="11500">Typical</button><button class="pill" type="button" data-estimate-path="energy.annualGasKwh" data-estimate-value="17000">High</button></span></label>` : ''}
     </div>
     ${energy.fuel !== 'gas' ? `<label class="person-row subpanel"><input type="checkbox" data-field="energy.peakOffPeak"${checked(energy.peakOffPeak)}><span><strong>Peak &amp; off-peak electricity?</strong><small>Off by default. Reveals Economy 7 / EV details.</small></span></label>` : ''}
     ${energy.peakOffPeak && energy.fuel !== 'gas' ? `<div class="subpanel"><div class="pills"><button class="pill${on(energy.electricityProfile, 'economy7')}" type="button" data-choice="energy.electricityProfile" data-value="economy7">Economy 7</button><button class="pill${on(energy.electricityProfile, 'ev')}" type="button" data-choice="energy.electricityProfile" data-value="ev">EV</button></div><div class="grid-2" style="margin-top:10px"><label class="field"><span>Annual day usage</span>${field('energy.dayKwh', energy.dayKwh, 'type="number" min="0"')}</label><label class="field"><span>Annual night usage</span>${field('energy.nightKwh', energy.nightKwh, 'type="number" min="0"')}</label></div>
       <details class="advanced" style="margin-top:12px"><summary>Estimate annual day/night split</summary><div class="grid-2"><label class="field"><span>Recent period day kWh</span>${field('energy.splitSampleDayKwh', energy.splitSampleDayKwh, 'type="number" min="0"')}</label><label class="field"><span>Recent period night kWh</span>${field('energy.splitSampleNightKwh', energy.splitSampleNightKwh, 'type="number" min="0"')}</label></div><p class="notice">${split.annualDayKwh || split.annualNightKwh ? `${split.dayPercent.toFixed(1)}% day / ${split.nightPercent.toFixed(1)}% night → about ${split.annualDayKwh} day and ${split.annualNightKwh} night kWh a year.` : 'Add total annual use and a matching sample of day/night use.'}</p><button class="secondary" type="button" data-apply-split ${split.annualDayKwh || split.annualNightKwh ? '' : 'disabled'}>Use these annual figures</button></details>
-      <details class="advanced" style="margin-top:12px"><summary>Current Economy 7 / EV tariff detail</summary><div class="grid-3"><label class="field"><span>Day rate p/kWh</span>${field('energy.currentDayRate', energy.currentDayRate, 'type="number" min="0" step="0.01"')}</label><label class="field"><span>Night rate p/kWh</span>${field('energy.currentNightRate', energy.currentNightRate, 'type="number" min="0" step="0.01"')}</label><label class="field"><span>Standing p/day</span>${field('energy.currentStandingCharge', energy.currentStandingCharge, 'type="number" min="0" step="0.01"')}</label></div><label class="field" style="margin-top:10px"><span>E7 vs standard estimated annual saving</span>${field('energy.e7StandardAnnualSaving', energy.e7StandardAnnualSaving, 'type="number" min="0"')}<small>Use the tariff comparison/feed result. Profile-only summary insight.</small></label></details></div>` : ''}
+      <details class="advanced" style="margin-top:12px"><summary>Current Economy 7 / EV tariff detail</summary><div class="grid-3"><label class="field"><span>Day rate p/kWh</span>${field('energy.currentDayRate', energy.currentDayRate, 'type="number" min="0" step="0.01"')}</label><label class="field"><span>Night rate p/kWh</span>${field('energy.currentNightRate', energy.currentNightRate, 'type="number" min="0" step="0.01"')}</label><label class="field"><span>Standing p/day</span>${field('energy.currentStandingCharge', energy.currentStandingCharge, 'type="number" min="0" step="0.01"')}</label></div><label class="field" style="margin-top:10px"><span>Indicative standard alternative annual cost</span>${field('energy.e7StandardAnnualCost', energy.e7StandardAnnualCost, 'type="number" min="0" step="0.01"')}<small>Enter the central tariff comparison result; V3 derives the difference from the E7 facts above.</small></label>${e7CurrentAnnual && energy.e7StandardAnnualCost ? `<p class="notice ${e7Saving < 0 ? 'warn' : ''}">${e7Saving >= 0 ? `Moving off Economy 7 could save about £${money(e7Saving)}/year.` : `Economy 7 is about £${money(Math.abs(e7Saving))}/year lower on these figures.`}</p>` : ''}</details></div>` : ''}
     <div class="subpanel"><span class="hint">Current cost route</span><div class="pills"><button class="pill${on(energy.currentCostMode, 'monthly')}" type="button" data-choice="energy.currentCostMode" data-value="monthly">Monthly payment</button><button class="pill${on(energy.currentCostMode, 'split')}" type="button" data-choice="energy.currentCostMode" data-value="split">Split electricity / gas</button><button class="pill${on(energy.currentCostMode, 'annual')}" type="button" data-choice="energy.currentCostMode" data-value="annual">Annual bill cost</button></div>
       <div class="grid-2" style="margin-top:10px">${energy.currentCostMode === 'monthly' ? `<label class="field"><span>Current monthly payment</span>${field('energy.currentMonthly', energy.currentMonthly, 'type="number" min="0" step="0.01"')}</label>` : energy.currentCostMode === 'split' ? `${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity / month</span>${field('energy.currentElectricityMonthly', energy.currentElectricityMonthly, 'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas / month</span>${field('energy.currentGasMonthly', energy.currentGasMonthly, 'type="number" min="0" step="0.01"')}</label>` : ''}` : `${energy.fuel !== 'gas' ? `<label class="field"><span>Annual electricity cost</span>${field('energy.annualElectricityCost', energy.annualElectricityCost, 'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Annual gas cost</span>${field('energy.annualGasCost', energy.annualGasCost, 'type="number" min="0" step="0.01"')}</label>` : ''}`}</div>
     </div>
@@ -300,7 +304,7 @@ function renderBroadband() {
 }
 
 function renderMobile() {
-  return `<section class="card"><div class="eyebrow">Mobile</div><h2>${appointment.mobile.simCount} SIM${appointment.mobile.simCount === 1 ? '' : 's'}</h2><div class="pills">${[1,2,3,4,5].map(count => `<button class="pill${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count} SIM${count === 1 ? '' : 's'}</button>`).join('')}</div><div class="stack subpanel">${appointment.mobile.sims.map((sim,index) => `<div class="sim"><div class="sim-head"><strong>${escapeHtml(sim.name || `SIM ${index+1}`)}</strong><label><input type="checkbox" data-field="mobile.sims.${index}.include"${checked(sim.include)}> Include</label></div><div class="grid-2"><label class="field"><span>Current / month</span>${field(`mobile.sims.${index}.currentMonthly`,sim.currentMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Exit fee</span>${field(`mobile.sims.${index}.exitFee`,sim.exitFee,'type="number" min="0"')}</label></div><div class="pills" style="margin-top:10px"><button class="pill${on(sim.planId,'essentialMax')}" type="button" data-sim-plan="${index}" data-value="essentialMax">Go Essentials · £6</button><button class="pill${on(sim.planId,'unlimitedMax')}" type="button" data-sim-plan="${index}" data-value="unlimitedMax">Go Unlimited · £13</button></div>${sim.planId === 'unlimitedMax' && appointment.mobile.sims.slice(0,index).some(item => item.include && item.planId === 'unlimitedMax') ? '<p class="notice">Additional Go Unlimited: first 3 months free, then £13/month.</p>' : ''}</div>`).join('')}</div></section>`;
+  return `<section class="card"><div class="eyebrow">Mobile</div><h2>${appointment.mobile.simCount} SIM${appointment.mobile.simCount === 1 ? '' : 's'}</h2><div class="pills">${[1,2,3,4,5].map(count => `<button class="pill${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count} SIM${count === 1 ? '' : 's'}</button>`).join('')}</div><div class="stack subpanel">${appointment.mobile.sims.map((sim,index) => `<div class="sim"><div class="sim-head"><label class="field" style="flex:1"><span>SIM label</span>${field(`mobile.sims.${index}.name`,sim.name,'maxlength="40"')}</label><label><input type="checkbox" data-field="mobile.sims.${index}.include"${checked(sim.include)}> Include</label></div><div class="grid-2"><label class="field"><span>Current / month</span>${field(`mobile.sims.${index}.currentMonthly`,sim.currentMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Exit fee</span>${field(`mobile.sims.${index}.exitFee`,sim.exitFee,'type="number" min="0"')}</label></div><div class="pills" style="margin-top:10px"><button class="pill${on(sim.planId,'essentialMax')}" type="button" data-sim-plan="${index}" data-value="essentialMax">Go Essentials · £6</button><button class="pill${on(sim.planId,'unlimitedMax')}" type="button" data-sim-plan="${index}" data-value="unlimitedMax">Go Unlimited · £13</button></div>${sim.planId === 'unlimitedMax' && appointment.mobile.sims.slice(0,index).some(item => item.include && item.planId === 'unlimitedMax') ? '<p class="notice">Additional Go Unlimited: first 3 months free, then £13/month.</p>' : ''}</div>`).join('')}</div></section>`;
 }
 
 function renderAdjustments() {
@@ -409,6 +413,14 @@ function showDuplicateWarning(value) {
   target.innerHTML = matches.length ? `<div class="duplicate"><strong>Possible duplicate</strong> · ${matches.map(row => `${escapeHtml(row.customer_name)} (${relativeDate(row.updated_at)})`).join(', ')}. You can still create another person with this name.</div>` : '';
 }
 
+function showPersonSearch(value) {
+  const target = document.getElementById('personSearchResults');
+  if (!target) return;
+  const query = normaliseName(value);
+  const matches = query ? people.filter(row => normaliseName(row.customer_name).includes(query)).slice(0, 5) : [];
+  target.innerHTML = matches.length ? `<div class="card flat" style="margin-top:10px;padding:10px"><div class="eyebrow">Existing people</div><div class="recent-list">${matches.map(row => personRow(row)).join('')}</div></div>` : '';
+}
+
 async function openPeopleDialog() {
   selectedPeople.clear();
   people = await customerStore.list();
@@ -443,7 +455,7 @@ async function openShareDialog() {
 
 document.addEventListener('input', event => {
   const target = event.target;
-  if (target.id === 'personNameInput') { showDuplicateWarning(target.value); return; }
+  if (target.id === 'personNameInput') { showDuplicateWarning(target.value); showPersonSearch(target.value); return; }
   if (!target.dataset.field) return;
   setPath(appointment, target.dataset.field, inputValue(target));
   if (target.dataset.field === 'benefits.referral' && target.checked) appointment.benefits.nationalLeague = false;
@@ -455,6 +467,15 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   const path = event.target.dataset.field;
   if (!path) return;
+  if (path === 'broadband.packageId' && event.target.value) {
+    const selectedPackage = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === event.target.value);
+    if (selectedPackage) {
+      appointment.broadband.uwMonthly = selectedPackage.monthly;
+      markChanged();
+      render();
+      return;
+    }
+  }
   if (['energy.peakOffPeak','energy.adjustmentEnabled','broadband.freeMonthsOffer','cashback.enabled','adjustments.recurringEnabled','adjustments.oneOffEnabled','person.homeStatus'].includes(path)) render();
 });
 
@@ -504,6 +525,11 @@ document.addEventListener('click', async event => {
   }
   if (target.dataset.simPlan) {
     appointment.mobile.sims[Number(target.dataset.simPlan)].planId = target.dataset.value;
+    markChanged(); render(); return;
+  }
+  if (target.dataset.estimatePath) {
+    setPath(appointment, target.dataset.estimatePath, Number(target.dataset.estimateValue));
+    appointment.energy.usageSource = 'estimated';
     markChanged(); render(); return;
   }
   if (target.hasAttribute('data-apply-split')) {

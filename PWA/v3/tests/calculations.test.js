@@ -71,3 +71,17 @@ test('Boiler Cover never receives the retired £75 benefit', () => {
   assert.equal(result.boilerCoverIntroBenefit, 0);
   assert.ok(!JSON.stringify(result).includes('75'));
 });
+
+test('E7 vs standard insight is derived from tariff facts, not stored as a total', () => {
+  const appointment = createAppointment('Alex');
+  appointment.services.energy = true;
+  appointment.energy.electricityProfile = 'economy7';
+  appointment.energy.dayKwh = 2000;
+  appointment.energy.nightKwh = 1000;
+  appointment.energy.currentDayRate = 30;
+  appointment.energy.currentNightRate = 10;
+  appointment.energy.currentStandingCharge = 50;
+  appointment.energy.e7StandardAnnualCost = 800;
+  const result = calculateAppointment(appointment);
+  assert.equal(result.e7StandardAnnualSaving, 82.5);
+});

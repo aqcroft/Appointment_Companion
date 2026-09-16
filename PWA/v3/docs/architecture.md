@@ -60,7 +60,7 @@ Cloud is backup, sync and cross-device support. No Cloud credential or connectio
 
 ## Appointment and Energy
 
-The main application presents a 2x2 service overview, then progressively reveals service detail. Energy supports monthly, split electricity/gas and annual bill-cost routes; exit fees; single or bundle-tier UW quote capture; shared region and annual usage; Economy 7/EV day-night details; a day/night split helper; a stored E7-vs-standard insight; and an advanced manual adjustment.
+The main application presents a 2x2 service overview, then progressively reveals service detail. Energy supports monthly, split electricity/gas and annual bill-cost routes; exit fees; single or bundle-tier UW quote capture; shared region and annual usage; Economy 7/EV day-night details; a day/night split helper; a derived E7-vs-standard insight; and an advanced manual adjustment.
 
 Broadband, per-SIM Mobile, Cashback Card, recurring adjustment, one-off adjustment, referral and National League behavior remain available without dominating the common path.
 
@@ -85,4 +85,3 @@ Cloud is not used as transport between V3 and a specialist.
 ## Verified repository contradiction
 
 The authoritative brief names `v6.html` and v2.41/v2.42 release files including `earnings-shortcut-v2.42.js`. They are absent from repository commit `8eaf927` on `main`/`origin/main`. The checked-in `PWA/consolidated-v1/` is an earlier runtime-composed consolidated-v1 build. V3 therefore uses the brief itself for the October 2026 rules and deletion requirements, while preserving compatible evidence from the available v5 and consolidated modules. No undocumented alternative behavior was chosen.
-

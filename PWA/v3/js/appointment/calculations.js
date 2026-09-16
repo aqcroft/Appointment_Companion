@@ -99,6 +99,18 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     (card.active ? card.feeWaiver : 0) - exitFeeDeduction;
   const yearOneResult = monthlyServiceSaving * 12 + derived.welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral +
     nationalLeague + oneOff - exitFeeDeduction + annualCashback;
+  const currentE7AnnualCost = appointment.energy.electricityProfile !== 'standard'
+    ? calculateEconomy7AnnualCost({
+      dayKwh: appointment.energy.dayKwh,
+      nightKwh: appointment.energy.nightKwh,
+      dayRate: appointment.energy.currentDayRate,
+      nightRate: appointment.energy.currentNightRate,
+      standingCharge: appointment.energy.currentStandingCharge
+    })
+    : 0;
+  const e7StandardAnnualSaving = currentE7AnnualCost && appointment.energy.e7StandardAnnualCost
+    ? currentE7AnnualCost - Number(appointment.energy.e7StandardAnnualCost)
+    : 0;
 
   return {
     rules: derived,
@@ -118,6 +130,6 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     oneOff: moneyNumber(oneOff),
     benefitsTotal: moneyNumber(benefitsTotal),
     yearOneResult: moneyNumber(yearOneResult),
-    e7StandardAnnualSaving: moneyNumber(appointment.energy.e7StandardAnnualSaving)
+    e7StandardAnnualSaving: moneyNumber(e7StandardAnnualSaving)
   };
 }

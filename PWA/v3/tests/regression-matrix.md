@@ -25,7 +25,7 @@ Automated command: `cd PWA/v3 && npm test`
 | E7 split helper | Pass | `contracts.test.js` |
 | Shell/service worker donor independence | Pass | `contracts.test.js` |
 
-Total at last run: 30 passing, 0 failing.
+Total at last run: 31 passing, 0 failing.
 
 ## Browser integration
 
