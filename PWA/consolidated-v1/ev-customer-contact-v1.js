@@ -64,7 +64,8 @@
   }
 
   function addBottomCard() {
-    if (document.getElementById('acEvConversion')) return;
+    var old = document.getElementById('acEvConversion');
+    if (old) old.remove();
     var host = document.querySelector('.wrap') || document.body;
     var card = document.createElement('section');
     card.id = 'acEvConversion';
@@ -81,7 +82,9 @@
 
   function install() {
     if (!document.body || !document.querySelector('.wrap')) return false;
-    addStyles(); addProfile(); addBottomCard(); return true;
+    addStyles(); addProfile();
+    if (global.__AppointmentCompanionEvSharedSnapshot) addBottomCard();
+    return true;
   }
 
   global.addEventListener('ac:ev-public-snapshot', function () { addBottomCard(); });
