@@ -158,6 +158,11 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 </section>
 
 <section class="card">
+  <div class="label">Services & assumptions</div>
+  <div class="svc" id="serviceButtonsLegacy" hidden></div>
+</section>
+
+<section class="card">
   <div class="section-title">⚡ Compare tariffs</div>
   <div class="section-copy">Tap a tariff name to open it. The highlighted service column matches the main EV costs above.</div>
   <div class="stressbar"><div class="stresslabel">Indicative variable uplift</div><div class="stressbuttons" id="stressButtons"><button class="on" data-stress="0">Current</button><button data-stress="5">+5%</button><button data-stress="10">+10%</button><button data-stress="15">+15%</button></div></div>
@@ -179,7 +184,7 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 <div class="share-toast" id="shareToast" role="status" aria-live="polite"></div>
 
 <!-- v16C deliberately loads the live-data calculator scripts only after OK on a personalised link. -->
-<script src="v16c-sharing.js?v=20260910-feedback1"></script>
+<script src="v16c-sharing.js?v=20260916-sharegate2"></script>
 <script src="pwa-register.js"></script>
 </body>
 </html>
