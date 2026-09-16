@@ -10,12 +10,12 @@
   <title>Appointment Companion V3</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/app.css?v=3.0.0-dev.1">
+  <link rel="stylesheet" href="./assets/app.css?v=3.1.0-ui.1">
 </head>
 <body>
   <header class="topbar" id="topbar">
     <button class="brand" type="button" data-go="launchpad" aria-label="Appointment Companion home">
-      <span class="brand-mark">AC</span><span><strong>Appointment Companion</strong><small>V3</small></span>
+      <img class="brand-mark" src="./assets/icons/app-icon.svg" alt=""><span><strong>Companion</strong><small>Appointment Companion</small></span>
     </button>
     <button class="person-chip" id="activePersonChip" type="button" data-go="profile" hidden></button>
     <div class="save-state" id="saveState" aria-live="polite">Local first</div>
@@ -24,10 +24,10 @@
   <main id="app" tabindex="-1"></main>
 
   <nav class="global-nav" id="globalNav" aria-label="Main navigation" hidden>
-    <button type="button" data-section="save"><span>🏠</span>Save Money</button>
-    <button type="button" data-section="make"><span>💷</span>Make Money</button>
-    <button type="button" data-section="tools"><span>🧰</span>Tools</button>
-    <button type="button" data-section="more"><span>•••</span>More</button>
+    <button type="button" data-section="save"><span aria-hidden="true">◉</span>Save Money</button>
+    <button type="button" data-section="make"><span aria-hidden="true">▥</span>Make Money</button>
+    <button type="button" data-section="tools"><span aria-hidden="true">▦</span>Tools</button>
+    <button type="button" data-section="more"><span aria-hidden="true">•••</span>More</button>
   </nav>
 
   <dialog id="unsavedDialog" class="modal">
@@ -44,8 +44,8 @@
 
   <dialog id="peopleDialog" class="modal"></dialog>
   <dialog id="shareDialog" class="modal"></dialog>
+  <dialog id="historyDialog" class="modal"></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=3.0.0-dev.1"></script>
+  <script type="module" src="./js/app.js?v=3.1.0-ui.1"></script>
 </body>
 </html>
-
