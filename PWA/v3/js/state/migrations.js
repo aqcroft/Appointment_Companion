@@ -30,8 +30,18 @@ function legacyState(source) {
     };
     appointment.energy.region = String(c.energy?.region || legacyInput(ui, 'region', appointment.energy.region || '11'));
     appointment.energy.fuel = c.energy?.energyFuelSelection === 'both' ? 'dual' : c.energy?.energyFuelSelection || appointment.energy.fuel;
-    if (c.energy?.electricityUsageTotalKwh != null) appointment.energy.annualElectricityKwh = number(c.energy.electricityUsageTotalKwh);
-    if (c.energy?.gasUsageKwh != null) appointment.energy.annualGasKwh = number(c.energy.gasUsageKwh);
+    if (c.energy?.electricityUsageTotalKwh != null) {
+      const source = ['uw', 'bill', 'estimated'].includes(c.energy.electricityUsageSource) ? c.energy.electricityUsageSource : appointment.energy.electricityUsageSource || 'uw';
+      appointment.energy.electricityUsageSource = source;
+      appointment.energy[source === 'bill' ? 'electricityBillKwh' : source === 'estimated' ? 'electricityEstimatedKwh' : 'electricityUwKwh'] = number(c.energy.electricityUsageTotalKwh);
+      appointment.energy.annualElectricityKwh = number(c.energy.electricityUsageTotalKwh);
+    }
+    if (c.energy?.gasUsageKwh != null) {
+      const source = ['uw', 'bill', 'estimated'].includes(c.energy.gasUsageSource) ? c.energy.gasUsageSource : appointment.energy.gasUsageSource || 'uw';
+      appointment.energy.gasUsageSource = source;
+      appointment.energy[source === 'bill' ? 'gasBillKwh' : source === 'estimated' ? 'gasEstimatedKwh' : 'gasUwKwh'] = number(c.energy.gasUsageKwh);
+      appointment.energy.annualGasKwh = number(c.energy.gasUsageKwh);
+    }
     appointment.energy.electricityProfile = c.energy?.electricityProfile || appointment.energy.electricityProfile;
     appointment.energy.peakOffPeak = appointment.energy.electricityProfile !== 'standard';
     if (c.energy?.electricityUsageDayKwh != null) appointment.energy.dayKwh = number(c.energy.electricityUsageDayKwh);
@@ -125,8 +135,8 @@ export function toLegacyCompatibleAppointment(input) {
         energyFuelSelection: energy.fuel === 'dual' ? 'both' : energy.fuel,
         electricityUsageTotalKwh: energy.annualElectricityKwh || null,
         gasUsageKwh: energy.annualGasKwh || null,
-        electricityUsageSource: energy.usageSource,
-        gasUsageSource: energy.usageSource,
+        electricityUsageSource: energy.electricityUsageSource,
+        gasUsageSource: energy.gasUsageSource,
         electricityProfile: energy.electricityProfile,
         electricityUsageDayKwh: energy.dayKwh || null,
         electricityUsageNightKwh: energy.nightKwh || null

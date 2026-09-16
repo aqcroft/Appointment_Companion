@@ -95,6 +95,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     ? Number(appointment.adjustments.oneOffAmount) * (appointment.adjustments.oneOffType === 'charge' ? -1 : 1)
     : 0;
   const annualCashback = card.active ? card.monthlyNet * 12 + card.feeWaiver : 0;
+  const effectiveUwMonthly = uwMonthly - (card.active ? card.monthlyNet : 0);
+  const effectiveMonthlySaving = currentMonthly - effectiveUwMonthly;
   const benefitsTotal = derived.welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral + nationalLeague + oneOff +
     (card.active ? card.feeWaiver : 0) - exitFeeDeduction;
   const yearOneResult = monthlyServiceSaving * 12 + derived.welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral +
@@ -117,6 +119,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     current: { energy: moneyNumber(currentEnergy), broadband: moneyNumber(currentBroadband), mobile: moneyNumber(currentMobile), total: moneyNumber(currentMonthly) },
     uw: { energy: moneyNumber(uwEnergy), broadband: moneyNumber(uwBroadband), mobile: moneyNumber(derived.ongoingMobileMonthly), boilerCover: moneyNumber(derived.boilerCoverMonthly), total: moneyNumber(uwMonthly) },
     monthlyServiceSaving: moneyNumber(monthlyServiceSaving),
+    effectiveUwMonthly: moneyNumber(effectiveUwMonthly),
+    effectiveMonthlySaving: moneyNumber(effectiveMonthlySaving),
     broadbandIntroBenefit: moneyNumber(broadbandIntroBenefit),
     mobileIntroBenefit: moneyNumber(derived.mobileIntroBenefit),
     boilerCoverIntroBenefit: 0,

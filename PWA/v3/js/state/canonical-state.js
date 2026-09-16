@@ -26,7 +26,10 @@ export function createAppointment(name = '') {
     services: { energy: false, broadband: false, mobile: false, boilerCover: false },
     energy: {
       region: '11', fuel: 'dual', electricityProfile: 'standard', peakOffPeak: false,
-      annualElectricityKwh: 0, annualGasKwh: 0, usageSource: 'actual',
+      annualElectricityKwh: 0, annualGasKwh: 0, usageSource: 'uw',
+      electricityUsageSource: 'uw', electricityUwKwh: 0, electricityBillKwh: 0, electricityEstimatedKwh: 0,
+      gasUsageSource: 'uw', gasUwKwh: 0, gasBillKwh: 0, gasEstimatedKwh: 0,
+      billUsageAvailable: false,
       dayKwh: 0, nightKwh: 0, splitSampleDayKwh: 0, splitSampleNightKwh: 0,
       currentCostMode: 'monthly', currentMonthly: 0, currentElectricityMonthly: 0,
       currentGasMonthly: 0, annualElectricityCost: 0, annualGasCost: 0,
@@ -86,10 +89,52 @@ export function normaliseAppointment(input = {}) {
   out.energy.electricityProfile = ['standard', 'economy7', 'ev'].includes(out.energy.electricityProfile) ? out.energy.electricityProfile : 'standard';
   out.energy.peakOffPeak = out.energy.electricityProfile !== 'standard' || bool(out.energy.peakOffPeak);
   ['annualElectricityKwh', 'annualGasKwh', 'dayKwh', 'nightKwh', 'splitSampleDayKwh', 'splitSampleNightKwh',
+    'electricityUwKwh', 'electricityBillKwh', 'electricityEstimatedKwh',
+    'gasUwKwh', 'gasBillKwh', 'gasEstimatedKwh',
     'currentMonthly', 'currentElectricityMonthly', 'currentGasMonthly', 'annualElectricityCost', 'annualGasCost',
     'currentDayRate', 'currentNightRate', 'currentStandingCharge', 'electricityExitFee', 'gasExitFee',
     'uwMonthly', 'uwTier1', 'uwTier2', 'uwTier3', 'adjustmentAmount', 'e7StandardAnnualCost'
   ].forEach(key => { out.energy[key] = finite(out.energy[key]); });
+  const sourceFor = value => ['uw', 'bill', 'estimated'].includes(value) ? value : value === 'actual' ? 'bill' : 'uw';
+  const seedUsage = (fuel, legacyKey) => {
+    const sourceKey = `${fuel}UsageSource`;
+    const uwKey = `${fuel}UwKwh`;
+    const billKey = `${fuel}BillKwh`;
+    const estimatedKey = `${fuel}EstimatedKwh`;
+    const legacy = finite(source.energy?.[legacyKey]);
+    const hadCandidates = [uwKey, billKey, estimatedKey].some(key => finite(source.energy?.[key]) > 0);
+    out.energy[sourceKey] = sourceFor(source.energy?.[sourceKey] || source.energy?.usageSource || out.energy[sourceKey]);
+    if (!hadCandidates && legacy > 0) {
+      const target = out.energy[sourceKey] === 'bill' ? billKey : out.energy[sourceKey] === 'estimated' ? estimatedKey : uwKey;
+      out.energy[target] = legacy;
+    }
+    const sourceCandidates = {
+      uw: out.energy[uwKey],
+      bill: out.energy[billKey],
+      estimated: out.energy[estimatedKey]
+    };
+    if (!(sourceCandidates[out.energy[sourceKey]] > 0)) {
+      out.energy[sourceKey] = sourceCandidates.uw > 0
+        ? 'uw'
+        : sourceCandidates.bill > 0
+          ? 'bill'
+          : sourceCandidates.estimated > 0
+            ? 'estimated'
+            : 'uw';
+    }
+    out.energy[legacyKey] = sourceCandidates[out.energy[sourceKey]] || legacy;
+  };
+  seedUsage('electricity', 'annualElectricityKwh');
+  seedUsage('gas', 'annualGasKwh');
+  const hasBillDisclosure = Object.prototype.hasOwnProperty.call(source.energy || {}, 'billUsageAvailable');
+  const selectedBill = (out.energy.electricityUsageSource === 'bill' && out.energy.electricityBillKwh > 0)
+    || (out.energy.gasUsageSource === 'bill' && out.energy.gasBillKwh > 0);
+  out.energy.billUsageAvailable = selectedBill || (hasBillDisclosure
+    ? bool(source.energy.billUsageAvailable)
+    : out.energy.electricityBillKwh > 0 || out.energy.gasBillKwh > 0);
+  out.energy.usageSource = out.energy.electricityUsageSource === out.energy.gasUsageSource
+    ? out.energy.electricityUsageSource
+    : 'mixed';
   out.mobile.simCount = Math.max(1, Math.min(5, Math.round(finite(out.mobile.simCount, 1))));
   out.mobile.sims = Array.from({ length: out.mobile.simCount }, (_, index) => {
     const sim = { ...createSim(index), ...(out.mobile.sims?.[index] || {}) };

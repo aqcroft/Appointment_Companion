@@ -5,6 +5,7 @@ const ALLOWED = new Set([
   'welcomeBonus', 'mobileIntroBenefit', 'broadbandIntroBenefit', 'referral',
   'nationalLeague', 'exitFees', 'exitFeeDeduction', 'cashbackMonthlyNet',
   'cashbackFeeWaiver', 'oneOff', 'benefitsTotal', 'yearOneResult',
+  'effectiveUwMonthly', 'effectiveMonthlySaving', 'upgradePreview',
   'basketUrl', 'partnerName', 'partnerRole', 'partnerStrap', 'joinUrl'
 ]);
 
@@ -22,6 +23,19 @@ export function sanitiseShareData(input = {}) {
     if (HTTPS_FIELDS.has(key)) {
       const safe = safeHttps(value);
       if (safe) output[key] = safe;
+    } else if (key === 'upgradePreview') {
+      if (!value || typeof value !== 'object') continue;
+      output.upgradePreview = {
+        type: value.type === 'add_sim' ? 'add_sim' : '',
+        planId: ['essentialMax', 'unlimitedMax'].includes(value.planId) ? value.planId : '',
+        title: String(value.title || '').slice(0, 100),
+        description: String(value.description || '').slice(0, 220),
+        serviceCount: Number(value.serviceCount || 0),
+        energyTariff: Number(value.energyTariff || 0),
+        welcomeBonus: Number(value.welcomeBonus || 0),
+        yearOneResult: Number(value.yearOneResult || 0),
+        improvement: Number(value.improvement || 0)
+      };
     } else output[key] = structuredClone(value);
   }
   output.schemaVersion = 1;
@@ -33,4 +47,3 @@ export function sanitiseShareData(input = {}) {
 }
 
 export { safeHttps };
-

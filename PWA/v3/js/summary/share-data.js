@@ -1,6 +1,7 @@
 import { calculateAppointment } from '../appointment/calculations.js';
 import { normaliseAppointment } from '../state/canonical-state.js';
 import { sanitiseShareData } from './share-policy.js';
+import { previewUpgrade } from '../appointment/upgrade-preview.js';
 
 const encode = value => {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
@@ -28,6 +29,8 @@ export function buildShareData(input, branding = {}) {
     current: result.current,
     uw: result.uw,
     monthlyServiceSaving: result.monthlyServiceSaving,
+    effectiveUwMonthly: result.effectiveUwMonthly,
+    effectiveMonthlySaving: result.effectiveMonthlySaving,
     serviceCount: result.rules.serviceCount,
     energyTariff: result.rules.energyTariff,
     welcomeBonus: result.welcomeBonus,
@@ -42,6 +45,7 @@ export function buildShareData(input, branding = {}) {
     oneOff: result.oneOff,
     benefitsTotal: result.benefitsTotal,
     yearOneResult: result.yearOneResult,
+    upgradePreview: previewUpgrade(appointment),
     basketUrl: appointment.summary.basketUrl,
     partnerName: branding.name || '',
     partnerRole: branding.role || 'Independent UW Partner',

@@ -1,7 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAppointment } from '../js/state/canonical-state.js';
+import { createAppointment, normaliseAppointment } from '../js/state/canonical-state.js';
 import { calculateAppointment } from '../js/appointment/calculations.js';
+import { calculateIndicativeEnergyCost } from '../js/energy/indicative-cost.js';
+import { previewUpgrade } from '../js/appointment/upgrade-preview.js';
+
+test('UW/database and bill usage remain separate while the selected source drives calculations', () => {
+  const appointment = createAppointment('Alex');
+  appointment.energy.electricityUwKwh = 2500;
+  appointment.energy.electricityBillKwh = 3100;
+  appointment.energy.electricityUsageSource = 'bill';
+  appointment.energy.gasUwKwh = 11000;
+  appointment.energy.gasBillKwh = 12500;
+  appointment.energy.gasUsageSource = 'uw';
+  const normalised = normaliseAppointment(appointment);
+  assert.equal(normalised.energy.annualElectricityKwh, 3100);
+  assert.equal(normalised.energy.electricityUwKwh, 2500);
+  assert.equal(normalised.energy.electricityBillKwh, 3100);
+  assert.equal(normalised.energy.annualGasKwh, 11000);
+  assert.equal(normalised.energy.gasBillKwh, 12500);
+});
 
 test('blank basket does not show a Cashback-only first-year result', () => {
   const result = calculateAppointment(createAppointment('Alex'));
@@ -84,4 +102,50 @@ test('E7 vs standard insight is derived from tariff facts, not stored as a total
   appointment.energy.e7StandardAnnualCost = 800;
   const result = calculateAppointment(appointment);
   assert.equal(result.e7StandardAnnualSaving, 82.5);
+});
+
+test('effective monthly position folds active Cashback Card contribution into UW', () => {
+  const appointment = createAppointment('Alex');
+  appointment.services.energy = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 90;
+  appointment.cashback.enabled = true;
+  appointment.cashback.tier = 'average';
+  const result = calculateAppointment(appointment);
+  assert.equal(result.cashback.monthlyNet, 14);
+  assert.equal(result.effectiveUwMonthly, 76);
+  assert.equal(result.effectiveMonthlySaving, 24);
+});
+
+test('central tariff rows produce an indicative dual-fuel monthly value', () => {
+  const appointment = createAppointment('Alex');
+  appointment.services.energy = true;
+  appointment.energy.region = '11';
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.annualGasKwh = 11500;
+  const data = { tariffLive: [{
+    region_no: 11, payment_method: 'DD', tariff_name: 'Gold', tariff_type: 'variable',
+    EDSC_Std: 50, EUR_Std: 24, GDSC: 24, GUR: 7, dual_fuel_discount_ex_vat: 12
+  }] };
+  const result = calculateIndicativeEnergyCost(data, appointment, 2);
+  assert.equal(result.tariffName, 'Gold');
+  assert.equal(result.monthly, 145.52);
+});
+
+test('upgrade preview is derived without mutating the appointment', () => {
+  const appointment = createAppointment('Alex');
+  appointment.person.homeStatus = 'homeowner';
+  appointment.services.energy = true;
+  appointment.services.mobile = true;
+  appointment.mobile.sims[0].planId = 'unlimitedMax';
+  appointment.energy.currentMonthly = 140;
+  appointment.energy.uwQuoteMode = 'tiers';
+  appointment.energy.uwTier2 = 130;
+  appointment.energy.uwTier3 = 105;
+  const before = JSON.stringify(appointment);
+  const preview = previewUpgrade(appointment);
+  assert.equal(JSON.stringify(appointment), before);
+  assert.equal(preview.type, 'add_sim');
+  assert.ok(['essentialMax', 'unlimitedMax'].includes(preview.planId));
+  assert.ok(preview.improvement > 0);
 });

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { migrateAppointment, toLegacyCompatibleAppointment } from '../js/state/migrations.js';
 import { reconcileSnapshots } from '../js/state/reconciliation.js';
 import { buildShareData } from '../js/summary/share-data.js';
+import { createSummaryActivity, summaryHistory } from '../js/summary/history.js';
 import { createAppointment } from '../js/state/canonical-state.js';
 import { calculateAnnualDayNightSplit } from '../js/energy/split-helper.js';
 
@@ -87,6 +88,47 @@ test('share allowlist excludes private notes and Cloud metadata', () => {
   assert.ok(!encoded.includes('Do not share this'));
   assert.ok(!encoded.includes('workspace_key'));
   assert.equal(data.basketUrl, 'https://example.com/basket');
+  assert.equal(typeof data.effectiveUwMonthly, 'number');
+});
+
+test('summary history keeps a reopenable compact figure snapshot', () => {
+  const appointment = createAppointment('Taylor');
+  appointment.services.energy = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 80;
+  appointment.activity.push({ type: 'tool_used', tool: 'ev', at: new Date().toISOString() });
+  const entry = createSummaryActivity(appointment);
+  appointment.activity.push(entry);
+  const history = summaryHistory(appointment.activity);
+  assert.equal(history.length, 1);
+  assert.equal(history[0].headlineResult, entry.snapshot.yearOneResult);
+  assert.deepEqual(history[0].services, ['energy']);
+  assert.equal(history[0].toolsUsed[0].label, 'EV Companion');
+  assert.equal(history[0].snapshot.personName, 'Taylor');
+});
+
+test('legacy empty actual usage falls back to UW without inventing a bill source', () => {
+  const appointment = migrateAppointment({
+    schemaVersion: 3,
+    person: { name: 'Empty usage' },
+    energy: { usageSource: 'actual', annualElectricityKwh: 0, annualGasKwh: 0 }
+  });
+  assert.equal(appointment.energy.electricityUsageSource, 'uw');
+  assert.equal(appointment.energy.gasUsageSource, 'uw');
+  assert.equal(appointment.energy.electricityBillKwh, 0);
+  assert.equal(appointment.energy.gasBillKwh, 0);
+});
+
+test('bill usage can be hidden without deleting its retained source value', () => {
+  const input = createAppointment('Retained bill');
+  input.energy.electricityUwKwh = 2500;
+  input.energy.electricityBillKwh = 2800;
+  input.energy.electricityUsageSource = 'uw';
+  input.energy.billUsageAvailable = false;
+  const appointment = migrateAppointment(input);
+  assert.equal(appointment.energy.billUsageAvailable, false);
+  assert.equal(appointment.energy.electricityBillKwh, 2800);
+  assert.equal(appointment.energy.annualElectricityKwh, 2500);
 });
 
 test('Economy 7 split helper applies a sample ratio to annual use', () => {

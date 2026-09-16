@@ -1,4 +1,5 @@
 const CACHE_KEY = 'apptCompanionV3TariffSnapshot';
+export const TARIFF_FEED_URL = 'https://script.google.com/macros/s/AKfycbw-TllTpk_dbFjHhmojgeai9gKNGRzRaA_BtMooVSLeqvg614mONQyrpElC4M8vqP51/exec';
 const FRESH_MS = 36 * 60 * 60 * 1000;
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -38,4 +39,3 @@ export function cachedTariffs() {
   const saved = read();
   return saved ? { data: structuredClone(saved.data), info: info(saved, 'cache') } : null;
 }
-
