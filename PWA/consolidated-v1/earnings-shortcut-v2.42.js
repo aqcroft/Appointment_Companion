@@ -5,6 +5,29 @@
 
   var EARNINGS_URL = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v21.html';
 
+  function firstName(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ').split(' ')[0].slice(0, 40);
+  }
+
+  function currentCustomerName() {
+    var input = document.getElementById('customerName');
+    if (input && input.value) return firstName(input.value);
+    try {
+      if (window.AppointmentCompanionCanonical && typeof window.AppointmentCompanionCanonical.capture === 'function') {
+        var snap = window.AppointmentCompanionCanonical.capture();
+        return firstName(snap && snap.canonical && snap.canonical.customerName);
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  function earningsUrl() {
+    var url = new URL(EARNINGS_URL);
+    var name = currentCustomerName();
+    if (name) url.searchParams.set('pn', name);
+    return url.href;
+  }
+
   function install() {
     var old = document.querySelector('#acSharedToolstrip .ac-toolbtn[aria-label="Cashback Card Companion"]');
     if (!old) return false;
@@ -21,7 +44,7 @@
     button.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      window.location.assign(EARNINGS_URL);
+      window.location.assign(earningsUrl());
     }, true);
 
     old.parentNode.replaceChild(button, old);
