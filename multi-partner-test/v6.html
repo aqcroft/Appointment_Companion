@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Appointment Companion v6 - 1 October 2026 rules</title>
+<script>
+if (/^d=/.test(location.hash.slice(1))) document.documentElement.classList.add('view-mode');
+</script>
+<style>
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f6f4fa;color:#1f1f24}.loading{max-width:560px;margin:15vh auto;padding:24px;text-align:center}.loading strong{color:#7A42C8}.loading p{color:#6b6b76;font-size:13px}.view-mode .loading{display:none}
+</style>
+</head>
+<body>
+<div class="loading"><strong>Loading Appointment Companion v6...</strong><p>1 October 2026 SIM, service count and Welcome Bonus rules</p></div>
+<script>
+(async () => {
+  const pinned = 'https://raw.githubusercontent.com/aqcroft/Appointment_Companion/f26f8c8c1a89f03a465d6f0fc4e5822eaf37b620/v2.html';
+  const fallback = './v2.html?source=v6-20261001';
+  let html = '';
+  let source = '';
+  for (const url of [pinned, fallback]) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      html = await res.text();
+      source = url;
+      break;
+    } catch (err) {
+      console.warn('v6 source load failed:', url, err);
+    }
+  }
+  if (!html) throw new Error('Could not load the v2 source file.');
+
+  function replaceExact(name, from, to, expected = 1) {
+    const hits = html.split(from).length - 1;
+    if (hits !== expected) {
+      throw new Error(name + ': expected ' + expected + ' match' + (expected === 1 ? '' : 'es') + ', found ' + hits + '. Source: ' + source);
+    }
+    html = html.split(from).join(to);
+  }
+
+  // Version/effective-date markers. Existing v2 and v5 remain untouched.
+  replaceExact('page title',
+    '<title>Appointment Companion v2 — UW Savings</title>',
+    '<title>Appointment Companion v6 — UW Savings · 1 Oct 2026 rules</title>');
+  replaceExact('header badge',
+    '<h1>💰 Appointment Companion <span class="beta-badge">Beta</span></h1>',
+    '<h1>💰 Appointment Companion <span class="beta-badge">v6 · 1 Oct rules</span></h1>');
+
+  // Give the summary-card rule status enough room for three consistent labels.
+  replaceExact('basket count css',
+    '.basket-count { font-size:11px; font-weight:700; color: var(--muted); white-space:nowrap; }',
+    '.basket-count { font-size:10.5px; font-weight:700; color: var(--muted); display:flex; flex-direction:column; line-height:1.3; min-width:112px; }\n.basket-count b { color:var(--ink); font-weight:700; }');
+
+  // Welcome Bonus from 1 October: based on unique service TYPES, not service points/count.
+  replaceExact('welcome bonus config',
+`  // Welcome bonus by total qualifying service count (energy 1, broadband 1, mobile up to 2).
+  // Mobile SIMs only qualify when bundled with energy or broadband — mobile-only = 0 services.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 100, 4: 150, 5: 150 },`,
+`  // Welcome Bonus from 1 Oct 2026: based on unique service TYPES taken.
+  // Types are Energy, Broadband, Mobile and Insurance. Multiple SIMs are one Mobile type.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 150, 4: 250, 5: 250 },`);
+
+  // New official mobile tariff names and prices.
+  replaceExact('mobile plan config',
+`      unlimitedMax: { label: "Unlimited", first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
+      essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }`,
+`      unlimitedMax: { label: "Go Unlimited", first: 13, freeMonths: 3, note: "£13/m. Additional Go Unlimited SIMs are free for the first 3 months, then £13/m" },
+      essentialMax: { label: "Go Essentials", first: 6, extra: 6, note: "£6/m all year" }`);
+
+  // All Go Unlimited SIMs have the same steady-state £13/m price.
+  replaceExact('mobile pricing function',
+`/* UW mobile pricing: the discounted Unlimited rate only exists as an
+   additional SIM behind a full-price £23 Unlimited lead. The FIRST
+   Unlimited SIM among those included is always £23, wherever it sits
+   in the list; further Unlimiteds are £10/m ongoing (steady state) —
+   their free first-6-months is shown separately as a year-one benefit.
+   Essentials is £5 regardless. */
+function priceSims(includedSims) {
+  let unlimitedLeadTaken = false;
+  return includedSims.map(s => {
+    if (s.uwPlan === 'unlimitedMax') {
+      if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return CONFIG.mobile.plans.unlimitedMax.first; }
+      return CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    }
+    return CONFIG.mobile.plans.essentialMax.extra;
+  });
+}`,
+`/* UW mobile pricing from 1 Oct 2026: Go Unlimited is £13/m per SIM and
+   Go Essentials is £6/m per SIM. Additional Go Unlimited SIMs receive
+   their first 3 months free; that year-one benefit is shown separately. */
+function priceSims(includedSims) {
+  return includedSims.map(s =>
+    s.uwPlan === 'unlimitedMax'
+      ? CONFIG.mobile.plans.unlimitedMax.first
+      : CONFIG.mobile.plans.essentialMax.extra
+  );
+}`);
+
+  // Split the old single count into the three rule sets shown in UW's guidance.
+  replaceExact('three rule counts',
+`  // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
+  const energyOrBb = state.services.energy || state.services.broadband;
+  const includedSimsCount = state.services.mobile ? Object.values(state.sims).filter(s => s.include).length : 0;
+  // Selecting Mobile counts as 1 service straight away (same as broadband);
+  // a 2nd included SIM lifts it to 2 (the cap). Validation still requires
+  // SIM details before the card can open or be shared.
+  const realMobileContribution = (energyOrBb && state.services.mobile)
+    ? Math.min(Math.max(includedSimsCount, 1), CONFIG.mobile.servicesCountedMax)
+    : 0;
+  const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
+  // Capped at 4: welcomeBonus/lowMonthlyCaps are only defined up to 5 (and cap out at 4
+  // anyway), and the energy tiers only go up to "2+ services beyond energy" — so once
+  // baseCount hits 4, extra qualifying items (e.g. both insurance products plus 2 SIMs)
+  // can't add anything further.
+  const baseCount = Math.min((state.services.energy ? 1 : 0) + (state.services.broadband ? 1 : 0) + realMobileContribution + insuranceCount, 4);
+  // The energy bundle only has tiers for "energy only / +1 service / +2 services" — once
+  // count-1 (services alongside energy) reaches 2, adding more sims doesn't reduce energy
+  // further. Cap the preview at however many sims are needed to reach that tier, so we don't
+  // offer a 2nd "free" SIM preview that wouldn't actually make energy any cheaper.
+  const maxPreview = state.services.energy
+    ? Math.min(availableSlots, Math.max(0, 2 - (baseCount - 1)))
+    : availableSlots;
+  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+  const count = baseCount + previewApplied;`,
+`  // From 1 Oct 2026 there are THREE separate rule sets:
+  // 1) Service count / points: Go Essentials is capped at one mobile service;
+  //    only 2+ Go Unlimited SIMs make Mobile count as two services overall.
+  // 2) Energy tariff: up to two SIMs count individually, but the tariff tops out at 3-service.
+  // 3) Welcome Bonus: unique service TYPES only (Energy, Broadband, Mobile, Insurance).
+  const energyOrBb = state.services.energy || state.services.broadband;
+  const includedSims = state.services.mobile ? Object.values(state.sims).filter(s => s.include) : [];
+  const includedSimsCount = includedSims.length;
+  const unlimitedCount = includedSims.filter(s => s.uwPlan === 'unlimitedMax').length;
+
+  // Energy tariff mobile contribution: first two SIMs each count, whatever the mobile tariff.
+  const realEnergyMobileContribution = (energyOrBb && state.services.mobile)
+    ? Math.min(Math.max(includedSimsCount, 1), CONFIG.mobile.servicesCountedMax)
+    : 0;
+  const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realEnergyMobileContribution : 0;
+  const energyBaseCount = (state.services.energy ? 1 : 0)
+    + (state.services.broadband ? 1 : 0)
+    + realEnergyMobileContribution
+    + insuranceCount;
+
+  // Preview only as many Go Essentials SIMs as can still improve the energy tariff.
+  const maxPreview = state.services.energy
+    ? Math.min(availableSlots, Math.max(0, 3 - energyBaseCount))
+    : availableSlots;
+  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+
+  const energyCount = energyBaseCount + previewApplied;
+  const energyTariffCount = state.services.energy ? Math.min(Math.max(energyCount, 1), 3) : 0;
+
+  // General service count / points. Preview SIMs are Go Essentials, so they can only make
+  // Mobile worth one service overall. 2+ real Go Unlimited SIMs still make Mobile worth two.
+  const mobileServiceCount = (energyOrBb && mobilePresent)
+    ? (unlimitedCount >= 2 ? 2 : 1)
+    : 0;
+  const count = (state.services.energy ? 1 : 0)
+    + (state.services.broadband ? 1 : 0)
+    + mobileServiceCount
+    + insuranceCount;
+
+  // Welcome Bonus counts service TYPES, so Mobile contributes a maximum of one type.
+  const welcomeCount = (state.services.energy ? 1 : 0)
+    + (state.services.broadband ? 1 : 0)
+    + ((energyOrBb && mobilePresent) ? 1 : 0)
+    + insuranceCount;`);
+
+  // Energy tier selection must use its own SIM-friendly count, not the general service count.
+  replaceExact('energy tier calculation',
+    '      const nonE = count - 1; // services beyond energy',
+    '      const nonE = energyCount - 1; // energy-tariff services beyond energy');
+
+  // Additional Go Unlimited SIMs: first 3 months free, then £13/m.
+  replaceExact('mobile free value',
+    '  const mobileFreeMonths = additionalUnlimited * um.extraM7to12 * um.freeMonths;',
+    '  const mobileFreeMonths = additionalUnlimited * um.first * um.freeMonths;');
+
+  // Welcome Bonus uses service TYPES. General referral/exit/cashback rules use service count.
+  replaceExact('welcome calculation',
+    '  const welcome = CONFIG.welcomeBonus[count] || 0;',
+    '  const welcome = CONFIG.welcomeBonus[welcomeCount] || 0;');
+
+  replaceExact('return rule counts',
+    '           count, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,',
+    '           count, energyCount, energyTariffCount, welcomeCount, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,');
+
+  // Meal-deal wording follows the official tariff name.
+  replaceExact('meal deal label',
+    "    if (essBtn) essBtn.textContent = isMD ? '🥪 Essentials' : CONFIG.mobile.plans.essentialMax.label;",
+    "    if (essBtn) essBtn.textContent = isMD ? '🥪 Go Essentials' : CONFIG.mobile.plans.essentialMax.label;");
+
+  // Active energy-rate highlight also uses the energy count.
+  replaceExact('active energy tier',
+    '    const nonE = r.count - 1;',
+    '    const nonE = r.energyCount - 1;');
+
+  // Consistent three-part language on the main editor.
+  replaceExact('main rule status',
+`  // service counter
+  let svcTxt = 'Qualifying UW services: ' + r.count;
+  const insuranceIcons = [];
+  if (r.incomeProtectorCost > 0) insuranceIcons.push('🛡️ Income Protector');
+  if (r.boilerCoverCost > 0) insuranceIcons.push('🛡️ Boiler Cover');
+  if (insuranceIcons.length) svcTxt += ' (incl. ' + insuranceIcons.join(', ') + ')';
+  if (state.services.mobile && !state.services.energy && !state.services.broadband) {
+    svcTxt += ' — SIMs qualify once bundled with energy or broadband';
+  }
+  $('svcCounter').textContent = svcTxt;`,
+`  // Three rule outputs, using the same language as the summary card.
+  let svcTxt = 'Service count: ' + r.count
+    + ' · Energy tariff: ' + (state.services.energy ? r.energyTariffCount + '-service fix' : '—')
+    + ' · Welcome Bonus: £' + r.welcome;
+  if (state.services.mobile && !state.services.energy && !state.services.broadband) {
+    svcTxt += ' · SIMs qualify once bundled with energy or broadband';
+  }
+  $('svcCounter').textContent = svcTxt;`);
+
+  // Summary card: show all three rules separately. Never imply a 4-service energy fix.
+  replaceExact('summary rule status',
+`  // Service count — shows the jump (e.g. "1 → 3 services") while previewing
+  const basketCountEl = $('basketCount');
+  const plural = n => n + ' service' + (n === 1 ? '' : 's');
+  basketCountEl.innerHTML = r.previewApplied > 0
+    ? real.count + ' <span class="arrow">→</span> ' + plural(r.count)
+    : plural(real.count);`,
+`  // Keep the three rule systems visually distinct.
+  const basketCountEl = $('basketCount');
+  const arrowVal = (before, after, format) => (r.previewApplied > 0 && before !== after)
+    ? format(before) + ' <span class="arrow">→</span> ' + format(after)
+    : format(after);
+  basketCountEl.innerHTML =
+    '<span><b>Service count:</b> ' + arrowVal(real.count, r.count, n => n) + '</span>' +
+    '<span><b>Energy tariff:</b> ' + (state.services.energy ? arrowVal(real.energyTariffCount, r.energyTariffCount, n => n + '-service') : '—') + '</span>' +
+    '<span><b>Welcome Bonus:</b> ' + arrowVal(real.welcome, r.welcome, n => '£' + n) + '</span>';`);
+
+  // Put the energy tariff count into new shared links.
+  replaceExact('share energy tariff count',
+    '    ct: r.count, w: r.welcome, rf: r.referral, bf: Math.round(r.bbFree),',
+    '    ct: r.count, et: r.energyTariffCount, w: r.welcome, rf: r.referral, bf: Math.round(r.bbFree),');
+
+  // Shared customer view gets the same three labels.
+  replaceExact('shared rule status',
+    "  $('basketCount').textContent = ct + ' service' + (ct === 1 ? '' : 's');",
+`  const et = g('et', hasEnergy ? Math.min(ct, 3) : 0);
+  $('basketCount').innerHTML =
+    '<span><b>Service count:</b> ' + ct + '</span>' +
+    '<span><b>Energy tariff:</b> ' + (hasEnergy ? et + '-service' : '—') + '</span>' +
+    '<span><b>Welcome Bonus:</b> £' + money(g('w')) + '</span>';`);
+
+  // Updated benefit terminology and Go Unlimited free-period labels.
+  replaceExact('welcome terminology', 'Cashback bonus', 'Welcome Bonus', 4);
+  replaceExact('editor Go Unlimited free label rate',
+    'CONFIG.mobile.plans.unlimitedMax.extraM7to12',
+    'CONFIG.mobile.plans.unlimitedMax.first', 3);
+  replaceExact('Go Unlimited benefit wording', 'free Unlimited SIM', 'free Go Unlimited SIM', 4);
+
+  // v6 is explicitly using the 1 October rule set ahead of the effective date.
+  replaceExact('static estimate note',
+    'Estimate based on prices as at today. Not a formal quote.',
+    'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.');
+  replaceExact('editor estimate note',
+    "  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText() + '. Not a formal quote.';",
+    "  $('scEstimateNote').textContent = 'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.';");
+  replaceExact('shared estimate note',
+    "  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText(g('dt', '')) + '. Not a formal quote.';",
+    "  $('scEstimateNote').textContent = 'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.';");
+
+  // Income Protector is no longer addable on an appointment. Keep the internal
+  // checkbox as a hidden, permanently zero-value compatibility shim so older saved
+  // profiles cannot break the v6 calculation engine.
+  replaceExact('boiler cover card heading',
+    '<h2>🛡️ Insurance</h2>',
+    '<h2>🛡️ Boiler Cover</h2>');
+  replaceExact('boiler cover card note',
+    '<p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can\'t advise or compare. Toggle on what\'s in the customer\'s basket.</p>',
+    '<p class="sub" style="margin-bottom:0.6rem;">FCA regulated — no advice or comparison. Toggle on if Boiler Cover is in the customer\'s basket.</p>');
+  replaceExact('remove Income Protector control',
+`    <div class="switchrow">
+      <span class="lbl">Income Protector <span class="sub">£16/m</span></span>
+      <span class="switch"><input type="checkbox" id="incomeProtectorToggle"><span class="track"></span></span>
+    </div>`,
+`    <input type="checkbox" id="incomeProtectorToggle" class="hidden" aria-hidden="true" tabindex="-1">`);
+  replaceExact('disable Income Protector price',
+    '    incomeProtector: 16,   // £/m fixed rate',
+    '    incomeProtector: 0,    // legacy compatibility only — not addable on an appointment');
+  replaceExact('hide boiler card for tenants',
+    "  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));",
+    "  ['servicesCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));\n  $('insuranceCard').classList.toggle('hidden', which !== 'homeowner');");
+  replaceExact('summary boiler cover row',
+    '<tr id="scInsuranceRow" class="hidden"><td>🛡️ Insurance</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>',
+    '<tr id="scInsuranceRow" class="hidden"><td>🛡️ Boiler Cover</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>');
+  replaceExact('basket boiler cover title',
+    '<span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>',
+    '<span class="basket-icon could" id="biInsurance" title="Boiler Cover">🛡️</span>');
+
+  replaceExact('saved version marker',
+    "    app: 'appointment-companion', v: 2,",
+    "    app: 'appointment-companion', v: 6,");
+
+  document.open();
+  document.write(html);
+  document.close();
+})().catch(err => {
+  console.error(err);
+  document.body.innerHTML = '<div class="loading"><strong>Appointment Companion v6 did not load.</strong><p>' +
+    String(err.message || err).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) +
+    '</p><p>The existing v2 and v5 tools have not been changed.</p></div>';
+});
+</script>
+</body>
+</html>

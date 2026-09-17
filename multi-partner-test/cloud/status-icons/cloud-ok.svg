@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 24" role="img" aria-label="Cloud synced">
+  <path d="M8.2 18.2h13.4a5.1 5.1 0 0 0 .7-10.15A7.2 7.2 0 0 0 8.55 6.1 5.55 5.55 0 0 0 8.2 18.2Z" fill="#1F2937" opacity=".78"/>
+  <circle cx="24.5" cy="17.2" r="5.2" fill="#22A447" stroke="#FFFFFF" stroke-width="1.2"/>
+  <path d="m21.9 17.2 1.7 1.7 3.4-3.6" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

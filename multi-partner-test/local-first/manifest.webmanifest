@@ -1,0 +1,21 @@
+{
+  "name": "Appointment Companion — Local-first test",
+  "short_name": "Companion Test",
+  "description": "Isolated local-first Appointment Companion test build.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffbe3",
+  "theme_color": "#7a42c8",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "../app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "../app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "../app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Local-first Companion", "short_name": "Companion", "url": "./" },
+    { "name": "Emergency local-only mode", "short_name": "Local only", "url": "./?local=1" },
+    { "name": "EV Companion", "short_name": "EV", "url": "./ev/" }
+  ]
+}

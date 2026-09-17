@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Appointment Companion v5 - 1 October 2026 rules</title>
+<script>
+if (/^d=/.test(location.hash.slice(1))) document.documentElement.classList.add('view-mode');
+</script>
+<style>
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f6f4fa;color:#1f1f24}.loading{max-width:560px;margin:15vh auto;padding:24px;text-align:center}.loading strong{color:#7A42C8}.loading p{color:#6b6b76;font-size:13px}.view-mode .loading{display:none}
+</style>
+</head>
+<body>
+<div class="loading"><strong>Loading Appointment Companion v5...</strong><p>1 October 2026 SIM and Welcome Bonus rules</p></div>
+<script>
+(async () => {
+  const pinned = 'https://raw.githubusercontent.com/aqcroft/Appointment_Companion/f26f8c8c1a89f03a465d6f0fc4e5822eaf37b620/v2.html';
+  const fallback = './v2.html?source=v5-20261001';
+  let html = '';
+  let source = '';
+  for (const url of [pinned, fallback]) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      html = await res.text();
+      source = url;
+      break;
+    } catch (err) {
+      console.warn('v5 source load failed:', url, err);
+    }
+  }
+  if (!html) throw new Error('Could not load the v2 source file.');
+
+  function replaceExact(name, from, to, expected = 1) {
+    const hits = html.split(from).length - 1;
+    if (hits !== expected) {
+      throw new Error(name + ': expected ' + expected + ' match' + (expected === 1 ? '' : 'es') + ', found ' + hits + '. Source: ' + source);
+    }
+    html = html.split(from).join(to);
+  }
+
+  // Version/effective-date markers. v2 remains untouched.
+  replaceExact('page title',
+    '<title>Appointment Companion v2 — UW Savings</title>',
+    '<title>Appointment Companion v5 — UW Savings · 1 Oct 2026 rules</title>');
+  replaceExact('header badge',
+    '<h1>💰 Appointment Companion <span class="beta-badge">Beta</span></h1>',
+    '<h1>💰 Appointment Companion <span class="beta-badge">v5 · 1 Oct rules</span></h1>');
+
+  // From 1 October 2026 the Welcome Bonus is based on SERVICE TYPES,
+  // not the raw service count used for energy tariff tiers.
+  replaceExact('welcome bonus config',
+`  // Welcome bonus by total qualifying service count (energy 1, broadband 1, mobile up to 2).
+  // Mobile SIMs only qualify when bundled with energy or broadband — mobile-only = 0 services.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 100, 4: 150, 5: 150 },`,
+`  // Welcome Bonus from 1 Oct 2026: based on unique service TYPES taken.
+  // Types are Energy, Broadband, Mobile and Insurance. Multiple SIMs are one Mobile type.
+  // Energy tariff tiers still use the separate raw service count, where 2 SIMs can count as 2.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 150, 4: 250, 5: 250 },`);
+
+  // Essential Max rises from £5/m to £6/m.
+  replaceExact('Essential Max price',
+    'essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }',
+    'essentialMax: { label: "Essentials", first: 6,  extra: 6,  note: "£6/m all year" }');
+
+  // Preserve the existing count for energy tier logic. Add a separate Welcome Bonus type count.
+  replaceExact('welcome type count',
+`  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+  const count = baseCount + previewApplied;`,
+`  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+  const count = baseCount + previewApplied; // energy-tariff service count: 2 SIMs may still count as 2
+
+  // Customer Welcome Bonus uses unique service TYPES from 1 Oct 2026.
+  // Keep the existing mobile eligibility rule: Mobile contributes once it is bundled with Energy or Broadband.
+  const welcomeMobileType = (energyOrBb && mobilePresent) ? 1 : 0;
+  const welcomeCount = (state.services.energy ? 1 : 0)
+    + (state.services.broadband ? 1 : 0)
+    + welcomeMobileType
+    + insuranceCount;`);
+
+  replaceExact('welcome calculation',
+    '  const welcome = CONFIG.welcomeBonus[count] || 0;',
+    '  const welcome = CONFIG.welcomeBonus[welcomeCount] || 0;');
+
+  replaceExact('return welcome count',
+    '           count, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,',
+    '           count, welcomeCount, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,');
+
+  // Make the split visible to the Partner so the same basket cannot be mistaken for one universal count.
+  replaceExact('service counter',
+    "  let svcTxt = 'Qualifying UW services: ' + r.count;",
+`  let svcTxt = state.services.energy
+    ? 'Energy tariff count: ' + r.count + ' · Welcome Bonus types: ' + r.welcomeCount
+    : 'Welcome Bonus service types: ' + r.welcomeCount;`);
+
+  // On the customer card, a raw count beside Energy means the tariff tier, not Welcome Bonus types.
+  replaceExact('basket count labels',
+`  const basketCountEl = $('basketCount');
+  const plural = n => n + ' service' + (n === 1 ? '' : 's');
+  basketCountEl.innerHTML = r.previewApplied > 0
+    ? real.count + ' <span class="arrow">→</span> ' + plural(r.count)
+    : plural(real.count);`,
+`  const basketCountEl = $('basketCount');
+  const basketLabel = n => state.services.energy
+    ? n + '-service energy fix'
+    : n + ' service' + (n === 1 ? '' : 's');
+  basketCountEl.innerHTML = r.previewApplied > 0
+    ? basketLabel(real.count) + ' <span class="arrow">→</span> ' + basketLabel(r.count)
+    : basketLabel(real.count);`);
+
+  replaceExact('shared basket count',
+    "  $('basketCount').textContent = ct + ' service' + (ct === 1 ? '' : 's');",
+    "  $('basketCount').textContent = hasEnergy ? ct + '-service energy fix' : ct + ' service' + (ct === 1 ? '' : 's');");
+
+  // Updated UW naming in the chart. Retain the existing £50-instalment display logic.
+  replaceExact('welcome terminology', 'Cashback bonus', 'Welcome Bonus', 4);
+
+  // v5 uses future rules before they take effect, so do not label the estimate as today's pricing.
+  replaceExact('static estimate note',
+    'Estimate based on prices as at today. Not a formal quote.',
+    'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.');
+  replaceExact('editor estimate note',
+    "  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText() + '. Not a formal quote.';",
+    "  $('scEstimateNote').textContent = 'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.';");
+  replaceExact('shared estimate note',
+    "  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText(g('dt', '')) + '. Not a formal quote.';",
+    "  $('scEstimateNote').textContent = 'Estimate using UW pricing and benefit rules effective 1 October 2026. Not a formal quote.';");
+
+  // Patch the source version marker used in saved exports, while leaving the storage key compatible.
+  replaceExact('saved version marker',
+    "    app: 'appointment-companion', v: 2,",
+    "    app: 'appointment-companion', v: 5,");
+
+  document.open();
+  document.write(html);
+  document.close();
+})().catch(err => {
+  console.error(err);
+  document.body.innerHTML = '<div class="loading"><strong>Appointment Companion v5 did not load.</strong><p>' +
+    String(err.message || err).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) +
+    '</p><p>The existing v2 tool has not been changed.</p></div>';
+});
+</script>
+</body>
+</html>

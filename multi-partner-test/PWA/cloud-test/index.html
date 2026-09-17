@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Appointment Companion - Should I Fix test</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#7a42c8">
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}
+    .msg{padding:24px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="msg" id="loader">🧪 Loading isolated Should I Fix test…</div>
+  <script>
+  (async function(){
+    try {
+      const assetVersion = '20260911-fix-test1';
+      const response = await fetch('../cloud/companion_cloud_pilot.html?v=' + assetVersion, {cache:'no-store'});
+      if (!response.ok) throw new Error('Companion source returned HTTP ' + response.status);
+      let html = await response.text();
+      if (!/<head[^>]*>/i.test(html) || !/<\/body>/i.test(html)) throw new Error('Companion source is incomplete.');
+
+      // Keep the test page on /cloud-test/ while resolving the normal Companion
+      // assets exactly as the live /cloud/ page does.
+      html = html.replace(/<head([^>]*)>/i, '<head$1><base href="../cloud/">');
+
+      const inject =
+        '<script src="../cloud-client-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./device-identity-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./companion-bridge-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./cloud-pilot-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./cloud-pilot-enhancements-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./cloud-pilot-safety-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./cloud-presence-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./specialist-launcher-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="./specialists-v1.js?v=' + assetVersion + '"><\/script>' +
+        '<script src="../cloud-test/should-i-fix-integration-v1.js?v=' + assetVersion + '"><\/script>';
+
+      html = html.replace(/<\/body>/i, inject + '</body>');
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (err) {
+      document.getElementById('loader').textContent = '❌ Test page could not load: ' + (err && err.message ? err.message : String(err));
+    }
+  })();
+  </script>
+</body>
+</html>

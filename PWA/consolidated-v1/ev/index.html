@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>EV Companion — Consolidated v1</title>
+  <title>EV Companion v2.42</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <link rel="manifest" href="../manifest.webmanifest">
@@ -11,35 +11,44 @@
   <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
 </head>
 <body>
-  <div class="msg" id="loader">🚙 Opening the consolidated EV Companion…</div>
+  <div class="msg" id="loader">🚙 Opening EV Companion…</div>
   <script>
   (async function () {
     try {
-      var version = '20260911-consolidated3';
+      var version = '20260917-v2.42-context4';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
+      var legacyShared = /^p=/.test(location.hash.slice(1));
       var linked = params.has('ac_launch');
       var localOnly = params.get('local') === '1';
+
+      /* Old personalised #p= links belong to the original v16C reader. Send
+         them there directly instead of document-writing that reader into the
+         consolidated shell. This keeps already-sent customer links working. */
+      if (legacyShared && !shared) {
+        var legacyUrl = new URL('../../v16c-ev.html', location.href);
+        legacyUrl.search = location.search;
+        legacyUrl.hash = location.hash;
+        location.replace(legacyUrl.href);
+        return;
+      }
+
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
       html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
       html = html.replace(/href="manifest\.webmanifest"/i, 'href="consolidated-v1/manifest.webmanifest"');
       html = html.replace(/<script src="pwa-register\.js"><\/script>/i, '<script src="consolidated-v1/pwa-register.js?v=' + version + '"><\/script>');
-
       var common = '<script src="../cloud-client-v1.js?v=' + version + '"><\/script><script src="cloud/companion-bridge-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/share-policy-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-share-v1.js?v=' + version + '"><\/script>';
       var inject = '';
       if (shared) {
-        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-share-view-v1.js?v=' + version + '"><\/script>';
+        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-share-view-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-customer-contact-v1.js?v=' + version + '"><\/script>';
       } else if (linked) {
-        inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script>';
+        inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="../local-first/ev-bridge-pilot-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-compat-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-context-nav-v1.js?v=' + version + '"><\/script>';
       }
-      /* A generic URL intentionally receives no Bridge/Journey scripts, so it
-         cannot inherit state from a previous linked customer on this device. */
+      if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.3.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.4.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.41.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.42.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
-      document.open();
-      document.write(html);
-      document.close();
+      document.open(); document.write(html); document.close();
     } catch (error) {
       document.getElementById('loader').textContent = '❌ EV Companion could not load: ' + ((error && error.message) || String(error));
     }
