@@ -1,14 +1,15 @@
 /* Authenticated immutable specialist shares, sanitised before Cloud transmission. */
 (function (global) {
   'use strict';
-  var api = global.AppointmentCompanionCloud, policy = global.AppointmentCompanionSharePolicy, AUTH_KEY = 'apptCloudPilotAuthSession', CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
+  var api = global.AppointmentCompanionCloud, policy = global.AppointmentCompanionSharePolicy, bridge = global.AppointmentCompanionBridge, AUTH_KEY = 'apptCloudPilotAuthSession', CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); return row && row.partner_id && row.workspace_key ? row : null; } catch (_) { return null; } }
-  function customerId() { return sessionStorage.getItem(CUSTOMER_KEY) || ''; }
+  function launchedCustomerId() { try { var launch = bridge && bridge.receive ? bridge.receive() : null; return String((launch && launch.customer_id) || (launch && launch.extra && launch.extra.customer && launch.extra.customer.customer_id) || ''); } catch (_) { return ''; } }
+  function customerId() { return sessionStorage.getItem(CUSTOMER_KEY) || launchedCustomerId() || ''; }
   async function getCurrentCustomer() { var credentials = auth(), id = customerId(); if (!credentials || !id || !api) throw new Error('Connect Cloud and save this customer before creating a short share link.'); var result = await api.getCustomer(credentials, id); if (!result || !result.customer) throw new Error('Customer could not be loaded for sharing.'); return result.customer; }
   async function create(viewType, snapshot) {
     var credentials = auth(), id = customerId();
     if (!credentials || !api) throw new Error('Connect Cloud before creating a short share link.');
-    if (!id) throw new Error('Connect Cloud and save this customer before creating a short share link.');
+    if (!id) throw new Error('This customer is not linked to Cloud yet. Save them, then try sharing again.');
     var clean = policy ? policy.specialist(viewType, snapshot) : {};
     var result = await api.createShare(credentials, { customer_id: id, view_type: String(viewType || '').toLowerCase(), snapshot: clean });
     if (!result || !result.share || !result.share.token) throw new Error('Cloud did not return a share token.');
