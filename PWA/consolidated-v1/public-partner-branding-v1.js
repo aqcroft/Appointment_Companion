@@ -83,10 +83,11 @@
     else { el.hidden = true; el.removeAttribute('href'); }
   }
   function setImg(el, src, name) { if (el) { el.src = src; el.alt = name || ''; } }
-  function partnerFooterHtml(profile, cls) {
+  function partnerFooterHtml(profile) {
     var site = profile.website_url;
     return esc(profile.name) + ' - ' + esc(role(profile)) + (site ? ' · <a href="' + esc(site) + '" target="_blank" rel="noopener">' + esc(new URL(site).hostname.replace(/^www\./, '')) + '</a>' : '');
   }
+  function unavailableLabel(root, selector) { var el = root && root.querySelector(selector); if (el) el.textContent = 'Partner contact details unavailable'; }
 
   function neutraliseEv() {
     var wrap = document.getElementById('acEvProfile'); if (!wrap) return;
@@ -94,7 +95,7 @@
     var label = wrap.querySelector('.ac-ev-contact-label'); if (label) label.textContent = 'Partner contact details loading…';
     wrap.querySelectorAll('a').forEach(function (a) { a.hidden = true; });
     var conversion = document.getElementById('acEvConversion');
-    if (conversion) conversion.querySelectorAll('a:not([href*="basket"])').forEach(function (a) { if (!/UW basket/.test(a.textContent || '')) a.hidden = true; });
+    if (conversion) conversion.querySelectorAll('a').forEach(function (a) { if (!/UW basket/i.test(a.textContent || '')) a.hidden = true; });
   }
   function patchEv(profile) {
     if (!profile) return;
@@ -112,7 +113,7 @@
     wrap.querySelectorAll('.ac-ev-profile-action').forEach(function (a) { var t = clean(a.textContent).toLowerCase(); if (t.indexOf('book') >= 0) setHref(a, profile.booking_url); if (t.indexOf('quote') >= 0) setHref(a, profile.join); });
     var siteWrap = wrap.querySelector('.ac-ev-profile-site'), site = siteWrap && siteWrap.querySelector('a');
     if (siteWrap) siteWrap.hidden = !profile.website_url;
-    if (site && profile.website_url) { site.href = profile.website_url; site.textContent = new URL(profile.website_url).hostname.replace(/^www\./, ''); }
+    if (site && profile.website_url) { setHref(site, profile.website_url); site.textContent = new URL(profile.website_url).hostname.replace(/^www\./, ''); }
     var conversion = document.getElementById('acEvConversion');
     if (conversion) {
       conversion.querySelectorAll('.ac-ev-cta').forEach(function (a) { var t = clean(a.textContent).toLowerCase(); if (t.indexOf('whatsapp') >= 0) setHref(a, c.whatsapp); else if (t.indexOf('personalised uw quote') >= 0) setHref(a, profile.join); else if (t.indexOf('book a chat') >= 0) setHref(a, profile.booking_url); });
@@ -145,7 +146,7 @@
     wrap.querySelectorAll('.sif-profile-action').forEach(function (a) { var t = clean(a.textContent).toLowerCase(); if (t.indexOf('book') >= 0) setHref(a, profile.booking_url); if (t.indexOf('quote') >= 0) setHref(a, profile.join); });
     var siteWrap = wrap.querySelector('.sif-profile-site'), site = siteWrap && siteWrap.querySelector('a');
     if (siteWrap) siteWrap.hidden = !profile.website_url;
-    if (site && profile.website_url) { site.href = profile.website_url; site.textContent = new URL(profile.website_url).hostname.replace(/^www\./, ''); }
+    if (site && profile.website_url) { setHref(site, profile.website_url); site.textContent = new URL(profile.website_url).hostname.replace(/^www\./, ''); }
     var conversion = doc.getElementById('sifConversion');
     if (conversion) {
       conversion.querySelectorAll('.sif-cta').forEach(function (a) { var t = clean(a.textContent).toLowerCase(); if (t.indexOf('whatsapp') >= 0) setHref(a, c.whatsapp); else if (t.indexOf('personalised uw quote') >= 0) setHref(a, profile.join); else if (t.indexOf('book a chat') >= 0) setHref(a, profile.booking_url); });
@@ -158,7 +159,7 @@
     if (!partnerId) return; /* legacy Adrian share - retain legacy branding */
     neutraliseEv();
     var profile = await load(partnerId);
-    if (profile) patchEv(profile);
+    if (profile) patchEv(profile); else unavailableLabel(document, '.ac-ev-contact-label');
   }
 
   async function applyFix() {
@@ -169,7 +170,7 @@
     if (!doc || !doc.getElementById('sifProfile')) return;
     neutraliseFix(doc);
     var profile = await load(partnerId);
-    if (profile) patchFix(doc, profile);
+    if (profile) patchFix(doc, profile); else unavailableLabel(doc, '.sif-contact-label');
   }
 
   global.addEventListener('ac:ev-public-snapshot', function (event) { applyEv(event && event.detail || {}); });
