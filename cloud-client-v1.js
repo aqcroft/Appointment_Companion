@@ -131,48 +131,31 @@
     },
 
     async savePartnerProfile(auth, partner) {
-      return post(Object.assign({
-        action: 'savePartnerProfile',
-        partner: partner || {}
-      }, authPayload(auth)));
+      return post(Object.assign({ action: 'savePartnerProfile', partner: partner || {} }, authPayload(auth)));
+    },
+
+    async getPublicPartnerProfile(partnerId) {
+      return post({ action: 'getPublicPartnerProfile', partner_id: String(partnerId || '').trim() });
     },
 
     async adminPing(adminPassword) {
-      return post({
-        action: 'adminPing',
-        admin_password: String(adminPassword || '')
-      });
+      return post({ action: 'adminPing', admin_password: String(adminPassword || '') });
     },
 
     async adminProvisionPartner(adminPassword, payload) {
-      return post({
-        action: 'adminProvisionPartner',
-        admin_password: String(adminPassword || ''),
-        partner: payload || {}
-      });
+      return post({ action: 'adminProvisionPartner', admin_password: String(adminPassword || ''), partner: payload || {} });
     },
 
     async adminListPartners(adminPassword) {
-      return post({
-        action: 'adminListPartners',
-        admin_password: String(adminPassword || '')
-      });
+      return post({ action: 'adminListPartners', admin_password: String(adminPassword || '') });
     },
 
     async adminUpdatePartner(adminPassword, payload) {
-      return post({
-        action: 'adminUpdatePartner',
-        admin_password: String(adminPassword || ''),
-        partner: payload || {}
-      });
+      return post({ action: 'adminUpdatePartner', admin_password: String(adminPassword || ''), partner: payload || {} });
     },
 
     async adminResetPartnerPassword(adminPassword, partnerId) {
-      return post({
-        action: 'adminResetPartnerPassword',
-        admin_password: String(adminPassword || ''),
-        partner_id: String(partnerId || '').trim()
-      });
+      return post({ action: 'adminResetPartnerPassword', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
     }
   };
 
