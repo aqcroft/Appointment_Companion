@@ -83,43 +83,29 @@
     },
 
     async getCustomer(auth, customerId) {
-      return post(Object.assign({
-        action: 'getCustomer',
-        customer_id: String(customerId || '').trim()
-      }, authPayload(auth)));
+      return post(Object.assign({ action: 'getCustomer', customer_id: String(customerId || '').trim() }, authPayload(auth)));
     },
 
     async saveCustomer(auth, customer) {
-      return post(Object.assign({
-        action: 'saveCustomer',
-        customer: customer || {}
-      }, authPayload(auth)));
+      return post(Object.assign({ action: 'saveCustomer', customer: customer || {} }, authPayload(auth)));
     },
 
     async deleteCustomer(auth, customerId) {
-      return post(Object.assign({
-        action: 'deleteCustomer',
-        customer_id: String(customerId || '').trim()
-      }, authPayload(auth)));
+      return post(Object.assign({ action: 'deleteCustomer', customer_id: String(customerId || '').trim() }, authPayload(auth)));
     },
 
     async createShare(auth, payload) {
       return post(Object.assign({ action: 'createShare' }, payload || {}, authPayload(auth)));
     },
 
-    async getShare(token) {
-      return getShare(token);
-    },
+    async getShare(token) { return getShare(token); },
 
     async touchPresence(auth, payload) {
       return post(Object.assign({ action: 'touchPresence' }, payload || {}, authPayload(auth)));
     },
 
     async listPresence(auth, customerId) {
-      return post(Object.assign({
-        action: 'listPresence',
-        customer_id: String(customerId || '').trim()
-      }, authPayload(auth)));
+      return post(Object.assign({ action: 'listPresence', customer_id: String(customerId || '').trim() }, authPayload(auth)));
     },
 
     async leavePresence(auth, payload) {
@@ -132,6 +118,10 @@
 
     async savePartnerProfile(auth, partner) {
       return post(Object.assign({ action: 'savePartnerProfile', partner: partner || {} }, authPayload(auth)));
+    },
+
+    async getPublicPartnerProfile(partnerId) {
+      return post({ action: 'getPublicPartnerProfile', partner_id: String(partnerId || '').trim() });
     },
 
     async adminPing(adminPassword) {
