@@ -8,6 +8,7 @@
   function num(id) { var el = $(id), n = el && el.value !== '' ? Number(el.value) : NaN; return Number.isFinite(n) ? n : null; }
   function active(selector) { return document.querySelector(selector + '.on'); }
   function safeHttps(value) { try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; } catch (_) { return ''; } }
+  function creatorPartnerId() { try { var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); if (a && a.partner_id) return String(a.partner_id).trim(); } catch (_) {} try { var p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null'); if (p && p.partner_id) return String(p.partner_id).trim(); } catch (_) {} return ''; }
   function state() { var vehicle = active('#vehiclePills .vpill'), service = active('#serviceButtons button'), period = active('#periodToggle button'), stress = active('#stressButtons button'), actual = $('e7ActualWrap') ? !$('e7ActualWrap').hidden : false; return { schema_version: 1, tool_version: '16C', vehicle_efficiency_mi_kwh: vehicle ? Number(vehicle.dataset.eff) : 3.2, vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙', annual_mileage: num('miles'), home_usage_kwh: num('houseKwh'), uw_services: service ? Number(service.dataset.tier) + 1 : 3, region: num('region'), ev_offpeak_pct: num('evTimingSlider'), e7_offpeak_pct: num('e7TimingSlider'), e7_actual: actual, e7_day_kwh: actual ? num('e7DayActualInput') : null, e7_night_kwh: actual ? num('e7NightActualInput') : null, away_pct: num('awayPct'), away_rate_p_kwh: num('awayRate'), efficiency_override_mi_kwh: num('effOverride'), known_ev_kwh: num('knownEvKwh'), dual_fuel: $('dualFuel') ? !!$('dualFuel').checked : true, period: period ? period.dataset.period : 'month', stress_pct: stress ? Number(stress.dataset.stress || 0) : 0 }; }
   function toast(message) { var el = $('shareToast'); if (!el) return; el.textContent = message; el.classList.add('show'); setTimeout(function () { el.classList.remove('show'); }, 2400); }
   async function copy(text) { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text); global.prompt('Copy this link:', text); }
@@ -60,7 +61,7 @@
       var choice = await chooseBasket(basketCandidate(row, c));
       if (!choice || choice.cancelled) return;
       var e = c.energy || {};
-      var snapshot = { schema_version: 1, view_type: 'ev', customer_name: name, electricityUsageTotalKwh: e.electricityUsageTotalKwh != null ? e.electricityUsageTotalKwh : num('houseKwh'), electricityProfile: e.electricityProfile || 'standard', electricityUsageDayKwh: e.electricityUsageDayKwh, electricityUsageNightKwh: e.electricityUsageNightKwh, ev_state: state() };
+      var snapshot = { schema_version: 1, view_type: 'ev', partner_id: creatorPartnerId(), customer_name: name, electricityUsageTotalKwh: e.electricityUsageTotalKwh != null ? e.electricityUsageTotalKwh : num('houseKwh'), electricityProfile: e.electricityProfile || 'standard', electricityUsageDayKwh: e.electricityUsageDayKwh, electricityUsageNightKwh: e.electricityUsageNightKwh, ev_state: state() };
       if (choice.basket) snapshot.basket_url = choice.basket;
       var share = await shareApi.create('ev', snapshot), url = new URL('./', location.href);
       url.searchParams.set('s', share.token);
