@@ -37,7 +37,10 @@ function uwEnergyMonthly(energy, tariff) {
 
 function cashback(appointment, serviceCount, rules) {
   const config = rules.cashback;
-  const spend = Number(appointment.cashback.monthlySpend) || config.referenceSpend;
+  const rawSpend = appointment.cashback.monthlySpend;
+  const parsedSpend = Number(rawSpend);
+  const spend = rawSpend !== null && rawSpend !== '' && Number.isFinite(parsedSpend) && parsedSpend >= 0 ? parsedSpend : config.referenceSpend;
+  if (spend === 0) return { low: 0, average: 0, high: 0, selected: 0, monthlyNet: 0, feeWaiver: 0 };
   const low = Math.floor(Math.min(spend * config.rateLow, config.lowMonthlyCaps[serviceCount] || config.lowCapDefault));
   const average = Math.floor(config.referenceAverageAnnual * (spend / config.referenceSpend) / 12);
   const high = Math.floor(config.referenceHighAnnual * (spend / config.referenceSpend) / 12);
@@ -68,11 +71,13 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     : 0;
   const sims = appointment.services.mobile ? appointment.mobile.sims.filter(sim => sim.include !== false) : [];
   const currentMobile = sims.reduce((sum, sim) => sum + Number(sim.currentMonthly || 0), 0);
+  const currentBoilerCover = derived.boilerCover ? Number(appointment.boilerCover.currentMonthly || 0) : 0;
+  const uwBoilerCover = derived.boilerCover ? Number(appointment.boilerCover.monthly || rules.boilerCover.monthly) : 0;
   const recurringDivisor = appointment.adjustments.period === 'annual' ? 12 : 1;
   const adjustmentCurrent = appointment.adjustments.recurringEnabled ? Number(appointment.adjustments.currentAmount) / recurringDivisor : 0;
   const adjustmentUw = appointment.adjustments.recurringEnabled ? Number(appointment.adjustments.uwAmount) / recurringDivisor : 0;
-  const currentMonthly = currentEnergy + currentBroadband + currentMobile + adjustmentCurrent;
-  const uwMonthly = uwEnergy + uwBroadband + derived.ongoingMobileMonthly + derived.boilerCoverMonthly + adjustmentUw;
+  const currentMonthly = currentEnergy + currentBroadband + currentMobile + currentBoilerCover + adjustmentCurrent;
+  const uwMonthly = uwEnergy + uwBroadband + derived.ongoingMobileMonthly + uwBoilerCover + adjustmentUw;
   const monthlyServiceSaving = currentMonthly - uwMonthly;
 
   let broadbandIntroBenefit = 0;
@@ -86,7 +91,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const referral = appointment.benefits.referral && appointment.person.homeStatus === 'homeowner' && derived.serviceCount >= rules.referral.minimumServiceCount ? rules.referral.amount : 0;
   const nationalLeague = appointment.benefits.nationalLeague && derived.serviceCount >= rules.nationalLeague.minimumServiceCount ? rules.nationalLeague.amount : 0;
   const exitFees = (appointment.services.energy ? Number(appointment.energy.electricityExitFee) + Number(appointment.energy.gasExitFee) : 0) +
-    (appointment.services.broadband ? Number(appointment.broadband.exitFee) : 0) + sims.reduce((sum, sim) => sum + Number(sim.exitFee || 0), 0);
+    (appointment.services.broadband ? Number(appointment.broadband.exitFee) : 0) + sims.reduce((sum, sim) => sum + Number(sim.exitFee || 0), 0) +
+    (derived.boilerCover ? Number(appointment.boilerCover.exitFee || 0) : 0);
   const exitFeeRefundEligible = derived.serviceCount >= rules.exitFeeRefund.minimumServiceCount;
   const exitFeeDeduction = exitFeeRefundEligible ? Math.max(0, exitFees - rules.exitFeeRefund.maximum) : exitFees;
   const card = cashback(appointment, derived.serviceCount, rules);
@@ -116,8 +122,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
 
   return {
     rules: derived,
-    current: { energy: moneyNumber(currentEnergy), broadband: moneyNumber(currentBroadband), mobile: moneyNumber(currentMobile), total: moneyNumber(currentMonthly) },
-    uw: { energy: moneyNumber(uwEnergy), broadband: moneyNumber(uwBroadband), mobile: moneyNumber(derived.ongoingMobileMonthly), boilerCover: moneyNumber(derived.boilerCoverMonthly), total: moneyNumber(uwMonthly) },
+    current: { energy: moneyNumber(currentEnergy), broadband: moneyNumber(currentBroadband), mobile: moneyNumber(currentMobile), boilerCover: moneyNumber(currentBoilerCover), total: moneyNumber(currentMonthly) },
+    uw: { energy: moneyNumber(uwEnergy), broadband: moneyNumber(uwBroadband), mobile: moneyNumber(derived.ongoingMobileMonthly), boilerCover: moneyNumber(uwBoilerCover), total: moneyNumber(uwMonthly) },
     monthlyServiceSaving: moneyNumber(monthlyServiceSaving),
     effectiveUwMonthly: moneyNumber(effectiveUwMonthly),
     effectiveMonthlySaving: moneyNumber(effectiveMonthlySaving),

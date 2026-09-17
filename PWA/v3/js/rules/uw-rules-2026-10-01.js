@@ -74,7 +74,10 @@ export function deriveUwRules(facts = {}, rules = UW_RULES_2026_10_01) {
   const energyTariff = energy ? Math.min(rules.energyTariffCap, 1 + energyQualifiers) : 0;
   const serviceTypes = [energy, broadband, sims.length > 0, boilerCover].filter(Boolean).length;
   const welcomeBonus = Number(rules.welcomeBonus[serviceTypes] || 0);
-  const ongoingMobileMonthly = sims.reduce((sum, sim) => sum + rules.mobile[normalisePlanId(sim.planId)].monthly, 0);
+  const ongoingMobileMonthly = sims.reduce((sum, sim) => {
+    const entered = sim.uwMonthly !== null && sim.uwMonthly !== '' && Number.isFinite(Number(sim.uwMonthly));
+    return sum + (entered ? Math.max(0, Number(sim.uwMonthly)) : rules.mobile[normalisePlanId(sim.planId)].monthly);
+  }, 0);
   const additionalUnlimited = Math.max(0, sims.filter(sim => sim.planId === 'unlimitedMax').length - 1);
   const mobileIntroBenefit = additionalUnlimited * rules.mobile.unlimitedMax.monthly * rules.mobile.unlimitedMax.additionalFreeMonths;
 
@@ -94,4 +97,3 @@ export function deriveUwRules(facts = {}, rules = UW_RULES_2026_10_01) {
     incomeProtectorMonthly: 0
   };
 }
-

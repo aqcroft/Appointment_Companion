@@ -13,6 +13,25 @@ const makeId = (prefix = 'local') => globalThis.crypto?.randomUUID
   ? `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`
   : `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 
+function stableHash(value) {
+  let hash = 2166136261;
+  for (const char of String(value)) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export function legacyImportIdentity(candidate = {}, source = 'legacy') {
+  const existing = candidate.local_id || candidate.cloud_id || candidate.customer_id;
+  if (existing) return String(existing);
+  const name = candidate.customer_name || candidate.customerName || candidate.label
+    || candidate.appointment_state?.person?.name || candidate.data?.person?.name || '';
+  const created = candidate.created_at || candidate.createdAt || candidate.savedAt || candidate.saved_at || '';
+  const stableDate = source === 'localStorage:working' ? '' : created;
+  return `legacy_${stableHash(`${source}|${String(name).trim().toLocaleLowerCase('en-GB')}|${stableDate}`)}`;
+}
+
 function requestValue(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -152,7 +171,9 @@ export async function setMeta(key, value) {
 }
 
 async function databaseExists(name) {
-  if (typeof indexedDB.databases !== 'function') return true;
+  // Opening an unknown IndexedDB name creates it. Skip database discovery on
+  // older engines rather than mutating a legacy namespace during copy import.
+  if (typeof indexedDB.databases !== 'function') return false;
   return (await indexedDB.databases()).some(db => db.name === name);
 }
 
@@ -167,36 +188,41 @@ async function readLegacyDatabase(name) {
   } catch { return []; }
 }
 
-async function importCandidate(candidate) {
+async function importCandidate(candidate, source = 'legacy') {
   const migrated = migrateRecord(candidate);
   if (!hasMeaningfulIdentity(migrated.appointment_state) || migrated.deleted) return false;
   if (migrated.cloud_id && await findByCloudId(migrated.cloud_id)) return false;
+  if (!migrated.local_id) migrated.local_id = legacyImportIdentity(candidate, source);
   if (migrated.local_id && await getCustomer(migrated.local_id)) return false;
-  if (!migrated.local_id) migrated.local_id = makeId();
   await saveCustomer(migrated, { keepRevision: Boolean(migrated.local_revision), keepSyncState: true, updatedAt: migrated.updated_at || now() });
   return true;
 }
 
 export async function importLegacyCustomers() {
   const previous = await getMeta(MIGRATION_KEY);
-  if (previous) return previous;
   let imported = 0;
   for (const databaseName of LEGACY_DATABASES) {
-    for (const row of await readLegacyDatabase(databaseName)) if (await importCandidate(row)) imported += 1;
+    for (const row of await readLegacyDatabase(databaseName)) if (await importCandidate(row, `indexeddb:${databaseName}`)) imported += 1;
   }
   try {
     const working = JSON.parse(localStorage.getItem('apptCompanionWorkingRecordV1') || 'null');
-    if (working && await importCandidate(working)) imported += 1;
+    if (working && await importCandidate(working, 'localStorage:working')) imported += 1;
     const saves = JSON.parse(localStorage.getItem('apptCompanionSaves_v2') || '[]');
     for (const save of Array.isArray(saves) ? saves : []) {
       if (save?.data && await importCandidate({
         local_id: String(save.id || '').startsWith('cloud:') ? '' : save.id,
         cloud_id: String(save.id || '').startsWith('cloud:') ? String(save.id).slice(6) : '',
         customer_name: save.label || '', data: save.data, savedAt: save.savedAt
-      })) imported += 1;
+      }, 'localStorage:saves')) imported += 1;
     }
   } catch { /* Bad legacy localStorage must not block V3. */ }
-  const result = { completed_at: now(), imported, source_databases: LEGACY_DATABASES };
+  const result = {
+    completed_at: previous?.completed_at || now(),
+    last_scan_at: now(),
+    imported,
+    total_imported: Number(previous?.total_imported ?? previous?.imported ?? 0) + imported,
+    source_databases: LEGACY_DATABASES
+  };
   await setMeta(MIGRATION_KEY, result);
   return result;
 }
@@ -206,4 +232,3 @@ export const customerStore = {
   list: listCustomers, remove: removeCustomer, meta: getMeta, setMeta,
   migrate: importLegacyCustomers, makeId: () => makeId(), database: { name: DB_NAME, version: DB_VERSION }
 };
-

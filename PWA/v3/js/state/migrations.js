@@ -95,6 +95,7 @@ function overlayLegacyUi(appointment, ui = {}) {
       include: sim.include !== false,
       planId: sim.planId || sim.uwPlan || 'essentialMax',
       currentMonthly: number(sim.currentMonthly ?? sim.monthlyCost),
+      uwMonthly: sim.uwMonthly == null || sim.uwMonthly === '' ? undefined : number(sim.uwMonthly),
       exitFee: number(sim.exitFee)
     }));
   }
@@ -117,6 +118,7 @@ export function toLegacyCompatibleAppointment(input) {
     include: sim.include,
     uwPlan: sim.planId,
     monthlyCost: sim.currentMonthly,
+    uwMonthly: sim.uwMonthly,
     exitFee: sim.exitFee
   }]));
   return {

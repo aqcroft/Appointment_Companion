@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createAppointment, normaliseAppointment } from '../js/state/canonical-state.js';
 import { calculateAppointment } from '../js/appointment/calculations.js';
 import { calculateIndicativeEnergyCost } from '../js/energy/indicative-cost.js';
-import { previewUpgrade } from '../js/appointment/upgrade-preview.js';
+import { buildMealDealPreview } from '../js/appointment/upgrade-preview.js';
 
 test('UW/database and bill usage remain separate while the selected source drives calculations', () => {
   const appointment = createAppointment('Alex');
@@ -94,6 +94,7 @@ test('E7 vs standard insight is derived from tariff facts, not stored as a total
   const appointment = createAppointment('Alex');
   appointment.services.energy = true;
   appointment.energy.electricityProfile = 'economy7';
+  appointment.energy.peakOffPeak = true;
   appointment.energy.dayKwh = 2000;
   appointment.energy.nightKwh = 1000;
   appointment.energy.currentDayRate = 30;
@@ -132,7 +133,7 @@ test('central tariff rows produce an indicative dual-fuel monthly value', () => 
   assert.equal(result.monthly, 145.52);
 });
 
-test('upgrade preview is derived without mutating the appointment', () => {
+test('Meal Deal SIM preview is derived without mutating the appointment', () => {
   const appointment = createAppointment('Alex');
   appointment.person.homeStatus = 'homeowner';
   appointment.services.energy = true;
@@ -143,9 +144,24 @@ test('upgrade preview is derived without mutating the appointment', () => {
   appointment.energy.uwTier2 = 130;
   appointment.energy.uwTier3 = 105;
   const before = JSON.stringify(appointment);
-  const preview = previewUpgrade(appointment);
+  const preview = buildMealDealPreview(appointment);
   assert.equal(JSON.stringify(appointment), before);
-  assert.equal(preview.type, 'add_sim');
-  assert.ok(['essentialMax', 'unlimitedMax'].includes(preview.planId));
-  assert.ok(preview.improvement > 0);
+  assert.equal(preview.type, 'meal_deal_sim');
+  assert.equal(preview.addedMonthlyCost, 6);
+  assert.equal(preview.addedAnnualCost, 72);
+  assert.equal(preview.appointment.mobile.sims.at(-1).planId, 'essentialMax');
+});
+
+test('zero Cashback spend produces zero Cashback without falling back to reference spend', () => {
+  const appointment = createAppointment('Zero spend');
+  appointment.services.energy = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 90;
+  appointment.cashback.monthlySpend = 0;
+  const result = calculateAppointment(appointment);
+  assert.deepEqual(
+    { selected: result.cashback.selected, monthlyNet: result.cashback.monthlyNet, feeWaiver: result.cashback.feeWaiver },
+    { selected: 0, monthlyNet: 0, feeWaiver: 0 }
+  );
+  assert.equal(result.effectiveUwMonthly, result.uw.total);
 });

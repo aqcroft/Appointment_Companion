@@ -4,10 +4,14 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { migrateAppointment, toLegacyCompatibleAppointment } from '../js/state/migrations.js';
 import { reconcileSnapshots } from '../js/state/reconciliation.js';
-import { buildShareData } from '../js/summary/share-data.js';
+import { buildShareData, figuresText } from '../js/summary/share-data.js';
+import { safeHttps } from '../js/summary/share-policy.js';
 import { createSummaryActivity, summaryHistory } from '../js/summary/history.js';
 import { createAppointment } from '../js/state/canonical-state.js';
 import { calculateAnnualDayNightSplit } from '../js/energy/split-helper.js';
+import { normaliseAppointment } from '../js/state/canonical-state.js';
+import { legacyImportIdentity } from '../js/state/customer-store.js';
+import { toolUrl } from '../js/specialists/launcher.js';
 
 test('legacy SIM IDs migrate and historic Income Protector is discarded', () => {
   const migrated = migrateAppointment({
@@ -89,6 +93,77 @@ test('share allowlist excludes private notes and Cloud metadata', () => {
   assert.ok(!encoded.includes('workspace_key'));
   assert.equal(data.basketUrl, 'https://example.com/basket');
   assert.equal(typeof data.effectiveUwMonthly, 'number');
+  assert.equal(data.mealDealPreview.type, 'meal_deal_sim');
+});
+
+test('Copy figures uses the displayed effective UW monthly position', () => {
+  const appointment = createAppointment('Copy');
+  appointment.services.energy = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 90;
+  const data = buildShareData(appointment);
+  const text = figuresText(data);
+  assert.match(text, new RegExp(`£${data.effectiveUwMonthly.toFixed(2)} effective UW`));
+  assert.match(text, new RegExp(`Raw UW service cost: £${data.uw.total.toFixed(2)}`));
+});
+
+test('Partner and customer basket links accept HTTPS only', () => {
+  assert.equal(safeHttps('https://example.com/basket'), 'https://example.com/basket');
+  assert.equal(safeHttps('http://example.com/basket'), '');
+  assert.equal(safeHttps('javascript:alert(1)'), '');
+  assert.equal(safeHttps('not a url'), '');
+  assert.equal(safeHttps(''), '');
+});
+
+test('turning peak/off-peak off keeps standard mode while retaining historic values', () => {
+  const input = createAppointment('Peak toggle');
+  input.energy.peakOffPeak = false;
+  input.energy.electricityProfile = 'economy7';
+  input.energy.dayKwh = 2000;
+  input.energy.nightKwh = 1000;
+  const result = normaliseAppointment(input);
+  assert.equal(result.energy.peakOffPeak, false);
+  assert.equal(result.energy.electricityProfile, 'standard');
+  assert.equal(result.energy.dayKwh, 2000);
+  assert.equal(result.energy.nightKwh, 1000);
+});
+
+test('Should I Fix receives one-way Energy context without a return-data contract', () => {
+  const appointment = createAppointment('Fix Story');
+  appointment.energy.fuel = 'dual';
+  appointment.energy.region = '12';
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.annualGasKwh = 11500;
+  const url = new URL(toolUrl('fix', appointment, 'https://companion.test/PWA/v3/'));
+  assert.equal(url.searchParams.get('n'), 'Fix Story');
+  assert.equal(url.searchParams.get('f'), 'dual');
+  assert.equal(url.searchParams.get('e'), '2500');
+  assert.equal(url.searchParams.get('g'), '11500');
+  assert.equal(url.searchParams.get('r'), '12');
+  assert.equal(url.searchParams.has('ac_return'), false);
+  assert.equal(url.searchParams.has('ac_context'), false);
+});
+
+test('EV launch carries exploratory context and returns separately from canonical Energy fields', () => {
+  const appointment = createAppointment('EV Story');
+  appointment._localId = 'local_ev_contract';
+  appointment.energy.annualElectricityKwh = 3200;
+  const url = new URL(toolUrl('ev', appointment, 'https://companion.test/PWA/v3/'));
+  assert.equal(url.pathname, '/PWA/v3/tools/ev/index.html');
+  assert.equal(url.searchParams.get('ac_return'), 'https://companion.test/PWA/v3/');
+  assert.ok(url.searchParams.get('ac_context'));
+
+  const appSource = fs.readFileSync(fileURLToPath(new URL('../js/app.js', import.meta.url)), 'utf8');
+  const consumer = appSource.slice(appSource.indexOf('async function consumeSpecialistReturn'), appSource.indexOf('async function leavePerson'));
+  assert.match(consumer, /record\.specialist_state/);
+  assert.doesNotMatch(consumer, /appointment_state\.energy\s*=/);
+});
+
+test('legacy import identities are stable for the same profile and discover later profiles distinctly', () => {
+  const first = { customer_name: 'First Legacy', savedAt: '2026-09-01T00:00:00Z' };
+  const later = { customer_name: 'Later Legacy', savedAt: '2026-09-16T00:00:00Z' };
+  assert.equal(legacyImportIdentity(first, 'indexeddb:legacy'), legacyImportIdentity(first, 'indexeddb:legacy'));
+  assert.notEqual(legacyImportIdentity(first, 'indexeddb:legacy'), legacyImportIdentity(later, 'indexeddb:legacy'));
 });
 
 test('summary history keeps a reopenable compact figure snapshot', () => {

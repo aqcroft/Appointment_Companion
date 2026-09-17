@@ -1,6 +1,7 @@
 import { VERSION } from './config/version.js';
 import { TOOLS } from './config/tools.js';
 import { calculateAppointment } from './appointment/calculations.js';
+import { appointmentCompleteness, markComparisonFieldEntered, mobilePlanPrice } from './appointment/completeness.js';
 import { calculateAnnualDayNightSplit, calculateEconomy7AnnualCost } from './energy/split-helper.js';
 import { UW_RULES_2026_10_01 } from './rules/uw-rules-2026-10-01.js';
 import { createAppointment, createSim, clone, normaliseAppointment, normaliseName, REGIONS } from './state/canonical-state.js';
@@ -12,7 +13,8 @@ import { UnsavedWorkGuard } from './shell/unsaved-work-guard.js';
 import { launchTool } from './specialists/launcher.js';
 import { loadTariffs, TARIFF_FEED_URL } from './data/tariff-client.js';
 import { buildIndicativeTiers } from './energy/indicative-cost.js';
-import { previewUpgrade } from './appointment/upgrade-preview.js';
+import { buildMealDealPreview } from './appointment/upgrade-preview.js';
+import { safeHttps } from './summary/share-policy.js';
 
 const app = document.getElementById('app');
 const nav = document.getElementById('globalNav');
@@ -37,13 +39,20 @@ let syncRetryMs = 2500;
 let selectedPeople = new Set();
 let tariffData = null;
 let tariffInfo = null;
+let mealDealPreviewActive = false;
+let sharedSummaryData = null;
+let sharedMealDealActive = false;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const checked = value => value ? ' checked' : '';
 const selected = (value, expected) => String(value) === String(expected) ? ' selected' : '';
 const on = (value, expected = true) => value === expected ? ' on' : '';
-const field = (path, value, attrs = '') => `<input data-field="${path}" value="${escapeHtml(value || '')}" ${attrs}>`;
+const field = (path, value, attrs = '') => {
+  const explicitlyEntered = appointment.completion?.entered?.includes(path);
+  const display = value === 0 && !explicitlyEntered ? '' : value ?? '';
+  return `<input data-field="${path}" value="${escapeHtml(display)}" ${attrs}>`;
+};
 const serviceLabels = Object.freeze({ energy: 'Energy', broadband: 'Broadband', mobile: 'Mobile', boilerCover: 'Boiler Cover' });
 
 function initials(value) {
@@ -84,7 +93,7 @@ function setPath(object, path, value) {
 
 function inputValue(element) {
   if (element.type === 'checkbox') return element.checked;
-  if (element.type === 'number' || element.dataset.type === 'number') return Math.max(0, Number(element.value) || 0);
+  if (element.type === 'number' || element.dataset.type === 'number') return element.value === '' ? null : Math.max(0, Number(element.value) || 0);
   return element.value;
 }
 
@@ -247,14 +256,12 @@ function renderLaunchpad(query = '') {
 }
 
 function progress() {
-  const visibleServices = ['energy', 'broadband', 'mobile', 'boilerCover']
-    .filter(name => name !== 'boilerCover' || appointment.person.homeStatus !== 'tenant');
-  const selected = visibleServices.filter(name => appointment.services[name]).length;
-  return Math.round((selected / visibleServices.length) * 100);
+  return appointmentCompleteness(appointment).percentage;
 }
 
 function renderProfile() {
   const pct = progress();
+  const completion = appointmentCompleteness(appointment);
   const services = activeServiceNames();
   const history = summaryHistory(appointment.activity);
   const toolEvents = appointment.activity.filter(item => item?.tool).slice(-3).reverse();
@@ -263,7 +270,7 @@ function renderProfile() {
     <section class="card appointment-card">
       <div class="appointment-title"><span class="feature-icon appointment">▣</span><div><h2>Appointment</h2><p>${services.length} service${services.length === 1 ? '' : 's'} explored</p></div><strong>${pct}%</strong></div>
       <div class="progress"><span style="width:${pct}%"></span></div>
-      <div class="service-progress">${['energy','broadband','mobile','boilerCover'].filter(name => name !== 'boilerCover' || appointment.person.homeStatus !== 'tenant').map(name => `<span class="${appointment.services[name] ? 'done' : ''}"><i>${appointment.services[name] ? '✓' : ''}</i>${serviceLabels[name]}</span>`).join('')}</div>
+      <div class="service-progress">${['energy','broadband','mobile','boilerCover'].filter(name => name !== 'boilerCover' || appointment.person.homeStatus !== 'tenant').map(name => { const items = completion.requirements.filter(item => item.service === name); const done = items.length > 0 && items.every(item => item.complete); return `<span class="${done ? 'done' : ''}"><i>${done ? '✓' : ''}</i>${serviceLabels[name]}</span>`; }).join('')}</div>
       <button class="primary wide" type="button" data-go="appointment">${pct ? 'Continue appointment' : 'Start appointment'} <span aria-hidden="true">→</span></button>
       <p class="autosave-note">◆ Your progress is saved automatically</p>
     </section>
@@ -271,7 +278,7 @@ function renderProfile() {
       <button class="tool-tile fix" type="button" data-tool="fix"><span>⌁</span><strong>Should I Fix?</strong><small>Region and usage prefilled</small></button>
       <button class="tool-tile ev" type="button" data-tool="ev"><span>◆</span><strong>EV Companion</strong><small>Explore EV savings</small></button>
     </div></section>
-    <section><h2>Summary</h2><div class="list-card"><button type="button" data-go="summary"><span>▤</span>Build or view summary<b>›</b></button><button type="button" data-share><span>⌯</span>Share summary<b>›</b></button><button type="button" data-go="summary"><span>↗</span>${appointment.summary.basketUrl ? 'View basket link' : 'Add basket link (optional)'}<b>›</b></button></div></section>
+    <section><h2>Summary</h2><div class="list-card"><button type="button" data-go="summary"><span>▤</span>${completion.complete ? 'Build or view summary' : 'Complete comparison data'}<b>›</b></button><button type="button" data-share><span>⌯</span>Share summary<b>›</b></button><button type="button" data-go="summary"><span>↗</span>${appointment.summary.basketUrl ? 'View basket link' : 'Add basket link (optional)'}<b>›</b></button></div>${completion.missing.length ? `<p class="hint gate-hint">${completion.missing.length} required comparison field${completion.missing.length === 1 ? '' : 's'} remaining.</p>` : ''}</section>
     <section><div class="section-title"><h2>Recent activity</h2>${history.length ? '<span class="hint">Tap a summary to reopen</span>' : ''}</div><div class="list-card history-list">
       ${history.map(item => `<button type="button" data-history-id="${escapeHtml(item.id)}"><span>▤</span><span><strong>${item.type === 'summary_shared' ? 'Summary shared' : 'Summary saved'}</strong><small>${escapeHtml((item.services || []).map(name => serviceLabels[name] || name).join(' · '))}</small></span><time>${escapeHtml(relativeDate(item.at))}</time></button>`).join('')}
       ${toolEvents.map(item => `<div class="history-row"><span>◆</span><span><strong>${escapeHtml(item.tool === 'ev' ? 'EV Companion used' : item.tool === 'fix' ? 'Should I Fix? opened' : 'PET opened')}</strong></span><time>${escapeHtml(relativeDate(item.at))}</time></div>`).join('')}
@@ -283,10 +290,9 @@ function renderProfile() {
 
 function serviceState(name) {
   if (!appointment.services[name]) return 'Not started';
-  if (name === 'energy') return appointment.energy.currentMonthly || appointment.energy.annualElectricityCost || appointment.energy.currentElectricityMonthly ? 'In progress' : 'Selected';
-  if (name === 'broadband') return appointment.broadband.uwMonthly ? 'In progress' : 'Selected';
-  if (name === 'mobile') return appointment.mobile.sims.some(sim => sim.currentMonthly) ? 'In progress' : 'Selected';
-  return 'Complete';
+  const items = appointmentCompleteness(appointment).requirements.filter(item => item.service === name);
+  const complete = items.filter(item => item.complete).length;
+  return complete === items.length && items.length ? 'Complete' : complete ? 'In progress' : 'Selected';
 }
 
 function serviceCard(name, icon, label, detail) {
@@ -306,19 +312,28 @@ function usageSourceBlock(fuel, label, estimates) {
   </div>`;
 }
 
+function indicativePanel() {
+  const indicative = tariffData ? buildIndicativeTiers(tariffData, appointment) : {};
+  const selectedIndicative = indicative[calculateAppointment(appointment).rules.energyTariff || 1];
+  return `<section class="workspace-section indicative-panel"><div class="section-title"><div><h3>Indicative UW Energy</h3><p>Central tariff data applied to the active usage above.</p></div><span class="source-badge">${tariffInfo?.source === 'live' ? 'Live' : tariffData ? 'Cached' : 'Checking'}</span></div>${tariffData ? `<div class="tariff-tier-grid">${[1,2,3].map(tier => `<div class="${tier === calculateAppointment(appointment).rules.energyTariff ? 'selected' : ''}"><small>${tier}-service</small><strong>${indicative[tier] ? `£${money(indicative[tier].monthly)}` : '—'}</strong><span>/month</span></div>`).join('')}</div><p class="hint">${selectedIndicative ? `${escapeHtml(selectedIndicative.tariffName)} · ${escapeHtml(selectedIndicative.sourceRef)} · Indicative, based on usage entered.` : 'No matching central row was found for this profile.'}</p><button class="secondary wide" type="button" data-use-indicative ${Object.values(indicative).some(Boolean) ? '' : 'disabled'}>Use these indicative bundle tiers</button>` : '<p class="hint">Checking the central tariff feed. Manual or confirmed quote entry remains available below.</p>'}</section>`;
+}
+
+function refreshIndicativePanel() {
+  const panel = document.querySelector('.indicative-panel');
+  if (panel) panel.outerHTML = indicativePanel();
+}
+
 function renderEnergy() {
   const energy = appointment.energy;
   const split = calculateAnnualDayNightSplit(energy.annualElectricityKwh, energy.splitSampleDayKwh, energy.splitSampleNightKwh);
   const e7CurrentAnnual = calculateEconomy7AnnualCost({ dayKwh: energy.dayKwh, nightKwh: energy.nightKwh, dayRate: energy.currentDayRate, nightRate: energy.currentNightRate, standingCharge: energy.currentStandingCharge });
   const e7Saving = e7CurrentAnnual && energy.e7StandardAnnualCost ? e7CurrentAnnual - energy.e7StandardAnnualCost : 0;
-  const indicative = tariffData ? buildIndicativeTiers(tariffData, appointment) : {};
-  const selectedIndicative = indicative[calculateAppointment(appointment).rules.energyTariff || 1];
   return `<section class="card service-workspace energy-workspace" id="energyPanel"><div class="workspace-heading"><button class="back-chip" type="button" data-service="energy" aria-label="Close Energy">‹</button><span class="feature-icon energy">ϟ</span><div><div class="eyebrow">Energy</div><h2>Energy details</h2><p>Start with the essentials. Open deeper options only when they help.</p></div></div>
     <div class="grid-2"><label class="field"><span>Region</span><select data-field="energy.region">${REGIONS.map(([id, label]) => `<option value="${id}"${selected(energy.region,id)}>${label}</option>`).join('')}</select></label><div class="field"><span>Fuel type</span><div class="segmented"><button class="${on(energy.fuel,'electricity')}" type="button" data-choice="energy.fuel" data-value="electricity">Electricity</button><button class="${on(energy.fuel,'gas')}" type="button" data-choice="energy.fuel" data-value="gas">Gas</button><button class="${on(energy.fuel,'dual')}" type="button" data-choice="energy.fuel" data-value="dual">Dual fuel</button></div></div></div>
     <section class="workspace-section"><div class="section-title"><div><h3>Annual usage</h3><p>Keep the original UW/database figure and optionally compare a bill figure.</p></div></div><div class="usage-grid">${energy.fuel !== 'gas' ? usageSourceBlock('electricity','Electricity',[['Low',1600],['Typical',2500],['High',3800]]) : ''}${energy.fuel !== 'electricity' ? usageSourceBlock('gas','Gas',[['Low',7500],['Typical',11500],['High',17000]]) : ''}</div><label class="toggle-row"><input type="checkbox" data-field="energy.billUsageAvailable"${checked(energy.billUsageAvailable)}><span><strong>I have annual usage from the customer's bill</strong><small>Reveals a second figure without replacing the UW/database usage.</small></span></label></section>
     <section class="workspace-section"><div class="section-title"><div><h3>Current Energy cost</h3><p>Monthly Direct Debit is quickest; use annual bills when more representative.</p></div></div><div class="segmented wrap"><button class="${on(energy.currentCostMode,'monthly')}" type="button" data-choice="energy.currentCostMode" data-value="monthly">Monthly payment</button><button class="${on(energy.currentCostMode,'split')}" type="button" data-choice="energy.currentCostMode" data-value="split">Split electricity / gas</button><button class="${on(energy.currentCostMode,'annual')}" type="button" data-choice="energy.currentCostMode" data-value="annual">Annual bill cost</button></div><div class="grid-2 field-gap">${energy.currentCostMode === 'monthly' ? `<label class="field"><span>Current monthly Direct Debit</span>${field('energy.currentMonthly',energy.currentMonthly,'type="number" min="0" step="0.01"')}</label>` : energy.currentCostMode === 'split' ? `${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity / month</span>${field('energy.currentElectricityMonthly',energy.currentElectricityMonthly,'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas / month</span>${field('energy.currentGasMonthly',energy.currentGasMonthly,'type="number" min="0" step="0.01"')}</label>` : ''}` : `${energy.fuel !== 'gas' ? `<label class="field"><span>Annual electricity cost</span>${field('energy.annualElectricityCost',energy.annualElectricityCost,'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Annual gas cost</span>${field('energy.annualGasCost',energy.annualGasCost,'type="number" min="0" step="0.01"')}</label>` : ''}`}</div></section>
     ${energy.fuel !== 'gas' ? `<section class="workspace-section"><label class="toggle-row"><input type="checkbox" data-field="energy.peakOffPeak"${checked(energy.peakOffPeak)}><span><strong>Peak &amp; off-peak electricity?</strong><small>Off by default. Use for Economy 7 or an existing EV tariff.</small></span></label>${energy.peakOffPeak ? `<div class="segmented"><button class="${on(energy.electricityProfile,'economy7')}" type="button" data-choice="energy.electricityProfile" data-value="economy7">Economy 7</button><button class="${on(energy.electricityProfile,'ev')}" type="button" data-choice="energy.electricityProfile" data-value="ev">EV</button></div><div class="grid-2 field-gap"><label class="field"><span>Annual day usage</span>${field('energy.dayKwh',energy.dayKwh,'type="number" min="0"')}</label><label class="field"><span>Annual night usage</span>${field('energy.nightKwh',energy.nightKwh,'type="number" min="0"')}</label></div><details class="advanced"><summary>Estimate annual day/night split</summary><div class="grid-2"><label class="field"><span>Bill-period day kWh</span>${field('energy.splitSampleDayKwh',energy.splitSampleDayKwh,'type="number" min="0"')}</label><label class="field"><span>Bill-period night kWh</span>${field('energy.splitSampleNightKwh',energy.splitSampleNightKwh,'type="number" min="0"')}</label></div><p class="notice">${split.annualDayKwh || split.annualNightKwh ? `${split.dayPercent.toFixed(1)}% day / ${split.nightPercent.toFixed(1)}% night → ${split.annualDayKwh} day and ${split.annualNightKwh} night kWh/year.` : 'Add matching day and night figures from a recent bill period.'}</p><button class="secondary" type="button" data-apply-split ${split.annualDayKwh || split.annualNightKwh ? '' : 'disabled'}>Apply split to profile</button></details><details class="advanced"><summary>Current ${energy.electricityProfile === 'ev' ? 'EV' : 'Economy 7'} tariff rates</summary><div class="grid-3"><label class="field"><span>Day p/kWh</span>${field('energy.currentDayRate',energy.currentDayRate,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Night p/kWh</span>${field('energy.currentNightRate',energy.currentNightRate,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Standing p/day</span>${field('energy.currentStandingCharge',energy.currentStandingCharge,'type="number" min="0" step="0.01"')}</label></div><label class="field"><span>Indicative standard alternative annual cost</span>${field('energy.e7StandardAnnualCost',energy.e7StandardAnnualCost,'type="number" min="0" step="0.01"')}</label>${e7CurrentAnnual && energy.e7StandardAnnualCost ? `<p class="notice ${e7Saving < 0 ? 'warn' : ''}">${e7Saving >= 0 ? `Moving off Economy 7 could save about £${money(e7Saving / 12)}/month · £${money(e7Saving)}/year.` : `Economy 7 is about £${money(Math.abs(e7Saving))}/year lower.`}</p>` : ''}</details>` : ''}</section>` : ''}
-    <section class="workspace-section indicative-panel"><div class="section-title"><div><h3>Indicative UW Energy</h3><p>Central tariff data applied to the active usage above.</p></div><span class="source-badge">${tariffInfo?.source === 'live' ? 'Live' : tariffData ? 'Cached' : 'Checking'}</span></div>${tariffData ? `<div class="tariff-tier-grid">${[1,2,3].map(tier => `<div class="${tier === calculateAppointment(appointment).rules.energyTariff ? 'selected' : ''}"><small>${tier}-service</small><strong>${indicative[tier] ? `£${money(indicative[tier].monthly)}` : '—'}</strong><span>/month</span></div>`).join('')}</div><p class="hint">${selectedIndicative ? `${escapeHtml(selectedIndicative.tariffName)} · ${escapeHtml(selectedIndicative.sourceRef)} · Indicative, based on usage entered.` : 'No matching central row was found for this profile.'}</p><button class="secondary wide" type="button" data-use-indicative ${Object.values(indicative).some(Boolean) ? '' : 'disabled'}>Use these indicative bundle tiers</button>` : '<p class="hint">Checking the central tariff feed. Manual or confirmed quote entry remains available below.</p>'}</section>
+    ${indicativePanel()}
     <details class="advanced"><summary>Confirmed quote, exit fees &amp; manual adjustments</summary><div class="grid-2"><label class="field"><span>Electricity exit fee</span>${field('energy.electricityExitFee',energy.electricityExitFee,'type="number" min="0"')}</label><label class="field"><span>Gas exit fee</span>${field('energy.gasExitFee',energy.gasExitFee,'type="number" min="0"')}</label></div><div class="segmented wrap"><button class="${on(energy.uwQuoteMode,'single')}" type="button" data-choice="energy.uwQuoteMode" data-value="single">Single quote</button><button class="${on(energy.uwQuoteMode,'tiers')}" type="button" data-choice="energy.uwQuoteMode" data-value="tiers">Bundle tiers</button></div><div class="grid-3 field-gap">${energy.uwQuoteMode === 'tiers' ? [1,2,3].map(tier => `<label class="field"><span>${tier}-service / month</span>${field(`energy.uwTier${tier}`,energy[`uwTier${tier}`],'type="number" min="0" step="0.01"')}</label>`).join('') : `<label class="field"><span>UW monthly amount</span>${field('energy.uwMonthly',energy.uwMonthly,'type="number" min="0" step="0.01"')}</label>`}<label class="field"><span>Status</span><select data-field="energy.quoteStatus"><option value="indicative"${selected(energy.quoteStatus,'indicative')}>Indicative</option><option value="manual"${selected(energy.quoteStatus,'manual')}>Manually entered</option><option value="confirmed"${selected(energy.quoteStatus,'confirmed')}>Confirmed UW quote</option></select></label></div><label class="toggle-row"><input type="checkbox" data-field="energy.adjustmentEnabled"${checked(energy.adjustmentEnabled)}><span><strong>Use a manual Energy adjustment</strong><small>Only for an awkward case the standard routes cannot represent.</small></span></label>${energy.adjustmentEnabled ? `<div class="grid-3"><label class="field"><span>Apply to</span><select data-field="energy.adjustmentTarget"><option value="current"${selected(energy.adjustmentTarget,'current')}>Current</option><option value="uw"${selected(energy.adjustmentTarget,'uw')}>UW</option></select></label><label class="field"><span>Period</span><select data-field="energy.adjustmentPeriod"><option value="monthly"${selected(energy.adjustmentPeriod,'monthly')}>Monthly</option><option value="annual"${selected(energy.adjustmentPeriod,'annual')}>Annual</option></select></label><label class="field"><span>Amount</span>${field('energy.adjustmentAmount',energy.adjustmentAmount,'type="number" min="0" step="0.01"')}</label></div>` : ''}</details>
   </section>`;
 }
@@ -329,7 +344,7 @@ function renderBroadband() {
 }
 
 function renderMobile() {
-  return `<section class="card service-workspace"><div class="workspace-heading"><button class="back-chip" type="button" data-service="mobile">‹</button><span class="feature-icon mobile">▯</span><div><div class="eyebrow">Mobile</div><h2>Choose plans for each SIM</h2><p>Plan prices come from the October 2026 rule module.</p></div></div><div class="segmented">${[1,2,3,4,5].map(count => `<button class="${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count} SIM${count === 1 ? '' : 's'}</button>`).join('')}</div><div class="stack field-gap">${appointment.mobile.sims.map((sim,index) => `<div class="sim"><div class="sim-head"><label class="field"><span>SIM label</span>${field(`mobile.sims.${index}.name`,sim.name,'maxlength="40"')}</label><label class="compact-check"><input type="checkbox" data-field="mobile.sims.${index}.include"${checked(sim.include)}> Include</label></div><div class="plan-grid"><button class="plan-option${on(sim.planId,'essentialMax')}" type="button" data-sim-plan="${index}" data-value="essentialMax"><strong>Go Essentials</strong><span>£6/month</span></button><button class="plan-option${on(sim.planId,'unlimitedMax')}" type="button" data-sim-plan="${index}" data-value="unlimitedMax"><strong>Go Unlimited</strong><span>£13/month</span></button></div><div class="grid-2 field-gap"><label class="field"><span>Current / month</span>${field(`mobile.sims.${index}.currentMonthly`,sim.currentMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Exit fee</span>${field(`mobile.sims.${index}.exitFee`,sim.exitFee,'type="number" min="0"')}</label></div>${sim.planId === 'unlimitedMax' && appointment.mobile.sims.slice(0,index).some(item => item.include && item.planId === 'unlimitedMax') ? '<p class="notice">Additional Go Unlimited: first 3 months free, then £13/month.</p>' : ''}</div>`).join('')}</div></section>`;
+  return `<section class="card service-workspace"><div class="workspace-heading"><button class="back-chip" type="button" data-service="mobile">‹</button><span class="feature-icon mobile">▯</span><div><div class="eyebrow">Mobile</div><h2>Choose plans for each SIM</h2><p>Each selected SIM keeps its own current, UW and exit-fee comparison.</p></div></div><div class="segmented">${[1,2,3,4,5].map(count => `<button class="${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count} SIM${count === 1 ? '' : 's'}</button>`).join('')}</div><div class="stack field-gap">${appointment.mobile.sims.map((sim,index) => `<div class="sim"><div class="sim-head"><label class="field"><span>SIM label</span>${field(`mobile.sims.${index}.name`,sim.name,'maxlength="40"')}</label><label class="compact-check"><input type="checkbox" data-field="mobile.sims.${index}.include"${checked(sim.include)}> Include</label></div><div class="plan-grid"><button class="plan-option${on(sim.planId,'essentialMax')}" type="button" data-sim-plan="${index}" data-value="essentialMax"><strong>Go Essentials</strong><span>£6/month</span></button><button class="plan-option${on(sim.planId,'unlimitedMax')}" type="button" data-sim-plan="${index}" data-value="unlimitedMax"><strong>Go Unlimited</strong><span>£13/month</span></button></div><div class="grid-3 field-gap"><label class="field"><span>Current / month</span>${field(`mobile.sims.${index}.currentMonthly`,sim.currentMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>UW / month</span>${field(`mobile.sims.${index}.uwMonthly`,sim.uwMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Exit fee</span>${field(`mobile.sims.${index}.exitFee`,sim.exitFee,'type="number" min="0"')}</label></div>${sim.planId === 'unlimitedMax' && appointment.mobile.sims.slice(0,index).some(item => item.include && item.planId === 'unlimitedMax') ? '<p class="notice">Additional Go Unlimited: first 3 months free, then £13/month.</p>' : ''}</div>`).join('')}</div></section>`;
 }
 
 function renderAdjustments() {
@@ -337,17 +352,50 @@ function renderAdjustments() {
   return `<section class="card"><details class="advanced"><summary>Cashback Card &amp; advanced adjustments</summary><label class="person-row"><input type="checkbox" data-field="cashback.enabled"${checked(appointment.cashback.enabled)}><span><strong>Include Cashback Card estimate</strong><small>Appointment calculation, separate from the PET toolbar shortcut.</small></span></label>${appointment.cashback.enabled ? `<div class="grid-2"><label class="field"><span>Monthly card spend</span>${field('cashback.monthlySpend',appointment.cashback.monthlySpend,'type="number" min="0" step="50"')}</label><label class="field"><span>Estimate basis</span><select data-field="cashback.tier"><option value="low"${selected(appointment.cashback.tier,'low')}>1% capped</option><option value="average"${selected(appointment.cashback.tier,'average')}>Average active cardholder</option><option value="high"${selected(appointment.cashback.tier,'high')}>Top earners</option></select></label></div>` : ''}<label class="person-row"><input type="checkbox" data-field="adjustments.recurringEnabled"${checked(a.recurringEnabled)}><span><strong>Manual recurring adjustment</strong></span></label>${a.recurringEnabled ? `<div class="grid-2"><label class="field"><span>Current amount</span>${field('adjustments.currentAmount',a.currentAmount,'type="number" min="0" step="0.01"')}</label><label class="field"><span>UW amount</span>${field('adjustments.uwAmount',a.uwAmount,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Current reason</span>${field('adjustments.currentReason',a.currentReason)}</label><label class="field"><span>UW reason</span>${field('adjustments.uwReason',a.uwReason)}</label><label class="field"><span>Period</span><select data-field="adjustments.period"><option value="monthly"${selected(a.period,'monthly')}>Monthly</option><option value="annual"${selected(a.period,'annual')}>Annual</option></select></label></div>` : ''}<label class="person-row"><input type="checkbox" data-field="adjustments.oneOffEnabled"${checked(a.oneOffEnabled)}><span><strong>One-off benefit or charge</strong></span></label>${a.oneOffEnabled ? `<div class="grid-3"><label class="field"><span>Type</span><select data-field="adjustments.oneOffType"><option value="benefit"${selected(a.oneOffType,'benefit')}>Benefit/refund</option><option value="charge"${selected(a.oneOffType,'charge')}>Charge</option></select></label><label class="field"><span>Amount</span>${field('adjustments.oneOffAmount',a.oneOffAmount,'type="number" min="0"')}</label><label class="field"><span>Label</span>${field('adjustments.oneOffLabel',a.oneOffLabel)}</label></div>` : ''}</details></section>`;
 }
 
+function summaryGatePanel(completion = appointmentCompleteness(appointment)) {
+  const content = completion.total
+    ? `<p>The summary unlocks when all minimum comparison data for this basket is complete.</p><ul>${completion.missing.map(item => `<li>${escapeHtml(item.label)}</li>`).join('')}</ul>`
+    : '<p>Add at least one service to the basket before building a summary.</p>';
+  return `<section class="card summary-gate" id="summaryGate"><div class="section-title"><div><div class="eyebrow">Summary locked</div><h2>${completion.total ? `${completion.completed} of ${completion.total} required fields complete` : 'No comparison basket yet'}</h2></div><strong>${completion.percentage}%</strong></div>${content}</section>`;
+}
+
+function refreshCompletenessUi() {
+  const completion = appointmentCompleteness(appointment);
+  const overview = document.querySelector('.appointment-overview');
+  if (!overview) return;
+  const count = overview.querySelector('.section-title p');
+  const percentage = overview.querySelector('.section-title > strong');
+  const bar = overview.querySelector('.progress > span');
+  if (count) count.textContent = `${completion.completed} of ${completion.total} required comparison fields complete`;
+  if (percentage) percentage.textContent = `${completion.percentage}%`;
+  if (bar) bar.style.width = `${completion.percentage}%`;
+  for (const name of ['energy', 'broadband', 'mobile', 'boilerCover']) {
+    const card = overview.querySelector(`.service-${name}`);
+    if (!card) continue;
+    const status = serviceState(name);
+    const label = card.querySelector('small');
+    const serviceBar = card.querySelector('i b');
+    if (label) label.textContent = status;
+    if (serviceBar) serviceBar.style.width = appointment.services[name] ? status === 'Complete' ? '100%' : '50%' : '0%';
+  }
+  const gate = document.getElementById('summaryGate');
+  if (completion.complete) gate?.remove();
+  else if (gate) gate.outerHTML = summaryGatePanel(completion);
+  const action = document.querySelector('.action-bar [data-go="summary"]');
+  if (action) action.textContent = completion.complete ? 'Reveal basket summary →' : `Complete summary data (${completion.percentage}%)`;
+}
+
 function renderAppointment() {
   const home = appointment.person.homeStatus;
   const visibleServices = ['energy','broadband','mobile',...(home === 'tenant' ? [] : ['boilerCover'])];
-  const explored = visibleServices.filter(name => appointment.services[name]).length;
-  app.innerHTML = `<div class="stack appointment-screen"><section class="person-heading compact"><button class="back-chip" type="button" data-go="profile">‹</button><span class="avatar">${escapeHtml(initials(appointment.person.name))}</span><div><strong>${escapeHtml(appointment.person.name)}</strong><span class="context-pill">◉ Save Money</span></div></section><section class="card appointment-overview"><div class="section-title"><div><div class="eyebrow">Appointment</div><h1>Services overview</h1><p>${explored} of ${visibleServices.length} services explored</p></div><strong>${Math.round(explored / visibleServices.length * 100)}%</strong></div><div class="progress"><span style="width:${explored / visibleServices.length * 100}%"></span></div><div class="segmented home-status"><button class="${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner">Homeowner</button><button class="${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant">Tenant</button></div><div class="service-grid">${serviceCard('energy','ϟ','Energy','Electricity, gas or dual fuel')}${serviceCard('broadband','⌁','Broadband','Choose a package')}${serviceCard('mobile','▯','Mobile','1–5 SIMs')}${home === 'tenant' ? '' : serviceCard('boilerCover','◆','Boiler Cover','Homeowner service')}</div>
+  const completion = appointmentCompleteness(appointment);
+  app.innerHTML = `<div class="stack appointment-screen"><section class="person-heading compact"><button class="back-chip" type="button" data-go="profile">‹</button><span class="avatar">${escapeHtml(initials(appointment.person.name))}</span><div><strong>${escapeHtml(appointment.person.name)}</strong><span class="context-pill">◉ Save Money</span></div></section><section class="card appointment-overview"><div class="section-title"><div><div class="eyebrow">Appointment</div><h1>Services overview</h1><p>${completion.completed} of ${completion.total} required comparison fields complete</p></div><strong>${completion.percentage}%</strong></div><div class="progress"><span style="width:${completion.percentage}%"></span></div><div class="segmented home-status"><button class="${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner">Homeowner</button><button class="${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant">Tenant</button></div><div class="service-grid">${serviceCard('energy','ϟ','Energy','Electricity, gas or dual fuel')}${serviceCard('broadband','⌁','Broadband','Choose a package')}${serviceCard('mobile','▯','Mobile','1–5 SIMs')}${home === 'tenant' ? '' : serviceCard('boilerCover','◆','Boiler Cover','Homeowner service')}</div>
   ${appointment.services.energy ? `<div class="subpanel"><div class="pills"><button class="pill${on(appointment.energy.fuel,'electricity')}" type="button" data-choice="energy.fuel" data-value="electricity">Electricity only</button><button class="pill${on(appointment.energy.fuel,'gas')}" type="button" data-choice="energy.fuel" data-value="gas">Gas only</button><button class="pill${on(appointment.energy.fuel,'dual')}" type="button" data-choice="energy.fuel" data-value="dual">Dual fuel</button></div></div>` : ''}
   ${appointment.services.mobile ? `<div class="subpanel"><div class="pills">${[1,2,3,4,5].map(count => `<button class="pill${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count} SIM${count === 1 ? '' : 's'}</button>`).join('')}</div></div>` : ''}</section>
   ${appointment.services.energy ? renderEnergy() : ''}${appointment.services.broadband ? renderBroadband() : ''}${appointment.services.mobile ? renderMobile() : ''}
-  ${appointment.services.boilerCover && home === 'homeowner' ? `<section class="card service-workspace"><div class="workspace-heading"><button class="back-chip" type="button" data-service="boilerCover">‹</button><span class="feature-icon boiler">◆</span><div><div class="eyebrow">Boiler Cover</div><h2>Homeowner service</h2><p>£25/month. No introductory free-month benefit.</p></div></div></section>` : ''}
+  ${appointment.services.boilerCover && home === 'homeowner' ? `<section class="card service-workspace"><div class="workspace-heading"><button class="back-chip" type="button" data-service="boilerCover">‹</button><span class="feature-icon boiler">◆</span><div><div class="eyebrow">Boiler Cover</div><h2>Homeowner service</h2><p>£25/month. No introductory free-month benefit.</p></div></div><div class="grid-3 field-gap"><label class="field"><span>Current / month</span>${field('boilerCover.currentMonthly',appointment.boilerCover.currentMonthly,'type="number" min="0" step="0.01"')}</label><label class="field"><span>UW / month</span><input value="${money(appointment.boilerCover.monthly)}" readonly aria-label="UW Boiler Cover monthly cost"></label><label class="field"><span>Exit fee</span>${field('boilerCover.exitFee',appointment.boilerCover.exitFee,'type="number" min="0" step="0.01"')}</label></div></section>` : ''}
   <section class="card"><div class="eyebrow">Benefits</div><h2>Referral route</h2><label class="person-row"><input type="checkbox" data-field="benefits.referral"${checked(appointment.benefits.referral)}><span><strong>Standard referral</strong><small>£50 when eligible; homeowner-only.</small></span></label><label class="person-row"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)}><span><strong>National League</strong><small>£50 club-shop voucher when eligible.</small></span></label></section>${renderAdjustments()}
-  <section class="action-bar"><button class="quiet" type="button" data-save>Save</button><button class="primary" type="button" data-go="summary">Reveal basket summary →</button></section></div>`;
+  ${completion.complete ? '' : summaryGatePanel(completion)}<section class="action-bar"><button class="quiet" type="button" data-save>Save</button><button class="primary" type="button" data-go="summary">${completion.complete ? 'Reveal basket summary →' : `Complete summary data (${completion.percentage}%)`}</button></section></div>`;
 }
 
 function updateLiveResults() {
@@ -355,7 +403,7 @@ function updateLiveResults() {
 }
 
 function summaryLines(result) {
-  return `<div class="summary-table"><div class="summary-line"><span>Current monthly cost</span><strong>£${money(result.current.total)}</strong></div><div class="summary-line"><span>UW service cost</span><strong>£${money(result.uw.total)}</strong></div><div class="summary-line"><span>Effective UW monthly position</span><strong>£${money(result.effectiveUwMonthly ?? result.uw.total)}</strong></div><div class="summary-line"><span>Effective monthly saving</span><strong class="money ${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) >= 0 ? 'good' : 'bad'}">${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) < 0 ? '−' : ''}£${money(Math.abs(result.effectiveMonthlySaving ?? result.monthlyServiceSaving))}</strong></div><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited first 3 months</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband introductory benefit</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong class="money bad">−£${money(result.exitFeeDeduction)}</strong></div>` : ''}<div class="summary-line"><span><strong>First-year result</strong></span><strong class="money ${result.yearOneResult >= 0 ? 'good' : 'bad'}">${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</strong></div></div>`;
+  return `<div class="summary-table"><div class="summary-line"><span>Current monthly cost</span><strong>£${money(result.current.total)}</strong></div><div class="summary-line"><span>UW service cost</span><strong>£${money(result.uw.total)}</strong></div><div class="summary-line"><span>Effective UW monthly position</span><strong>£${money(result.effectiveUwMonthly ?? result.uw.total)}</strong></div><div class="summary-line"><span>Effective monthly saving</span><strong class="money ${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) >= 0 ? 'good' : 'bad'}">${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) < 0 ? '−' : ''}£${money(Math.abs(result.effectiveMonthlySaving ?? result.monthlyServiceSaving))}</strong></div><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited first 3 months</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband introductory benefit</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong class="money ${result.oneOff > 0 ? 'good' : 'bad'}">${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong class="money bad">−£${money(result.exitFeeDeduction)}</strong></div>` : ''}<div class="summary-line"><span><strong>First-year result</strong></span><strong class="money ${result.yearOneResult >= 0 ? 'good' : 'bad'}">${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</strong></div></div>`;
 }
 
 function basketStrip(services = {}, count = 0) {
@@ -375,17 +423,35 @@ function summaryAccordions(result) {
   const serviceAnnual = Number(result.monthlyServiceSaving || 0) * 12;
   const bonusTotal = Number(result.welcomeBonus || 0) + Number(result.mobileIntroBenefit || 0) + Number(result.broadbandIntroBenefit || 0) + Number(result.referral || 0) + Number(result.nationalLeague || 0) + Number(result.oneOff || 0) - Number(result.exitFeeDeduction || 0);
   const cashbackAnnual = Number(result.cashback?.active ? result.cashback.monthlyNet * 12 + result.cashback.feeWaiver : result.cashbackAnnual || 0);
-  return `<div class="summary-accordions"><details open><summary><span class="accordion-icon">▥</span><strong>Year-one savings on services</strong><b>£${money(serviceAnnual)}</b></summary><div>${summaryLines(result)}</div></details><details><summary><span class="accordion-icon">◆</span><strong>Year-one welcome bonuses</strong><b>£${money(bonusTotal)}</b></summary><div class="summary-table"><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited offer</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband offer</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong>−£${money(result.exitFeeDeduction)}</strong></div>` : ''}</div></details><details><summary><span class="accordion-icon">▰</span><strong>Cashback Card benefits</strong><b>${cashbackAnnual ? `£${money(cashbackAnnual)}` : 'Not included'}</b></summary><div><p class="lead">Cashback contribution is folded into the effective monthly UW position above.</p></div></details></div>`;
+  return `<div class="summary-accordions"><details open><summary><span class="accordion-icon">▥</span><strong>Year-one savings on services</strong><b>£${money(serviceAnnual)}</b></summary><div>${summaryLines(result)}</div></details><details><summary><span class="accordion-icon">◆</span><strong>Year-one bonuses &amp; adjustments</strong><b>£${money(bonusTotal)}</b></summary><div class="summary-table"><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited offer</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband offer</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong>${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong>−£${money(result.exitFeeDeduction)}</strong></div>` : ''}</div></details><details><summary><span class="accordion-icon">▰</span><strong>Cashback Card benefits</strong><b>${cashbackAnnual ? `£${money(cashbackAnnual)}` : 'Not included'}</b></summary><div><p class="lead">Cashback contribution is folded into the effective monthly UW position above.</p></div></details></div>`;
 }
 
-function upgradeBlock(preview, customer = false) {
-  return `<details class="upgrade-card"><summary><span class="basket-glyph">▰</span><span><strong>Could this basket be even better?</strong><small>${preview ? escapeHtml(preview.description) : 'Preview a sensible next service without changing the saved appointment.'}</small></span><b>›</b></summary><div>${preview ? `<h3>${escapeHtml(preview.title)}</h3><div class="metric-grid"><div class="metric"><small>Service count</small><strong>${preview.serviceCount}</strong></div><div class="metric"><small>Welcome Bonus</small><strong>£${money(preview.welcomeBonus)}</strong></div><div class="metric"><small>First-year change</small><strong>+£${money(preview.improvement)}</strong></div></div><p class="hint">Preview only. Nothing has been added to the basket.</p>` : '<p class="lead">No clearly positive automatic upgrade is available from the figures currently shared.</p>'}<button class="primary wide" type="button" ${customer ? 'data-customer-upgrade' : 'data-partner-upgrade'}>Preview upgrade →</button></div></details>`;
+function mealDealBlock(preview, active, customer = false) {
+  if (!preview) return '';
+  const result = preview.previewResult || preview.result;
+  const change = Number(preview.improvement || 0);
+  return `<section class="upgrade-card meal-deal-card"><div class="meal-deal-heading"><span class="meal-icon">🥪</span><div><h2>🥪 Meal Deal SIM</h2><p>${active ? 'Previewing the whole basket with the temporary £6 SIM scenario.' : 'See whether a £6 SIM changes the wider basket enough to improve the overall result.'}</p></div></div>${active ? `<div class="preview-badge">Preview only · saved appointment unchanged</div><div class="metric-grid"><div class="metric"><small>SIM cost</small><strong>£${money(preview.addedMonthlyCost)}/mo</strong></div><div class="metric"><small>Annual cost included</small><strong>£${money(preview.addedAnnualCost)}</strong></div><div class="metric"><small>First-year change</small><strong class="money ${change >= 0 ? 'good' : 'bad'}">${change >= 0 ? '+' : '−'}£${money(Math.abs(change))}</strong></div><div class="metric"><small>Energy tariff</small><strong>${result.energyTariff ?? result.rules?.energyTariff ?? '—'}</strong></div></div><div class="meal-actions">${customer ? '' : '<button class="primary" type="button" data-meal-add>Add £6 SIM to basket</button>'}<button class="secondary" type="button" data-meal-back>Back to original basket</button></div>` : '<button class="primary wide" type="button" data-meal-preview>Preview 🥪 Meal Deal SIM →</button>'}</section>`;
 }
 
 function renderSummary() {
-  const result = calculateAppointment(appointment);
-  const preview = previewUpgrade(appointment);
-  app.innerHTML = `<div class="summary-page partner-summary"><header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">▣</span><div><strong>Appointment Companion</strong><small>What they pay now. What they could save.</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header><section class="year-hero"><p>Year one in your pocket</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(appointment.person.name)}</small><span aria-hidden="true">◒</span></section>${basketStrip(appointment.services,result.rules.serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${upgradeBlock(preview)}<section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label>${appointment.summary.basketUrl ? `<a class="action primary wide" href="${escapeHtml(appointment.summary.basketUrl)}" target="_blank" rel="noopener">Open basket →</a>` : ''}</section><section class="summary-actions"><button class="primary" type="button" data-share>Share summary</button><button class="secondary" type="button" data-save-snapshot>Save snapshot</button><button class="quiet" type="button" data-copy-figures>Copy figures</button></section><p class="compliance-note">Indicative summary based on the figures entered. Confirm prices and eligibility in the official UW process.</p></div>`;
+  const completion = appointmentCompleteness(appointment);
+  if (!completion.complete) { view = 'appointment'; renderAppointment(); return; }
+  const preview = buildMealDealPreview(appointment);
+  const showingPreview = Boolean(mealDealPreviewActive && preview);
+  const result = showingPreview ? preview.previewResult : calculateAppointment(appointment);
+  const displayAppointment = showingPreview ? preview.appointment : appointment;
+  app.innerHTML = `<div class="summary-page partner-summary"><header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">▣</span><div><strong>Appointment Companion</strong><small>${showingPreview ? '🥪 Meal Deal SIM preview' : 'What they pay now. What they could save.'}</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header>${showingPreview ? '<div class="preview-banner">Preview — the saved appointment has not changed.</div>' : ''}<section class="year-hero"><p>${showingPreview ? 'Preview year one in your pocket' : 'Year one in your pocket'}</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(appointment.person.name)}</small><span aria-hidden="true">◒</span></section>${basketStrip(displayAppointment.services,result.rules.serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${mealDealBlock(preview,showingPreview)}<section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section><section class="summary-actions"><button class="primary" type="button" data-share>Share summary</button><button class="secondary" type="button" data-save-snapshot>Save snapshot</button><button class="quiet" type="button" data-copy-figures>Copy figures</button></section><p class="compliance-note">Indicative summary based on the figures entered. Confirm prices and eligibility in the official UW process.</p></div>`;
+}
+
+function basketLinkAction(url) {
+  const safeBasketUrl = safeHttps(url);
+  if (safeBasketUrl) return `<a class="action primary wide" href="${escapeHtml(safeBasketUrl)}" target="_blank" rel="noopener">Open basket →</a>`;
+  return url ? '<p class="notice warn">Use a valid HTTPS basket URL before opening or sharing it.</p>' : '';
+}
+
+function refreshBasketLinkAction() {
+  const host = document.querySelector('[data-basket-action]');
+  if (host) host.innerHTML = basketLinkAction(appointment.summary.basketUrl);
 }
 
 function renderMakeMoney() {
@@ -403,12 +469,32 @@ function renderMore() {
   app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">More</div><h1>Settings &amp; customer safety</h1><p class="lead">Local storage remains primary. Cloud is optional backup, sync and cross-device support.</p></section><section class="card"><div class="section-title"><div><div class="eyebrow">People</div><h2>${people.length} saved on this device</h2></div><button class="secondary" type="button" data-manage-people>Manage</button></div><p class="lead">Individual deletion, tick-and-delete, pending Cloud tombstones and conflict review are kept here.</p></section><section class="card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected for this session' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save for session &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key stays in session storage; it is not included in shared customer data.</p></section>${conflicts.length ? `<section class="card"><h2>Cloud conflicts need review</h2><div class="people-list">${conflicts.map(row => `<div class="person-row"><div style="flex:1"><strong>${escapeHtml(row.customer_name)}</strong><small>${row.conflict.paths?.length || 1} field conflict(s)</small></div><button class="secondary" data-conflict="${row.local_id}" data-choice="local">Keep mine</button><button class="quiet" data-conflict="${row.local_id}" data-choice="cloud">Use Cloud</button></div>`).join('')}</div></section>` : ''}<section class="card"><div class="eyebrow">Partner branding</div><h2>Customer-facing shares</h2><form id="brandingForm" class="grid-2"><label class="field"><span>Name</span><input name="name" value="${escapeHtml(brand.name || '')}"></label><label class="field"><span>Role</span><input name="role" value="${escapeHtml(brand.role || '')}"></label><label class="field"><span>Short message</span><input name="strap" value="${escapeHtml(brand.strap || '')}"></label><label class="field"><span>Join link (https)</span><input name="joinUrl" type="url" value="${escapeHtml(brand.joinUrl || '')}"></label><button class="primary" type="submit">Save branding</button></form></section><section class="card flat"><p class="hint">Appointment Companion V${VERSION}. Local database: ${customerStore.database.name}. October 2026 rule boundary.</p></section></div>`;
 }
 
+function resultFromShared(data = {}) {
+  return {
+    current: data.current || {}, uw: data.uw || {}, monthlyServiceSaving: data.monthlyServiceSaving || 0,
+    effectiveUwMonthly: data.effectiveUwMonthly, effectiveMonthlySaving: data.effectiveMonthlySaving,
+    welcomeBonus: data.welcomeBonus || 0, mobileIntroBenefit: data.mobileIntroBenefit || 0,
+    broadbandIntroBenefit: data.broadbandIntroBenefit || 0, referral: data.referral || 0,
+    nationalLeague: data.nationalLeague || 0, exitFees: data.exitFees || 0,
+    exitFeeDeduction: data.exitFeeDeduction || 0, oneOff: data.oneOff || 0,
+    cashbackAnnual: Number(data.cashbackMonthlyNet || 0) * 12 + Number(data.cashbackFeeWaiver || 0),
+    yearOneResult: data.yearOneResult || 0,
+    e7StandardAnnualSaving: data.energyInsight?.standardAnnualSaving || data.e7StandardAnnualSaving || 0
+  };
+}
+
 function renderCustomerView(data) {
+  sharedSummaryData = data;
   document.documentElement.classList.add('shared-view');
   document.getElementById('topbar').hidden = true;
   nav.hidden = true;
-  const result = { current: data.current || {}, uw: data.uw || {}, monthlyServiceSaving: data.monthlyServiceSaving || 0, effectiveUwMonthly: data.effectiveUwMonthly, effectiveMonthlySaving: data.effectiveMonthlySaving, welcomeBonus: data.welcomeBonus || 0, mobileIntroBenefit: data.mobileIntroBenefit || 0, broadbandIntroBenefit: data.broadbandIntroBenefit || 0, referral: data.referral || 0, nationalLeague: data.nationalLeague || 0, exitFeeDeduction: data.exitFeeDeduction || 0, cashbackAnnual: Number(data.cashbackMonthlyNet || 0) * 12 + Number(data.cashbackFeeWaiver || 0), yearOneResult: data.yearOneResult || 0, e7StandardAnnualSaving: data.energyInsight?.standardAnnualSaving || 0 };
-  app.innerHTML = `<div class="summary-page customer-summary"><header class="summary-header"><span class="feature-icon appointment">▣</span><div><strong>Appointment Companion</strong><small>Your personalised summary</small></div></header><section class="year-hero"><p>Year one in your pocket</p><h1>${data.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(data.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(data.personName || 'you')}</small><span aria-hidden="true">◒</span></section>${basketStrip(data.services || {},Number(data.serviceCount || 0))}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${upgradeBlock(data.upgradePreview,true)}${data.basketUrl ? `<section class="customer-cta"><span class="basket-glyph">▰</span><div><h2>Ready to get started?</h2><p>View your basket and take the next step.</p></div><a class="action primary wide" href="${escapeHtml(data.basketUrl)}" rel="noopener">View your basket →</a></section>` : ''}<div class="partner">${data.partnerName ? `<small>Your Partner</small><strong>${escapeHtml(data.partnerName)}</strong><p>${escapeHtml(data.partnerRole || '')}${data.partnerStrap ? `<br>${escapeHtml(data.partnerStrap)}` : ''}</p>` : ''}${data.joinUrl ? `<a href="${escapeHtml(data.joinUrl)}" rel="noopener">Start saving here →</a>` : ''}</div><p class="compliance-note">Illustrative summary, not a formal quote.</p></div>`;
+  const preview = data.mealDealPreview || null;
+  const showingPreview = Boolean(sharedMealDealActive && preview);
+  const source = showingPreview ? preview.result : data;
+  const result = resultFromShared(source);
+  const services = showingPreview ? preview.services : data.services || {};
+  const serviceCount = showingPreview ? preview.result.serviceCount : Number(data.serviceCount || 0);
+  app.innerHTML = `<div class="summary-page customer-summary"><header class="summary-header"><span class="feature-icon appointment">▣</span><div><strong>Appointment Companion</strong><small>${showingPreview ? '🥪 Meal Deal SIM preview' : 'Your personalised summary'}</small></div></header>${showingPreview ? '<div class="preview-banner">Preview only — this does not change the Partner’s saved appointment.</div>' : ''}<section class="year-hero"><p>${showingPreview ? 'Preview year one in your pocket' : 'Year one in your pocket'}</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(data.personName || 'you')}</small><span aria-hidden="true">◒</span></section>${basketStrip(services,serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${mealDealBlock(preview,showingPreview,true)}${data.basketUrl ? `<section class="customer-cta"><span class="basket-glyph">▰</span><div><h2>Ready to get started?</h2><p>View your basket and take the next step.</p></div><a class="action primary wide" href="${escapeHtml(data.basketUrl)}" rel="noopener">View your basket →</a></section>` : ''}<div class="partner">${data.partnerName ? `<small>Your Partner</small><strong>${escapeHtml(data.partnerName)}</strong><p>${escapeHtml(data.partnerRole || '')}${data.partnerStrap ? `<br>${escapeHtml(data.partnerStrap)}` : ''}</p>` : ''}${data.joinUrl ? `<a href="${escapeHtml(data.joinUrl)}" rel="noopener">Start saving here →</a>` : ''}</div><p class="compliance-note">Illustrative summary, not a formal quote.</p></div>`;
 }
 
 function render() {
@@ -425,6 +511,7 @@ function render() {
 }
 
 async function navigate(nextView, nextSection = section) {
+  if (nextView === 'summary' && !appointmentCompleteness(appointment).complete) return showSummaryBlocked();
   if ((nextView !== view || nextSection !== section) && !(await guard.confirmNavigation())) return;
   section = nextSection;
   if (nextView === 'launchpad' && currentRecord) return leavePerson();
@@ -484,6 +571,7 @@ async function deletePeople(ids) {
 }
 
 async function openShareDialog() {
+  if (!appointmentCompleteness(appointment).complete) return showSummaryBlocked();
   if (guard.isDirty()) await persistActive(true);
   const data = buildShareData(appointment, branding());
   const url = buildShareUrl(appointment, branding());
@@ -491,7 +579,22 @@ async function openShareDialog() {
   shareDialog.showModal();
 }
 
+function visibleFiguresData() {
+  const data = buildShareData(appointment, branding());
+  const preview = mealDealPreviewActive ? data.mealDealPreview : null;
+  if (!preview) return data;
+  return {
+    ...data,
+    ...preview.result,
+    services: preview.services,
+    serviceCount: preview.result.serviceCount,
+    energyTariff: preview.result.energyTariff,
+    energyInsight: preview.result.e7StandardAnnualSaving ? { standardAnnualSaving: preview.result.e7StandardAnnualSaving } : null
+  };
+}
+
 async function saveSummarySnapshot(type = 'summary_saved') {
+  if (!appointmentCompleteness(appointment).complete) return showSummaryBlocked();
   const entry = createSummaryActivity(appointment, type);
   appointment.activity = [...appointment.activity, entry].slice(-20);
   if (type === 'summary_shared') appointment.summary.lastSharedAt = entry.at;
@@ -533,23 +636,44 @@ function applyIndicativeTariffs() {
   return true;
 }
 
+function showSummaryBlocked() {
+  mealDealPreviewActive = false;
+  view = 'appointment';
+  section = 'save';
+  render();
+  document.getElementById('summaryGate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toast('Complete the listed comparison fields to unlock the summary.');
+  return false;
+}
+
 document.addEventListener('input', event => {
   const target = event.target;
   if (target.id === 'personNameInput') { showDuplicateWarning(target.value); showPersonSearch(target.value); return; }
   if (!target.dataset.field) return;
   setPath(appointment, target.dataset.field, inputValue(target));
+  if ((target.type === 'number' || target.dataset.type === 'number') && target.value === '') {
+    appointment.completion.entered = appointment.completion.entered.filter(path => path !== target.dataset.field);
+  } else markComparisonFieldEntered(appointment, target.dataset.field);
   if (target.dataset.field === 'energy.billUsageAvailable' && !target.checked) {
     if (appointment.energy.electricityUsageSource === 'bill') appointment.energy.electricityUsageSource = 'uw';
     if (appointment.energy.gasUsageSource === 'bill') appointment.energy.gasUsageSource = 'uw';
   }
+  if (target.dataset.field === 'energy.peakOffPeak') {
+    appointment.energy.electricityProfile = target.checked
+      ? appointment.energy.electricityProfile === 'standard' ? 'economy7' : appointment.energy.electricityProfile
+      : 'standard';
+  }
   if (target.dataset.field === 'benefits.referral' && target.checked) appointment.benefits.nationalLeague = false;
   if (target.dataset.field === 'benefits.nationalLeague' && target.checked) appointment.benefits.referral = false;
   markChanged();
+  refreshCompletenessUi();
+  if (target.dataset.field === 'summary.basketUrl') refreshBasketLinkAction();
   const billUsageMatch = target.dataset.field.match(/^energy\.(electricity|gas)BillKwh$/);
   if (billUsageMatch) {
     const button = document.querySelector(`[data-choice="energy.${billUsageMatch[1]}UsageSource"][data-value="bill"]`);
     if (button) button.disabled = !(Number(target.value) > 0);
   }
+  if (/^energy\.(region|annualElectricityKwh|annualGasKwh|electricity(Uw|Bill|Estimated)Kwh|gas(Uw|Bill|Estimated)Kwh|dayKwh|nightKwh)$/.test(target.dataset.field)) refreshIndicativePanel();
   updateLiveResults();
 });
 
@@ -614,7 +738,10 @@ document.addEventListener('click', async event => {
     markChanged(); render(); return;
   }
   if (target.dataset.simPlan) {
-    appointment.mobile.sims[Number(target.dataset.simPlan)].planId = target.dataset.value;
+    const index = Number(target.dataset.simPlan);
+    appointment.mobile.sims[index].planId = target.dataset.value;
+    appointment.mobile.sims[index].uwMonthly = mobilePlanPrice(target.dataset.value);
+    markComparisonFieldEntered(appointment, `mobile.sims.${index}.uwMonthly`);
     markChanged(); render(); return;
   }
   if (target.dataset.package) {
@@ -638,7 +765,28 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-save')) return persistActive(false);
   if (target.hasAttribute('data-use-indicative')) return applyIndicativeTariffs();
   if (target.hasAttribute('data-save-snapshot')) return saveSummarySnapshot('summary_saved');
-  if (target.hasAttribute('data-partner-upgrade') || target.hasAttribute('data-customer-upgrade')) { toast('Upgrade preview only — the saved basket has not changed.'); return; }
+  if (target.hasAttribute('data-meal-preview')) {
+    if (sharedSummaryData) { sharedMealDealActive = true; renderCustomerView(sharedSummaryData); }
+    else { mealDealPreviewActive = true; renderSummary(); }
+    return;
+  }
+  if (target.hasAttribute('data-meal-back')) {
+    if (sharedSummaryData) { sharedMealDealActive = false; renderCustomerView(sharedSummaryData); }
+    else { mealDealPreviewActive = false; renderSummary(); }
+    return;
+  }
+  if (target.hasAttribute('data-meal-add')) {
+    const preview = buildMealDealPreview(appointment);
+    if (!preview) return;
+    appointment = normaliseAppointment(clone(preview.appointment));
+    mealDealPreviewActive = false;
+    markChanged();
+    view = 'appointment';
+    render();
+    document.querySelector('.service-mobile')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast(`${preview.addedSimCount} £6 Meal Deal SIM${preview.addedSimCount === 1 ? '' : 's'} added. Add the customer's current cost and exit fee.`);
+    return;
+  }
   if (target.dataset.tool) {
     if (currentRecord) {
       appointment.activity = [...appointment.activity, { type: 'tool_used', tool: target.dataset.tool, at: new Date().toISOString() }].slice(-20);
@@ -649,7 +797,8 @@ document.addEventListener('click', async event => {
   }
   if (target.hasAttribute('data-share')) return openShareDialog();
   if (target.hasAttribute('data-copy-figures')) {
-    const text = figuresText(buildShareData(appointment, branding()));
+    if (!appointmentCompleteness(appointment).complete) return showSummaryBlocked();
+    const text = figuresText(visibleFiguresData());
     await navigator.clipboard.writeText(text); toast('Figures copied.'); return;
   }
   if (target.hasAttribute('data-copy-link')) { await navigator.clipboard.writeText(target.dataset.url); await saveSummarySnapshot('summary_shared'); toast('Share link copied.'); return; }

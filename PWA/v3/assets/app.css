@@ -282,6 +282,19 @@ button.primary, button.secondary, button.quiet, button.danger-quiet, .action { m
 .partner strong { margin-top: 5px; }
 .history-hero { display: grid; gap: 4px; margin-bottom: 12px; padding: 17px; border-radius: 15px; background: var(--purple); color: #fff; }
 .history-hero strong { font-size: 34px; }
+.summary-gate { border-color: #edc65f; background: #fffaf0; }
+.summary-gate h2 { margin-bottom: 0; }
+.summary-gate ul { display: grid; gap: 6px; margin: 12px 0 0; padding-left: 20px; color: #5d4a15; font-size: 12px; }
+.gate-hint { margin: 8px 4px 0; }
+.meal-deal-card { padding: 16px; }
+.meal-deal-heading { display: flex; align-items: center; gap: 12px; }
+.meal-deal-heading h2, .meal-deal-heading p { margin: 0; }
+.meal-deal-heading p { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.meal-icon { font-size: 34px; }
+.preview-badge, .preview-banner { padding: 9px 12px; border-radius: 10px; background: #fff2c9; color: #654f0f; font-size: 11px; font-weight: 800; text-align: center; }
+.preview-badge { margin: 13px 0; }
+.preview-banner { border: 1px solid #efd47e; }
+.meal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
 
 /* Dialogs and utility */
 .modal { width: min(720px,calc(100% - 24px)); max-height: calc(100vh - 30px); overflow: auto; padding: 0; border: 0; border-radius: 20px; box-shadow: 0 28px 90px rgba(17,27,85,.32); }

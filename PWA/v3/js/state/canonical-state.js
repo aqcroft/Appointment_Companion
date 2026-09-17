@@ -1,4 +1,4 @@
-import { normalisePlanId } from '../rules/uw-rules-2026-10-01.js';
+import { UW_RULES_2026_10_01, normalisePlanId } from '../rules/uw-rules-2026-10-01.js';
 
 export const REGIONS = Object.freeze([
   ['10', 'Eastern'], ['11', 'East Midlands'], ['12', 'London'], ['13', 'Manweb'],
@@ -16,7 +16,7 @@ const text = (value, max = 500) => String(value || '').trim().slice(0, max);
 const bool = value => value === true || value === 'true' || value === 1 || value === '1';
 
 export function createSim(index = 0) {
-  return { name: `SIM ${index + 1}`, include: true, planId: 'essentialMax', currentMonthly: 0, exitFee: 0 };
+  return { name: `SIM ${index + 1}`, include: true, planId: '', currentMonthly: 0, uwMonthly: null, exitFee: 0 };
 }
 
 export function createAppointment(name = '') {
@@ -44,7 +44,7 @@ export function createAppointment(name = '') {
       homePhoneMonthly: 0, exitFee: 0, freeMonthsOffer: false
     },
     mobile: { simCount: 1, sims: [createSim(0)] },
-    boilerCover: { monthly: 25 },
+    boilerCover: { currentMonthly: 0, monthly: 25, exitFee: 0 },
     cashback: { enabled: true, tier: 'average', monthlySpend: 1000 },
     adjustments: {
       recurringEnabled: false, period: 'monthly', currentAmount: 0, uwAmount: 0,
@@ -52,6 +52,7 @@ export function createAppointment(name = '') {
       oneOffAmount: 0, oneOffLabel: ''
     },
     benefits: { referral: false, nationalLeague: false },
+    completion: { entered: [] },
     summary: { basketUrl: '', privateNotes: '', lastSharedAt: '' },
     activity: []
   };
@@ -72,6 +73,7 @@ export function normaliseAppointment(input = {}) {
     cashback: { ...defaults.cashback, ...(source.cashback || {}) },
     adjustments: { ...defaults.adjustments, ...(source.adjustments || {}) },
     benefits: { ...defaults.benefits, ...(source.benefits || {}) },
+    completion: { ...defaults.completion, ...(source.completion || {}) },
     summary: { ...defaults.summary, ...(source.summary || {}) }
   };
   out.schemaVersion = 3;
@@ -87,7 +89,9 @@ export function normaliseAppointment(input = {}) {
   out.energy.region = REGIONS.some(([id]) => id === String(out.energy.region)) ? String(out.energy.region) : '11';
   out.energy.fuel = ['electricity', 'gas', 'dual'].includes(out.energy.fuel) ? out.energy.fuel : 'dual';
   out.energy.electricityProfile = ['standard', 'economy7', 'ev'].includes(out.energy.electricityProfile) ? out.energy.electricityProfile : 'standard';
-  out.energy.peakOffPeak = out.energy.electricityProfile !== 'standard' || bool(out.energy.peakOffPeak);
+  const hasPeakOffPeak = Object.prototype.hasOwnProperty.call(source.energy || {}, 'peakOffPeak');
+  out.energy.peakOffPeak = hasPeakOffPeak ? bool(source.energy.peakOffPeak) : out.energy.electricityProfile !== 'standard';
+  if (!out.energy.peakOffPeak) out.energy.electricityProfile = 'standard';
   ['annualElectricityKwh', 'annualGasKwh', 'dayKwh', 'nightKwh', 'splitSampleDayKwh', 'splitSampleNightKwh',
     'electricityUwKwh', 'electricityBillKwh', 'electricityEstimatedKwh',
     'gasUwKwh', 'gasBillKwh', 'gasEstimatedKwh',
@@ -137,17 +141,27 @@ export function normaliseAppointment(input = {}) {
     : 'mixed';
   out.mobile.simCount = Math.max(1, Math.min(5, Math.round(finite(out.mobile.simCount, 1))));
   out.mobile.sims = Array.from({ length: out.mobile.simCount }, (_, index) => {
-    const sim = { ...createSim(index), ...(out.mobile.sims?.[index] || {}) };
+    const rawSim = out.mobile.sims?.[index] || {};
+    const sim = { ...createSim(index), ...rawSim };
     sim.name = text(sim.name || `SIM ${index + 1}`, 40);
     sim.include = sim.include !== false;
-    sim.planId = normalisePlanId(sim.planId || sim.uwPlan);
+    sim.planId = sim.planId || sim.uwPlan ? normalisePlanId(sim.planId || sim.uwPlan) : '';
     sim.currentMonthly = finite(sim.currentMonthly ?? sim.monthlyCost);
+    sim.uwMonthly = Object.prototype.hasOwnProperty.call(rawSim, 'uwMonthly')
+      ? rawSim.uwMonthly === null || rawSim.uwMonthly === '' ? null : finite(rawSim.uwMonthly)
+      : sim.planId
+        ? UW_RULES_2026_10_01.mobile[normalisePlanId(sim.planId)].monthly
+        : null;
     sim.exitFee = finite(sim.exitFee);
     delete sim.uwPlan;
     delete sim.monthlyCost;
     return sim;
   });
+  out.boilerCover.currentMonthly = finite(out.boilerCover.currentMonthly);
   out.boilerCover.monthly = finite(out.boilerCover.monthly, 25) || 25;
+  out.boilerCover.exitFee = finite(out.boilerCover.exitFee);
+  out.completion.entered = [...new Set((Array.isArray(out.completion.entered) ? out.completion.entered : [])
+    .map(value => text(value, 120)).filter(Boolean))];
   out.summary.basketUrl = text(out.summary.basketUrl, 500);
   out.summary.privateNotes = String(out.summary.privateNotes || '').slice(0, 5000);
   out.activity = Array.isArray(out.activity) ? out.activity.slice(-20) : [];

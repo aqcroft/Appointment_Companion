@@ -1,7 +1,7 @@
 import { calculateAppointment } from '../appointment/calculations.js';
 import { normaliseAppointment } from '../state/canonical-state.js';
 import { sanitiseShareData } from './share-policy.js';
-import { previewUpgrade } from '../appointment/upgrade-preview.js';
+import { mealDealSharePreview } from '../appointment/upgrade-preview.js';
 
 const encode = value => {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
@@ -45,7 +45,7 @@ export function buildShareData(input, branding = {}) {
     oneOff: result.oneOff,
     benefitsTotal: result.benefitsTotal,
     yearOneResult: result.yearOneResult,
-    upgradePreview: previewUpgrade(appointment),
+    mealDealPreview: mealDealSharePreview(appointment),
     basketUrl: appointment.summary.basketUrl,
     partnerName: branding.name || '',
     partnerRole: branding.role || 'Independent UW Partner',
@@ -66,8 +66,9 @@ export function figuresText(data) {
     `UW SAVINGS - FIRST 12 MONTHS${data.personName ? ` (${data.personName})` : ''}`,
     `Better off by: £${Math.round(Number(data.yearOneResult) || 0)}`,
     '',
-    `Monthly summary: £${Number(data.current?.total || 0).toFixed(2)} → £${Number(data.uw?.total || 0).toFixed(2)}`,
-    `Monthly service saving: £${Number(data.monthlyServiceSaving || 0).toFixed(2)}`,
+    `Monthly summary: £${Number(data.current?.total || 0).toFixed(2)} → £${Number(data.effectiveUwMonthly ?? data.uw?.total ?? 0).toFixed(2)} effective UW`,
+    `Raw UW service cost: £${Number(data.uw?.total || 0).toFixed(2)}`,
+    `Effective monthly saving: £${Number(data.effectiveMonthlySaving ?? data.monthlyServiceSaving ?? 0).toFixed(2)}`,
     `Service count: ${data.serviceCount}`,
     `Energy tariff: ${data.energyTariff ? `${data.energyTariff}-service` : 'Not selected'}`,
     `Welcome Bonus: £${Number(data.welcomeBonus || 0).toFixed(0)}`
