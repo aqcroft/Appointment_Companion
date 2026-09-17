@@ -9,6 +9,7 @@
     try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; }
     catch (_) { return ''; }
   }
+  function creatorPartnerId() { try { var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); if (a && a.partner_id) return String(a.partner_id).trim(); } catch (_) {} try { var p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null'); if (p && p.partner_id) return String(p.partner_id).trim(); } catch (_) {} return ''; }
   function envelope() { try { return bridge && bridge.receive ? bridge.receive() : null; } catch (_) { return null; } }
   function savedBasket() {
     var e = envelope(), c = e && e.extra && e.extra.customer;
@@ -39,9 +40,15 @@
     return out;
   }
 
-  function buildUrl(doc, win, basketUrl) {
+  function basePublicUrl() {
     var u = new URL(location.origin + location.pathname);
     u.searchParams.set('public', '1');
+    var pid = creatorPartnerId(); if (pid) u.searchParams.set('pid', pid);
+    return u;
+  }
+
+  function buildUrl(doc, win, basketUrl) {
+    var u = basePublicUrl();
     var s = scenario(doc, win);
     Object.keys(s).forEach(function (key) {
       if ((key === 'e' && s.f === 'gas') || (key === 'g' && s.f === 'elec') || (key === 'eh' && s.eh === '0') || (key === 't' && s.t === 'saver')) return;
@@ -67,16 +74,22 @@
       catch (e) { reject(e); }
     });
   }
+  async function nativeShare(doc, title, text, url, done) {
+    if (navigator.share) {
+      try { await navigator.share({ title: title, text: text, url: url }); toast(doc, done); return; }
+      catch (error) { if (error && error.name === 'AbortError') return; }
+    }
+    try { await copyText(url); toast(doc, done.replace('shared', 'copied')); }
+    catch (_) { global.prompt('Copy this link:', url); }
+  }
   async function shareResult(doc, win, basketUrl) {
     var name = cleanName((doc.getElementById('sifCustomerName') || {}).value);
     var url = buildUrl(doc, win, basketUrl);
     var text = name ? 'Hi ' + name + ' - here is the energy comparison we looked at.' : 'Here is the energy comparison we looked at.';
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Your Should I Fix? comparison', text: text, url: url }); toast(doc, 'Personalised result shared'); return; }
-      catch (error) { if (error && error.name === 'AbortError') return; }
-    }
-    try { await copyText(url); toast(doc, 'Personalised result copied'); }
-    catch (_) { global.prompt('Copy this link:', url); }
+    await nativeShare(doc, 'Your Should I Fix? comparison', text, url, 'Personalised result shared');
+  }
+  async function shareTool(doc) {
+    await nativeShare(doc, 'Should I Fix?', 'A simple way to explore whether fixing your energy could make sense.', basePublicUrl().href, 'Public tool shared');
   }
 
   function ensureGateStyle() {
@@ -114,13 +127,19 @@
     var doc = frame.contentDocument, win = frame.contentWindow;
     var old = doc.getElementById('sifShareResult');
     if (!old) return false;
-    if (old.dataset.acBasketGate === '1') return true;
-    var fresh = old.cloneNode(true); fresh.dataset.acBasketGate = '1'; old.parentNode.replaceChild(fresh, old);
-    fresh.addEventListener('click', async function () {
-      var choice = await chooseBasket();
-      if (!choice || choice.cancelled) return;
-      await shareResult(doc, win, choice.basket);
-    });
+    if (old.dataset.acBasketGate !== '1') {
+      var fresh = old.cloneNode(true); fresh.dataset.acBasketGate = '1'; old.parentNode.replaceChild(fresh, old);
+      fresh.addEventListener('click', async function () {
+        var choice = await chooseBasket();
+        if (!choice || choice.cancelled) return;
+        await shareResult(doc, win, choice.basket);
+      });
+    }
+    var toolOld = doc.getElementById('sifShareTool');
+    if (toolOld && toolOld.dataset.acPartnerShare !== '1') {
+      var toolFresh = toolOld.cloneNode(true); toolFresh.dataset.acPartnerShare = '1'; toolOld.parentNode.replaceChild(toolFresh, toolOld);
+      toolFresh.addEventListener('click', function () { shareTool(doc); });
+    }
     return true;
   }
 
