@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UW EV Tariff Companion (unofficial) v10</title>
+<link rel="stylesheet" href="v10-ev.css">
+</head>
+<body>
+<div class="loading" id="loadingModal" role="status" aria-live="polite">
+  <div class="loading-card"><div class="spinner"></div><div class="loading-title" id="loadingTitle">Loading live UW tariff data…</div><div class="loading-copy" id="loadingCopy">Checking the latest rates before calculating.</div></div>
+</div>
+<div class="wrap">
+<header><h1>⚡ UW EV Tariff Companion <span class="unofficial">(unofficial)</span></h1></header>
+<div class="strip"><span class="dot" id="feedDot"></span><span id="rateStrip">Loading live tariff data…</span></div>
+
+<section class="hero">
+  <div class="hero-head">
+    <div class="hero-title" id="heroTitle">Selected EV tariff · 3 UW services</div>
+    <div class="hero-controls">
+      <div class="series" title="Fixed tariff series loaded from the live tariff rows"><div class="n" id="fixedSeries">—</div><div class="l">FIXED</div></div>
+      <div class="toggle" id="periodToggle"><button class="on" data-period="month">Monthly</button><button data-period="year">Year</button></div>
+    </div>
+  </div>
+  <div class="hero-grid">
+    <div class="hero-box car"><div class="k"><span id="heroCarIcon">🚙</span> Car</div><div class="v" id="heroCar">£—</div><div class="meta" id="carMeta">🔌 — kWh charging</div></div>
+    <div class="hero-box"><div class="k">🏠 Home</div><div class="v" id="heroHome">£—</div><div class="meta" id="homeMeta">🏠 — kWh home</div></div>
+    <div class="hero-box"><div class="k">🏠 + <span id="heroTotalIcon">🚙</span> Home + car</div><div class="v" id="heroTotal">£—</div><div class="meta" id="totalMeta">⚡ — kWh total</div></div>
+  </div>
+  <div class="hero-tariff"><strong id="heroTariff">EV Double Gold</strong> <span>(variable - subject to quarterly changes)</span></div>
+</section>
+
+<section class="card">
+  <div class="label">The car</div>
+  <div class="vpills" id="vehiclePills">
+    <button class="vpill" data-eff="3.8" data-icon="🚗"><span class="ico">🚗</span><span>Family hatchback<small>3.8 mi/kWh</small></span></button>
+    <button class="vpill on" data-eff="3.2" data-icon="🚙"><span class="ico">🚙</span><span>Family SUV<small>3.2 mi/kWh</small></span></button>
+    <button class="vpill" data-eff="2.8" data-icon="🚘"><span class="ico">🚘</span><span>Large SUV / 7-seat<small>2.8 mi/kWh</small></span></button>
+    <button class="vpill" data-eff="2.5" data-icon="🚐"><span class="ico">🚐</span><span>Van / less efficient<small>2.5 mi/kWh</small></span></button>
+  </div>
+  <div class="range-title"><b>Annual mileage</b><span id="milesDisplay">10,000 miles</span></div>
+  <input id="miles" type="range" min="1000" max="30000" step="500" value="10000"><div class="ends"><span>1,000</span><span>30,000</span></div>
+</section>
+
+<section class="card">
+  <div class="label">Home usage (no EV)</div>
+  <div class="usage" id="usagePills">
+    <button data-use="low">Low<small>1,600 kWh</small></button>
+    <button data-use="medium" class="on">Medium<small>2,500 kWh</small></button>
+    <button data-use="high">High<small>3,800 kWh</small></button>
+    <button data-use="custom">Custom<small>actual use</small></button>
+  </div>
+  <div class="usage-note" id="usageNote">2,500 kWh/year</div>
+  <div class="custom" id="customWrap"><div class="custom-row"><input id="houseKwh" type="number" value="2500" min="0" step="100" inputmode="numeric"><span class="unit">kWh/year</span></div></div>
+
+  <div class="e7panel">
+    <div class="e7head"><b>Economy 7 home split</b><span>used for E7 comparisons</span></div>
+    <div class="e7grid">
+      <div class="e7box"><label for="e7DayKwh">☀️ Day kWh</label><input id="e7DayKwh" type="number" value="2125" min="0" step="1" inputmode="numeric"></div>
+      <div class="e7box"><label for="e7NightKwh">🌙 Night kWh</label><input id="e7NightKwh" type="number" value="375" min="0" step="1" inputmode="numeric"></div>
+    </div>
+    <div class="e7sliderrow"><input id="e7NightSlider" type="range" min="0" max="70" step="1" value="15"><span id="e7SplitLabel">15% night</span></div>
+    <div class="e7hint">Defaults to 15% at night based on the home usage above. Use the slider for a quick estimate, or edit the day/night kWh figures if a bill provides the actual split.</div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="label">Number of UW services</div>
+  <div class="svc" id="serviceButtons">
+    <button data-tier="0"><span class="num">1</span><span class="desc">Energy only</span></button>
+    <button data-tier="1"><span class="num">2</span><span class="desc">Energy +1</span></button>
+    <button class="on" data-tier="2"><span class="num">3</span><span class="desc">Energy +2</span></button>
+  </div>
+</section>
+
+<section class="card">
+  <div class="section-title">⚡ Compare tariffs</div>
+  <div class="section-copy">EV first, then the variable and fixed alternatives. Tap any figure to expand Home / Car / Total.</div>
+  <div class="stressbar"><div class="stresslabel">Indicative variable uplift</div><div class="stressbuttons" id="stressButtons"><button class="on" data-stress="0">Current</button><button data-stress="5">+5%</button><button data-stress="10">+10%</button><button data-stress="15">+15%</button></div></div>
+  <div class="stressnote" id="stressNote">Directional only. The uplift is applied to today's calculated variable electricity costs - it is not an Ofgem forecast or a prediction of how unit rates and standing charges will move.</div>
+  <div class="tablewrap"><table><thead><tr><th class="rowh">Services</th><th class="numh" id="th0">1</th><th class="numh" id="th1">2</th><th class="numh sel" id="th2">3</th></tr></thead><tbody id="comparison"></tbody></table></div>
+  <div class="foot">Totals include home electricity, standing charge and home EV charging. Public charging is separate. Variable tariffs can change. Stress scenarios are illustrative only.</div>
+</section>
+
+<details><summary>⚙️ Settings & assumptions</summary><div class="settings">
+  <div class="field"><label>Electricity region</label><select id="region"><option value="10">10 Eastern</option><option value="11" selected>11 East Midlands</option><option value="12">12 London</option><option value="13">13 Manweb</option><option value="14">14 Midlands</option><option value="15">15 Northern</option><option value="16">16 Norweb</option><option value="17">17 Scottish Hydro</option><option value="18">18 Scottish Power</option><option value="19">19 Seeboard</option><option value="20">20 Southern</option><option value="21">21 Swalec</option><option value="22">22 Sweb</option><option value="23">23 Yorkshire</option></select></div>
+  <div class="field"><label>Home use in EV cheap window %</label><input id="evNightPct" type="number" value="10" min="0" max="50" step="1"></div>
+  <div class="two"><div class="field"><label>Charged away from home %</label><input id="awayPct" type="number" value="0" min="0" max="100" step="1"></div><div class="field"><label>Public charging p/kWh</label><input id="awayRate" type="number" value="50" min="0" step="1"></div></div>
+  <div class="two"><div class="field"><label>Efficiency override mi/kWh</label><input id="effOverride" type="number" placeholder="use car button" min="1" max="8" step="0.1"></div><div class="field"><label>Known annual EV use kWh</label><input id="knownEvKwh" type="number" placeholder="optional" min="0" step="100"></div></div>
+  <div class="switchrow"><span>Gas also with UW</span><label class="switch"><input id="dualFuel" type="checkbox" checked><span class="track"></span></label></div>
+  <div class="feednote" id="feedNote">Loading the Google Sheet tariff feed…</div>
+</div></details>
+<p class="smallnote">Illustrative comparison tool, not a quote or Budget Plan. Variable and EV rates may change. Fixed tariffs may have exit fees.</p>
+</div>
+<script src="v10-ev.js"></script>
+</body>
+</html>

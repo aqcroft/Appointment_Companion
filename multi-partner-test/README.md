@@ -1,1 +1,0 @@
-Temporary isolated test snapshot placeholder.

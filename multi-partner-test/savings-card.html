@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Your UW Savings</title>
+<style>
+:root {
+  --purple: #008C82;
+  --pink: #E63384;
+  --ink: #1f1f24;
+  --muted: #6b6b76;
+  --line: #e6e2ef;
+  --bg: #f6f4fa;
+  --good: #1d9b50;
+  --bad: #c43b3b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  padding: 1.2rem 0.75rem 2.5rem;
+}
+.wrap { max-width: 430px; margin: 0 auto; }
+.hidden { display: none !important; }
+.sub { font-size: 12px; color: var(--muted); }
+.sharecard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(40,20,70,0.14); }
+.sc-hero { text-align: center; padding: 1.45rem 1rem 1.4rem; background: linear-gradient(150deg, var(--purple) 0%, var(--pink) 100%); color: white; }
+.beta-badge { display:inline-flex; margin-bottom:0.35rem; padding:2px 7px; border-radius:999px; background:rgba(255,255,255,0.2); color:white; font-size:10px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; }
+.sc-hero .eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.6px; opacity: 0.95; }
+.sc-hero .big { font-size: 54px; font-weight: 800; line-height: 1.05; margin: 0.25rem 0 0.15rem; letter-spacing: -1px; }
+.sc-hero .tag { font-size: 14px; font-weight: 600; opacity: 0.95; }
+.sc-hero .who { font-size: 12.5px; opacity: 0.85; margin-top: 0.4rem; }
+.sc-body { padding: 1rem 1.1rem 0.4rem; }
+.sc-line { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; padding: 5px 0; font-size: 14px; border-bottom: 1px solid #f4f1fa; }
+.sc-line:last-of-type { border-bottom: none; }
+.sc-line .k { min-width: 0; }
+.sc-line .v { font-weight: 700; white-space: nowrap; }
+.sc-line .v.good { color: var(--good); }
+.sc-line .v.bad { color: var(--bad); }
+.sc-line .v.neutral { color: #b08000; }
+.sc-line.sumrow { border-top: 1.5px solid var(--line); margin-top: 2px; }
+.sc-line.sumrow .k { font-weight: 700; }
+.sc-line.sumrow .v { font-weight: 800; color: var(--purple); }
+.sc-line.sumrow .v.good { color: var(--good); }
+.sc-line.sumrow .v.bad { color: var(--bad); }
+table.detail { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.6rem; table-layout: fixed; }
+table.detail th { text-align: right; font-size: 11px; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 2px solid var(--line); }
+table.detail th:first-child, table.detail td:first-child { text-align: left; }
+table.detail td { padding: 7px 6px; text-align: right; border-bottom: 1px solid #f0edf7; vertical-align: top; }
+table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); border-bottom: none; }
+table.detail td.good { color: var(--good); font-weight: 800; }
+table.detail td.bad { color: var(--bad); font-weight: 800; }
+table.detail td.neutral { color: #b08000; font-weight: 800; }
+.basket-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 0.75rem; margin:0.2rem 0 0.7rem;
+  border:1px solid rgba(122,66,200,0.15); border-radius:10px;
+  background:rgba(122,66,200,0.03);
+}
+.basket-icons { display:flex; gap:9px; font-size:16px; align-items:center; }
+.basket-icon { position:relative; opacity:1; transition: opacity 0.15s; }
+.basket-icon.could { opacity:0.15; }
+.basket-icon .sup { position:absolute; top:-6px; right:-6px; font-size:9px; line-height:1; }
+.basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
+.basket-count { font-size:11px; font-weight:700; color: var(--muted); white-space:nowrap; }
+.sc-maths { margin: 0.4rem 0 0.2rem; }
+.sc-maths summary { font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 5px 0; list-style-position: inside; }
+.sc-maths table.detail { margin-top: 0.2rem; }
+.cashback-note { font-size: 10.5px; color: var(--muted); margin-top: 0.4rem; line-height: 1.4; }
+.sc-note { font-size: 10.5px; color: #9a96a8; padding: 0.95rem 1.1rem 0.7rem; line-height: 1.45; }
+.sc-brand { text-align: center; padding: 1.7rem 1.25rem 1.6rem; background: #faf8ff; border-top: 1px solid #f0ecfa; margin-top: 0.8rem; }
+.sc-brand .sc-join { display: inline-block; margin-bottom: 1.25rem; font-size: 13.5px; font-weight: 800; color: white; background: var(--purple); border-radius: 999px; padding: 12px 26px; text-decoration: none; letter-spacing: 0.1px; box-shadow: 0 4px 14px rgba(0,140,130,0.3); }
+.sc-brand .nm { font-size: 15px; font-weight: 800; }
+.sc-brand .rl { font-size: 11.5px; color: var(--purple); font-weight: 700; margin-top: 3px; }
+.sc-brand .str { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.md-note { font-size: 12px; color: #7a6000; background: #fffbf0; border: 1px solid #ede5c8; border-radius: 8px; padding: 0.55rem 0.7rem; margin: 0 0 0.7rem; line-height: 1.5; }
+.exit-block { margin-top:0.5rem; padding:0.6rem 0.85rem; background:#fffbf0; border-radius:8px; border:1px solid #ede5c8; }
+.exit-block div { font-size:12px; color:#7a6000; line-height:1.6; }
+.notfound { text-align: center; padding: 3rem 1.5rem; color: var(--muted); }
+.notfound .big { font-size: 32px; margin-bottom: 0.6rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sharecard hidden" id="shareCard">
+    <div class="sc-hero">
+      <div><span class="beta-badge">Beta</span></div>
+      <div class="eyebrow">Year one in your pocket</div>
+      <div class="big">£<span id="scHero">0</span></div>
+      <div class="tag">one app · one password · one bill</div>
+      <div class="who" id="scWho"></div>
+    </div>
+    <div class="sc-body">
+      <div class="basket-row" id="basketRow">
+        <div class="basket-icons">
+          <span class="basket-icon basket-icon-grouped hidden" id="biEnergy" title="Energy">⚡🔥</span>
+          <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
+          <span class="basket-icon" id="biMobileOne" title="Mobile SIM">📱</span>
+          <span class="basket-icon" id="biMobileTwo" title="Mobile SIM">📱</span>
+          <span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>
+        </div>
+        <div class="basket-count" id="basketCount">0 services</div>
+      </div>
+      <p id="mdNote" class="md-note hidden"></p>
+      <table class="detail">
+        <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+        <thead><tr><th></th><th>Current</th><th>UW*</th><th>Saving</th></tr></thead>
+        <tbody>
+          <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
+        </tbody>
+      </table>
+      <p class="sub" id="ddNote" style="font-size:11px; margin-top:0.25rem;">* monthly direct debit, minus estimated cashback</p>
+      <div class="sc-line sumrow" style="margin-top:0.5rem;">
+        <span class="k">Year-one Savings on Services</span>
+        <span class="v" id="annualServiceSavings">£0</span>
+      </div>
+      <details class="sc-maths">
+        <summary>Breakdown</summary>
+        <table class="detail">
+          <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <tbody>
+            <tr id="scEnergyRow" class="hidden"><td>⚡🔥 Energy</td><td id="scEnergyNow"></td><td id="scEnergyUw"></td><td id="scEnergySave"></td></tr>
+            <tr id="scBbRow" class="hidden"><td>🛜 Broadband</td><td id="scBbNow"></td><td id="scBbUw"></td><td id="scBbSave"></td></tr>
+            <tr id="scMobRow" class="hidden"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
+            <tr id="scInsuranceRow" class="hidden"><td>🛡️ Insurance</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>
+            <tr id="scAdjustRow" class="hidden"><td>✏️ Adjustment</td><td id="scAdjustNow"></td><td id="scAdjustUw"></td><td id="scAdjustSave"></td></tr>
+            <tr id="scAdjustNoteRow" class="hidden"><td colspan="4" style="font-size:11px; color:var(--muted); font-weight:600; padding-top:0; padding-bottom:8px; border-bottom:1px solid #f0edf7;"></td></tr>
+            <tr class="tot"><td>Subtotal</td><td id="scSubtotNow"></td><td id="scSubtotUw"></td><td id="scSubtotSave"></td></tr>
+            <tr id="scCbRow" class="hidden"><td>💳 Cashback**</td><td>&mdash;</td><td id="scCbUw"></td><td id="scCbSave"></td></tr>
+            <tr class="tot"><td>Total</td><td id="scBdTotNow"></td><td id="scBdTotUw"></td><td id="scBdTotSave"></td></tr>
+          </tbody>
+        </table>
+        <p class="cashback-note hidden" id="scCashbackNote">** average cashback, £1,000 monthly spend</p>
+      </details>
+      <div class="sc-line sumrow" style="margin-top:0.5rem;">
+        <span class="k">Year-one Welcome Bonuses</span>
+        <span class="v" id="scBenefitsTotal">£0</span>
+      </div>
+      <details class="sc-maths">
+        <summary>Breakdown</summary>
+        <div class="sc-line hidden" id="scReferralRow"><span class="k">🤝 Referral bonus</span><span class="v good" id="scReferral">£0</span></div>
+        <div class="sc-line hidden" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 6m free Full Fibre (6m @ £0)</span><span class="v good" id="scBbFree">£0</span></div>
+        <div class="sc-line hidden" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 6m free Unlimited SIM (6m @ £10)</span><span class="v good" id="scMobileFree">£0</span></div>
+        <div class="sc-line hidden" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
+        <div class="sc-line hidden" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
+        <div class="sc-line hidden" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
+        <div class="sc-line hidden" id="scExitDeductionRow"><span class="k">⚠️ Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
+      </details>
+      <div id="scExitBlock" class="exit-block hidden"><div id="scExitMsg"></div></div>
+    </div>
+    <p class="sc-note" id="scEstimateNote">Estimate based on prices as at today. Not a formal quote.</p>
+    <div class="sc-brand">
+      <a class="sc-join" id="scJoinLink" href="https://uw.partners/adrian.croft/join" target="_blank" rel="noopener">Start saving here →</a>
+      <div class="nm">Adrian Croft</div>
+      <div class="rl">UW Authorised Partner · Market Harborough</div>
+      <div class="str">Giving people financial breathing space</div>
+    </div>
+  </div>
+  <div class="notfound hidden" id="notFound">
+    <div class="big">🔗</div>
+    <p>This link doesn't seem to have any figures attached to it.</p>
+    <p class="sub" style="margin-top:0.4rem;">Please ask for a fresh link.</p>
+  </div>
+</div>
+<script>
+const DEFAULT_JOIN_URL = 'https://uw.partners/adrian.croft/join';
+const EXIT_REFUND = { minServices: 3, maxRefund: 400 };
+const MOBILE_EXTRA_M7_12 = 10;
+const CASHBACK_FREE_MONTHS = 3;
+const CARD_FEE_MONTHLY = 3;
+const BROADBAND_FREE_MONTHS = 6;
+const MOBILE_FREE_MONTHS = 6;
+const BOILER_FREE_MONTHS = 3;
+function $(id) { return document.getElementById(id); }
+function b64urlDecode(str) {
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  return decodeURIComponent(escape(atob(b64)));
+}
+function money(n) {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  const dp = v % 1 !== 0 ? 2 : 0;
+  return v.toLocaleString('en-GB', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+function fmt(v) { return (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)); }
+function saveLine(el, val) {
+  el.textContent = fmt(val);
+  el.classList.toggle('bad', val < 0);
+  el.classList.toggle('good', val > 0);
+}
+function cashbackBasisText(tier, spend) {
+  const spendText = '£' + (spend || 1000).toLocaleString('en-GB') + ' monthly spend';
+  if (tier === 'low') return '** 1% cashback estimate, ' + spendText;
+  if (tier === 'high') return '** top earners cashback estimate, ' + spendText;
+  return '** average cashback, ' + spendText;
+}
+function estimateDateText(isoDate) {
+  const d = isoDate ? new Date(isoDate + 'T00:00:00') : new Date();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function setMoney(id, value) { $(id).textContent = fmt(value); }
+function render(d) {
+  const g = (k, def) => (d[k] !== undefined ? d[k] : (def !== undefined ? def : 0));
+  const f = g('f');
+  const hasEnergy = !!(f & 1);
+  const hasBroadband = !!(f & 2);
+  const hasMobile = !!(f & 4);
+  const cbOn = !!(f & 8);
+  const refunded = !!(f & 16);
+  const cn = g('cn');
+  const cT = g('cT'), uT = g('uT'), sM = g('sM');
+  const totUw = uT - (cbOn ? cn : 0);
+  const totSave = cT - totUw;
+  const annual = Math.round((sM + (cbOn ? cn : 0)) * 12);
+  const md = g('md');
+  const ct = g('ct');
+  const hero = g('y');
+  $('scHero').textContent = (hero < 0 ? '−' : '') + Math.abs(hero).toLocaleString('en-GB');
+  const nm = g('n', '');
+  $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
+  $('biEnergy').classList.toggle('hidden', !hasEnergy);
+  $('biBroadband').classList.toggle('could', !hasBroadband);
+  const includedSims = g('is', hasMobile ? 2 : 0);
+  $('biMobileOne').classList.toggle('could', includedSims < 1 && md < 1);
+  $('biMobileTwo').classList.toggle('could', includedSims < 2 && md < 2);
+  $('biInsurance').classList.toggle('could', g('it') === 0);
+  $('basketCount').textContent = ct + ' service' + (ct === 1 ? '' : 's');
+  if (md > 0) {
+    $('mdNote').classList.remove('hidden');
+    $('mdNote').textContent = 'Includes ' + md + ' extra meal deal SIM' + (md === 1 ? '' : 's') + ' — please ask about ' + (md === 1 ? 'this' : 'these') + '.';
+  }
+  setMoney('totNow', cT);
+  setMoney('totUw', totUw);
+  saveLine($('totSave'), totSave);
+  $('annualServiceSavings').textContent = fmt(annual);
+  $('annualServiceSavings').classList.toggle('good', annual > 0);
+  $('annualServiceSavings').classList.toggle('bad', annual < 0);
+  const freeItems = [];
+  if (g('bf') > 0) freeItems.push('broadband');
+  if (g('mf') > 0) freeItems.push('mobile SIM');
+  let ddNote = '* monthly direct debit';
+  if (freeItems.length) ddNote += ', once your free ' + freeItems.join(' and ') + ' months end';
+  if (cbOn) ddNote += ', minus estimated cashback';
+  $('ddNote').textContent = ddNote;
+  $('scEnergyRow').classList.toggle('hidden', !hasEnergy);
+  if (hasEnergy) {
+    setMoney('scEnergyNow', g('cE'));
+    setMoney('scEnergyUw', g('uE'));
+    saveLine($('scEnergySave'), g('cE') - g('uE'));
+  }
+  $('scBbRow').classList.toggle('hidden', !hasBroadband);
+  if (hasBroadband) {
+    setMoney('scBbNow', g('cB'));
+    setMoney('scBbUw', g('uB'));
+    saveLine($('scBbSave'), g('cB') - g('uB'));
+  }
+  $('scMobRow').classList.toggle('hidden', !hasMobile);
+  if (hasMobile) {
+    setMoney('scMobNow', g('cM'));
+    setMoney('scMobUw', g('uM'));
+    const mobSave = g('cM') - g('uM');
+    saveLine($('scMobSave'), mobSave);
+    const mobNeutral = mobSave < 0 && md > 0;
+    $('scMobSave').classList.toggle('neutral', mobNeutral);
+    if (mobNeutral) $('scMobSave').classList.remove('bad');
+    $('scMobRow').querySelector('td').textContent = '📱 Mobile' + (md > 0 ? ' ' + '🥪'.repeat(md) : '');
+  }
+  const it = g('it');
+  $('scInsuranceRow').classList.toggle('hidden', it === 0);
+  if (it > 0) {
+    $('scInsuranceUw').textContent = fmt(it);
+    saveLine($('scInsuranceSave'), -it);
+  }
+  const mac = g('mac'), mau = g('mau');
+  const adjustOn = mac !== 0 || mau !== 0;
+  $('scAdjustRow').classList.toggle('hidden', !adjustOn);
+  if (adjustOn) {
+    setMoney('scAdjustNow', mac);
+    setMoney('scAdjustUw', mau);
+    saveLine($('scAdjustSave'), mac - mau);
+  }
+  const reasons = [];
+  if (g('macr', '')) reasons.push('Current: ' + g('macr', ''));
+  if (g('maur', '')) reasons.push('UW: ' + g('maur', ''));
+  $('scAdjustNoteRow').classList.toggle('hidden', !adjustOn || reasons.length === 0);
+  if (reasons.length) $('scAdjustNoteRow').querySelector('td').textContent = reasons.join(' · ');
+  setMoney('scSubtotNow', cT);
+  setMoney('scSubtotUw', uT);
+  saveLine($('scSubtotSave'), sM);
+  $('scCbRow').classList.toggle('hidden', !cbOn);
+  $('scCashbackNote').classList.toggle('hidden', !cbOn);
+  if (cbOn) {
+    const cbUwVal = -cn;
+    $('scCbUw').textContent = fmt(cbUwVal);
+    $('scCbUw').classList.toggle('good', cbUwVal < 0);
+    $('scCbUw').classList.toggle('bad', cbUwVal > 0);
+    saveLine($('scCbSave'), cn);
+    $('scCashbackNote').textContent = cashbackBasisText(g('cbt', 'med'), g('cs', 1000));
+  }
+  setMoney('scBdTotNow', cT);
+  setMoney('scBdTotUw', totUw);
+  saveLine($('scBdTotSave'), totSave);
+  const bf = g('bf'), w = g('w'), rf = g('rf'), mf = g('mf'), bcf = g('bcf'), ed = g('ed'), fm = g('fm'), au = g('au'), bc = g('bc');
+  $('scReferralRow').classList.toggle('hidden', rf === 0);
+  $('scReferral').textContent = '£' + money(rf);
+  $('scBbFreeRow').classList.toggle('hidden', bf === 0);
+  $('scBbFree').textContent = '£' + money(bf);
+  $('scBbFreeLabel').textContent = '🛜 ' + BROADBAND_FREE_MONTHS + 'm free Full Fibre (' + BROADBAND_FREE_MONTHS + 'm @ £' + Math.round(g('uBr')) + ')';
+  $('scMobileFreeRow').classList.toggle('hidden', mf === 0);
+  $('scMobileFree').textContent = '£' + money(mf);
+  $('scMobileFreeLabel').textContent = '📱 ' + MOBILE_FREE_MONTHS + 'm free Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' × ' : '') + MOBILE_FREE_MONTHS + 'm @ £' + MOBILE_EXTRA_M7_12 + ')';
+  $('scWelcomeRow').classList.toggle('hidden', w === 0);
+  $('scWelcomeLabel').textContent = '💷 Cashback bonus (' + (w / 50) + 'm @ £50)';
+  $('scWelcome').textContent = '£' + money(w);
+  $('scCardFeeRow').classList.toggle('hidden', !cbOn);
+  $('scCardFee').textContent = '+£' + money(fm);
+  $('scCardFeeLabel').textContent = '💳 ' + CASHBACK_FREE_MONTHS + 'm free card fee (' + CASHBACK_FREE_MONTHS + 'm @ £' + CARD_FEE_MONTHLY + ')';
+  $('scBoilerFreeRow').classList.toggle('hidden', bcf === 0);
+  $('scBoilerFree').textContent = '£' + money(bcf);
+  $('scBoilerFreeLabel').textContent = '🛡️ ' + BOILER_FREE_MONTHS + 'm free Boiler Cover (' + BOILER_FREE_MONTHS + 'm @ £' + bc + ')';
+  $('scExitDeductionRow').classList.toggle('hidden', ed === 0);
+  $('scExitDeduction').textContent = '−£' + money(ed);
+  const ef = g('ef');
+  if (ef === 0) {
+    $('scExitBlock').classList.add('hidden');
+  } else {
+    $('scExitBlock').classList.remove('hidden');
+    const maxR = EXIT_REFUND.maxRefund;
+    let msg;
+    if (refunded && ed === 0) {
+      msg = '↩️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
+    } else if (refunded && ed > 0) {
+      msg = '↩️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>£' + money(ed) + " still to pay, already included above — so you're still better off";
+    } else {
+      const needed = Math.max(0, EXIT_REFUND.minServices - ct);
+      msg = '⚠️ £' + money(ef) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
+    }
+    $('scExitMsg').innerHTML = msg;
+  }
+  const benefitsTotal = bf + w + rf + mf + bcf + (cbOn ? fm : 0) - ed;
+  $('scBenefitsTotal').textContent = fmt(benefitsTotal);
+  $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
+  $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
+  const link = g('bl', '');
+  $('scJoinLink').href = link || DEFAULT_JOIN_URL;
+  $('scJoinLink').textContent = link ? 'Open your basket →' : 'Start saving here →';
+  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText(g('dt', '')) + '. Not a formal quote.';
+  $('shareCard').classList.remove('hidden');
+}
+function init() {
+  try {
+    const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('d');
+    if (!encoded) throw new Error('no data in link');
+    render(JSON.parse(b64urlDecode(encoded)));
+  } catch (e) {
+    $('notFound').classList.remove('hidden');
+  }
+}
+init();
+</script>
+</body>
+</html>

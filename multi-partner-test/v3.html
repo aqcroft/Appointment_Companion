@@ -1,0 +1,2352 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appointment Companion v2 — UW Savings</title>
+<style>
+:root {
+  --purple: #7A42C8;
+  --purple-dark: #5a2d9f;
+  --pink: #E63384;
+  --ink: #1f1f24;
+  --muted: #6b6b76;
+  --line: #e6e2ef;
+  --bg: #f6f4fa;
+  --card: #ffffff;
+  --good: #1d9b50;
+  --bad: #c43b3b;
+  --radius: 14px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  padding-bottom: 96px; /* room for sticky result bar */
+}
+.wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
+@media (min-width: 900px) { .wrap { max-width: 720px; } }
+
+/* ===== Header ===== */
+header { padding: 0.5rem 0 1rem; }
+header h1 { font-size: 20px; font-weight: 800; color: var(--purple); letter-spacing: -0.3px; }
+header p { font-size: 12.5px; color: var(--muted); }
+.beta-badge {
+  display: inline-flex; align-items: center; vertical-align: middle;
+  margin-left: 6px; padding: 2px 7px; border-radius: 999px;
+  background: rgba(230,51,132,0.12); color: var(--pink);
+  font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+}
+.card h2 {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; color: var(--purple); margin-bottom: 0.75rem;
+}
+.sub { font-size: 12px; color: var(--muted); }
+
+/* ===== Inputs ===== */
+label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+input[type="text"], input[type="number"] {
+  width: 100%; padding: 12px; font-size: 16px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; background: #fbfaff;
+}
+input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(122,66,200,0.12); }
+input.err, button.err { border-color: var(--bad); box-shadow: 0 0 0 3px rgba(196,59,59,0.15); }
+input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); }
+.field { margin-bottom: 0.8rem; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+
+/* Money inputs with £ prefix */
+.money { position: relative; }
+.money::before { content: "£"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; }
+.money input { padding-left: 26px; }
+
+/* ===== Pills / toggles ===== */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill {
+  flex: 1; min-height: 46px; padding: 8px 12px;
+  border: 1.5px solid var(--line); border-radius: 12px; background: white;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.15s; color: var(--ink);
+}
+.pill.on { background: var(--purple); border-color: var(--purple); color: white; }
+.pill:focus-visible { outline: 3px solid rgba(122,66,200,0.35); outline-offset: 2px; }
+.pill.gated { opacity: 0.45; cursor: not-allowed; }
+#manualAdjustCard h2, #manualAdjustCard .switchrow .lbl,
+#manualAdjustFields label, #manualAdjustFields input { color: var(--muted); }
+
+.switchrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.switchrow span.lbl { font-size: 14px; font-weight: 600; }
+.switch { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 100%; height: 100%; position: absolute; cursor: pointer; z-index: 2; }
+.switch .track { position: absolute; inset: 0; background: #d8d3e6; border-radius: 999px; transition: background 0.15s; }
+.switch .track::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
+  background: white; border-radius: 50%; transition: left 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.switch input:checked + .track { background: var(--purple); }
+.switch input:checked + .track::after { left: 23px; }
+
+/* ===== Now / UW split ===== */
+.nowuw { display: grid; grid-template-columns: 1fr; gap: 0.8rem; }
+@media (min-width: 640px) { .nowuw { grid-template-columns: 1fr 1fr; } }
+.side { border: 1px dashed var(--line); border-radius: 10px; padding: 0.75rem; }
+.side.uw { border-style: solid; border-color: #ded0f5; background: #faf7ff; }
+.side .tag { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 0.6rem; display: block; }
+.side.uw .tag { color: var(--purple); }
+
+/* ===== SIM cards ===== */
+.sim {
+  border: 1px solid var(--line); border-radius: 10px; padding: 0.75rem; margin-bottom: 0.7rem; background: #fdfcff;
+}
+.sim.off { opacity: 0.45; }
+.sim-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
+.sim-head input[type="text"] { flex: 1; padding: 8px 10px; font-size: 14px; }
+.planpills { display: flex; gap: 6px; }
+.planpills .pill { min-height: 40px; font-size: 12.5px; padding: 6px 8px; }
+.plannote { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ===== Slider ===== */
+input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: var(--line); -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--purple); cursor: pointer; box-shadow: 0 2px 6px rgba(122,66,200,0.35);
+}
+input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: var(--purple); border: none; }
+
+.cbchips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0.8rem; }
+.cbchip { border-radius: 10px; padding: 0.6rem; text-align: center; border: 1px solid var(--line); cursor: pointer; user-select: none; }
+.cbchip .pct { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.cbchip .amt { font-size: 18px; font-weight: 800; }
+.cbchip .yr { font-size: 11px; color: var(--muted); }
+.cbchip.used { border-color: var(--purple); background: #f6f0ff; }
+.cbchip.used .pct { color: var(--purple); }
+
+/* ===== Detail table ===== */
+details summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--purple); padding: 4px 0; }
+table.detail { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.6rem; table-layout: fixed; }
+table.detail th { text-align: right; font-size: 11px; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 2px solid var(--line); }
+table.detail th:first-child, table.detail td:first-child { text-align: left; }
+table.detail td { padding: 7px 6px; text-align: right; border-bottom: 1px solid #f0edf7; }
+table.detail tr.tot td { font-weight: 800; border-top: 2px solid var(--line); border-bottom: none; }
+
+/* ===== Sticky result bar ===== */
+.resultbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+  background: var(--ink); color: white;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom));
+}
+.resultbar .inner { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.resultbar .num { font-size: 24px; font-weight: 800; line-height: 1.1; }
+.resultbar .cap { font-size: 10.5px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; }
+.resultbar button {
+  margin-left: auto; padding: 12px 18px; border: none; border-radius: 12px;
+  background: var(--pink); color: white; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit;
+}
+.resultbar .num.neg { color: #ff9d9d; }
+
+/* ===== Modal & share card ===== */
+.modal { display: none; position: fixed; inset: 0; background: rgba(20,15,30,0.6); z-index: 300; overflow-y: auto; padding: 1rem 0.75rem 2rem; }
+.modal.open { display: block; }
+.sheet { max-width: 430px; margin: 0 auto; }
+.sheet .closebar { display: flex; justify-content: flex-end; margin-bottom: 0.4rem; }
+.sheet .closebar button { background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 999px; width: 38px; height: 38px; font-size: 17px; cursor: pointer; }
+
+.sharecard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
+.sc-hero { text-align: center; padding: 1.6rem 1rem 1.4rem; background: linear-gradient(150deg, var(--purple) 0%, var(--pink) 100%); color: white; }
+.sc-hero .eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.6px; opacity: 0.95; }
+.sc-hero .big { font-size: 54px; font-weight: 800; line-height: 1.05; margin: 0.25rem 0 0.15rem; letter-spacing: -1px; position:relative; display:inline-block; }
+.sc-hero .tag { font-size: 14px; font-weight: 600; opacity: 0.95; }
+.sc-hero .who { font-size: 12.5px; opacity: 0.85; margin-top: 0.4rem; }
+.sc-hero .beta-badge { background: rgba(255,255,255,0.2); color: white; margin-left: 0; margin-bottom: 0.35rem; }
+.sc-hero .hero-delta {
+  position:absolute; left:100%; top:50%; transform:translateY(-50%); margin-left:8px;
+  font-size:13px; font-weight:800; line-height:1; white-space:nowrap;
+  background:rgba(255,255,255,0.22); border-radius:999px; padding:4px 10px;
+}
+
+.sc-body { padding: 1rem 1.1rem 0.4rem; }
+.sc-sec { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0.6rem 0 0.35rem; }
+.sc-line { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 14px; border-bottom: 1px solid #f4f1fa; }
+.sc-line:last-of-type { border-bottom: none; }
+.sc-line .v { font-weight: 700; }
+.sc-line .v.good { color: var(--good); }
+.sc-line .v.bad { color: var(--bad); }
+table.detail s, .sc-line s { color: var(--muted); }
+.delta { font-weight: 500; margin-left: 4px; }
+.delta.good { color: var(--good); }
+.delta.bad { color: var(--bad); }
+.sc-line.sumrow { border-top: 1.5px solid var(--line); margin-top: 2px; }
+.sc-line.sumrow .k { font-weight: 700; }
+.sc-line.sumrow .v { font-weight: 800; color: var(--purple); }
+.sc-line.sumrow .v.good { color: var(--good); }
+.sc-line.sumrow .v.bad { color: var(--bad); }
+.sc-line .v.neutral { color: #b08000; }
+table.detail td.good { color: var(--good); font-weight: 800; }
+table.detail td.bad { color: var(--bad); font-weight: 800; }
+table.detail td.neutral { color: #b08000; font-weight: 800; }
+.sandwich-btn { background:none; border:none; cursor:pointer; font-size:15px; padding:0 3px; opacity:0.45; vertical-align:middle; line-height:1; transition:opacity 0.15s; }
+.sandwich-btn.on { opacity:1; }
+input.active-rate { border-color:var(--purple) !important; background:#f8f5ff !important; }
+label.active-tier { color:var(--purple); font-weight:700; }
+.basket-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 0.75rem; margin:0.2rem 0 0.7rem;
+  border:1px solid rgba(122,66,200,0.15); border-radius:10px;
+  background:rgba(122,66,200,0.03);
+}
+.basket-icons { display:flex; gap:9px; font-size:16px; align-items:center; }
+.basket-icon { position:relative; opacity:1; transition: opacity 0.15s, border-color 0.15s; }
+.basket-icon.could { opacity:0.15; }
+.basket-icon.preview { opacity:0.9; border:1.5px dashed var(--purple); border-radius:6px; padding:1px 3px; }
+.basket-icon .sup { position:absolute; top:-6px; right:-6px; font-size:9px; line-height:1; }
+.basket-icon-grouped { border:1px solid rgba(122,66,200,0.18); border-radius:6px; padding:1px 4px; }
+.basket-count { font-size:11px; font-weight:700; color: var(--muted); white-space:nowrap; }
+.basket-count .arrow { color: var(--purple); font-weight:800; margin:0 1px; }
+.basket-add-btn {
+  display:flex; align-items:center; gap:6px; position:relative;
+  background:none; border:1.5px solid var(--purple); border-radius:999px;
+  padding:4px 10px; font-size:13px; line-height:1; cursor:pointer;
+  color:var(--purple); font-family:inherit; transition:all 0.15s;
+}
+.basket-add-btn .lbl { font-size:11px; font-weight:700; white-space:nowrap; }
+.basket-add-btn.on { background:var(--purple); color:white; }
+.basket-add-btn .icon-stack { position:relative; display:inline-block; width:1.3em; height:1.1em; font-size:15px; }
+.basket-add-btn .icon-stack .ic1, .basket-add-btn .icon-stack .ic2 { position:absolute; top:0; left:0; line-height:1; }
+.basket-add-btn .icon-stack .ic1 { transform: rotate(-6deg); z-index:2; }
+.basket-add-btn .icon-stack .ic2 { transform: rotate(10deg) translate(5px, 1px); z-index:1; opacity:0.85; }
+
+.sc-maths { margin: 0.4rem 0 0.2rem; }
+.sc-maths summary { font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 5px 0; list-style-position: inside; }
+.sc-maths table.detail { margin-top: 0.2rem; }
+
+.sc-note { font-size: 10.5px; color: #9a96a8; padding: 0.95rem 1.1rem 0.7rem; line-height: 1.45; }
+.sc-brand { text-align: center; padding: 1.7rem 1.25rem 1.6rem; background: #faf8ff; border-top: 1px solid #f0ecfa; margin-top: 0.8rem; }
+.sc-brand .nm { font-size: 15px; font-weight: 800; }
+.sc-brand .rl { font-size: 11.5px; color: var(--purple); font-weight: 700; margin-top: 3px; }
+.sc-brand .str { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.sc-brand .sc-join { display: inline-flex; align-items: center; justify-content: center; line-height: 1; margin-bottom: 1.25rem; font-size: 13.5px; font-weight: 800; color: white; background: var(--purple); border-radius: 999px; padding: 12px 26px; text-decoration: none; letter-spacing: 0.1px; box-shadow: 0 4px 14px rgba(122,66,200,0.3); }
+.cashback-note { font-size: 10.5px; color: var(--muted); margin-top: 0.4rem; line-height: 1.4; }
+.basket-link-fields { margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid rgba(122,66,200,0.12); }
+.basket-link-fields summary { font-size: 12.5px; font-weight: 700; color: var(--purple); cursor: pointer; padding: 0; }
+.basket-link-fields input { margin-top: 0.45rem; }
+
+.belowfold { background: white; border-radius: 14px; margin-top: 0.8rem; padding: 1rem; }
+.modal-actions { display: flex; gap: 0.6rem; margin-top: 0.8rem; flex-wrap: wrap; }
+.modal-actions button { flex: 1; padding: 13px; border-radius: 12px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
+.modal-actions button.full { flex: 1 1 100%; }
+.btn-ghost { background: rgba(255,255,255,0.92); color: var(--ink); }
+.btn-go { background: var(--pink); color: white; }
+.btn-share { background: var(--purple); color: white; }
+.btn-wa { background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.basket-prompt {
+  position: fixed; inset: 0; z-index: 420; display: none; align-items: center; justify-content: center;
+  padding: 1rem; background: rgba(20,15,30,0.68);
+}
+.basket-prompt.open { display: flex; }
+.basket-prompt-card {
+  width: min(100%, 390px); background: white; border-radius: 16px; padding: 1rem;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+}
+.basket-prompt-card h3 { font-size: 16px; color: var(--purple); margin-bottom: 0.35rem; }
+.basket-prompt-card p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+.ev-tool-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 0 0 0.75rem; padding: 7px 11px;
+  border: 1.5px solid rgba(0,137,123,0.32); border-radius: 999px;
+  background: rgba(0,137,123,0.06); color: #00695C;
+  font-size: 12.5px; font-weight: 800; font-family: inherit; cursor: pointer;
+}
+.ev-tool-btn:focus-visible { outline: 3px solid rgba(0,137,123,0.22); outline-offset: 2px; }
+.ev-sheet { max-width: 520px; }
+.ev-frame-shell { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
+.ev-frame { display: block; width: 100%; height: min(78vh, 820px); border: 0; background: #f0faf8; }
+
+.hidden { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>💰 Appointment Companion <span class="beta-badge">Beta</span></h1>
+    <p>What they pay now. What they'd pocket in year one.</p>
+  </header>
+
+  <!-- Customer & household -->
+  <div class="card">
+    <div class="field">
+      <input type="text" id="customerName" placeholder="Customer first name (optional)" autocomplete="off">
+    </div>
+    <div class="pills" style="margin-bottom: 0.6rem;">
+      <button class="pill" id="pillHomeowner" type="button">🏠 Homeowner</button>
+      <button class="pill" id="pillTenant" type="button">🏘️ Tenant</button>
+    </div>
+    <div class="switchrow">
+      <span class="lbl">Referred by an existing customer</span>
+      <span class="switch"><input type="checkbox" id="referralToggle"><span class="track"></span></span>
+    </div>
+  </div>
+
+  <!-- Services in the basket -->
+  <div class="card hidden" id="servicesCard">
+    <div class="pills">
+      <button class="pill" type="button" data-service="energy">⚡🔥 Energy</button>
+      <button class="pill" type="button" data-service="broadband">🛜 Broadband</button>
+      <button class="pill" type="button" data-service="mobile">📱 Mobile Sim(s)</button>
+    </div>
+    <p class="sub" id="svcCounter" style="margin-top: 0.6rem; font-weight: 600;">Qualifying UW services: 0</p>
+  </div>
+
+  <!-- ENERGY -->
+  <div class="card hidden" id="energyCard">
+    <h2>Energy</h2>
+    <button class="ev-tool-btn" type="button" id="openEvModalBtn">⚡ EV / E7 sense-check</button>
+    <div class="switchrow" style="margin-bottom: 0.6rem;">
+      <span class="lbl">Separate electricity & gas bills</span>
+      <span class="switch"><input type="checkbox" id="splitEnergyToggle"><span class="track"></span></span>
+    </div>
+    <div class="switchrow" style="margin-bottom: 0.6rem;">
+      <span class="lbl">Use annual bill figures instead</span>
+      <span class="switch"><input type="checkbox" id="useBillCosts"><span class="track"></span></span>
+    </div>
+    <div id="billCosts" class="hidden" style="margin-bottom: 0.8rem;">
+      <div class="row2">
+        <div class="field money"><label>⚡ Electricity annual £</label><input type="number" id="elecAnnualCost" inputmode="numeric" placeholder="0"></div>
+        <div class="field money"><label>🔥 Gas annual £</label><input type="number" id="gasAnnualCost" inputmode="numeric" placeholder="0"></div>
+      </div>
+      <p class="sub">Monthly used for comparison: £<span id="billMonthlyEq">0</span> (annual ÷ 12)</p>
+    </div>
+
+    <div class="switchrow" style="margin-bottom: 0.6rem;">
+      <span class="lbl">Manual adjustment</span>
+      <span class="switch"><input type="checkbox" id="energyAdjustToggle"><span class="track"></span></span>
+    </div>
+    <div id="energyAdjustFields" class="hidden" style="margin-bottom: 0.8rem;">
+      <p class="sub" style="margin-bottom:0.5rem;">Manual adjust to allow for E7, EV or Solar complexity</p>
+      <div class="row2">
+        <div class="field money"><label>Adjustment £ (+/-)</label><input type="number" id="energyAdjustAmount" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field">
+          <label>Applies to</label>
+          <div class="pills" id="energyAdjustTargetPills">
+            <button class="pill on" type="button" data-adjusttarget="current">Current</button>
+            <button class="pill" type="button" data-adjusttarget="uw">UW</button>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Period</label>
+        <div class="pills" id="energyAdjustPeriodPills">
+          <button class="pill on" type="button" data-adjustperiod="monthly">Monthly</button>
+          <button class="pill" type="button" data-adjustperiod="annual">Annual</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nowuw">
+      <div class="side">
+        <span class="tag">Current (monthly direct debit)</span>
+        <div id="energyCombinedNow">
+          <div class="row2">
+            <div class="field money"><label>Monthly cost</label><input type="number" id="currentEnergyMonthly" inputmode="numeric" placeholder="0"></div>
+            <div class="field money"><label>Exit fee</label><input type="number" id="currentEnergyExitFee" inputmode="numeric" placeholder="0"></div>
+          </div>
+        </div>
+        <div id="energySplitNow" class="hidden">
+          <div class="pills" id="splitFuelPills" style="margin-bottom:0.6rem;">
+            <button class="pill on" type="button" data-fuel="elec">⚡ Electricity</button>
+            <button class="pill on" type="button" data-fuel="gas">🔥 Gas</button>
+          </div>
+          <div id="splitElecRow">
+            <div class="row2">
+              <div class="field money"><label>⚡ Electricity /m</label><input type="number" id="currentElecMonthly" inputmode="numeric" placeholder="0"></div>
+              <div class="field money"><label>Exit fee</label><input type="number" id="currentElecExitFee" inputmode="numeric" placeholder="0"></div>
+            </div>
+          </div>
+          <div id="splitGasRow">
+            <div class="row2">
+              <div class="field money"><label>🔥 Gas /m</label><input type="number" id="currentGasMonthly" inputmode="numeric" placeholder="0"></div>
+              <div class="field money"><label>Exit fee</label><input type="number" id="currentGasExitFee" inputmode="numeric" placeholder="0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="side uw">
+        <span class="tag">UW</span>
+        <div class="field money">
+          <label>Monthly cost <button type="button" id="bundleRatesBtn" class="sandwich-btn" title="Capture bundle rates at each service tier">🥪</button></label>
+          <input type="number" id="uwEnergyMonthly" inputmode="numeric" placeholder="0">
+        </div>
+        <div id="bundleRatePanel" class="hidden" style="margin-top:0.4rem; padding:0.6rem; background:#faf7ff; border-radius:8px; border:1px solid var(--line);">
+          <p class="sub" style="margin-bottom:0.5rem; font-weight:600;">Bundle rates — enter as you build your quote</p>
+          <div class="field money"><label id="uwE1Lbl">Energy only</label><input type="number" id="uwEnergyTier1" inputmode="numeric" placeholder="0"></div>
+          <div class="field money"><label id="uwE2Lbl">+ 1 other service</label><input type="number" id="uwEnergyTier2" inputmode="numeric" placeholder="0"></div>
+          <div class="field money" style="margin-bottom:0;"><label id="uwE3Lbl">+ 2 other services</label><input type="number" id="uwEnergyTier3" inputmode="numeric" placeholder="0"></div>
+        </div>
+        <p id="bundleGateMsg" class="hidden sub" style="color:#b08000; font-weight:600; margin-top:0.5rem;">⚠️ Fill in all three bundle rates above so the meal-deal SIM saving shows correctly on a shared link.</p>
+        <p class="sub" style="margin-top:0.35rem;">From uw.co.uk/quote — keyed during the appointment.</p>
+        <p id="uwEnergyRequoteNote" class="hidden sub" style="color:#b08000;font-weight:600;margin-top:0.35rem;">🔄 Meal deal SIM added — re-quote energy at uw.co.uk/quote</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROADBAND -->
+  <div class="card hidden" id="broadbandCard">
+    <h2>🛜 Broadband</h2>
+    <div id="bbFreeMonthsRow" class="switchrow hidden" style="margin-bottom: 0.8rem;">
+      <span class="lbl">6 months free</span>
+      <span class="switch"><input type="checkbox" id="bbFreeMonthsToggle"><span class="track"></span></span>
+    </div>
+
+    <div class="nowuw">
+      <div class="side">
+        <span class="tag">Current</span>
+        <div class="row2">
+          <div class="field money"><label>Monthly cost</label><input type="number" id="currentBroadbandMonthly" inputmode="numeric" placeholder="0"></div>
+          <div class="field money"><label>Exit fee</label><input type="number" id="currentBroadbandExitFee" inputmode="numeric" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="side uw">
+        <span class="tag">UW</span>
+        <div class="field" style="margin-bottom: 0.6rem;">
+          <div class="pills" id="bbPkgPills" style="flex-wrap: wrap; gap: 6px;"></div>
+        </div>
+        <div class="field money"><label>Monthly cost (auto-fills on selection)</label><input type="number" id="uwBroadbandMonthly" inputmode="decimal" placeholder="0" step="0.01" style="background: #f5f0ff;"></div>
+        <div class="switchrow" style="margin-top:0.75rem;">
+          <span class="lbl">📶 Whole Home Wi-Fi</span>
+          <span class="switch"><input type="checkbox" id="wholeHomeWifiToggle"><span class="track"></span></span>
+        </div>
+        <div class="switchrow" style="margin-top:0.75rem;">
+          <span class="lbl">📞 Digital home phone</span>
+          <span class="switch"><input type="checkbox" id="dhpToggle"><span class="track"></span></span>
+        </div>
+        <div id="dhpPlans" class="hidden" style="margin-top:0.5rem;">
+          <p style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.4px;">Call package</p>
+          <div class="pills">
+            <button class="pill" type="button" data-dhp="6.5">🌙 Off-peak Saver</button>
+            <button class="pill" type="button" data-dhp="13">☀️ Peak Saver</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div class="card hidden" id="mobileCard">
+    <h2>📱 Mobile</h2>
+    <div class="field">
+      <div class="pills" id="simCountPills">
+        <button class="pill" type="button" data-count="1">1</button>
+        <button class="pill" type="button" data-count="2">2</button>
+        <button class="pill" type="button" data-count="3">3</button>
+        <button class="pill" type="button" data-count="4">4</button>
+        <button class="pill" type="button" data-count="5">5</button>
+      </div>
+    </div>
+    <div id="simList"></div>
+    <div class="sc-line sumrow" id="mobileTotalsRow" style="display:none; border-bottom:none;">
+      <span class="k">Current £<span id="currentMobileTotal">0</span>/m</span>
+      <span class="v">UW £<span id="uwMobileTotal">0</span>/m</span>
+    </div>
+  </div>
+
+  <!-- INSURANCE -->
+  <div class="card hidden" id="insuranceCard">
+    <h2>🛡️ Insurance</h2>
+    <p class="sub" style="margin-bottom:0.6rem;">FCA regulated — we can't advise or compare. Toggle on what's in the customer's basket.</p>
+    <div class="switchrow">
+      <span class="lbl">Income Protector <span class="sub">£16/m</span></span>
+      <span class="switch"><input type="checkbox" id="incomeProtectorToggle"><span class="track"></span></span>
+    </div>
+    <div id="boilerCoverRow" class="switchrow hidden" style="margin-top:0.5rem;">
+      <span class="lbl">Boiler Cover <span class="sub">£25/m</span></span>
+      <span class="switch"><input type="checkbox" id="boilerCoverToggle"><span class="track"></span></span>
+    </div>
+    <div id="boilerCoverFreeRow" class="switchrow hidden" style="padding-left:1rem; margin-top:0.25rem;">
+      <span class="lbl" style="color:var(--muted);">3 months free</span>
+      <span class="switch"><input type="checkbox" id="boilerCoverFreeToggle"><span class="track"></span></span>
+    </div>
+  </div>
+
+  <!-- MANUAL ADJUSTMENT -->
+  <div class="card hidden" id="manualAdjustCard">
+    <div class="switchrow" style="padding:0;">
+      <h2 style="margin-bottom:0; color: var(--muted);">✏️ Manual adjustment</h2>
+      <span class="switch"><input type="checkbox" id="manualAdjustToggle"><span class="track"></span></span>
+    </div>
+    <div id="manualAdjustFields" class="hidden" style="margin-top:0.6rem; color: var(--muted);">
+      <div class="row2">
+        <div class="field money"><label>Current £</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field"><label>Reason</label><input type="text" id="manualAdjustCurrentReason" placeholder="optional"></div>
+      </div>
+      <div class="row2">
+        <div class="field money"><label>UW £</label><input type="number" id="manualAdjustUw" inputmode="decimal" placeholder="0" step="0.01"></div>
+        <div class="field"><label>Reason</label><input type="text" id="manualAdjustUwReason" placeholder="optional"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASHBACK -->
+  <div class="card hidden" id="cashbackCard" style="background:rgba(122,66,200,0.04); border-color:rgba(122,66,200,0.15);">
+    <div class="switchrow" style="padding:0;">
+      <h2 style="margin-bottom:0;">💳 Cashback card</h2>
+      <span class="switch"><input type="checkbox" id="includeCashback" checked><span class="track"></span></span>
+    </div>
+    <div id="cashbackInner">
+      <div class="field" style="margin-top: 0.5rem;">
+        <label>Monthly card spending — £<span id="spendDisplay">1000</span>/m</label>
+        <input type="range" id="spendSlider" min="500" max="2500" value="1000" step="50">
+      </div>
+      <div class="cbchips">
+        <div class="cbchip" data-cbtier="low"><div class="pct" id="cbLowPct">1% cap</div><div class="amt">£<span id="cbLow">0</span></div><div class="yr">£<span id="cbLowYr">0</span>/yr</div></div>
+        <div class="cbchip used" data-cbtier="med"><div class="pct" id="cbMedPct">Average earner¹ ✓</div><div class="amt">£<span id="cbMed">0</span></div><div class="yr">£<span id="cbMedYr">0</span>/yr</div></div>
+        <div class="cbchip" data-cbtier="high"><div class="pct" id="cbHighPct">Top earners²</div><div class="amt">£<span id="cbHigh">0</span></div><div class="yr">£<span id="cbHighYr">0</span>/yr</div></div>
+      </div>
+      <details style="margin-top: 0.5rem;">
+        <summary style="font-size: 12px; font-weight: 700; color: var(--purple); cursor: pointer;">Cashback Card Details</summary>
+        <p class="sub" style="margin-top: 0.5rem;">The selected estimate (✓) feeds the headline figure. £3/m card fee, first 3 months free.</p>
+        <p class="sub" style="margin-top: 0.5rem; font-size:11px;">¹ Average cashback earned by active cardholders, 2024<br>² Average cashback earned by the top 10% of active cardholders, 2024</p>
+      </details>
+    </div>
+    <details class="basket-link-fields" id="basketLinkDetails">
+      <summary>Personalised basket link</summary>
+      <input type="text" id="basketLink" inputmode="url" placeholder="Paste UW basket URL (optional)" autocomplete="off">
+    </details>
+  </div>
+
+  <!-- Full detail -->
+  
+
+  <!-- Notes (compact) -->
+  <div class="card" id="notesCard" style="padding:0.8rem 1rem;">
+    <textarea id="apptNotes" rows="3" placeholder="📝 Private notes — e.g. 'No for now, revisit September. Waiting on broadband contract end.'" style="width:100%; padding:10px; font-size:15px; font-family:inherit; border:1px solid var(--line); border-radius:10px; background:#fbfaff; resize:vertical;"></textarea>
+    <p class="sub" style="margin-top:0.35rem; font-size:11px;">Saved with the profile. Never shown on the shared card.</p>
+  </div>
+
+  <!-- Saved profiles -->
+  <div class="card" id="savesCard" style="margin-bottom:0.9rem;">
+    <div class="pills">
+      <button class="pill" type="button" id="saveProfileBtn">💾 Save / update</button>
+      <button class="pill" type="button" id="loadProfileBtn">📂 Load</button>
+    </div>
+    <input type="file" id="loadFileInput" accept=".json,application/json" class="hidden">
+    <div id="savesList" class="hidden" style="margin-top:0.7rem;"></div>
+  </div>
+
+  <button class="pill" type="button" id="resetBtn" style="width:100%; margin-bottom: 1rem;">↺ Reset form</button>
+</div>
+
+<!-- Save gate prompt (content / name) -->
+<div class="basket-prompt" id="saveGatePrompt">
+  <div class="basket-prompt-card">
+    <h3 id="saveGateTitle"></h3>
+    <p id="saveGateMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-ghost" type="button" id="saveGateCancelBtn">Cancel</button>
+      <button class="btn-share" type="button" id="saveGateActionBtn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate-name save prompt -->
+<div class="basket-prompt" id="dupSavePrompt">
+  <div class="basket-prompt-card">
+    <h3>Already saved</h3>
+    <p id="dupSaveMsg"></p>
+    <div class="modal-actions">
+      <button class="btn-share" type="button" id="dupUpdateBtn">Update</button>
+      <button class="btn-share" type="button" id="dupNewBtn">Save as new</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky live result -->
+<div class="resultbar">
+  <div id="gateMsg" style="display:none; font-size:11px; color:rgba(255,220,100,0.95); padding:0.35rem 1rem 0; max-width:560px; margin:0 auto;"></div>
+  <div class="inner">
+    <div>
+      <div class="cap">First 12 months savings &amp; benefits</div>
+      <div class="num" id="liveYear1">£0</div>
+    </div>
+    <button type="button" id="openCardBtn">First 12 months summary</button>
+  </div>
+</div>
+
+
+<!-- EV SENSE-CHECK MODAL -->
+<div class="modal" id="evModal">
+  <div class="sheet ev-sheet">
+    <div class="closebar"><button type="button" id="closeEvModalBtn" aria-label="Close">?</button></div>
+    <div class="ev-frame-shell">
+      <iframe class="ev-frame" id="evSenseFrame" title="EV / E7 sense-check"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE CARD MODAL -->
+<div class="modal" id="cardModal">
+  <div class="sheet">
+    <div class="closebar"><button type="button" id="closeModalBtn" aria-label="Close">✕</button></div>
+
+    <div class="sharecard" id="shareCard">
+      <div class="sc-hero">
+        <div><span class="beta-badge">Beta</span></div>
+        <div class="eyebrow">Year one in your pocket</div>
+        <div class="big">£<span id="scHero">0</span><span class="hero-delta hidden" id="scHeroDelta"></span></div>
+        <div class="tag">one app · one password · one bill</div>
+        <div class="who" id="scWho"></div>
+      </div>
+      <div class="sc-body">
+        <div class="basket-row" id="basketRow">
+          <div class="basket-icons">
+            <span class="basket-icon basket-icon-grouped hidden" id="biEnergy" title="Energy">⚡🔥</span>
+            <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
+            <span class="basket-icon" id="biSim1" title="Mobile SIM">📱</span>
+            <span class="basket-icon" id="biSim2" title="Mobile SIM">📱</span>
+            <span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>
+          </div>
+          <div class="basket-count" id="basketCount">0 services</div>
+          <button type="button" id="biSimAdd" class="hidden basket-add-btn" title="Preview adding mobile SIM(s)">
+            <span class="icon-stack"><span class="ic1">📱</span><span class="ic2 hidden">📱</span></span>
+            <span class="lbl">try adding</span>
+          </button>
+        </div>
+        <table class="detail">
+          <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <thead><tr><th></th><th>Current</th><th>UW*</th><th>Saving</th></tr></thead>
+          <tbody>
+            <tr class="tot"><td>Total monthly summary</td><td id="totNow"></td><td id="totUw"></td><td id="totSave"></td></tr>
+          </tbody>
+        </table>
+        <p class="sub" id="ddNote" style="font-size:11px; margin-top:0.25rem;">* monthly direct debit, minus estimated cashback</p>
+        <div class="sc-line sumrow" style="margin-top:0.5rem;">
+          <span class="k">Year-one Savings on Services</span>
+          <span class="v" id="annualServiceSavings">£0</span>
+        </div>
+        <div id="scEnergyNoteRow" class="hidden" style="font-size:11px; color:#7a6000; font-weight:600; padding:6px 0 0;">
+          💡 Add energy quotes to see more savings — tap 🥪 on the main page
+        </div>
+
+        <details class="sc-maths">
+          <summary>Breakdown</summary>
+          <table class="detail">
+            <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+            <tbody>
+              <tr id="scEnergyRow"><td>⚡🔥 Energy</td><td id="scEnergyNow"></td><td id="scEnergyUw"></td><td id="scEnergySave"></td></tr>
+              <tr id="scBbRow"><td>🛜 Broadband</td><td id="scBbNow"></td><td id="scBbUw"></td><td id="scBbSave"></td></tr>
+              <tr id="scMobRow"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
+              <tr id="scInsuranceRow" class="hidden"><td>🛡️ Insurance</td><td>&mdash;</td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>
+              <tr id="scAdjustRow" class="hidden"><td>✏️ Adjustment</td><td id="scAdjustNow"></td><td id="scAdjustUw"></td><td id="scAdjustSave"></td></tr>
+              <tr id="scAdjustNoteRow" class="hidden"><td colspan="4" style="font-size:11px; color:var(--muted); font-weight:600; padding-top:0; padding-bottom:8px; border-bottom:1px solid #f0edf7;"></td></tr>
+              <tr class="tot"><td>Subtotal</td><td id="scSubtotNow"></td><td id="scSubtotUw"></td><td id="scSubtotSave"></td></tr>
+              <tr id="scCbRow"><td>💳 Cashback**</td><td>&mdash;</td><td id="scCbUw"></td><td id="scCbSave"></td></tr>
+              <tr class="tot"><td>Total</td><td id="scBdTotNow"></td><td id="scBdTotUw"></td><td id="scBdTotSave"></td></tr>
+            </tbody>
+          </table>
+          <p class="cashback-note" id="scCashbackNote">** average cashback, £1,000 monthly spend</p>
+        </details>
+
+        <div class="sc-line sumrow" style="margin-top:0.5rem;">
+          <span class="k">Year-one Welcome Bonuses</span>
+          <span class="v" id="scBenefitsTotal">£0</span>
+        </div>
+
+        <details class="sc-maths">
+          <summary>Breakdown</summary>
+          <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral bonus</span><span class="v good" id="scReferral">£0</span></div>
+          <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 6m free Full Fibre (6m @ £0)</span><span class="v good" id="scBbFree">£0</span></div>
+          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 6m free Unlimited SIM (6m @ £10)</span><span class="v good" id="scMobileFree">£0</span></div>
+          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
+          <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
+          <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
+          <div class="sc-line" id="scExitDeductionRow"><span class="k">⚠️ Exit fees to pay</span><span class="v bad" id="scExitDeduction">£0</span></div>
+        </details>
+        <div id="scExitBlock" class="hidden" style="margin-top:0.5rem;padding:0.6rem 0.85rem;background:#fffbf0;border-radius:8px;border:1px solid #ede5c8;"><div style="font-size:12px;color:#7a6000;line-height:1.6;" id="scExitMsg"></div></div>
+      </div>
+      <p class="sc-note" id="scEstimateNote">Estimate based on prices as at today. Not a formal quote.</p>
+      <div class="sc-brand">
+        <a class="sc-join" id="scJoinLink" href="https://uw.partners/adrian.croft/join" target="_blank" rel="noopener">Start saving here →</a>
+        <div class="nm" id="brandName">Adrian Croft</div>
+        <div class="rl" id="brandRole">UW Authorised Partner · Market Harborough</div>
+        <div class="str" id="brandStrap">Giving people financial breathing space</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-wa full" type="button" id="shareBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="flex-shrink:0;" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.27.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.188 8.188 0 0 1-1.26-4.38c.01-4.54 3.7-8.22 8.25-8.22zM8.53 7.33c-.16 0-.43.06-.66.31-.22.25-.87.86-.87 2.07 0 1.22.89 2.39 1.01 2.56.13.17 1.75 2.67 4.25 3.73.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.07-.1-.23-.16-.48-.27-.25-.14-1.47-.74-1.69-.82-.23-.08-.37-.12-.56.12-.16.25-.64.82-.78.99-.15.17-.29.19-.53.07-.26-.13-1.06-.39-2.02-1.25-.74-.66-1.23-1.48-1.38-1.73-.14-.25-.02-.38.11-.51.12-.11.27-.29.4-.44.14-.14.18-.25.28-.41.09-.17.05-.31-.02-.43-.07-.13-.56-1.34-.78-1.84-.2-.48-.4-.42-.56-.43-.14 0-.3-.01-.47-.01z"/></svg>
+        Share via WhatsApp
+      </button>
+    </div>
+    <p id="shareGateMsg" class="hidden sub" style="color:#b08000; font-weight:700; padding: 0.3rem 0.25rem 0;"></p>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" type="button" id="copyLinkBtn">🔗 Copy link</button>
+      <button class="btn-ghost" type="button" id="copyBtn">📋 Copy figures</button>
+      <button class="btn-go" type="button" id="doneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="basket-prompt" id="basketPrompt">
+  <div class="basket-prompt-card">
+    <h3>Add their basket link?</h3>
+    <p>A personalised basket link takes them straight to their UW basket. You can still share without it if you need to.</p>
+    <div class="modal-actions">
+      <button class="btn-share" type="button" id="addBasketLinkBtn">Add link</button>
+      <button class="btn-ghost" type="button" id="shareWithoutBasketBtn">Share without link</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   CONFIG — every rate, bonus and price lives here.
+   When UW changes pricing, edit THIS BLOCK ONLY.
+   Calculation rules carried over from v1 (source of truth).
+   ================================================================ */
+const CONFIG = {
+  partner: {
+    name: "Adrian Croft",
+    role: "UW Authorised Partner · Market Harborough",
+    strapline: "Giving people financial breathing space"
+  },
+
+  // Welcome bonus by total qualifying service count (energy 1, broadband 1, mobile up to 2).
+  // Mobile SIMs only qualify when bundled with energy or broadband — mobile-only = 0 services.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 100, 4: 150, 5: 150 },
+
+  // £50 referral credit: requires 2+ services AND homeowner AND referred.
+  // Tenants CAN be referred (toggle stays usable) — they just don't get the £50.
+  referral: { amount: 50, minServices: 2, homeownerOnly: true },
+
+  // Broadband packages, April increases, and free-months offer
+  broadband: {
+    freeMonths: 6,            // City Fibre homeowner offer
+    uwAprilIncrease: 4,       // £/m UW + all providers increase every April (net saving unchanged; only affects 6-months-free value if April falls in free period)
+    wholeHomeWifi: 5,         // £/m add-on
+    packages: [
+      { label: '900', price: 35 },
+      { label: '500', price: 30 },
+      { label: '150', price: 23.95 },
+      { label: 'Ultra+', price: 30 },
+      { label: 'Ultra', price: 26 }
+    ]
+  },
+
+  // Exit fees refunded by UW up to £400 when taking 3+ services
+  exitFeeRefund: { minServices: 3, maxRefund: 400 },
+
+  // Insurance — fixed monthly rates (update here when UW changes pricing)
+  insurance: {
+    incomeProtector: 16,   // £/m fixed rate
+    boilerCover: 25,       // £/m fixed rate
+    boilerCoverFreeMonths: 3
+  },
+
+  // Cashback card
+  cashback: {
+    rateLow: 0.01,           // 1% — capped per month by service count below (real T&Cs rate)
+    lowMonthlyCaps: { 1: 5, 2: 10, 3: 10, 4: 15, 5: 15 }, // £ cap on the 1% scenario (real T&Cs)
+    lowCapDefault: 5,
+    // Average/Top-earner figures are real 2024 outcomes at the £1000/m reference spend,
+    // scaled proportionally — we don't know the underlying retail-rate mix, so we don't guess one.
+    referenceSpend: 1000,
+    referenceMedAnnual: 215,   // average active cardholder, 2024
+    referenceHighAnnual: 456,  // top 10% of active cardholders, 2024
+    cardFeeMonthly: 3,
+    freeMonths: 3,           // first 3 months' card fee free
+    slider: { min: 500, max: 2500, step: 50, default: 1000 }
+  },
+
+  // UW mobile monthly prices. Position = order among INCLUDED SIMs (1st, 2nd…)
+  mobile: {
+    maxSims: 5,
+    servicesCountedMax: 2,   // mobile contributes at most 2 to the service count
+    plans: {
+      unlimitedMax: { label: "Unlimited", first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
+      essentialMax: { label: "Essentials", first: 5,  extra: 5,  note: "£5/m all year" }
+      // bestOfBoth parked: avg £2.50/m relied on the customer downgrading after the free months — reinstate here if needed
+
+    }
+  }
+};
+/* ============================ /CONFIG =========================== */
+
+const $ = id => document.getElementById(id);
+const num = id => { const el = $(id); return el ? (parseInt(el.value, 10) || 0) : 0; };
+const numF = id => { const el = $(id); return el ? (parseFloat(el.value) || 0) : 0; };
+const ceilF = id => Math.ceil(numF(id));
+
+const state = {
+  services: { energy: false, broadband: false, mobile: false },
+  homeowner: null,           // 'homeowner' | 'tenant' | null
+  simCount: 0,
+  sims: {},                  // sim1..simN: {name, monthlyCost, exitFee, include, uwPlan}
+  includeCashback: true,
+  cbTier: 'med',
+  dhpPlan: null,
+  splitGas: true,
+  splitElec: true,
+  energyAdjustTarget: 'current',  // 'current' | 'uw'
+  energyAdjustPeriod: 'monthly'   // 'monthly' | 'annual'
+};
+
+let previewExtra = false;
+function currentPreviewCount() {
+  return previewExtra ? compute(0).availableSlots : 0;
+}
+
+/* ---------- service pills ---------- */
+document.querySelectorAll('[data-service]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const s = btn.dataset.service;
+    state.services[s] = !state.services[s];
+    btn.classList.toggle('on', state.services[s]);
+    $(s + 'Card').classList.toggle('hidden', !state.services[s]);
+    calc();
+  });
+});
+
+/* ---------- homeowner / tenant ---------- */
+function setHome(which) {
+  state.homeowner = which;
+  $('pillHomeowner').classList.toggle('on', which === 'homeowner');
+  $('pillTenant').classList.toggle('on', which === 'tenant');
+  $('bbFreeMonthsRow').classList.toggle('hidden', which !== 'homeowner');
+  if (which !== 'homeowner') $('bbFreeMonthsToggle').checked = false;
+  $('boilerCoverRow').classList.toggle('hidden', which !== 'homeowner');
+  if (which !== 'homeowner') {
+    $('boilerCoverToggle').checked = false;
+    $('boilerCoverFreeToggle').checked = false;
+    $('boilerCoverFreeRow').classList.add('hidden');
+  }
+  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));
+  calc();
+}
+$('pillHomeowner').addEventListener('click', () => setHome('homeowner'));
+$('pillTenant').addEventListener('click', () => setHome('tenant'));
+$('referralToggle').addEventListener('change', calc);
+$('bbFreeMonthsToggle').addEventListener('change', calc);
+
+// Bundle rates toggle (🥪 on UW energy field)
+$('bundleRatesBtn').addEventListener('click', () => {
+  const panel = $('bundleRatePanel');
+  const btn = $('bundleRatesBtn');
+  const open = panel.classList.toggle('hidden');  // toggle returns true when hidden added
+  btn.classList.toggle('on', !open);
+  calc();
+});
+
+const CB_LABELS = { low: '1% cap', med: 'Average earner¹', high: 'Top earners²' };
+document.querySelectorAll('[data-cbtier]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    state.cbTier = chip.dataset.cbtier;
+    document.querySelectorAll('[data-cbtier]').forEach(c => {
+      c.classList.remove('used');
+      c.querySelector('.pct').textContent = CB_LABELS[c.dataset.cbtier];
+    });
+    chip.classList.add('used');
+    chip.querySelector('.pct').textContent = CB_LABELS[chip.dataset.cbtier] + ' ✓';
+    calc();
+  });
+});
+
+$('wholeHomeWifiToggle').addEventListener('change', calc);
+
+// Digital home phone listeners
+$('dhpToggle').addEventListener('change', e => {
+  $('dhpPlans').classList.toggle('hidden', !e.target.checked);
+  if (!e.target.checked) {
+    state.dhpPlan = null;
+    document.querySelectorAll('[data-dhp]').forEach(b => b.classList.remove('on'));
+  }
+  calc();
+});
+document.querySelectorAll('[data-dhp]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.dhpPlan = parseFloat(btn.dataset.dhp);
+    document.querySelectorAll('[data-dhp]').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    calc();
+  });
+});
+
+// build package pills from CONFIG
+(function buildBbPkgs() {
+  const container = $('bbPkgPills');
+  CONFIG.broadband.packages.forEach(pkg => {
+    const btn = document.createElement('button');
+    btn.className = 'pill'; btn.type = 'button';
+    btn.dataset.bbpkg = pkg.price;
+    btn.textContent = pkg.label;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-bbpkg]').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      $('uwBroadbandMonthly').value = pkg.price;
+      $('uwBroadbandMonthly').classList.remove('err');
+      calc();
+    });
+    container.appendChild(btn);
+  });
+})();
+
+/* ---------- energy toggles ---------- */
+$('splitEnergyToggle').addEventListener('change', e => {
+  $('energyCombinedNow').classList.toggle('hidden', e.target.checked);
+  $('energySplitNow').classList.toggle('hidden', !e.target.checked);
+  if (e.target.checked) {
+    // Reset fuel toggles to both-on when first enabling split
+    state.splitGas = true; state.splitElec = true;
+    $('splitGasRow').classList.remove('hidden');
+    $('splitElecRow').classList.remove('hidden');
+    document.querySelectorAll('[data-fuel]').forEach(b => b.classList.add('on'));
+  }
+  calc();
+});
+
+// Fuel toggle pill listeners
+document.querySelectorAll('[data-fuel]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const fuel = btn.dataset.fuel;
+    const isGas = fuel === 'gas';
+    const other = isGas ? state.splitElec : state.splitGas;
+    // Prevent toggling off the last active fuel
+    if ((isGas ? state.splitGas : state.splitElec) && !other) return;
+    if (isGas) {
+      state.splitGas = !state.splitGas;
+      $('splitGasRow').classList.toggle('hidden', !state.splitGas);
+    } else {
+      state.splitElec = !state.splitElec;
+      $('splitElecRow').classList.toggle('hidden', !state.splitElec);
+    }
+    btn.classList.toggle('on', isGas ? state.splitGas : state.splitElec);
+    // Clear any err/warn from hidden field
+    if (isGas && !state.splitGas) $('currentGasMonthly').classList.remove('err','warn');
+    if (!isGas && !state.splitElec) $('currentElecMonthly').classList.remove('err','warn');
+    calc();
+  });
+});
+$('useBillCosts').addEventListener('change', e => {
+  $('billCosts').classList.toggle('hidden', !e.target.checked);
+  calc();
+});
+
+// Energy manual adjustment (E7/EV/Solar complexity)
+$('energyAdjustToggle').addEventListener('change', e => {
+  $('energyAdjustFields').classList.toggle('hidden', !e.target.checked);
+  calc();
+});
+document.querySelectorAll('#energyAdjustTargetPills .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.energyAdjustTarget = btn.dataset.adjusttarget;
+    document.querySelectorAll('#energyAdjustTargetPills .pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    calc();
+  });
+});
+document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.energyAdjustPeriod = btn.dataset.adjustperiod;
+    document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    calc();
+  });
+});
+
+// Insurance: Income Protector / Boiler Cover
+$('incomeProtectorToggle').addEventListener('change', calc);
+$('boilerCoverToggle').addEventListener('change', e => {
+  $('boilerCoverFreeRow').classList.toggle('hidden', !e.target.checked);
+  if (!e.target.checked) $('boilerCoverFreeToggle').checked = false;
+  calc();
+});
+$('boilerCoverFreeToggle').addEventListener('change', calc);
+
+// Manual adjustment (general, between Mobile and Cashback)
+$('manualAdjustToggle').addEventListener('change', e => {
+  $('manualAdjustFields').classList.toggle('hidden', !e.target.checked);
+  calc();
+});
+document.querySelectorAll('#manualAdjustCurrentReason, #manualAdjustUwReason').forEach(el => {
+  el.addEventListener('input', calc);
+});
+
+/* ---------- SIM cards ---------- */
+document.querySelectorAll('#simCountPills .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#simCountPills .pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    state.simCount = parseInt(btn.dataset.count, 10);
+    buildSims();
+    calc();
+  });
+});
+
+function buildSims() {
+  const list = $('simList');
+  list.innerHTML = '';
+  const prev = state.sims;
+  state.sims = {};
+  for (let i = 1; i <= state.simCount; i++) {
+    const key = 'sim' + i;
+    state.sims[key] = { mealDeal: false, ...(prev[key] || { name: 'SIM ' + i, monthlyCost: 0, exitFee: 0, include: true, uwPlan: 'unlimitedMax' }) };
+    const sim = state.sims[key];
+    const div = document.createElement('div');
+    div.className = 'sim' + (sim.include ? '' : ' off');
+    div.id = 'simbox_' + key;
+    div.innerHTML =
+      '<div class="sim-head">' +
+        '<span class="switch"><input type="checkbox" data-field="include" data-sim="' + key + '"' + (sim.include ? ' checked' : '') + '><span class="track"></span></span>' +
+        '<input type="text" data-field="name" data-sim="' + key + '" value="' + sim.name.replace(/"/g, '&quot;') + '" placeholder="Name">' +
+      '</div>' +
+      '<div class="row2">' +
+        '<div class="field money"><label>Current /m</label><input type="number" inputmode="numeric" data-field="monthlyCost" data-sim="' + key + '" placeholder="0"' + (sim.monthlyCost ? ' value="' + sim.monthlyCost + '"' : '') + '></div>' +
+        '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
+      '</div>' +
+      '<label style="margin-bottom:4px;">UW plan — £<span id="uwCost_' + key + '">0</span>/m</label>' +
+      '<div class="planpills" data-sim="' + key + '">' +
+        '<button class="pill" type="button" data-plan="unlimitedMax">' + CONFIG.mobile.plans.unlimitedMax.label + '</button>' +
+        '<button class="pill" type="button" data-plan="essentialMax">' + CONFIG.mobile.plans.essentialMax.label + '</button>' +
+      '</div>' +
+      '<p class="plannote" id="plannote_' + key + '"></p>';
+    list.appendChild(div);
+  }
+  // plan pill listeners + initial highlight
+  document.querySelectorAll('.planpills').forEach(group => {
+    const key = group.dataset.sim;
+    group.querySelectorAll('.pill').forEach(b => {
+      if (b.dataset.plan === state.sims[key].uwPlan) b.classList.add('on');
+      b.addEventListener('click', () => {
+        if (b.dataset.plan === 'essentialMax' && !state.sims[key].monthlyCost) {
+          const ok = confirm('Just double-checking — £0 current cost for this SIM?');
+          if (!ok) {
+            const input = document.querySelector('input[data-sim="' + key + '"][data-field="monthlyCost"]');
+            if (input) input.focus();
+            return;
+          }
+        }
+        state.sims[key].uwPlan = b.dataset.plan;
+        group.querySelectorAll('.pill').forEach(x => x.classList.remove('on'));
+        b.classList.add('on');
+        calc();
+      });
+    });
+  });
+  $('mobileTotalsRow').style.display = state.simCount ? 'flex' : 'none';
+}
+
+document.addEventListener('input', e => {
+  const key = e.target.dataset.sim, field = e.target.dataset.field;
+  if (!key || !field) return;
+  if (field === 'include') {
+    state.sims[key].include = e.target.checked;
+    $('simbox_' + key).classList.toggle('off', !e.target.checked);
+  } else if (field === 'name') {
+    state.sims[key].name = e.target.value;
+  } else {
+    state.sims[key][field] = parseInt(e.target.value, 10) || 0;
+  }
+  calc();
+});
+
+/* Months until next April (April = month index 3). In April itself the
+   increase has just happened, so treat next April as 12 months away. */
+function monthsUntilApril() {
+  const m = new Date().getMonth();
+  if (m === 3) return 12;
+  return m < 3 ? 3 - m : (12 - m) + 3;
+}
+
+/* UW mobile pricing: the discounted Unlimited rate only exists as an
+   additional SIM behind a full-price £23 Unlimited lead. The FIRST
+   Unlimited SIM among those included is always £23, wherever it sits
+   in the list; further Unlimiteds are £10/m ongoing (steady state) —
+   their free first-6-months is shown separately as a year-one benefit.
+   Essentials is £5 regardless. */
+function priceSims(includedSims) {
+  let unlimitedLeadTaken = false;
+  return includedSims.map(s => {
+    if (s.uwPlan === 'unlimitedMax') {
+      if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return CONFIG.mobile.plans.unlimitedMax.first; }
+      return CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    }
+    return CONFIG.mobile.plans.essentialMax.extra;
+  });
+}
+
+/* ---------- cashback ---------- */
+$('spendSlider').addEventListener('input', e => { $('spendDisplay').textContent = e.target.value; calc(); });
+$('includeCashback').addEventListener('change', e => {
+  state.includeCashback = e.target.checked;
+  $('cashbackInner').classList.toggle('hidden', !e.target.checked);
+  calc();
+});
+
+/* ---------- core numbers (v1 logic preserved) ---------- */
+function serviceCounts() {
+  let count = 0;
+  if (state.services.energy) count++;
+  if (state.services.broadband) count++;
+  // Mobile only qualifies when bundled with energy or broadband
+  if (state.services.mobile && (state.services.energy || state.services.broadband)) {
+    const inc = Object.values(state.sims).filter(s => s.include).length;
+    count += Math.min(inc, CONFIG.mobile.servicesCountedMax);
+  }
+  return count;
+}
+
+function compute(previewSims = 0) {
+  const cb = CONFIG.cashback;
+
+  // --- insurance (FCA — no advice/comparison, just reflecting what's on the quote) ---
+  // Income Protector / Boiler Cover are qualifying core services for the customer too —
+  // they count towards cheaper energy tiers, the cashback welcome bonus, and referral
+  // eligibility, the same as energy/broadband/mobile. They do NOT unlock the broadband
+  // 6-months-free offer though, which has its own specific eligibility further below.
+  const incomeProtectorCost = $('incomeProtectorToggle').checked ? CONFIG.insurance.incomeProtector : 0;
+  const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
+  const boilerCoverFree = (boilerCoverCost > 0 && $('boilerCoverFreeToggle').checked) ? boilerCoverCost * CONFIG.insurance.boilerCoverFreeMonths : 0;
+  const insuranceTotal = incomeProtectorCost + boilerCoverCost;
+  const insuranceCount = (incomeProtectorCost > 0 || boilerCoverCost > 0) ? 1 : 0;
+
+  // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
+  const energyOrBb = state.services.energy || state.services.broadband;
+  const includedSimsCount = state.services.mobile ? Object.values(state.sims).filter(s => s.include).length : 0;
+  const realMobileContribution = energyOrBb ? Math.min(includedSimsCount, CONFIG.mobile.servicesCountedMax) : 0;
+  const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
+  // Capped at 4: welcomeBonus/lowMonthlyCaps are only defined up to 5 (and cap out at 4
+  // anyway), and the energy tiers only go up to "2+ services beyond energy" — so once
+  // baseCount hits 4, extra qualifying items (e.g. both insurance products plus 2 SIMs)
+  // can't add anything further.
+  const baseCount = Math.min((state.services.energy ? 1 : 0) + (state.services.broadband ? 1 : 0) + realMobileContribution + insuranceCount, 4);
+  // The energy bundle only has tiers for "energy only / +1 service / +2 services" — once
+  // count-1 (services alongside energy) reaches 2, adding more sims doesn't reduce energy
+  // further. Cap the preview at however many sims are needed to reach that tier, so we don't
+  // offer a 2nd "free" SIM preview that wouldn't actually make energy any cheaper.
+  const maxPreview = state.services.energy
+    ? Math.min(availableSlots, Math.max(0, 2 - (baseCount - 1)))
+    : availableSlots;
+  const previewApplied = Math.min(previewSims, availableSlots, maxPreview);
+  const mobilePresent = state.services.mobile || previewApplied > 0;
+  const count = baseCount + previewApplied;
+
+  // --- current energy ---
+  let currentEnergy = 0;
+  if (state.services.energy) {
+    currentEnergy = $('splitEnergyToggle').checked
+      ? (state.splitGas ? num('currentGasMonthly') : 0) + (state.splitElec ? num('currentElecMonthly') : 0)
+      : num('currentEnergyMonthly');
+    if ($('useBillCosts').checked) {
+      const annualEq = Math.round((num('gasAnnualCost') + num('elecAnnualCost')) / 12);
+      if (annualEq > 0) currentEnergy = annualEq;
+      $('billMonthlyEq').textContent = annualEq;
+    }
+  }
+  let uwEnergy = 0;
+  if (state.services.energy) {
+    const bundleOn = $('bundleRatePanel') && !$('bundleRatePanel').classList.contains('hidden');
+    if (bundleOn) {
+      const t1 = num('uwEnergyTier1'), t2 = num('uwEnergyTier2'), t3 = num('uwEnergyTier3');
+      const nonE = count - 1; // services beyond energy
+      if (nonE >= 2 && t3 > 0) uwEnergy = t3;
+      else if (nonE >= 1 && t2 > 0) uwEnergy = t2;
+      else if (t1 > 0) uwEnergy = t1;
+      else uwEnergy = num('uwEnergyMonthly'); // fallback to single field
+    } else {
+      uwEnergy = num('uwEnergyMonthly');
+    }
+  }
+
+  // Manual adjustment for E7/EV/Solar complexity — +/- £, applied to Current or UW,
+  // entered as monthly or annual (annual is divided by 12 here).
+  let energyAdjust = 0;
+  if (state.services.energy && $('energyAdjustToggle').checked) {
+    energyAdjust = numF('energyAdjustAmount');
+    if (state.energyAdjustPeriod === 'annual') energyAdjust = energyAdjust / 12;
+    if (state.energyAdjustTarget === 'uw') uwEnergy += energyAdjust;
+    else currentEnergy += energyAdjust;
+  }
+
+  // --- broadband ---
+  const currentBb = state.services.broadband ? num('currentBroadbandMonthly') : 0;
+  const uwBbRaw = state.services.broadband ? numF('uwBroadbandMonthly') : 0;
+  const dhpCost = state.services.broadband ? (state.dhpPlan || 0) : 0;
+  const wifiCost = (state.services.broadband && $('wholeHomeWifiToggle').checked) ? CONFIG.broadband.wholeHomeWifi : 0;
+  const uwBb = Math.ceil(uwBbRaw) + dhpCost + wifiCost; // always round up for customer-facing figures
+
+  // --- mobile ---
+  let currentMob = 0, uwMob = 0, mobExit = 0;
+  let realSims = [];
+  if (state.services.mobile) {
+    const included = Object.entries(state.sims).filter(([, s]) => s.include);
+    realSims = included.map(([, s]) => s);
+    const prices = priceSims(included.map(([, s]) => s));
+    included.forEach(([key, s], idx) => {
+      currentMob += s.monthlyCost;
+      mobExit += s.exitFee;
+      const cost = prices[idx];
+      uwMob += cost;
+      const el = $('uwCost_' + key);
+      if (el) el.textContent = (cost % 1 !== 0) ? cost.toFixed(2) : cost;
+      const note = $('plannote_' + key);
+      if (note) note.textContent = CONFIG.mobile.plans[s.uwPlan] ? CONFIG.mobile.plans[s.uwPlan].note : '';
+    });
+    // excluded SIMs: blank price display
+    Object.keys(state.sims).forEach(key => {
+      if (!state.sims[key].include) { const el = $('uwCost_' + key); if (el) el.textContent = '0'; }
+    });
+  }
+  // Card-preview meal deal SIMs: £0 current, Essentials rate UW
+  uwMob += previewApplied * CONFIG.mobile.plans.essentialMax.extra;
+
+  // --- manual adjustment (general, with reasons for reference) ---
+  const manualAdjustOn = $('manualAdjustToggle').checked;
+  const manualAdjustCurrent = manualAdjustOn ? numF('manualAdjustCurrent') : 0;
+  const manualAdjustUw = manualAdjustOn ? numF('manualAdjustUw') : 0;
+  const manualAdjustCurrentReason = manualAdjustOn ? $('manualAdjustCurrentReason').value.trim() : '';
+  const manualAdjustUwReason = manualAdjustOn ? $('manualAdjustUwReason').value.trim() : '';
+
+  const currentTotal = currentEnergy + currentBb + currentMob + manualAdjustCurrent;
+  const uwTotalBase = uwEnergy + uwBb + uwMob + insuranceTotal + manualAdjustUw;
+  const monthlySaving = currentTotal - uwTotalBase;
+
+  // April increases are ~£4 on both UW and current providers — they cancel in the net saving.
+  // We only need monthsUntilApril for the 6-months-free straddle calculation.
+  const mba = monthsUntilApril();
+  const uwInc = CONFIG.broadband.uwAprilIncrease;
+
+  // --- cashback (medium scenario drives the headline, as v1) ---
+  // UW's own marketing rounds cashback DOWN to whole pounds (e.g. £14.83 -> £14),
+  // so we match that here at source — keeps every downstream figure a whole number
+  // and avoids a string of small rounding mismatches later.
+  const spend = parseInt($('spendSlider').value, 10) || cb.slider.default;
+  const lowCap = cb.lowMonthlyCaps[count] || cb.lowCapDefault;
+  const cbLow = Math.floor(Math.min(spend * cb.rateLow, lowCap));
+  const cbMed = Math.floor((cb.referenceMedAnnual * (spend / cb.referenceSpend)) / 12);
+  const cbHigh = Math.floor((cb.referenceHighAnnual * (spend / cb.referenceSpend)) / 12);
+  const cbSelected = state.cbTier === 'low' ? cbLow : state.cbTier === 'high' ? cbHigh : cbMed;
+  const cbMonthly = cbSelected; // already a whole pound, floored above
+  const freeMonthsValue = cb.cardFeeMonthly * cb.freeMonths;   // £9
+  const cashbackNet = cbMonthly - cb.cardFeeMonthly; // direct-debit view: £3 fee always counted, waiver shown separately
+
+  // --- 6 months free City Fibre (homeowner, must bundle with energy or mobile) ---
+  let bbFree = 0;
+  if (state.services.broadband && $('bbFreeMonthsToggle').checked &&
+      (state.services.energy || mobilePresent)) {
+    const fm = CONFIG.broadband.freeMonths;
+    // Use exact (unrounded) UW price for the free-months value
+    // but account for April if it falls within the 6 free months.
+    // Rounded to whole pounds here so the displayed figure and the value
+    // used in year1/benefitsTotal always match exactly.
+    bbFree = Math.round(mba >= fm
+      ? fm * uwBbRaw
+      : mba * uwBbRaw + (fm - mba) * (uwBbRaw + uwInc));
+  }
+
+  // --- free first-6-months on additional Unlimited SIMs ---
+  // uwMob/uwTotalBase already use the steady-state £10/m (priceSims), so the
+  // value of the free period is shown here as a one-off year-one benefit —
+  // same treatment as bbFree above.
+  const um = CONFIG.mobile.plans.unlimitedMax;
+  const additionalUnlimited = Math.max(0, realSims.filter(s => s.uwPlan === 'unlimitedMax').length - 1);
+  const mobileFreeMonths = additionalUnlimited * um.extraM7to12 * um.freeMonths;
+
+  // --- bonuses ---
+  const welcome = CONFIG.welcomeBonus[count] || 0;
+  const referral = (count >= CONFIG.referral.minServices &&
+                    state.homeowner === 'homeowner' &&
+                    $('referralToggle').checked) ? CONFIG.referral.amount : 0;
+
+  // --- exit fees (split-energy fees now included — fixed from v1) ---
+  let energyExit = $('splitEnergyToggle').checked
+    ? (state.splitGas ? num('currentGasExitFee') : 0) + (state.splitElec ? num('currentElecExitFee') : 0)
+    : num('currentEnergyExitFee');
+  if (!state.services.energy) energyExit = 0;
+  const bbExit = state.services.broadband ? num('currentBroadbandExitFee') : 0;
+  const exitFees = energyExit + bbExit + mobExit;
+  const refunded = count >= CONFIG.exitFeeRefund.minServices;
+  const exitDeduction = refunded ? Math.max(0, exitFees - CONFIG.exitFeeRefund.maxRefund) : exitFees;
+
+  // --- first 12 months benefit (the hero) ---
+  const cbOn = state.includeCashback;
+  // Cashback's annual contribution uses cashbackNet x12 (the same figure behind the
+  // monthly Saving column) rather than separately-rounded cbAnnual/cardAnnualFee —
+  // so "Year-one Savings on Services" + "Year-one Welcome Bonuses" always equals year1 exactly.
+  const cashbackAnnualNet = cashbackNet * 12 + freeMonthsValue;
+  const year1 = monthlySaving * 12
+              + welcome + referral
+              + bbFree
+              + mobileFreeMonths
+              + boilerCoverFree
+              - exitDeduction
+              + (cbOn ? cashbackAnnualNet : 0);
+
+  return { currentEnergy, uwEnergy, currentBb, uwBb, uwBbRaw, currentMob, uwMob,
+           currentTotal, uwTotalBase, monthlySaving,
+           spend, cbLow, cbMed, cbHigh, cbMonthly, freeMonthsValue,
+           count, welcome, referral, bbFree, mobileFreeMonths, additionalUnlimited,
+           exitFees, refunded, exitDeduction, year1, cbOn,
+           mba, availableSlots, previewApplied, includedSimsCount, cashbackNet, maxPreview,
+           incomeProtectorCost, boilerCoverCost, boilerCoverFree, insuranceTotal,
+           manualAdjustCurrent, manualAdjustUw, manualAdjustCurrentReason, manualAdjustUwReason };
+}
+
+/* Every in-basket service needs BOTH sides of the comparison:
+   current /m fields can't be £0, and the UW quote can't be £0. */
+function validateInputs(r) {
+  const issues = [];
+  if (state.homeowner === null)
+    issues.push({ label: 'Select Homeowner or Tenant', els: [$('pillHomeowner'), $('pillTenant')] });
+  if (state.services.energy) {
+    if ($('useBillCosts').checked) {
+      if (num('gasAnnualCost') + num('elecAnnualCost') === 0)
+        issues.push({ label: 'Energy — annual bill figures', els: [$('gasAnnualCost'), $('elecAnnualCost')] });
+    } else if ($('splitEnergyToggle').checked) {
+      if (state.splitGas && num('currentGasMonthly') === 0)
+        issues.push({ label: 'Energy — gas /m', els: [$('currentGasMonthly')] });
+      if (state.splitElec && num('currentElecMonthly') === 0)
+        issues.push({ label: 'Energy — electricity /m', els: [$('currentElecMonthly')] });
+    } else {
+      if (num('currentEnergyMonthly') === 0) issues.push({ label: 'Energy — current /m', els: [$('currentEnergyMonthly')] });
+    }
+    if (r.uwEnergy === 0) {
+      const bOn = $('bundleRatePanel') && !$('bundleRatePanel').classList.contains('hidden');
+      issues.push({ label: 'Energy — UW quote', els: [bOn ? $('uwEnergyTier1') : $('uwEnergyMonthly')] });
+    }
+  }
+  if (state.services.broadband) {
+    if (r.currentBb === 0) issues.push({ label: 'Broadband — current /m', els: [$('currentBroadbandMonthly')] });
+    if (r.uwBb === 0) issues.push({ label: 'Broadband — UW quote', els: [$('uwBroadbandMonthly')] });
+    if ($('dhpToggle').checked && !state.dhpPlan)
+      issues.push({ label: 'Home phone — select call package', els: [...document.querySelectorAll('[data-dhp]')] });
+  }
+  if (state.services.mobile) {
+    const included = Object.entries(state.sims).filter(([, s]) => s.include);
+    if (!included.length) issues.push({ label: 'Mobile — choose how many SIMs', els: [...document.querySelectorAll('#simCountPills .pill')] });
+    included.forEach(([key, s]) => {
+      if (!s.monthlyCost && !s.mealDeal) {
+        const el = document.querySelector('input[data-sim="' + key + '"][data-field="monthlyCost"]');
+        issues.push({ label: 'Mobile — ' + (s.name || key) + ' current /m', els: el ? [el] : [] });
+      }
+    });
+  }
+  return issues;
+}
+
+/* ---------- render ---------- */
+function money(n) { const v = Math.round(n * 100) / 100; const dp = v % 1 !== 0 ? 2 : 0; return v.toLocaleString('en-GB', { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+const DEFAULT_JOIN_URL = 'https://uw.partners/adrian.croft/join';
+const basketLink = () => $('basketLink').value.trim();
+const firstName = () => ($('customerName').value.trim().split(/\s+/)[0] || '');
+function cashbackBasisText(tier, spend) {
+  const spendText = '£' + (spend || CONFIG.cashback.slider.default).toLocaleString('en-GB') + ' monthly spend';
+  if (tier === 'low') return '** 1% cashback estimate, ' + spendText;
+  if (tier === 'high') return '** top earners cashback estimate, ' + spendText;
+  return '** average cashback, ' + spendText;
+}
+
+function estimateDateText(isoDate) {
+  const d = isoDate ? new Date(isoDate + 'T00:00:00') : new Date();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function calc() {
+  const r = compute();
+
+  // cashback chips — cbLow/Med/High are already whole-pound (floored at source)
+  $('cbLow').textContent = r.cbLow;   $('cbLowYr').textContent = r.cbLow * 12;
+  $('cbMed').textContent = r.cbMed;   $('cbMedYr').textContent = r.cbMed * 12;
+  $('cbHigh').textContent = r.cbHigh; $('cbHighYr').textContent = r.cbHigh * 12;
+
+  // mobile totals
+  $('currentMobileTotal').textContent = money(r.currentMob);
+  $('uwMobileTotal').textContent = money(r.uwMob);
+
+  // Meal deal SIM detection — auto-set per SIM, update button labels
+  const includedSimEntries = Object.entries(state.sims).filter(([, s]) => s.include);
+  let mealDealCount = 0;
+  includedSimEntries.forEach(([key, s], idx) => {
+    const isMD = idx < 2 &&
+      s.uwPlan === 'essentialMax' &&
+      s.monthlyCost === 0 &&
+      (state.services.energy || state.services.broadband);
+    state.sims[key].mealDeal = isMD;
+    if (isMD) mealDealCount++;
+    const essBtn = document.querySelector('.planpills[data-sim="' + key + '"] [data-plan="essentialMax"]');
+    if (essBtn) essBtn.textContent = isMD ? '🥪 Essentials' : CONFIG.mobile.plans.essentialMax.label;
+  });
+  // Re-quote prompt when a meal deal SIM is in an energy basket
+  const rqNote = $('uwEnergyRequoteNote');
+  const bundlePanelOpen = $('bundleRatePanel') && !$('bundleRatePanel').classList.contains('hidden');
+  if (rqNote) rqNote.classList.toggle('hidden', !(mealDealCount > 0 && state.services.energy && !bundlePanelOpen));
+  // Active tier highlight
+  if (bundlePanelOpen && state.services.energy) {
+    const nonE = r.count - 1;
+    const t2 = num('uwEnergyTier2'), t3 = num('uwEnergyTier3');
+    ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => {
+      const el = $(id); if (!el) return;
+      el.classList.remove('active-rate');
+      el.previousElementSibling && el.previousElementSibling.classList.remove('active-tier');
+    });
+    const activeId = nonE >= 2 && t3 > 0 ? 'uwEnergyTier3' : nonE >= 1 && t2 > 0 ? 'uwEnergyTier2' : 'uwEnergyTier1';
+    const activeEl = $(activeId); if (activeEl) {
+      activeEl.classList.add('active-rate');
+      const lbl = document.querySelector('label[for="' + activeId + '"], #uwE' + (activeId.slice(-1) === '1' ? 1 : activeId.slice(-1) === '2' ? 2 : 3) + 'Lbl');
+      if (lbl) lbl.classList.add('active-tier');
+    }
+  }
+
+  // service counter
+  let svcTxt = 'Qualifying UW services: ' + r.count;
+  const insuranceIcons = [];
+  if (r.incomeProtectorCost > 0) insuranceIcons.push('🛡️ Income Protector');
+  if (r.boilerCoverCost > 0) insuranceIcons.push('🛡️ Boiler Cover');
+  if (insuranceIcons.length) svcTxt += ' (incl. ' + insuranceIcons.join(', ') + ')';
+  if (state.services.mobile && !state.services.energy && !state.services.broadband) {
+    svcTxt += ' — SIMs qualify once bundled with energy or broadband';
+  }
+  $('svcCounter').textContent = svcTxt;
+
+  // sticky bar — no total until both sides of the comparison are in
+  const hero = Math.round(r.year1);
+  const vi = validateInputs(r);
+  if (vi.length) {
+    $('liveYear1').textContent = '£ —';
+    $('liveYear1').classList.remove('neg');
+    $('gateMsg').textContent = 'Still needed: ' + vi.map(i => i.label).join(' · ');
+    $('gateMsg').style.display = 'block';
+  } else {
+    $('liveYear1').textContent = (hero < 0 ? '−£' + Math.abs(hero) : '£' + hero);
+    $('liveYear1').classList.toggle('neg', hero < 0);
+    $('gateMsg').style.display = 'none';
+  }
+}
+
+/* ---------- share card ---------- */
+function saveLine(el, val) {
+  el.textContent = (val < 0 ? '−£' + money(Math.abs(val)) : '£' + money(val));
+  el.classList.toggle('bad', val < 0);
+  el.classList.toggle('good', val > 0);
+}
+
+function openCard() {
+  const r0 = compute();
+
+  // Every in-basket service needs both sides filled before the card opens
+  document.querySelectorAll('input.err, button.err').forEach(el => el.classList.remove('err'));
+  const issues = validateInputs(r0);
+  if (issues.length) {
+    issues.forEach(i => i.els.forEach(el => el.classList.add('err')));
+    const firstEl = (issues.find(i => i.els.length) || {}).els;
+    if (firstEl && firstEl[0]) {
+      firstEl[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => firstEl[0].focus(), 400);
+    }
+    return;
+  }
+  previewExtra = false; // reset preview each time the card opens
+  renderCard(compute(0));
+  $('cardModal').classList.add('open');
+}
+
+function renderCard(r) {
+  const real = compute(0); // "before" figures, for preview before/after display
+  const hero = Math.round(r.year1);
+  $('scHero').textContent = (hero < 0 ? '−' : '') + Math.abs(hero).toLocaleString('en-GB');
+  const nm = $('customerName').value.trim();
+  $('scWho').textContent = nm ? 'Prepared for ' + nm : '';
+
+  // Highlight what the meal-deal SIM preview adds to the headline figure
+  const heroDelta = hero - Math.round(real.year1);
+  const heroDeltaEl = $('scHeroDelta');
+  heroDeltaEl.classList.toggle('hidden', heroDelta === 0);
+  if (heroDelta !== 0) {
+    heroDeltaEl.textContent = (heroDelta > 0 ? '+£' : '−£') + Math.abs(heroDelta).toLocaleString('en-GB');
+  }
+
+  // per-service monthly savings (only services in the basket)
+  // Mobile: add 🥪 per meal deal SIM, amber colour when intentional net cost
+  const mdSims = Object.values(state.sims).filter(s => s.include && s.mealDeal);
+  const totalMd = mdSims.length + r.previewApplied;
+  const mdEmoji = totalMd ? ' ' + '🥪'.repeat(totalMd) : '';
+  const fmt = (v, suf) => (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)) + (suf || '');
+  // When previewing, shows "<+/-£delta> <old, struck through, grey>" on one line.
+  // invert=true for COST fields (UW monthly, UW energy) where rising = bad/red.
+  // nowrap keeps delta+struck on the same line regardless of cell width — prevents layout jitter.
+  const deltaOld = (el, oldVal, newVal, suf, invert) => {
+    if (r.previewApplied > 0 && oldVal !== newVal) {
+      const delta = Math.round(newVal - oldVal);
+      const deltaTxt = (delta >= 0 ? '+£' : '−£') + Math.abs(delta).toLocaleString('en-GB');
+      const cls = invert ? (delta >= 0 ? 'bad' : 'good') : (delta >= 0 ? 'good' : 'bad');
+      el.innerHTML = '<span style="white-space:nowrap"><span class="delta ' + cls + '">' + deltaTxt + '</span> <s>' + fmt(oldVal, suf) + '</s></span>';
+    } else {
+      el.textContent = fmt(newVal, suf);
+    }
+  };
+  const cashbackAdj = r.cbOn ? r.cashbackNet : 0;
+  const steadyUwNet = r.uwTotalBase - cashbackAdj;     // ongoing monthly direct debit, net of cashback
+  const steadySaveNet = r.currentTotal - steadyUwNet;
+  const cashbackAdjReal = real.cbOn ? real.cashbackNet : 0;
+  const steadyUwNetReal = real.uwTotalBase - cashbackAdjReal;
+  const steadySaveNetReal = real.currentTotal - steadyUwNetReal;
+
+  // Total monthly summary — the headline, directly under the hero
+  $('totNow').textContent = fmt(r.currentTotal);
+  deltaOld($('totUw'), steadyUwNetReal, steadyUwNet, null, true);
+  deltaOld($('totSave'), steadySaveNetReal, steadySaveNet);
+  $('totSave').classList.toggle('good', steadySaveNet > 0);
+  $('totSave').classList.toggle('bad', steadySaveNet < 0);
+
+  const annualServiceSavings = Math.round(steadySaveNet * 12);
+  const annualServiceSavingsReal = Math.round(steadySaveNetReal * 12);
+  deltaOld($('annualServiceSavings'), annualServiceSavingsReal, annualServiceSavings);
+  $('annualServiceSavings').classList.toggle('good', annualServiceSavings > 0);
+  $('annualServiceSavings').classList.toggle('bad', annualServiceSavings < 0);
+
+  // The UW* column is the ongoing (post-intro) monthly cost, net of cashback — make that
+  // explicit whenever a free-period offer is in play, since those months look cheaper.
+  {
+    const freeItems = [];
+    if (r.bbFree > 0) freeItems.push('broadband');
+    if (r.mobileFreeMonths > 0) freeItems.push('mobile SIM');
+    let ddNote = '* monthly direct debit';
+    if (freeItems.length) ddNote += ', once your free ' + freeItems.join(' and ') + ' months end';
+    ddNote += ', minus estimated cashback';
+    $('ddNote').textContent = ddNote;
+  }
+
+  // Monthly breakdown — ongoing (steady-state) figures, reconciles exactly to the row above
+  $('scEnergyRow').classList.toggle('hidden', !state.services.energy);
+  $('scBbRow').classList.toggle('hidden', !state.services.broadband);
+  $('scMobRow').classList.toggle('hidden', !(state.services.mobile || r.previewApplied > 0));
+  $('scCbRow').classList.toggle('hidden', !r.cbOn);
+  $('scCashbackNote').classList.toggle('hidden', !r.cbOn);
+
+  $('scEnergyNow').textContent = fmt(r.currentEnergy);
+  deltaOld($('scEnergyUw'), real.uwEnergy, r.uwEnergy, null, true);
+  saveLine($('scEnergySave'), r.currentEnergy - r.uwEnergy);
+  const energyNoteNeeded = state.services.energy && r.previewApplied > 0 && r.uwEnergy === real.uwEnergy;
+  $('scEnergyNoteRow').classList.toggle('hidden', !energyNoteNeeded);
+
+  $('scBbNow').textContent = fmt(r.currentBb);
+  $('scBbUw').textContent = fmt(r.uwBb);
+  saveLine($('scBbSave'), r.currentBb - r.uwBb);
+
+  $('scMobNow').textContent = fmt(r.currentMob);
+  $('scMobUw').textContent = fmt(r.uwMob);
+  const mobSave = r.currentMob - r.uwMob;
+  saveLine($('scMobSave'), mobSave);
+  const mobNeutral = mobSave < 0 && totalMd > 0;
+  $('scMobSave').classList.toggle('neutral', mobNeutral);
+  if (mobNeutral) $('scMobSave').classList.remove('bad');
+  const mobLabelEl = $('scMobRow') && $('scMobRow').querySelector('td');
+  if (mobLabelEl) mobLabelEl.textContent = '📱 Mobile' + mdEmoji;
+
+  // Insurance — UW-only cost, no current-side comparison (FCA: no advice/comparison)
+  $('scInsuranceRow').classList.toggle('hidden', r.insuranceTotal === 0);
+  if (r.insuranceTotal > 0) {
+    $('scInsuranceUw').textContent = fmt(r.insuranceTotal);
+    saveLine($('scInsuranceSave'), -r.insuranceTotal);
+  }
+
+  // Manual adjustment — shows the optional reason notes underneath when present
+  const adjustOn = r.manualAdjustCurrent !== 0 || r.manualAdjustUw !== 0;
+  $('scAdjustRow').classList.toggle('hidden', !adjustOn);
+  if (adjustOn) {
+    $('scAdjustNow').textContent = fmt(r.manualAdjustCurrent);
+    $('scAdjustUw').textContent = fmt(r.manualAdjustUw);
+    saveLine($('scAdjustSave'), r.manualAdjustCurrent - r.manualAdjustUw);
+  }
+  const reasons = [];
+  if (r.manualAdjustCurrentReason) reasons.push('Current: ' + r.manualAdjustCurrentReason);
+  if (r.manualAdjustUwReason) reasons.push('UW: ' + r.manualAdjustUwReason);
+  $('scAdjustNoteRow').classList.toggle('hidden', !adjustOn || reasons.length === 0);
+  if (reasons.length) $('scAdjustNoteRow').querySelector('td').textContent = reasons.join(' · ');
+
+  // Subtotal — cost of services before cashback (= uwTotalBase / currentTotal)
+  $('scSubtotNow').textContent = fmt(r.currentTotal);
+  $('scSubtotUw').textContent = fmt(r.uwTotalBase);
+  saveLine($('scSubtotSave'), r.monthlySaving);
+
+  if (r.cbOn) {
+    // UW column shows cashback as a reduction (negative = good) — inverted vs saveLine's usual logic
+    const cbUwVal = -r.cashbackNet;
+    $('scCbUw').textContent = (cbUwVal < 0 ? '−£' + money(Math.abs(cbUwVal)) : '£' + money(cbUwVal));
+    $('scCbUw').classList.toggle('good', cbUwVal < 0);
+    $('scCbUw').classList.toggle('bad', cbUwVal > 0);
+    saveLine($('scCbSave'), r.cashbackNet);
+  }
+
+  $('scBdTotNow').textContent = fmt(r.currentTotal);
+  $('scBdTotUw').textContent = fmt(steadyUwNet);
+  saveLine($('scBdTotSave'), steadySaveNet);
+
+  // upfront & year-one
+  $('scBbFreeRow').classList.toggle('hidden', r.bbFree === 0);
+  $('scBbFree').textContent = '£' + Math.round(r.bbFree);
+  $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + ')';
+  $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
+  $('scWelcomeLabel').textContent = '💷 Cashback bonus (' + (r.welcome / 50) + 'm @ £50)';
+  deltaOld($('scWelcome'), real.welcome, r.welcome);
+  $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
+  $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
+  { const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
+  $('scReferralRow').classList.toggle('hidden', r.referral === 0);
+  $('scReferral').textContent = '£' + r.referral;
+  $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
+  $('scCardFee').textContent = '+£' + r.freeMonthsValue;
+  $('scCardFeeLabel').textContent = '💳 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + ')';
+  $('scBoilerFreeRow').classList.toggle('hidden', r.boilerCoverFree === 0);
+  $('scBoilerFree').textContent = '£' + Math.round(r.boilerCoverFree);
+  $('scBoilerFreeLabel').textContent = '🛡️ ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + ')';
+  // Exit fees — info block below Total, not in benefits Total
+  if (r.exitFees === 0) {
+    $('scExitBlock').classList.add('hidden');
+  } else {
+    $('scExitBlock').classList.remove('hidden');
+    const maxR = CONFIG.exitFeeRefund.maxRefund;
+    let msg;
+    if (r.refunded && r.exitDeduction === 0) {
+      msg = '↩️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
+    } else if (r.refunded && r.exitDeduction > 0) {
+      msg = "↩️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you're still better off";
+    } else {
+      const needed = CONFIG.exitFeeRefund.minServices - r.count;
+      msg = '⚠️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
+    }
+    $('scExitMsg').innerHTML = msg;
+  }
+
+  // benefits total = everything in this section, including exit fees still to pay.
+  // Year-one Savings on Services + this Total = the hero figure, exactly.
+  $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
+  $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
+    + (r.cbOn ? r.freeMonthsValue : 0)
+    - r.exitDeduction;
+  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.mobileFreeMonths + real.boilerCoverFree
+    + (real.cbOn ? real.freeMonthsValue : 0)
+    - real.exitDeduction;
+  deltaOld($('scBenefitsTotal'), benefitsTotalReal, benefitsTotal);
+  $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
+  $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
+
+  $('brandName').textContent = CONFIG.partner.name;
+  $('brandRole').textContent = CONFIG.partner.role;
+  $('brandStrap').textContent = CONFIG.partner.strapline;
+  const ctaLink = basketLink();
+  $('scJoinLink').href = ctaLink || DEFAULT_JOIN_URL;
+  $('scJoinLink').textContent = ctaLink ? 'Open your basket →' : 'Start saving here →';
+  $('scCashbackNote').textContent = cashbackBasisText(state.cbTier, r.spend);
+  $('scEstimateNote').textContent = 'Estimate based on prices as at ' + estimateDateText() + '. Not a formal quote.';
+
+  // Basket row — icons for broadband and both SIM slots are always present:
+  // full opacity = in the basket, very faint = could be added, dashed + 🥪 = being previewed.
+  // The service count and "try adding" pill update together with the preview.
+  const sim1On = real.includedSimsCount >= 1;
+  const sim2On = real.includedSimsCount >= 2;
+  const canAdd = real.availableSlots > 0 && real.maxPreview > 0;
+  if (!canAdd) previewExtra = false;
+
+  $('biEnergy').classList.toggle('hidden', !state.services.energy);
+
+  $('biBroadband').classList.toggle('could', !state.services.broadband);
+  $('biBroadband').classList.remove('preview');
+
+  const setSimIcon = (el, isReal, isPreview) => {
+    el.classList.toggle('could', !isReal && !isPreview);
+    el.classList.toggle('preview', isPreview);
+    const existingSup = el.querySelector('.sup');
+    if (isPreview && !existingSup) {
+      const sup = document.createElement('span');
+      sup.className = 'sup'; sup.textContent = '🥪';
+      el.appendChild(sup);
+    } else if (!isPreview && existingSup) {
+      existingSup.remove();
+    }
+  };
+  let previewSlotsLeft = r.previewApplied;
+  setSimIcon($('biSim1'), sim1On, !sim1On && previewSlotsLeft-- > 0);
+  setSimIcon($('biSim2'), sim2On, !sim2On && previewSlotsLeft-- > 0);
+
+  $('biInsurance').classList.toggle('could', !(real.incomeProtectorCost > 0 || real.boilerCoverCost > 0));
+
+  // Service count — shows the jump (e.g. "1 → 3 services") while previewing
+  const basketCountEl = $('basketCount');
+  const plural = n => n + ' service' + (n === 1 ? '' : 's');
+  basketCountEl.innerHTML = r.previewApplied > 0
+    ? real.count + ' <span class="arrow">→</span> ' + plural(r.count)
+    : plural(real.count);
+
+  const addBtn = $('biSimAdd');
+  addBtn.classList.toggle('hidden', !canAdd);
+  addBtn.classList.toggle('on', previewExtra);
+  addBtn.querySelector('.ic2').classList.toggle('hidden', real.maxPreview < 2);
+  addBtn.querySelector('.lbl').textContent = previewExtra ? 'added' : 'try adding';
+}
+
+// "Try adding" pill — directly toggles the meal-deal SIM preview, live recalc, no close.
+// The totals (Year-one Savings on Services, Year-one Welcome Bonuses) are always visible, so the effect is
+// immediately clear without needing to expand any details — those remain available
+// for anyone who wants the line-by-line breakdown.
+$('biSimAdd').addEventListener('click', () => {
+  const real = compute(0);
+  if (real.availableSlots === 0 || real.maxPreview === 0) return;
+  previewExtra = !previewExtra;
+  renderCard(compute(currentPreviewCount()));
+});
+
+/* ---------- EV sense-check modal ---------- */
+const EV_SENSE_CHECK_HTML = "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>⚡ EV Sense-Check</title>\n<style>\n:root{\n  --ev:#00897B; --ev-lite:#e0f2f0; --ev-dark:#00695C;\n  --good:#1d9b50; --bad:#c43b3b; --amber:#d98a00;\n  --ink:#1f1f24; --muted:#6b6b76; --line:#e6e2ef;\n  --bg:#f0faf8; --card:#fff; --radius:14px;\n}\n*{margin:0;padding:0;box-sizing:border-box}\nhtml{-webkit-text-size-adjust:100%}\nbody{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;padding-bottom:2.5rem}\n.wrap{max-width:480px;margin:0 auto;padding:1rem}\nheader{padding:.4rem 0 .3rem}\nheader h1{font-size:20px;font-weight:800;color:var(--ev)}\n\n.fresh{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin:.15rem 0 .8rem;flex-wrap:wrap}\n.fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0}\n.fresh strong{color:var(--ev-dark);font-weight:700}\n\n.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1rem;margin-bottom:.75rem}\n.card-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:.6rem}\n.mini-edit{border:none;background:none;font-size:15px;cursor:pointer;color:var(--ev);padding:0 2px;border-radius:6px;line-height:1}\n.mini-edit:active{opacity:.6}\n\n.seg{display:flex;background:#eef4f3;border-radius:11px;padding:3px;gap:3px;margin-bottom:.7rem}\n.seg button{flex:1;border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 4px;border-radius:9px;cursor:pointer;transition:all .15s}\n.seg button.on{background:var(--ev);color:#fff;box-shadow:0 1px 4px rgba(0,137,123,.28)}\n.seg.small button{font-size:11.5px;padding:6px 4px}\n\n.vpills{display:grid;grid-template-columns:1fr 1fr;gap:7px}\n.vpill{padding:9px 8px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:all .15s;color:var(--ink);text-align:left}\n.vpill .ico{font-size:17px;flex-shrink:0}\n.vpill .meta{display:flex;flex-direction:column;line-height:1.2}\n.vpill .meta .eff{font-size:10px;color:var(--muted);font-weight:500}\n.vpill.on{background:var(--ev);border-color:var(--ev);color:#fff}\n.vpill.on .meta .eff{color:rgba(255,255,255,.85)}\n\n.mile-row{display:flex;align-items:center;justify-content:space-between;margin:.8rem 0 .35rem}\n.mile-row label{font-size:12.5px;font-weight:600}\n.mile-val{font-size:15px;font-weight:800;color:var(--ev)}\n.mini-seg{display:flex;gap:3px;background:#eef4f3;border-radius:8px;padding:2px}\n.mini-seg button{border:none;background:none;font-family:inherit;font-size:10.5px;font-weight:700;color:var(--muted);padding:3px 7px;border-radius:6px;cursor:pointer}\n.mini-seg button.on{background:#fff;color:var(--ev-dark);box-shadow:0 1px 2px rgba(0,0,0,.12)}\ninput[type=range]{width:100%;height:6px;border-radius:3px;background:var(--line);-webkit-appearance:none;appearance:none;margin-top:.2rem}\ninput[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--ev);cursor:pointer;box-shadow:0 2px 6px rgba(0,137,123,.3)}\ninput[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--ev);border:none}\n.mile-ends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px}\n\n/* energy summary */\n.esum-full{background:var(--ev);color:#fff;border-radius:11px;padding:.7rem .9rem;display:flex;align-items:center;justify-content:space-between;margin-top:.7rem}\n.esum-full .lft{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}\n.esum-full .lft .ci{font-size:20px}\n.esum-full .n{font-size:17px;font-weight:800}\n.esum-full .n small{font-size:10px;font-weight:600;opacity:.85}\n.esum-two{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}\n.esum-box{background:var(--ev-lite);border-radius:10px;padding:.55rem .5rem;text-align:center}\n.esum-box .ic{font-size:15px}\n.esum-box .n{font-size:15px;font-weight:800;color:var(--ev-dark);line-height:1.1}\n.esum-box .l{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px;margin-top:2px}\n.esum-edit{text-align:center;margin-top:.4rem}\n\n.slide-in{background:#f6fbfa;border:1px dashed var(--ev);border-radius:10px;padding:.6rem .8rem;margin-top:.55rem}\n.slide-in .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600}\n.slide-in .top b{color:var(--ev);font-size:14px}\n.slide-in .hint{font-size:10px;color:var(--muted);margin-top:.3rem}\n\n.field{margin-bottom:.7rem}\n.field:last-child{margin-bottom:0}\n.field label{font-size:12px;font-weight:600;display:block;margin-bottom:3px}\n.hint{font-size:10px;color:var(--muted);font-weight:400}\ninput[type=number],input[type=text]{width:100%;padding:10px 12px;font-size:15px;font-family:inherit;border:1px solid var(--line);border-radius:10px;background:#f8fefd}\ninput[type=number]:focus,input[type=text]:focus{outline:none;border-color:var(--ev);box-shadow:0 0 0 3px rgba(0,137,123,.12)}\nselect{width:100%;padding:10px 12px;font-size:14px;font-family:inherit;border:1px solid var(--line);border-radius:10px;background:#f8fefd;color:var(--ink)}\n.money-input{position:relative}\n.money-input .cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ev-dark);font-weight:800;font-size:15px;pointer-events:none}\n.money-input input{padding-left:24px}\n\n/* house row: kWh + night beside */\n.house-row{display:flex;gap:.6rem;align-items:flex-start}\n.house-row .field{flex:1.5;margin-bottom:0}\n.night-box{flex:1;background:#f6fbfa;border:1px solid var(--line);border-radius:10px;padding:.5rem .55rem;text-align:center}\n.night-box .nl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}\n.night-box .nv{font-size:15px;font-weight:800;color:var(--ev-dark);margin-top:1px}\n.night-box .nv small{font-size:10px;font-weight:600;color:var(--muted)}\n.night-box .ne{margin-top:1px}\n\n.svc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}\n.svc button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px 4px;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}\n.svc button .t{font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.1;text-align:center}\n.svc button .c{font-size:11px;font-weight:700;color:var(--muted);line-height:1}\n.svc button.on{background:var(--ev);border-color:var(--ev)}\n.svc button.on .t{color:#fff}.svc button.on .c{color:rgba(255,255,255,.92)}\n.svc button.cheaper .c{color:var(--good)}.svc button.on.cheaper .c{color:#eafff2}\n.svc-cap{font-size:10px;color:var(--muted);margin-top:.45rem;text-align:center}\n\n/* result */\n.result{border:1.5px solid var(--ev);border-radius:var(--radius);overflow:hidden;margin-bottom:.75rem;background:#fff}\n.result .prompt{padding:1.4rem 1rem;text-align:center;color:var(--muted);font-size:13px}\n.res-head{background:var(--ev);color:#fff;padding:1rem;text-align:center}\n.res-head .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.9}\n.res-head .big{font-size:34px;font-weight:800;line-height:1.05;margin:.15rem 0}\n.res-head .yr{font-size:11px;opacity:.85}\n.res-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:.9rem 1rem .6rem}\n.res-col{background:#f8fefd;border:1px solid var(--line);border-radius:11px;padding:.6rem .5rem;text-align:center}\n.res-col .ci{font-size:17px}\n.res-col .cl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-top:1px}\n.res-col .cm{font-size:19px;font-weight:800;color:var(--ev-dark);line-height:1.1;margin-top:2px}\n.res-col .cy{font-size:10px;color:var(--muted);font-weight:600}\n.res-foot{padding:0 1rem 1rem}\n.res-note{background:var(--ev-lite);border-radius:10px;padding:.55rem .75rem;font-size:11.5px;color:var(--ev-dark);line-height:1.45}\n.res-note b{font-weight:800}\n.away-note{background:#fff8ef;border:1px solid #f0dcbf;border-radius:10px;padding:.55rem .75rem;font-size:11px;color:#8a5a00;margin-top:.5rem;line-height:1.45}\n.away-note b{font-weight:800}\n\ndetails.expand{margin-bottom:.6rem}\ndetails.expand>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:.8rem 1rem;cursor:pointer;font-size:13px;font-weight:700;color:var(--ev-dark);user-select:none}\ndetails.expand>summary::-webkit-details-marker{display:none}\ndetails.expand>summary::after{content:'›';font-size:18px;transition:transform .2s;color:var(--muted)}\ndetails.expand[open]>summary{border-radius:var(--radius) var(--radius) 0 0;border-bottom-color:transparent}\ndetails.expand[open]>summary::after{transform:rotate(90deg)}\n.expand-body{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:1rem}\n.two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}\n.sub-h{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:.9rem 0 .5rem}\n.sub-h:first-child{margin-top:0}\n.switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.35rem 0}\n.switchrow .lbl{font-size:12px;font-weight:600}.switchrow .lbl .hint{display:block}\n.switch{position:relative;width:44px;height:26px;flex-shrink:0}\n.switch input{opacity:0;width:100%;height:100%;position:absolute;cursor:pointer;z-index:2;margin:0}\n.switch .track{position:absolute;inset:0;background:#d8d3e6;border-radius:999px;transition:background .15s}\n.switch .track::after{content:\"\";position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}\n.switch input:checked+.track{background:var(--ev)}.switch input:checked+.track::after{left:21px}\n.stress{display:flex;gap:5px;margin-top:.3rem}\n.stress button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 2px;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}\n.stress button.on{background:#efebe9;border-color:#6d4c41;color:#6d4c41}\n.drow{display:flex;justify-content:space-between;font-size:12px;padding:.28rem 0;border-bottom:1px solid #f4f4f4}\n.drow:last-child{border-bottom:none}.drow span:last-child{font-weight:700;color:var(--ink)}\n.drow.head{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--line);padding-top:.5rem}\n.drow.diff span:last-child{color:var(--ev-dark)}\n.note{font-size:10px;color:var(--muted);line-height:1.5;margin-top:.6rem}\n.hidden{display:none!important}\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n\n<header><h1>⚡ EV Sense-Check</h1></header>\n<div class=\"fresh\">\n  <span class=\"dot\"></span>\n  <span><strong id=\"freshQuarter\">Jul–Sep</strong> EV tariffs · <strong id=\"freshRegion\">East Midlands</strong> · Direct Debit · inc VAT · UW official label</span>\n</div>\n\n<!-- ===== ROUTE + CAR ===== -->\n<div class=\"card\">\n  <div class=\"seg\" id=\"routeSeg\">\n    <button data-route=\"new\" class=\"on\">New to EV</button>\n    <button data-route=\"existing\">Existing EV driver</button>\n  </div>\n\n  <div class=\"vpills\" data-veh=\"0\">\n    <button class=\"vpill\" type=\"button\" data-eff=\"3.8\" data-ic=\"🚗\"><span class=\"ico\">🚗</span><span class=\"meta\"><span>Family Hatchback</span><span class=\"eff\">3.8 mi/kWh</span></span></button>\n    <button class=\"vpill\" type=\"button\" data-eff=\"3.5\" data-ic=\"🚘\"><span class=\"ico\">🚘</span><span class=\"meta\"><span>Exec Saloon</span><span class=\"eff\">3.5 mi/kWh</span></span></button>\n    <button class=\"vpill on\" type=\"button\" data-eff=\"3.2\" data-ic=\"🚙\"><span class=\"ico\">🚙</span><span class=\"meta\"><span>Family SUV</span><span class=\"eff\">3.2 mi/kWh</span></span></button>\n    <button class=\"vpill\" type=\"button\" data-eff=\"2.8\" data-ic=\"🚐\"><span class=\"ico\">🚐</span><span class=\"meta\"><span>Large SUV / 7-seat</span><span class=\"eff\">2.8 mi/kWh</span></span></button>\n  </div>\n  <div class=\"mile-row\">\n    <label>Mileage</label>\n    <span class=\"mile-val\" data-miledisp=\"0\">10,000 / yr</span>\n  </div>\n  <div class=\"mini-seg\" data-period=\"0\">\n    <button data-per=\"annual\" class=\"on\">Annual</button>\n    <button data-per=\"monthly\">Monthly</button>\n    <button data-per=\"weekly\">Weekly</button>\n  </div>\n  <input type=\"range\" data-mile=\"0\" min=\"1000\" max=\"30000\" step=\"500\" value=\"10000\">\n  <div class=\"mile-ends\"><span>1,000</span><span>30,000</span></div>\n\n  <!-- energy summary -->\n  <div class=\"esum-full\">\n    <span class=\"lft\"><span class=\"ci\" id=\"carIcon\">🚙</span>The car will use</span>\n    <span class=\"n\"><span id=\"totEvKwh\">—</span> <small>kWh/yr</small></span>\n  </div>\n  <div class=\"esum-two\">\n    <div class=\"esum-box\"><div class=\"ic\">🔌🏠</div><div class=\"n\" id=\"homeKwh\">—</div><div class=\"l\">Charged at home</div></div>\n    <div class=\"esum-box\"><div class=\"ic\">🔌🛣️</div><div class=\"n\" id=\"awayKwh\">—</div><div class=\"l\">Charged away</div></div>\n  </div>\n  <div class=\"esum-edit\"><button class=\"mini-edit\" id=\"awayEdit\" type=\"button\">✏️</button></div>\n  <div class=\"slide-in hidden\" id=\"awayInline\">\n    <div class=\"top\"><span>Charged away from home</span><b id=\"awayPctLbl\">10%</b></div>\n    <input type=\"range\" id=\"awayPct\" min=\"0\" max=\"60\" step=\"1\" value=\"10\">\n    <div class=\"hint\">The rest is charged at home and priced on the UW EV overnight rate.</div>\n  </div>\n\n  <div class=\"field hidden\" id=\"knownKwhField\" style=\"margin-top:.7rem\">\n    <label>Known annual EV kWh <span class=\"hint\">from car, app or bill · overrides the estimate (total, before home split)</span></label>\n    <input type=\"number\" id=\"knownKwh\" inputmode=\"numeric\" placeholder=\"leave blank to use estimate\">\n  </div>\n</div>\n\n<!-- ===== HOUSE + TARIFF ===== -->\n<div class=\"card\">\n  <div class=\"card-lbl\">Their home electricity</div>\n  <div class=\"house-row\">\n    <div class=\"field\">\n      <label>Annual house use <span class=\"hint\">kWh, excl. the car</span></label>\n      <input type=\"number\" id=\"houseKwh\" inputmode=\"numeric\" placeholder=\"e.g. 1,981\">\n    </div>\n    <div class=\"night-box\">\n      <div class=\"nl\">Overnight</div>\n      <div class=\"nv\"><span id=\"nightKwhDisp\">—</span> <small>kWh</small></div>\n      <div class=\"ne\"><button class=\"mini-edit\" id=\"nightEdit\" type=\"button\">✏️</button></div>\n    </div>\n  </div>\n  <div class=\"slide-in hidden\" id=\"nightInline\">\n    <div class=\"top\"><span>House used overnight</span><b id=\"nightPctLbl\">10%</b></div>\n    <input type=\"range\" id=\"nightPct\" min=\"0\" max=\"40\" step=\"1\" value=\"10\">\n    <div class=\"hint\">Share of the home's own use in the off-peak window (midnight–5am), priced at the overnight rate.</div>\n  </div>\n\n  <div class=\"card-lbl\" style=\"margin-top:.9rem\">House-only cost <span class=\"hint\" style=\"text-transform:none;letter-spacing:0;font-weight:400\">— taken from quote</span></div>\n  <div class=\"seg small\" id=\"curModeSeg\">\n    <button data-curmode=\"cost\" class=\"on\">Known £/month</button>\n    <button data-curmode=\"rates\">Enter rates</button>\n  </div>\n  <div id=\"curCostBox\">\n    <div class=\"field\">\n      <label>House-only monthly cost <span class=\"hint\">£ per month · house electricity only, no car · optional</span></label>\n      <div class=\"money-input\"><span class=\"cur\">£</span><input type=\"number\" id=\"curMonthly\" inputmode=\"decimal\" step=\"0.01\" placeholder=\"e.g. 54.64\"></div>\n    </div>\n  </div>\n  <div id=\"curRatesBox\" class=\"hidden\">\n    <div class=\"two\">\n      <div class=\"field\"><label>Unit rate <span class=\"hint\">p/kWh, as billed</span></label><input type=\"number\" id=\"curUnit\" inputmode=\"decimal\" step=\"0.001\" placeholder=\"e.g. 24.912\"></div>\n      <div class=\"field\"><label>Standing charge <span class=\"hint\">p/day, as billed</span></label><input type=\"number\" id=\"curSC\" inputmode=\"decimal\" step=\"0.001\" placeholder=\"e.g. 44.44\"></div>\n    </div>\n    <div class=\"field\"><label>Night rate <span class=\"hint\">p/kWh · only if already on Economy 7 · else blank</span></label><input type=\"number\" id=\"curNight\" inputmode=\"decimal\" step=\"0.001\" placeholder=\"optional\"></div>\n  </div>\n\n  <div class=\"card-lbl\" style=\"margin-top:.9rem\">EV Tariff <span class=\"hint\" style=\"text-transform:none;letter-spacing:0;font-weight:400\">— by service level</span></div>\n  <div class=\"svc\" id=\"svcSeg\">\n    <button data-tier=\"value\"><span class=\"t\">Energy only</span><span class=\"c\" data-costslot>EV Value</span></button>\n    <button data-tier=\"gold\"><span class=\"t\">Energy +1</span><span class=\"c\" data-costslot>EV Gold</span></button>\n    <button data-tier=\"doubleGold\" class=\"on\"><span class=\"t\">Energy +2</span><span class=\"c\" data-costslot>EV Double&nbsp;Gold</span></button>\n  </div>\n  <div class=\"svc-cap\">More services = a cheaper EV rate. Figures are per month vs the selected tier.</div>\n</div>\n\n<!-- ===== RESULT ===== -->\n<div class=\"result\">\n  <div class=\"prompt\" id=\"resultPrompt\">Enter their house electricity to see the monthly picture.</div>\n  <div id=\"resultBody\" class=\"hidden\">\n    <div class=\"res-head\">\n      <div class=\"k\">Total electricity on <span id=\"resTier\">UW EV Double Gold</span></div>\n      <div class=\"big\" id=\"resTotal\">—</div>\n      <div class=\"yr\" id=\"resTotalYr\">—</div>\n    </div>\n    <div class=\"res-cols\">\n      <div class=\"res-col\"><div class=\"ci\">🏠</div><div class=\"cl\">House</div><div class=\"cm\" id=\"resHouseM\">—</div><div class=\"cy\" id=\"resHouseY\">—</div></div>\n      <div class=\"res-col\"><div class=\"ci\">🔌</div><div class=\"cl\">Car charging</div><div class=\"cm\" id=\"resCarM\">—</div><div class=\"cy\" id=\"resCarY\">—</div></div>\n    </div>\n    <div class=\"res-foot\">\n      <div class=\"res-note\" id=\"houseNote\"></div>\n      <div class=\"away-note hidden\" id=\"awayNote\"></div>\n    </div>\n  </div>\n</div>\n\n<!-- ===== SETTINGS ===== -->\n<details class=\"expand\" id=\"settingsWrap\">\n  <summary>⚙️ Settings &amp; assumptions ✏️</summary>\n  <div class=\"expand-body\">\n    <div class=\"sub-h\">Tariff</div>\n    <div class=\"field\"><label>Electricity region</label>\n      <select id=\"region\">\n        <option value=\"10\">Eastern</option><option value=\"11\" selected>East Midlands</option>\n        <option value=\"12\">London</option><option value=\"13\">Manweb (Merseyside &amp; N Wales)</option>\n        <option value=\"14\">Midlands</option><option value=\"15\">Northern</option>\n        <option value=\"16\">Norweb (NW England)</option><option value=\"17\">Scottish Hydro</option>\n        <option value=\"18\">Scottish Power</option><option value=\"19\">Seeboard (SE England)</option>\n        <option value=\"20\">Southern</option><option value=\"21\">Swalec (S Wales)</option>\n        <option value=\"22\">Sweb (SW England)</option><option value=\"23\">Yorkshire</option>\n      </select>\n    </div>\n    <div class=\"switchrow\">\n      <span class=\"lbl\">Gas stays with UW (dual fuel)<span class=\"hint\">applies £13/yr per fuel off the standing charge</span></span>\n      <span class=\"switch\"><input type=\"checkbox\" id=\"dualFuel\" checked><span class=\"track\"></span></span>\n    </div>\n\n    <div class=\"sub-h\">Car efficiency</div>\n    <div class=\"field\"><label>Efficiency override <span class=\"hint\">mi/kWh · overrides the buttons</span></label><input type=\"number\" id=\"veh0Eff\" inputmode=\"decimal\" step=\"0.1\" placeholder=\"from buttons (3.2)\"></div>\n\n    <div class=\"sub-h\">Away-from-home charging (rough guide)</div>\n    <div class=\"field\"><label>Assumed public rate <span class=\"hint\">p/kWh · illustrative only, prices vary a lot</span></label><input type=\"number\" id=\"awayRate\" inputmode=\"decimal\" step=\"1\" value=\"50\"></div>\n\n    <div id=\"existingExtras\" class=\"hidden\">\n      <div class=\"sub-h\">Existing EV driver</div>\n      <div class=\"switchrow\">\n        <span class=\"lbl\">Separate EV from household night use<span class=\"hint\">on: enter household overnight kWh yourself</span></span>\n        <span class=\"switch\"><input type=\"checkbox\" id=\"sepNight\"><span class=\"track\"></span></span>\n      </div>\n      <div class=\"field hidden\" id=\"houseNightField\"><label>Household overnight kWh <span class=\"hint\">off-peak house use, excl. the car</span></label><input type=\"number\" id=\"houseNightKwh\" inputmode=\"numeric\" placeholder=\"e.g. 200\"></div>\n    </div>\n\n    <div class=\"sub-h\">Future variable-rate stress test</div>\n    <p class=\"note\" style=\"margin-top:0\">A what-if only, applied to the UW EV unit rates. Not a forecast.</p>\n    <div class=\"stress\" id=\"stressSeg\">\n      <button data-stress=\"0\" class=\"on\">0%</button><button data-stress=\"5\">+5%</button>\n      <button data-stress=\"10\">+10%</button><button data-stress=\"15\">+15%</button>\n    </div>\n  </div>\n</details>\n\n<!-- ===== DETAILS ===== -->\n<details class=\"expand\" id=\"detailsWrap\">\n  <summary>View calculation details</summary>\n  <div class=\"expand-body\">\n    <div class=\"drow head\"><span>Energy</span><span>kWh / year</span></div>\n    <div class=\"drow\"><span>Total EV charging</span><span id=\"dTotalEv\">—</span></div>\n    <div class=\"drow\"><span>&nbsp;&nbsp;at home</span><span id=\"dHomeEv\">—</span></div>\n    <div class=\"drow\"><span>&nbsp;&nbsp;away</span><span id=\"dAwayEv\">—</span></div>\n    <div class=\"drow\"><span>House day</span><span id=\"dHouseDay\">—</span></div>\n    <div class=\"drow\"><span>House overnight</span><span id=\"dHouseNight\">—</span></div>\n    <div class=\"drow head\" style=\"margin-top:.6rem\"><span>UW EV rates used</span><span>inc VAT</span></div>\n    <div class=\"drow\"><span>Peak (day)</span><span id=\"dPeak\">—</span></div>\n    <div class=\"drow\"><span>Off-peak (overnight)</span><span id=\"dOff\">—</span></div>\n    <div class=\"drow\"><span>Standing charge</span><span id=\"dSC\">—</span></div>\n    <div class=\"drow head\" style=\"margin-top:.6rem\"><span>Annual</span><span>£ / year</span></div>\n    <div class=\"drow\"><span>House-only benchmark now</span><span id=\"dAnnCur\">—</span></div>\n    <div class=\"drow\"><span>House on UW EV</span><span id=\"dAnnHouseEv\">—</span></div>\n    <div class=\"drow\"><span>Car charging on UW EV</span><span id=\"dAnnEv\">—</span></div>\n    <div class=\"drow\"><span>Total on UW EV</span><span id=\"dAnnTotEv\">—</span></div>\n    <div class=\"drow diff\"><span>Difference vs benchmark</span><span id=\"dAnnDiff\">—</span></div>\n    <div class=\"drow head\" style=\"margin-top:.6rem\"><span>Monthly</span><span>£ / month</span></div>\n    <div class=\"drow\"><span>House-only benchmark now</span><span id=\"dMonCur\">—</span></div>\n    <div class=\"drow\"><span>House on UW EV</span><span id=\"dMonHouseEv\">—</span></div>\n    <div class=\"drow\"><span>Car charging on UW EV</span><span id=\"dMonEv\">—</span></div>\n    <div class=\"drow\"><span>Total on UW EV</span><span id=\"dMonTotEv\">—</span></div>\n    <div class=\"drow diff\"><span>Difference vs benchmark</span><span id=\"dMonDiff\">—</span></div>\n    <p class=\"note\">UW official Tariff Information Label, EV tariffs Jul–Sep 2026 quarter (doc UWETL010726), Direct Debit, inc 5% VAT. Off-peak window midnight to 5am GMT (1am to 6am BST). EV tariff is UW electricity only. Illustrative estimate, not a quote or a guaranteed Budget Plan amount.</p>\n  </div>\n</details>\n\n</div>\n\n<script>\n(function(){\n  \"use strict\";\n  var EV_RATES = {\n    doubleGold:{10:{sc:51.443,peak:27.723,off:7.142},11:{sc:50.387,peak:26.129,off:7.142},12:{sc:42.111,peak:27.797,off:7.142},13:{sc:66.481,peak:28.964,off:7.142},14:{sc:56.346,peak:26.346,off:7.142},15:{sc:60.331,peak:26.020,off:7.142},16:{sc:44.528,peak:27.468,off:7.142},17:{sc:55.294,peak:27.677,off:7.142},18:{sc:61.484,peak:26.772,off:7.142},19:{sc:51.988,peak:28.013,off:7.142},20:{sc:47.166,peak:27.877,off:7.142},21:{sc:53.992,peak:27.629,off:7.142},22:{sc:55.365,peak:27.573,off:7.142},23:{sc:60.530,peak:26.230,off:7.142}},\n    gold:{10:{sc:51.443,peak:30.881,off:8.095},11:{sc:50.387,peak:29.153,off:8.095},12:{sc:42.111,peak:30.832,off:8.095},13:{sc:66.481,peak:32.423,off:8.095},14:{sc:56.346,peak:29.469,off:8.095},15:{sc:60.331,peak:29.174,off:8.095},16:{sc:44.528,peak:30.511,off:8.095},17:{sc:55.294,peak:30.884,off:8.095},18:{sc:61.484,peak:29.998,off:8.095},19:{sc:51.988,peak:31.200,off:8.095},20:{sc:47.166,peak:30.988,off:8.095},21:{sc:53.992,peak:30.815,off:8.095},22:{sc:55.365,peak:30.774,off:8.095},23:{sc:60.534,peak:29.402,off:8.095}},\n    value:{10:{sc:51.443,peak:34.335,off:8.571},11:{sc:50.387,peak:32.468,off:8.571},12:{sc:42.111,peak:34.157,off:8.571},13:{sc:66.481,peak:36.189,off:8.571},14:{sc:56.346,peak:32.886,off:8.571},15:{sc:60.331,peak:32.623,off:8.571},16:{sc:44.528,peak:33.846,off:8.571},17:{sc:55.294,peak:34.390,off:8.571},18:{sc:61.484,peak:33.522,off:8.571},19:{sc:51.988,peak:34.684,off:8.571},20:{sc:47.166,peak:34.392,off:8.571},21:{sc:53.992,peak:34.298,off:8.571},22:{sc:55.365,peak:34.273,off:8.571},23:{sc:60.534,peak:32.871,off:8.571}}\n  };\n  var REGION_NAMES={10:\"Eastern\",11:\"East Midlands\",12:\"London\",13:\"Manweb\",14:\"Midlands\",15:\"Northern\",16:\"Norweb\",17:\"Scottish Hydro\",18:\"Scottish Power\",19:\"Seeboard\",20:\"Southern\",21:\"Swalec\",22:\"Sweb\",23:\"Yorkshire\"};\n  var TIER_NAMES={value:\"UW EV Value\",gold:\"UW EV Gold\",doubleGold:\"UW EV Double Gold\"};\n  var VAT=1.05, DUAL_FUEL_DISC_YR=1300;\n\n  function compute(i){\n    var r=(EV_RATES[i.tier]&&EV_RATES[i.tier][i.region])?EV_RATES[i.tier][i.region]:null;\n    if(!r) return {error:\"No rates\"};\n    var stress=1+(i.stressPct||0)/100, peak=r.peak*VAT*stress, off=r.off*VAT*stress;\n    var scDay=r.sc*VAT; if(i.dualFuel) scDay-=DUAL_FUEL_DISC_YR/365; if(scDay<0) scDay=0;\n    var evTotal;\n    if(i.knownEvKwh&&i.knownEvKwh>0){evTotal=i.knownEvKwh;}\n    else{evTotal=0;(i.vehicles||[]).forEach(function(v){if(v.eff>0&&v.miles>0)evTotal+=v.miles/v.eff;});}\n    var evHome=evTotal*(1-(i.awayPct||0)/100), evAway=evTotal-evHome;\n    var houseKwh=i.houseKwh||0, houseNight, houseDay;\n    if(i.existing&&i.sepNight){houseNight=Math.min(i.houseNightKwh||0,houseKwh);houseDay=houseKwh-houseNight;}\n    else{houseNight=houseKwh*(i.nightPct||0)/100;houseDay=houseKwh-houseNight;}\n    var houseEvAnn=(houseDay*peak+houseNight*off)/100+scDay*365/100;\n    var evChargeAnn=evHome*off/100, totEvAnn=houseEvAnn+evChargeAnn, awayCostAnn=evAway*(i.awayRate||0)/100;\n    var houseCurAnn=null;\n    if(i.curMode===\"rates\"){var cu=i.curUnit||0,cn=i.curNight||0,csc=i.curSC||0;\n      if(cu>0||csc>0){houseCurAnn=(cn>0)?((houseDay*cu+houseNight*cn)/100+csc*365/100):(houseKwh*cu/100+csc*365/100);}}\n    else{if(i.curMonthly>0)houseCurAnn=i.curMonthly*12;else if(i.curAnnual>0)houseCurAnn=i.curAnnual;}\n    var out={evTotal:evTotal,evHome:evHome,evAway:evAway,houseDay:houseDay,houseNight:houseNight,peak:peak,off:off,scDay:scDay,houseEvAnn:houseEvAnn,evChargeAnn:evChargeAnn,totEvAnn:totEvAnn,awayCostAnn:awayCostAnn,houseCurAnn:houseCurAnn};\n    if(houseCurAnn!=null){out.onCostAnn=houseEvAnn-houseCurAnn;out.increaseAnn=totEvAnn-houseCurAnn;}\n    return out;\n  }\n  if(typeof module!==\"undefined\"&&module.exports){module.exports={compute:compute,EV_RATES:EV_RATES,VAT:VAT,DUAL_FUEL_DISC_YR:DUAL_FUEL_DISC_YR};}\n  if(typeof document===\"undefined\") return;\n\n  var $=function(id){return document.getElementById(id);};\n  var fmtM=function(n){return \"£\"+(Math.round(Math.abs(n)*100)/100).toFixed(2);};\n  var whole=function(n){return \"£\"+Math.round(Math.abs(n)).toLocaleString(\"en-GB\");};\n  var signM=function(n){return (n>=0?\"+\":\"−\")+fmtM(n);};\n  var fmt0=function(n){return Math.round(n).toLocaleString(\"en-GB\");};\n\n  var state={route:\"new\",car:{eff:3.2,miles:10000,period:\"annual\",icon:\"🚙\"},\n    tier:\"doubleGold\",region:11,dualFuel:true,awayPct:10,nightPct:10,stressPct:0,curMode:\"cost\",sepNight:false};\n  function annualMiles(){var c=state.car;return c.period===\"monthly\"?c.miles*12:c.period===\"weekly\"?c.miles*52:c.miles;}\n  function num(id){var el=$(id);if(!el)return 0;var v=parseFloat(el.value);return isNaN(v)?0:v;}\n\n  document.querySelectorAll(\"#routeSeg button\").forEach(function(b){b.addEventListener(\"click\",function(){\n    document.querySelectorAll(\"#routeSeg button\").forEach(function(x){x.classList.remove(\"on\");});b.classList.add(\"on\");\n    state.route=b.dataset.route;var ex=state.route===\"existing\";\n    $(\"knownKwhField\").classList.toggle(\"hidden\",!ex);$(\"existingExtras\").classList.toggle(\"hidden\",!ex);render();});});\n  document.querySelectorAll('.vpills[data-veh=\"0\"] .vpill').forEach(function(btn){btn.addEventListener(\"click\",function(){\n    document.querySelectorAll('.vpills[data-veh=\"0\"] .vpill').forEach(function(x){x.classList.remove(\"on\");});btn.classList.add(\"on\");\n    state.car.eff=parseFloat(btn.dataset.eff);state.car.icon=btn.dataset.ic;$(\"carIcon\").textContent=btn.dataset.ic;\n    var ef=$(\"veh0Eff\");if(ef)ef.value=\"\";render();});});\n  (function(){var sl=document.querySelector('input[data-mile=\"0\"]');sl.addEventListener(\"input\",function(){state.car.miles=parseInt(sl.value,10);updateMileDisplay();render();});})();\n  document.querySelectorAll('.mini-seg[data-period=\"0\"] button').forEach(function(b){b.addEventListener(\"click\",function(){\n    document.querySelectorAll('.mini-seg[data-period=\"0\"] button').forEach(function(x){x.classList.remove(\"on\");});b.classList.add(\"on\");\n    state.car.period=b.dataset.per;var sl=document.querySelector('input[data-mile=\"0\"]');\n    if(b.dataset.per===\"annual\"){sl.max=30000;sl.step=500;if(state.car.miles>30000)sl.value=30000;}\n    else if(b.dataset.per===\"monthly\"){sl.max=2500;sl.step=50;if(state.car.miles>2500)sl.value=1000;}\n    else{sl.max=600;sl.step=10;if(state.car.miles>600)sl.value=200;}\n    state.car.miles=parseInt(sl.value,10);updateMileDisplay();render();});});\n  function updateMileDisplay(){var c=state.car;var s=c.period===\"annual\"?\" / yr\":c.period===\"monthly\"?\" / mo\":\" / wk\";\n    var el=document.querySelector('[data-miledisp=\"0\"]');if(el)el.textContent=c.miles.toLocaleString(\"en-GB\")+s;}\n\n  $(\"awayEdit\").addEventListener(\"click\",function(){$(\"awayInline\").classList.toggle(\"hidden\");});\n  $(\"nightEdit\").addEventListener(\"click\",function(){$(\"nightInline\").classList.toggle(\"hidden\");});\n  $(\"awayPct\").addEventListener(\"input\",function(){state.awayPct=parseInt($(\"awayPct\").value,10);$(\"awayPctLbl\").textContent=state.awayPct+\"%\";render();});\n  $(\"nightPct\").addEventListener(\"input\",function(){state.nightPct=parseInt($(\"nightPct\").value,10);$(\"nightPctLbl\").textContent=state.nightPct+\"%\";render();});\n\n  document.querySelectorAll(\"#curModeSeg button\").forEach(function(b){b.addEventListener(\"click\",function(){\n    document.querySelectorAll(\"#curModeSeg button\").forEach(function(x){x.classList.remove(\"on\");});b.classList.add(\"on\");\n    state.curMode=b.dataset.curmode;$(\"curCostBox\").classList.toggle(\"hidden\",state.curMode!==\"cost\");$(\"curRatesBox\").classList.toggle(\"hidden\",state.curMode!==\"rates\");render();});});\n  document.querySelectorAll(\"#svcSeg button\").forEach(function(b){b.addEventListener(\"click\",function(){\n    document.querySelectorAll(\"#svcSeg button\").forEach(function(x){x.classList.remove(\"on\");});b.classList.add(\"on\");state.tier=b.dataset.tier;render();});});\n  document.querySelectorAll(\"#stressSeg button\").forEach(function(b){b.addEventListener(\"click\",function(){\n    document.querySelectorAll(\"#stressSeg button\").forEach(function(x){x.classList.remove(\"on\");});b.classList.add(\"on\");state.stressPct=parseFloat(b.dataset.stress);render();});});\n\n  [\"houseKwh\",\"curMonthly\",\"curUnit\",\"curNight\",\"curSC\",\"knownKwh\",\"houseNightKwh\",\"veh0Eff\",\"awayRate\"].forEach(function(id){var el=$(id);if(el)el.addEventListener(\"input\",render);});\n  $(\"region\").addEventListener(\"change\",function(){state.region=parseInt($(\"region\").value,10);$(\"freshRegion\").textContent=REGION_NAMES[state.region];render();});\n  $(\"dualFuel\").addEventListener(\"change\",function(){state.dualFuel=$(\"dualFuel\").checked;render();});\n  $(\"sepNight\").addEventListener(\"change\",function(){state.sepNight=$(\"sepNight\").checked;$(\"houseNightField\").classList.toggle(\"hidden\",!state.sepNight);render();});\n\n  function gatherInputs(tierOverride){\n    var eff=state.car.eff;var manual=num(\"veh0Eff\");if(manual>0)eff=manual;\n    return {region:state.region,tier:tierOverride||state.tier,dualFuel:state.dualFuel,\n      vehicles:[{eff:eff,miles:annualMiles()}],awayPct:state.awayPct,awayRate:num(\"awayRate\"),\n      knownEvKwh:state.route===\"existing\"?num(\"knownKwh\"):0,houseKwh:num(\"houseKwh\"),nightPct:state.nightPct,\n      existing:state.route===\"existing\",sepNight:state.sepNight,houseNightKwh:num(\"houseNightKwh\"),\n      curMode:state.curMode,curMonthly:num(\"curMonthly\"),curUnit:num(\"curUnit\"),curNight:num(\"curNight\"),curSC:num(\"curSC\"),stressPct:state.stressPct};\n  }\n\n  function render(){\n    var i=gatherInputs(), res=compute(i);\n    $(\"totEvKwh\").textContent=res.evTotal>0?fmt0(res.evTotal):\"—\";\n    $(\"homeKwh\").textContent=res.evHome>0?fmt0(res.evHome):\"—\";\n    $(\"awayKwh\").textContent=res.evAway>0?fmt0(res.evAway):\"0\";\n    $(\"nightKwhDisp\").textContent=res.houseNight>0?fmt0(res.houseNight):\"—\";\n    $(\"resTier\").textContent=TIER_NAMES[state.tier];\n\n    $(\"dTotalEv\").textContent=res.evTotal>0?fmt0(res.evTotal)+\" kWh\":\"—\";\n    $(\"dHomeEv\").textContent=res.evHome>0?fmt0(res.evHome)+\" kWh\":\"—\";\n    $(\"dAwayEv\").textContent=res.evAway>0?fmt0(res.evAway)+\" kWh\":\"—\";\n    $(\"dHouseDay\").textContent=res.houseDay>0?fmt0(res.houseDay)+\" kWh\":\"—\";\n    $(\"dHouseNight\").textContent=res.houseNight>0?fmt0(res.houseNight)+\" kWh\":\"—\";\n    $(\"dPeak\").textContent=res.peak?res.peak.toFixed(2)+\"p\":\"—\";\n    $(\"dOff\").textContent=res.off?res.off.toFixed(2)+\"p\":\"—\";\n    $(\"dSC\").textContent=res.scDay?res.scDay.toFixed(2)+\"p/day\":\"—\";\n    var cur=res.houseCurAnn;\n    $(\"dAnnCur\").textContent=cur!=null?\"£\"+fmt0(cur):\"—\";\n    $(\"dAnnHouseEv\").textContent=\"£\"+fmt0(res.houseEvAnn);\n    $(\"dAnnEv\").textContent=\"£\"+fmt0(res.evChargeAnn);\n    $(\"dAnnTotEv\").textContent=\"£\"+fmt0(res.totEvAnn);\n    $(\"dAnnDiff\").textContent=cur!=null?signM(res.increaseAnn):\"—\";\n    $(\"dMonCur\").textContent=cur!=null?fmtM(cur/12):\"—\";\n    $(\"dMonHouseEv\").textContent=fmtM(res.houseEvAnn/12);\n    $(\"dMonEv\").textContent=fmtM(res.evChargeAnn/12);\n    $(\"dMonTotEv\").textContent=fmtM(res.totEvAnn/12);\n    $(\"dMonDiff\").textContent=cur!=null?signM(res.increaseAnn/12):\"—\";\n\n    var haveHouse=i.houseKwh>0, selTot=res.totEvAnn;\n    [\"value\",\"gold\",\"doubleGold\"].forEach(function(t){\n      var btn=document.querySelector('#svcSeg button[data-tier=\"'+t+'\"]');var slot=btn.querySelector('[data-costslot]');btn.classList.remove(\"cheaper\");\n      if(!haveHouse){slot.innerHTML=(t===\"value\"?\"EV Value\":t===\"gold\"?\"EV Gold\":\"EV Double&nbsp;Gold\");return;}\n      var tot=compute(gatherInputs(t)).totEvAnn;\n      if(t===state.tier){slot.textContent=fmtM(tot/12)+\"/m\";}\n      else{var d=(tot-selTot)/12;slot.textContent=signM(d)+\"/m\";if(d<0)btn.classList.add(\"cheaper\");}\n    });\n\n    if(!haveHouse){$(\"resultBody\").classList.add(\"hidden\");$(\"resultPrompt\").classList.remove(\"hidden\");return;}\n    $(\"resultPrompt\").classList.add(\"hidden\");$(\"resultBody\").classList.remove(\"hidden\");\n\n    $(\"resTotal\").textContent=fmtM(res.totEvAnn/12)+\" /m\";\n    $(\"resTotalYr\").textContent=\"≈ £\"+fmt0(res.totEvAnn)+\" / year\";\n    // house + car columns (whole pounds, monthly + annual)\n    $(\"resHouseM\").textContent=whole(res.houseEvAnn/12)+\" /m\";\n    $(\"resHouseY\").textContent=\"≈ \"+whole(res.houseEvAnn)+\"/yr\";\n    if(res.evChargeAnn>0){\n      $(\"resCarM\").textContent=whole(res.evChargeAnn/12)+\" /m\";\n      $(\"resCarY\").textContent=\"≈ \"+whole(res.evChargeAnn)+\"/yr\";\n    } else { $(\"resCarM\").textContent=\"—\";$(\"resCarY\").textContent=\"add a car\"; }\n\n    var hn=$(\"houseNote\");\n    if(cur!=null){\n      hn.innerHTML=\"House on its own: <b>\"+fmtM(cur/12)+\"</b> now → <b>\"+fmtM(res.houseEvAnn/12)+\"</b> on this tariff (\"+signM(res.onCostAnn/12)+\"/m). That house difference is already inside the total above.\";\n    } else {\n      hn.innerHTML=\"Add a house-only quote figure above to show how much the house alone changes on this tariff.\";\n    }\n    var an=$(\"awayNote\");\n    if(res.evAway>0&&i.awayRate>0){an.classList.remove(\"hidden\");\n      an.innerHTML=\"Away from home: if they charge that \"+fmt0(res.evAway)+\" kWh in public at ~\"+fmt0(i.awayRate)+\"p, reckon on roughly <b>\"+fmtM(res.awayCostAnn/12)+\"/m</b> on top. Rough guide only, public prices vary a lot, and it's not on the UW bill.\";\n    } else { an.classList.add(\"hidden\"); }\n  }\n\n  updateMileDisplay();render();\n})();\n<\/script>\n</body>\n</html>\n";
+function openEvModal() {
+  const frame = $('evSenseFrame');
+  if (!frame.srcdoc) frame.srcdoc = EV_SENSE_CHECK_HTML;
+  $('evModal').classList.add('open');
+}
+function closeEvModal() { $('evModal').classList.remove('open'); }
+$('openEvModalBtn').addEventListener('click', openEvModal);
+$('closeEvModalBtn').addEventListener('click', closeEvModal);
+$('evModal').addEventListener('click', e => { if (e.target.id === 'evModal') closeEvModal(); });
+
+$('openCardBtn').addEventListener('click', openCard);
+$('closeModalBtn').addEventListener('click', () => { previewExtra = false; $('cardModal').classList.remove('open'); });
+$('doneBtn').addEventListener('click', () => { previewExtra = false; $('cardModal').classList.remove('open'); });
+$('cardModal').addEventListener('click', e => { if (e.target.id === 'cardModal') { previewExtra = false; $('cardModal').classList.remove('open'); } });
+
+/* ---------- copy figures ---------- */
+$('copyBtn').addEventListener('click', () => {
+  const r = compute();
+  const nm = $('customerName').value.trim();
+  const lines = [];
+  lines.push('UW SAVINGS — FIRST 12 MONTHS' + (nm ? ' (' + nm + ')' : ''));
+  lines.push('Better off by: £' + Math.round(r.year1));
+  lines.push('');
+  const cashbackAdj = r.cbOn ? r.cashbackNet : 0;
+  const steadyUwNet = r.uwTotalBase - cashbackAdj;
+  lines.push('Total monthly summary: £' + money(r.currentTotal) + ' \u2192 £' + money(steadyUwNet) + ' (save £' + money(r.currentTotal - steadyUwNet) + '/m)');
+  lines.push('');
+  lines.push('Monthly savings:');
+  if (state.services.energy) lines.push('  Energy: £' + money(r.currentEnergy - r.uwEnergy) + '/m');
+  if (state.services.broadband) lines.push('  Broadband: £' + money(r.currentBb - r.uwBb) + '/m');
+  if (state.services.mobile) lines.push('  Mobile: £' + money(r.currentMob - r.uwMob) + '/m');
+  if (r.insuranceTotal) lines.push('  Insurance: −£' + money(r.insuranceTotal) + '/m');
+  if (r.manualAdjustCurrent || r.manualAdjustUw) {
+    lines.push('  Adjustment: £' + money(r.manualAdjustCurrent - r.manualAdjustUw) + '/m');
+    if (r.manualAdjustCurrentReason) lines.push('    Current: ' + r.manualAdjustCurrentReason);
+    if (r.manualAdjustUwReason) lines.push('    UW: ' + r.manualAdjustUwReason);
+  }
+  if (r.cbOn) lines.push('  Cashback (net): £' + money(r.cashbackNet) + '/m');
+  const cfTotalSaveNet = r.monthlySaving + (r.cbOn ? r.cashbackNet : 0);
+  lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = Year-one Savings on Services: £' + money(cfTotalSaveNet * 12));
+  lines.push('');
+  lines.push('Year-one Welcome Bonuses:');
+  if (r.referral) lines.push('  Referral bonus: £' + r.referral);
+  if (r.bbFree) lines.push('  ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
+  if (r.mobileFreeMonths) {
+    const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
+    lines.push('  ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
+  }
+  if (r.welcome) lines.push('  Cashback bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
+  if (r.cbOn) lines.push('  ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
+  if (r.boilerCoverFree) lines.push('  ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
+  if (r.exitFees) {
+    const maxR = CONFIG.exitFeeRefund.maxRefund;
+    if (r.refunded && r.exitDeduction === 0)
+      lines.push('  ↩️ Exit fees: £' + money(r.exitFees) + ' — covered by UW ✅');
+    else if (r.refunded)
+      lines.push('  Exit fees: £' + money(r.exitFees) + ' — £' + maxR + ' covered, £' + money(r.exitDeduction) + ' to pay (in Year 1 total)');
+    else
+      lines.push('  Exit fees: £' + money(r.exitFees) + ' — add ' + (CONFIG.exitFeeRefund.minServices - r.count) + ' more service(s) for up to £' + maxR + ' UW cover');
+  }
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.mobileFreeMonths + r.boilerCoverFree
+    + (r.cbOn ? r.freeMonthsValue : 0)
+    - r.exitDeduction;
+  lines.push('  Total: £' + money(benefitsTotal));
+  lines.push('');
+  lines.push(CONFIG.partner.name + ' — ' + CONFIG.partner.role);
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    $('copyBtn').textContent = '✓ Copied';
+    setTimeout(() => { $('copyBtn').textContent = '📋 Copy figures'; }, 1500);
+  });
+});
+
+/* ---------- share link ---------- */
+function b64urlEncode(str) {
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Builds the data payload for the read-only share card from the CURRENT
+// (post-preview, if active) figures — i.e. the same numbers on screen
+// right now. Returns { error: 'energyTiers' } if a meal-deal SIM preview
+// is active but the energy bundle rates aren't all filled in yet, since
+// sharing in that state would undersell the energy saving.
+function buildShareData() {
+  const r = compute(currentPreviewCount());
+
+  if (r.previewApplied > 0 && state.services.energy) {
+    const t1 = numF('uwEnergyTier1'), t2 = numF('uwEnergyTier2'), t3 = numF('uwEnergyTier3');
+    if (!(t1 > 0 && t2 > 0 && t3 > 0)) return { error: 'energyTiers' };
+  }
+
+  const mealDealCount = Object.values(state.sims).filter(s => s.include && s.mealDeal).length + r.previewApplied;
+
+  let f = 0;
+  if (state.services.energy) f |= 1;
+  if (state.services.broadband) f |= 2;
+  if (state.services.mobile || mealDealCount > 0) f |= 4;
+  if (r.cbOn) f |= 8;
+  if (r.refunded) f |= 16;
+
+  const data = {
+    n: $('customerName').value.trim(),
+    dt: new Date().toISOString().slice(0, 10),
+    y: Math.round(r.year1),
+    f: f,
+    cE: r.currentEnergy, uE: r.uwEnergy,
+    cB: r.currentBb, uB: r.uwBb, uBr: r.uwBbRaw,
+    cM: r.currentMob, uM: r.uwMob, md: mealDealCount,
+    is: r.includedSimsCount,
+    cT: r.currentTotal, uT: r.uwTotalBase, sM: r.monthlySaving,
+    ct: r.count, w: r.welcome, rf: r.referral, bf: Math.round(r.bbFree),
+    mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
+    ef: r.exitFees, ed: r.exitDeduction,
+    cn: r.cashbackNet, fm: r.freeMonthsValue, cs: r.spend, cbt: state.cbTier,
+    ip: r.incomeProtectorCost, bc: r.boilerCoverCost, bcf: Math.round(r.boilerCoverFree),
+    it: r.insuranceTotal,
+    mac: r.manualAdjustCurrent, mau: r.manualAdjustUw,
+    macr: r.manualAdjustCurrentReason, maur: r.manualAdjustUwReason,
+    bl: basketLink()
+  };
+
+  // Drop zero/empty fields — keeps the link shorter, decoder defaults missing keys to 0/''
+  Object.keys(data).forEach(k => {
+    const v = data[k];
+    if (v === 0 || v === '' || v === false) delete data[k];
+  });
+
+  return { data };
+}
+
+function buildShareUrl() {
+  const result = buildShareData();
+  if (result.error === 'energyTiers') {
+    $('cardModal').classList.remove('open');
+    $('bundleRatePanel').classList.remove('hidden');
+    $('bundleRatesBtn').classList.add('on');
+    $('bundleGateMsg').classList.remove('hidden');
+    let firstEmpty = null;
+    ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => {
+      const el = $(id);
+      if (numF(id) > 0) { el.classList.remove('warn'); }
+      else { el.classList.add('warn'); if (!firstEmpty) firstEmpty = el; }
+    });
+    $('energyCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (firstEmpty) setTimeout(() => firstEmpty.focus(), 400);
+    return null;
+  }
+  const encoded = b64urlEncode(JSON.stringify(result.data));
+  const url = new URL('savings-card.html', location.href);
+  url.hash = 'd=' + encoded;
+  return url.href;
+}
+
+let pendingBasketAction = null;
+function openBasketPrompt(action) {
+  pendingBasketAction = action;
+  $('basketPrompt').classList.add('open');
+}
+function closeBasketPrompt() {
+  $('basketPrompt').classList.remove('open');
+}
+  
+function continueShareViaWhatsApp() {
+  const url = buildShareUrl();
+  if (!url) return;
+  $('shareGateMsg').classList.add('hidden');
+  const nm = firstName();
+  const r = compute(currentPreviewCount());
+  const figure = '£' + Math.abs(Math.round(r.year1)).toLocaleString('en-GB');
+  const greeting = nm ? `Here's that summary I mentioned, ${nm} 👀` : `Here's that summary I mentioned 👀`;
+  const msg = `${greeting}\n\nLooks like ${figure} back in your pocket over the next 12 months.\n\nIf the numbers look good, just tap the green *Open your basket* button — add your personal details and UW sort the rest 👍\n\n${url}\n\nAny questions just shout!`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+function continueCopyShareLink() {
+  const url = buildShareUrl();
+  if (!url) return;
+  $('shareGateMsg').classList.add('hidden');
+  navigator.clipboard.writeText(url).then(() => {
+    $('copyLinkBtn').textContent = '✓ Copied';
+    setTimeout(() => { $('copyLinkBtn').textContent = '🔗 Copy link'; }, 2000);
+  });
+}
+$('shareBtn').addEventListener('click', () => {
+  if (!basketLink()) return openBasketPrompt('whatsapp');
+  continueShareViaWhatsApp();
+});
+
+$('copyLinkBtn').addEventListener('click', () => {
+  if (!basketLink()) return openBasketPrompt('copy');
+  continueCopyShareLink();
+});
+$('addBasketLinkBtn').addEventListener('click', () => {
+  closeBasketPrompt();
+  $('basketLinkDetails').open = true;
+  $('cardModal').classList.remove('open');
+  $('cashbackCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => $('basketLink').focus(), 400);
+});
+$('shareWithoutBasketBtn').addEventListener('click', () => {
+  const action = pendingBasketAction;
+  closeBasketPrompt();
+  if (action === 'copy') continueCopyShareLink();
+  else continueShareViaWhatsApp();
+});
+
+// Hide the bundle-rate gate message once all three tiers are filled
+['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (numF(id) > 0) $(id).classList.remove('warn');
+    if (numF('uwEnergyTier1') > 0 && numF('uwEnergyTier2') > 0 && numF('uwEnergyTier3') > 0) {
+      $('bundleGateMsg').classList.add('hidden');
+    }
+  });
+});
+
+/* ---------- reset ---------- */
+function resetForm() {
+  document.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
+  if ($('apptNotes')) $('apptNotes').value = '';
+  document.querySelectorAll('input[type="checkbox"]').forEach(i => { i.checked = i.id === 'includeCashback'; i.disabled = false; });
+  $('spendSlider').value = CONFIG.cashback.slider.default;
+  $('spendDisplay').textContent = CONFIG.cashback.slider.default;
+  state.services = { energy: false, broadband: false, mobile: false };
+  state.homeowner = null;
+  state.simCount = 0;
+  state.sims = {};
+  state.includeCashback = true;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.add('hidden'));
+  ['energyCard','broadbandCard','mobileCard','billCosts','energySplitNow'].forEach(id => $(id).classList.add('hidden'));
+  state.splitGas = true; state.splitElec = true;
+  ['splitGasRow','splitElecRow'].forEach(id => $(id) && $(id).classList.remove('hidden'));
+  document.querySelectorAll('[data-fuel]').forEach(b => b.classList.add('on'));
+  $('bundleRatePanel').classList.add('hidden'); $('bundleRatesBtn').classList.remove('on');
+  $('bundleGateMsg').classList.add('hidden');
+  ['uwEnergyTier1','uwEnergyTier2','uwEnergyTier3'].forEach(id => { const el=$(id); if(el) { el.value=''; el.classList.remove('warn'); } });
+  $('bbFreeMonthsRow').classList.add('hidden');
+  $('boilerCoverRow').classList.add('hidden');
+  document.querySelectorAll('[data-bbpkg]').forEach(b => b.classList.remove('on'));
+  state.dhpPlan = null;
+  $('dhpToggle').checked = false; $('dhpPlans').classList.add('hidden');
+  document.querySelectorAll('[data-dhp]').forEach(b => b.classList.remove('on'));
+  state.cbTier = 'med';
+  document.querySelectorAll('[data-cbtier]').forEach(c => { c.classList.remove('used'); c.querySelector('.pct').textContent = CB_LABELS[c.dataset.cbtier]; });
+  document.querySelector('[data-cbtier="med"]').classList.add('used');
+  document.querySelector('[data-cbtier="med"] .pct').textContent = CB_LABELS.med + ' ✓';
+  $('energyCombinedNow').classList.remove('hidden');
+  $('cashbackInner').classList.remove('hidden');
+  $('basketLinkDetails').open = false;
+  closeBasketPrompt();
+  $('simList').innerHTML = '';
+  $('mobileTotalsRow').style.display = 'none';
+  // New toggles/panels (Whole Home Wi-Fi, manual adjustments, insurance)
+  ['energyAdjustFields','manualAdjustFields'].forEach(id => $(id).classList.add('hidden'));
+  $('boilerCoverFreeRow').classList.add('hidden');
+  state.energyAdjustTarget = 'current';
+  state.energyAdjustPeriod = 'monthly';
+  document.querySelector('[data-adjusttarget="current"]').classList.add('on');
+  document.querySelector('[data-adjustperiod="monthly"]').classList.add('on');
+  calc();
+}
+$('resetBtn').addEventListener('click', () => { if (confirm('Reset all figures?')) resetForm(); });
+
+/* ================================================================
+   SAVE / LOAD PROFILES + NOTES  (additive — leaves calc/share intact)
+   ================================================================ */
+const LS_KEY = 'apptCompanionSaves_v2';
+
+// Snapshot everything needed to rebuild the FORM (inputs, not just results).
+function serializeForm() {
+  const inputs = {};
+  document.querySelectorAll('input, textarea').forEach(el => {
+    if (!el.id || el.type === 'file') return;
+    inputs[el.id] = (el.type === 'checkbox') ? el.checked : el.value;
+  });
+  const bbPkgOn = document.querySelector('[data-bbpkg].on');
+  // Scannable summary for the saved list — hero figure, validity, basket icons.
+  const r = compute(0);
+  const summary = {
+    valid: validateInputs(r).length === 0,
+    year1: Math.round(r.year1),
+    count: r.count,
+    energy: !!state.services.energy,
+    broadband: !!state.services.broadband,
+    sims: Math.min(r.includedSimsCount, 2),
+    insurance: (r.incomeProtectorCost > 0 || r.boilerCoverCost > 0)
+  };
+  return {
+    app: 'appointment-companion', v: 2,
+    savedAt: new Date().toISOString(),
+    customerName: ($('customerName').value || '').trim(),
+    notes: $('apptNotes') ? $('apptNotes').value : '',
+    summary,
+    inputs,
+    state: JSON.parse(JSON.stringify(state)),
+    ui: {
+      bundlePanelOpen: !$('bundleRatePanel').classList.contains('hidden'),
+      bbPkg: bbPkgOn ? bbPkgOn.dataset.bbpkg : null
+    }
+  };
+}
+
+// Rebuild the form from a saved snapshot.
+function restoreForm(saved) {
+  if (!saved || !saved.inputs || !saved.state) { alert('That file is not a valid saved profile.'); return false; }
+  resetForm();
+
+  const s = saved.state;
+  state.services = Object.assign({ energy:false, broadband:false, mobile:false }, s.services || {});
+  state.homeowner = (s.homeowner != null) ? s.homeowner : null;
+  state.simCount = s.simCount || 0;
+  state.sims = s.sims || {};
+  state.includeCashback = (s.includeCashback !== undefined) ? s.includeCashback : true;
+  state.cbTier = s.cbTier || 'med';
+  state.dhpPlan = (s.dhpPlan != null) ? s.dhpPlan : null;
+  state.splitGas = (s.splitGas !== undefined) ? s.splitGas : true;
+  state.splitElec = (s.splitElec !== undefined) ? s.splitElec : true;
+  state.energyAdjustTarget = s.energyAdjustTarget || 'current';
+  state.energyAdjustPeriod = s.energyAdjustPeriod || 'monthly';
+
+  // homeowner/tenant reveals the main cards
+  if (state.homeowner) setHome(state.homeowner);
+
+  // service pills + their cards
+  Object.keys(state.services).forEach(svc => {
+    const on = !!state.services[svc];
+    const pill = document.querySelector('[data-service="' + svc + '"]');
+    if (pill) pill.classList.toggle('on', on);
+    const card = $(svc + 'Card');
+    if (card) card.classList.toggle('hidden', !on);
+  });
+
+  // all input values + checkbox states
+  Object.keys(saved.inputs).forEach(id => {
+    const el = $(id);
+    if (!el || el.type === 'file') return;
+    if (el.type === 'checkbox') el.checked = !!saved.inputs[id];
+    else el.value = saved.inputs[id];
+  });
+
+  // conditional panels follow their (now-restored) toggles
+  $('billCosts').classList.toggle('hidden', !$('useBillCosts').checked);
+  $('energyCombinedNow').classList.toggle('hidden', $('splitEnergyToggle').checked);
+  $('energySplitNow').classList.toggle('hidden', !$('splitEnergyToggle').checked);
+  $('energyAdjustFields').classList.toggle('hidden', !$('energyAdjustToggle').checked);
+  $('manualAdjustFields').classList.toggle('hidden', !$('manualAdjustToggle').checked);
+  $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
+  $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
+  $('boilerCoverFreeRow').classList.toggle('hidden', !$('boilerCoverToggle').checked);
+
+  // bundle-rate panel (🥪)
+  const bundleOpen = !!(saved.ui && saved.ui.bundlePanelOpen);
+  $('bundleRatePanel').classList.toggle('hidden', !bundleOpen);
+  $('bundleRatesBtn').classList.toggle('on', bundleOpen);
+
+  // fuel pills
+  document.querySelectorAll('[data-fuel]').forEach(b => {
+    const on = (b.dataset.fuel === 'gas') ? state.splitGas : state.splitElec;
+    b.classList.toggle('on', on);
+  });
+  $('splitGasRow').classList.toggle('hidden', !state.splitGas);
+  $('splitElecRow').classList.toggle('hidden', !state.splitElec);
+
+  // broadband package pill
+  document.querySelectorAll('[data-bbpkg]').forEach(b => b.classList.remove('on'));
+  if (saved.ui && saved.ui.bbPkg != null) {
+    const pkg = document.querySelector('[data-bbpkg="' + saved.ui.bbPkg + '"]');
+    if (pkg) pkg.classList.add('on');
+  }
+
+  // digital home phone plan pill
+  document.querySelectorAll('[data-dhp]').forEach(b =>
+    b.classList.toggle('on', state.dhpPlan != null && parseFloat(b.dataset.dhp) === state.dhpPlan));
+
+  // energy adjust target/period pills
+  document.querySelectorAll('#energyAdjustTargetPills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.adjusttarget === state.energyAdjustTarget));
+  document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(b =>
+    b.classList.toggle('on', b.dataset.adjustperiod === state.energyAdjustPeriod));
+
+  // cashback tier chip
+  document.querySelectorAll('[data-cbtier]').forEach(c => {
+    const on = c.dataset.cbtier === state.cbTier;
+    c.classList.toggle('used', on);
+    c.querySelector('.pct').textContent = CB_LABELS[c.dataset.cbtier] + (on ? ' ✓' : '');
+  });
+
+  // mobile sims — count pill, then rebuild from state.sims
+  document.querySelectorAll('#simCountPills .pill').forEach(b =>
+    b.classList.toggle('on', parseInt(b.dataset.count, 10) === state.simCount));
+  if (state.simCount > 0) buildSims();
+  $('mobileTotalsRow').style.display = state.simCount ? 'flex' : 'none';
+
+  // misc displays
+  $('spendDisplay').textContent = $('spendSlider').value;
+  if ($('apptNotes')) $('apptNotes').value = saved.notes || '';
+
+  calc();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  return true;
+}
+
+/* ----- recent saves on this device (convenience layer) ----- */
+function getLocalSaves() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; }
+}
+function setLocalSaves(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr.slice(0, 30))); } catch (e) {}
+}
+function stashLocal(data, updateId) {
+  let saves = getLocalSaves();
+  // updateId set → replace that specific entry (Update). Otherwise keep all (Save as new / scenarios).
+  if (updateId != null) saves = saves.filter(s => s.id !== updateId);
+  saves.unshift({ id: Date.now(), label: data.customerName || 'Unnamed', savedAt: data.savedAt, data });
+  setLocalSaves(saves);
+  renderSavesList();
+}
+function fmtSavedAt(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
+         d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function showSavesList() {
+  const wrap = $('savesList');
+  if (wrap) wrap.classList.remove('hidden');
+  renderSavesList();
+}
+function renderSavesList() {
+  const wrap = $('savesList');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  // Always offer "open a file" — for saves not in this device's recent list.
+  const fileBtn = document.createElement('button');
+  fileBtn.type = 'button'; fileBtn.className = 'pill';
+  fileBtn.style.cssText = 'width:100%; margin-bottom:0.6rem;';
+  fileBtn.textContent = '📂 Open a saved file…';
+  fileBtn.addEventListener('click', () => $('loadFileInput').click());
+  wrap.appendChild(fileBtn);
+
+  const saves = getLocalSaves();
+  if (!saves.length) {
+    const p = document.createElement('p');
+    p.className = 'sub'; p.style.margin = '0.2rem 0';
+    p.textContent = 'No recent profiles on this device yet.';
+    wrap.appendChild(p);
+    return;
+  }
+
+  // Basket icons — same set/rules as the savings card: all shown, faded if not in basket, energy boxed.
+  const icon = (emoji, on, grouped) =>
+    '<span class="basket-icon' + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
+
+  saves.forEach(rec => {
+    const sum = (rec.data && rec.data.summary) || {};
+    const iconsHtml =
+      '<span class="basket-icons" style="font-size:14px; gap:7px;">' +
+        icon('⚡🔥', !!sum.energy, true) +
+        icon('🛜', !!sum.broadband, false) +
+        icon('📱', (sum.sims || 0) >= 1, false) +
+        icon('📱', (sum.sims || 0) >= 2, false) +
+        icon('🛡️', !!sum.insurance, false) +
+      '</span>';
+
+    let heroTxt = '', heroColor = 'var(--good)';
+    if (sum.year1 !== undefined) {
+      if (sum.valid === false) { heroTxt = 'draft'; heroColor = 'var(--muted)'; }
+      else { heroTxt = (sum.year1 < 0 ? '−£' : '£') + Math.abs(sum.year1).toLocaleString('en-GB'); heroColor = sum.year1 < 0 ? 'var(--bad)' : 'var(--good)'; }
+    }
+
+    const row = document.createElement('div');
+    row.className = 'basket-row';
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px;';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'min-width:0; flex:1;';
+    info.innerHTML =
+      '<div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
+        (rec.label || 'Unnamed').replace(/</g, '&lt;') +
+        (heroTxt ? ' <span style="color:' + heroColor + '; font-weight:800;">' + heroTxt + '</span>' : '') +
+      '</div>' +
+      '<div style="display:flex; align-items:center; gap:8px; margin-top:3px;">' +
+        iconsHtml +
+        '<span class="sub" style="font-size:11px;">' + fmtSavedAt(rec.savedAt) + '</span>' +
+      '</div>';
+
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex; gap:6px; flex-shrink:0;';
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button'; loadBtn.className = 'pill';
+    loadBtn.style.cssText = 'min-height:36px; padding:6px 12px; flex:0;';
+    loadBtn.textContent = 'Load';
+    loadBtn.addEventListener('click', () => restoreForm(rec.data));
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button'; delBtn.className = 'pill';
+    delBtn.style.cssText = 'min-height:36px; padding:6px 10px; flex:0;';
+    delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', () => {
+      if (!confirm('Delete saved profile for ' + (rec.label || 'Unnamed') + '?')) return;
+      setLocalSaves(getLocalSaves().filter(x => x.id !== rec.id));
+      renderSavesList();
+    });
+    btns.appendChild(loadBtn); btns.appendChild(delBtn);
+    row.appendChild(info); row.appendChild(btns);
+    wrap.appendChild(row);
+  });
+}
+
+/* ----- save: writes a file (remembers the folder) + stashes on device ----- */
+async function saveBlobToFile(filename, text) {
+  const blob = new Blob([text], { type: 'application/json' });
+  // Modern path: lets you pick a folder once; the browser reopens there next time.
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        id: 'apptCompanionSaves',     // browser remembers this folder for next time
+        startIn: 'downloads',
+        suggestedName: filename,
+        types: [{ description: 'Saved profile', accept: { 'application/json': ['.json'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      return true;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return false; // user cancelled the dialog
+      // any other error (e.g. unsupported) → fall through to classic download
+    }
+  }
+  // Fallback: classic download to the browser's default folder (mobile / older browsers).
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 200);
+  return true;
+}
+
+async function downloadProfile() {
+  // 1. Content gate — need a basket and at least one cost (either side).
+  const r = compute(0);
+  const hasBasket = state.services.energy || state.services.broadband || state.services.mobile || r.insuranceTotal > 0;
+  const hasCost = r.currentTotal > 0 || r.uwTotalBase > 0;
+  if (!hasBasket || !hasCost) {
+    showSaveGate('Nothing to save yet',
+      'Pick at least one service and enter a cost (current or UW) before saving.',
+      'Go to top', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    return;
+  }
+  // 2. Name gate — mandatory.
+  const name = ($('customerName').value || '').trim();
+  if (!name) {
+    showSaveGate('Name this save',
+      'Enter a customer name so you can find it later.',
+      'Add name', () => {
+        $('customerName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => $('customerName').focus(), 350);
+      });
+    return;
+  }
+  // 3. Duplicate name → Update vs Save as new.
+  const dup = getLocalSaves().find(s => (s.label || '').trim().toLowerCase() === name.toLowerCase());
+  if (dup) { openDupPrompt(name, dup.id); return; }
+  await doSaveProfile();
+}
+
+async function doSaveProfile(opts) {
+  opts = opts || {};
+  const data = serializeForm();
+  // Browser copy first — always saved, even if the file dialog is cancelled.
+  stashLocal(data, opts.updateId != null ? opts.updateId : null);
+  showSavesList();
+  const btn = $('saveProfileBtn');
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = t; }, 1500); }
+  // File write is a best-effort bonus/backup — cancelling it doesn't lose the browser copy.
+  const safe = (data.customerName || 'prospect').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'prospect';
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  await saveBlobToFile('ApptCompanion-' + safe + '-' + stamp + '.json', JSON.stringify(data, null, 2));
+}
+
+/* ----- save gate prompt (content / name) ----- */
+function showSaveGate(title, msg, btnLabel, action) {
+  $('saveGateTitle').textContent = title;
+  $('saveGateMsg').textContent = msg;
+  const b = $('saveGateActionBtn');
+  b.textContent = btnLabel;
+  b.onclick = () => { closeSaveGate(); action(); };
+  $('saveGatePrompt').classList.add('open');
+}
+function closeSaveGate() { $('saveGatePrompt').classList.remove('open'); }
+$('saveGateCancelBtn').addEventListener('click', closeSaveGate);
+$('saveGatePrompt').addEventListener('click', e => { if (e.target.id === 'saveGatePrompt') closeSaveGate(); });
+
+/* ----- duplicate-name prompt (Update vs Save as new) ----- */
+let dupTargetId = null;
+function openDupPrompt(name, id) {
+  dupTargetId = id;
+  $('dupSaveMsg').textContent = 'You already have a save for "' + name + '". Update it, or keep both as separate scenarios?';
+  $('dupSavePrompt').classList.add('open');
+}
+function closeDupPrompt() { $('dupSavePrompt').classList.remove('open'); }
+$('dupUpdateBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile({ updateId: dupTargetId }); });
+$('dupNewBtn').addEventListener('click', () => { closeDupPrompt(); doSaveProfile(); });
+$('dupSavePrompt').addEventListener('click', e => { if (e.target.id === 'dupSavePrompt') closeDupPrompt(); });
+
+$('saveProfileBtn').addEventListener('click', downloadProfile);
+$('loadProfileBtn').addEventListener('click', showSavesList);
+$('loadFileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { restoreForm(JSON.parse(ev.target.result)); }
+    catch (err) { alert('Could not read that save file — is it a profile JSON?'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+renderSavesList();
+
+/* ---------- recalc on any numeric input ---------- */
+document.addEventListener('input', e => {
+  if (e.target.classList && e.target.classList.contains('err')) e.target.classList.remove('err');
+  if (e.target.type === 'number' && !e.target.dataset.sim) calc();
+});
+
+calc();
+</script>
+</body>
+</html>
