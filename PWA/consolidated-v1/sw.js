@@ -1,9 +1,9 @@
-const CACHE_NAME = 'appointment-companion-consolidated-v2-42-partnerprofile1';
+const CACHE_NAME = 'appointment-companion-consolidated-v2-42-partnerprofile2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './pwa-register.js', './tariff-fetch-v1.js',
   './canonical-state-v1.js', './canonical-controls-v1.js', './service-ui-polish-v1.js', './spring-clean-v2.js', './release-v2.3.js', './release-v2.4.js', './release-v2.41.js', './release-v2.42.js', './persistence-guard-v2.42.js', './local-customer-store-v2.js',
   './consolidated-controller-v1.js', './share-policy-v1.js', './specialist-share-v1.js',
-  './specialist-launcher-v1.js', './specialist-features-v1.js', './specialist-context-nav-v1.js', './fix-share-gate-v1.js',
+  './specialist-launcher-v1.js', './specialist-features-v1.js', './specialist-context-nav-v1.js', './fix-share-gate-v1.js', './public-partner-branding-v1.js',
   './ev/', './ev/index.html', './ev-share-adapter-v1.js', './ev-share-compat-v1.js', './ev-share-view-v1.js', './ev-customer-contact-v1.js', './ev-return-v1.js',
   './should-i-fix/', './should-i-fix/index.html',
   '../partner-profile-v1.js',
