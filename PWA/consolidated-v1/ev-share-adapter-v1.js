@@ -8,6 +8,7 @@
   function num(id) { var el = $(id), n = el && el.value !== '' ? Number(el.value) : NaN; return Number.isFinite(n) ? n : null; }
   function active(selector) { return document.querySelector(selector + '.on'); }
   function safeHttps(value) { try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; } catch (_) { return ''; } }
+  function firstName(value) { return String(value || '').trim().split(/\s+/)[0] || ''; }
   function state() { var vehicle = active('#vehiclePills .vpill'), service = active('#serviceButtons button'), period = active('#periodToggle button'), stress = active('#stressButtons button'), actual = $('e7ActualWrap') ? !$('e7ActualWrap').hidden : false; return { schema_version: 1, tool_version: '16C', vehicle_efficiency_mi_kwh: vehicle ? Number(vehicle.dataset.eff) : 3.2, vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙', annual_mileage: num('miles'), home_usage_kwh: num('houseKwh'), uw_services: service ? Number(service.dataset.tier) + 1 : 3, region: num('region'), ev_offpeak_pct: num('evTimingSlider'), e7_offpeak_pct: num('e7TimingSlider'), e7_actual: actual, e7_day_kwh: actual ? num('e7DayActualInput') : null, e7_night_kwh: actual ? num('e7NightActualInput') : null, away_pct: num('awayPct'), away_rate_p_kwh: num('awayRate'), efficiency_override_mi_kwh: num('effOverride'), known_ev_kwh: num('knownEvKwh'), dual_fuel: $('dualFuel') ? !!$('dualFuel').checked : true, period: period ? period.dataset.period : 'month', stress_pct: stress ? Number(stress.dataset.stress || 0) : 0 }; }
   function toast(message) { var el = $('shareToast'); if (!el) return; el.textContent = message; el.classList.add('show'); setTimeout(function () { el.classList.remove('show'); }, 2400); }
   async function copy(text) { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text); global.prompt('Copy this link:', text); }
@@ -57,6 +58,7 @@
       var c = row && row.appointment_state && row.appointment_state.canonical || {};
       var name = String(c.customerName || row && row.customer_name || launch.extra && launch.extra.customer && launch.extra.customer.customer_name || '').trim();
       if (!name) { name = String(global.prompt('Who is this EV summary for?', '') || '').trim(); if (!name) throw new Error('Add the customer name before sharing.'); }
+      var first = firstName(name);
       var choice = await chooseBasket(basketCandidate(row, c));
       if (!choice || choice.cancelled) return;
       var e = c.energy || {};
@@ -64,13 +66,14 @@
       if (choice.basket) snapshot.basket_url = choice.basket;
       var share = await shareApi.create('ev', snapshot), url = new URL('./', location.href);
       url.searchParams.set('s', share.token);
-      var slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28);
+      var slug = first.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28);
       if (slug) url.searchParams.set('for', slug);
+      var shareText = 'Hi ' + first + ' 👋\n\nTake a look at this EV comparison:\n' + url.href;
       if (navigator.share) {
-        try { await navigator.share({ title: 'UW EV Tariff Companion', text: 'Hi ' + name + ' - here is the EV comparison we looked at.', url: url.href }); toast('Share ready'); return; }
+        try { await navigator.share({ title: 'EV Companion', text: shareText }); toast('Share ready'); return; }
         catch (error) { if (error && error.name === 'AbortError') return; }
       }
-      await copy(url.href); toast('Short EV link copied');
+      await copy(shareText); toast('EV link copied');
     } catch (error) { toast('Share failed - ' + ((error && error.message) || String(error))); }
     finally { sharing = false; if (button) button.disabled = false; }
   }
