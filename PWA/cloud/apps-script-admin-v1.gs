@@ -20,7 +20,9 @@
      to the Partner, but follow the existing Companion authentication model and
      are stored in the Partners workspace_key field;
    - Partner profile actions authenticate through the existing requirePartner_()
-     helper, so a Partner can only read/update their own profile.
+     helper, so a Partner can only read/update their own profile;
+   - getPublicPartnerProfile exposes only customer-facing Partner profile fields
+     and never returns workspace_key or admin data.
 */
 
 const COMPANION_PARTNER_HEADERS_ = [
@@ -42,6 +44,10 @@ const COMPANION_PARTNER_HEADERS_ = [
 ];
 
 function handleCompanionAdminAction_(action, body) {
+  if (action === 'getPublicPartnerProfile') {
+    return getPublicPartnerProfile_(body);
+  }
+
   if (action === 'getPartnerProfile' || action === 'savePartnerProfile') {
     return handleCompanionPartnerProfileAction_(action, body);
   }
@@ -57,14 +63,23 @@ function handleCompanionAdminAction_(action, body) {
 
   requireCompanionAdmin_(body);
 
-  if (action === 'adminPing') {
-    return { ok: true, admin: true };
-  }
+  if (action === 'adminPing') return { ok: true, admin: true };
   if (action === 'adminProvisionPartner') return adminProvisionPartner_(body);
   if (action === 'adminListPartners') return adminListPartners_();
   if (action === 'adminUpdatePartner') return adminUpdatePartner_(body);
   if (action === 'adminResetPartnerPassword') return adminResetPartnerPassword_(body);
   return null;
+}
+
+function getPublicPartnerProfile_(body) {
+  const partnerId = cleanAdminLogin_(body && (body.partner_id || body.companion_login_id));
+  if (!partnerId) throw new Error('Partner ID is required.');
+  const sheet = ensureAdminPartnersSheet_();
+  const row = findAdminPartner_(sheet, partnerId);
+  if (!row || String(row.status || 'active').toLowerCase() !== 'active') {
+    throw new Error('Partner profile is unavailable.');
+  }
+  return { ok: true, partner: partnerPublicProfile_(row) };
 }
 
 function handleCompanionPartnerProfileAction_(action, body) {
@@ -207,7 +222,7 @@ function cleanPartnerProfileInput_(input) {
   };
 }
 
-function partnerProfileForClient_(row) {
+function partnerPublicProfile_(row) {
   return {
     partner_id: String(row.partner_id || ''),
     name: String(row.name || row.partner_name || ''),
@@ -218,10 +233,15 @@ function partnerProfileForClient_(row) {
     strap: String(row.strap || ''),
     photo_url: String(row.photo_url || ''),
     booking_url: String(row.booking_url || ''),
-    website_url: String(row.website_url || ''),
+    website_url: String(row.website_url || '')
+  };
+}
+
+function partnerProfileForClient_(row) {
+  return Object.assign(partnerPublicProfile_(row), {
     status: String(row.status || 'active'),
     updated_at: String(row.updated_at || '')
-  };
+  });
 }
 
 function partnerAdminSafeRecord_(row) {
