@@ -37,6 +37,9 @@ function energyCurrentComplete(appointment) {
 
 function energyUwComplete(appointment) {
   const energy = appointment.energy;
+  const usageComplete = (energy.fuel === 'gas' || positive(energy.annualElectricityKwh))
+    && (energy.fuel === 'electricity' || positive(energy.annualGasKwh));
+  if (!usageComplete) return false;
   if (energy.uwQuoteMode !== 'tiers') return valueComplete(appointment, 'energy.uwMonthly', energy.uwMonthly);
   const tariff = deriveUwRules({
     services: appointment.services,
@@ -63,12 +66,14 @@ function requirement(id, service, label, complete) {
 
 export function comparisonRequirements(input) {
   const appointment = normaliseAppointment(input);
-  const requirements = [];
+  const requirements = [
+    requirement('person.homeStatus', 'customer', 'Customer - homeowner or tenant missing', ['homeowner','tenant'].includes(appointment.person.homeStatus))
+  ];
 
   if (appointment.services.energy) {
     requirements.push(
       requirement('energy.current', 'energy', 'Energy - current monthly cost missing', energyCurrentComplete(appointment)),
-      requirement('energy.uw', 'energy', 'Energy - UW monthly cost missing', energyUwComplete(appointment))
+      requirement('energy.uw', 'energy', 'Energy - UW quote usage / price missing', energyUwComplete(appointment))
     );
     if (appointment.energy.exitFeesApply) {
       requirements.push(requirement('energy.exit', 'energy', 'Energy - exit fee missing', energyExitComplete(appointment)));
@@ -122,7 +127,7 @@ export function appointmentCompleteness(input) {
     completed,
     total,
     percentage: total ? Math.round(completed / total * 100) : 0,
-    complete: total > 0 && completed === total
+    complete: requirements.some(item => item.service !== 'customer') && completed === total
   };
 }
 
