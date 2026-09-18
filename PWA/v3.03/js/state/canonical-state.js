@@ -88,7 +88,7 @@ export function normaliseAppointment(input = {}) {
   if (out.person.homeStatus === 'tenant') out.services.boilerCover = false;
   out.energy.region = REGIONS.some(([id]) => id === String(out.energy.region)) ? String(out.energy.region) : '11';
   out.energy.fuel = ['electricity', 'gas', 'dual'].includes(out.energy.fuel) ? out.energy.fuel : 'dual';
-  out.energy.selectedTariffFamily = ['standardVariable','tracker','fixed','evVariable','economy7Variable'].includes(out.energy.selectedTariffFamily) ? out.energy.selectedTariffFamily : 'fixed';
+  out.energy.selectedTariffFamily = ['standardVariable','tracker','fixed','evVariable','economy7Variable','fixedE7'].includes(out.energy.selectedTariffFamily) ? out.energy.selectedTariffFamily : 'fixed';
   out.energy.electricityProfile = ['standard', 'economy7', 'ev'].includes(out.energy.electricityProfile) ? out.energy.electricityProfile : 'standard';
   const hasPeakOffPeak = Object.prototype.hasOwnProperty.call(source.energy || {}, 'peakOffPeak');
   out.energy.peakOffPeak = hasPeakOffPeak ? bool(source.energy.peakOffPeak) : out.energy.electricityProfile !== 'standard';
