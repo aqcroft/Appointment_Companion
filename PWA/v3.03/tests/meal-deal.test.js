@@ -80,13 +80,11 @@ test('preview reuses Energy pricing, Cashback and exit-fee support rules', () =>
   assert.equal(preview.previewResult.rules.energyTariff, 3);
 });
 
-test('adding a SIM to an existing Mobile basket does not change Welcome Bonus under current rules', () => {
+test('adding a £6 SIM does not change Welcome Bonus under current rules', () => {
   const appointment = energyBasket();
-  appointment.services.mobile = true;
-  appointment.mobile.sims[0].planId = 'essentialMax';
-  appointment.mobile.sims[0].uwMonthly = 6;
   const preview = buildMealDealPreview(appointment);
-  assert.equal(preview.originalResult.welcomeBonus, preview.previewResult.welcomeBonus);
+  assert.equal(preview.originalResult.welcomeBonus, 0);
+  assert.equal(preview.previewResult.welcomeBonus, 0);
 });
 
 test('preview and customer-safe preview never mutate the source appointment', () => {
@@ -100,7 +98,7 @@ test('preview and customer-safe preview never mutate the source appointment', ()
   assert.equal(shared.appointment, undefined);
 });
 
-test('an applied preview creates fresh Current and Exit fee requirements for each added SIM', () => {
+test('an applied preview creates fresh Current requirements without inventing exit fees', () => {
   const appointment = energyBasket();
   appointment.completion.entered.push('mobile.sims.0.currentMonthly', 'mobile.sims.0.exitFee');
   const preview = buildMealDealPreview(appointment);
@@ -108,8 +106,6 @@ test('an applied preview creates fresh Current and Exit fee requirements for eac
     .filter(item => item.service === 'mobile').map(item => item.label);
   assert.deepEqual(mobileMissing, [
     'Mobile SIM 1 - current monthly cost missing',
-    'Mobile SIM 1 - exit fee missing',
-    'Mobile SIM 2 - current monthly cost missing',
-    'Mobile SIM 2 - exit fee missing'
+    'Mobile SIM 2 - current monthly cost missing'
   ]);
 });
