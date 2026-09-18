@@ -180,6 +180,7 @@ async function loadPerson(localId) {
   if (!record || record.deleted) return;
   currentRecord = record;
   appointment = normaliseAppointment(record.appointment_state);
+  essentialsExpanded = !appointment.person.homeStatus;
   persistedAppointment = clone(appointment);
   guard.initialise(appointment);
   sessionStorage.setItem(CURRENT_KEY, record.local_id);
@@ -214,6 +215,7 @@ async function leavePerson() {
   if (!(await guard.confirmNavigation())) return;
   currentRecord = null;
   appointment = createAppointment();
+  essentialsExpanded = true;
   persistedAppointment = clone(appointment);
   guard.initialise(appointment);
   sessionStorage.removeItem(CURRENT_KEY);
@@ -286,6 +288,23 @@ function customerEssentialsBlock(forceCompact = false) {
       <label class="essential-row clickable"><span class="essential-copy"><strong>⚽ National League referral</strong><small>Optional</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)} aria-label="National League referral"><i></i></span></label>
     </div>
   </section>`;
+}
+
+function renderProfile() {
+  const pct = progress();
+  const completion = appointmentCompleteness(appointment);
+  const services = activeServiceNames();
+  const history = summaryHistory(appointment.activity);
+  const toolEvents = appointment.activity.filter(item => item?.tool).slice(-3).reverse();
+  app.innerHTML = `<div class="stack profile-hub">
+    <section class="profile-name-row"><div><h1>${escapeHtml(appointment.person.name)}</h1><p>${appointment.person.homeStatus === 'homeowner' ? 'Homeowner' : appointment.person.homeStatus === 'tenant' ? 'Tenant' : 'Home status not set'}</p></div><button class="icon-button" type="button" data-manage-people aria-label="Manage people">•••</button></section>
+    ${customerEssentialsBlock(true)}
+    <section class="card appointment-card"><div class="appointment-title"><span class="feature-icon appointment">📋</span><div><h2>Appointment</h2><p>${services.length} service${services.length === 1 ? '' : 's'} selected</p></div><strong>${pct}%</strong></div><div class="progress"><span style="width:${pct}%"></span></div><button class="primary wide" type="button" data-go="appointment">${pct ? 'Continue appointment' : 'Start appointment'} <span aria-hidden="true">→</span></button></section>
+    <section><div class="section-title"><h2>Tools for ${escapeHtml(appointment.person.name.split(/\s+/)[0])}</h2><button class="text-button" type="button" data-section="tools">See all ›</button></div><div class="tool-grid"><button class="tool-tile fix" type="button" data-tool="fix"><span>📈</span><strong>Should I Fix?</strong><small>Region and usage prefilled</small></button><button class="tool-tile ev" type="button" data-tool="ev"><span>🚙</span><strong>EV Companion</strong><small>Explore EV savings</small></button></div></section>
+    <section><h2>Summary</h2><div class="list-card"><button type="button" data-go="summary" ${completion.complete ? '' : 'disabled'}><span>▤</span><span>Show Summary<small>${completion.complete ? 'Ready' : `${completion.missing.length} required item${completion.missing.length===1?'':'s'} remaining`}</small></span><b>›</b></button><button type="button" data-share ${completion.complete ? '' : 'disabled'}><span>⌯</span><span>Share summary</span><b>›</b></button><button type="button" data-go="summary" ${completion.complete ? '' : 'disabled'}><span>↗</span><span>${appointment.summary.basketUrl ? 'View basket link' : 'Add basket link (optional)'}</span><b>›</b></button></div></section>
+    <section><div class="section-title"><h2>Recent activity</h2>${history.length ? '<span class="hint">Tap a summary to reopen</span>' : ''}</div><div class="list-card history-list">${history.map(item => `<button type="button" data-history-id="${escapeHtml(item.id)}"><span>▤</span><span><strong>${item.type === 'summary_shared' ? 'Summary shared' : 'Summary saved'}</strong><small>${escapeHtml((item.services || []).map(name => serviceLabels[name] || name).join(' · '))}</small></span><time>${escapeHtml(relativeDate(item.at))}</time></button>`).join('')}${toolEvents.map(item => `<div class="history-row"><span>◆</span><span><strong>${escapeHtml(item.tool === 'ev' ? 'EV Companion used' : item.tool === 'fix' ? 'Should I Fix? opened' : 'PET opened')}</strong></span><time>${escapeHtml(relativeDate(item.at))}</time></div>`).join('')}${!history.length && !toolEvents.length ? '<p class="empty-state">Summaries and tools used for this person will appear here.</p>' : ''}</div></section>
+    <section class="card notes-card"><div class="section-title"><h2>Notes</h2><small class="hint">Private · never shared</small></div><textarea data-field="summary.privateNotes" placeholder="Useful follow-up notes">${escapeHtml(appointment.summary.privateNotes)}</textarea></section>
+  </div>`;
 }
 
 function serviceState(name) {
@@ -490,7 +509,15 @@ function renderAppointment() {
 }
 
 function updateLiveResults() {
-  // Financial results are intentionally held for the whole-basket summary reveal.
+  const result = calculateAppointment(appointment);
+  const host = document.querySelector('.energy-workspace .uw-column .auto-price');
+  if (host) {
+    const label = {
+      standardVariable: 'Standard Variable', tracker: 'Tracker', fixed: 'Fixed',
+      evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable'
+    }[appointment.energy.selectedTariffFamily] || 'Fixed';
+    host.innerHTML = `<small>${escapeHtml(label)} · ${result.rules.energyTariff || 1}-service rate</small><strong>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/month` : 'Calculated from usage'}</strong><span>Live tariff data</span>`;
+  }
 }
 
 function summaryLines(result) {
@@ -514,7 +541,7 @@ function summaryAccordions(result) {
   const serviceAnnual = Number(result.monthlyServiceSaving || 0) * 12;
   const bonusTotal = Number(result.welcomeBonus || 0) + Number(result.mobileIntroBenefit || 0) + Number(result.broadbandIntroBenefit || 0) + Number(result.referral || 0) + Number(result.nationalLeague || 0) + Number(result.oneOff || 0) - Number(result.exitFeeDeduction || 0);
   const cashbackAnnual = Number(result.cashback?.active ? result.cashback.monthlyNet * 12 + result.cashback.feeWaiver : result.cashbackAnnual || 0);
-  return `<div class="summary-accordions"><details open><summary><span class="accordion-icon">▥</span><strong>Year-one savings on services</strong><b>£${money(serviceAnnual)}</b></summary><div>${summaryLines(result)}</div></details><details><summary><span class="accordion-icon">◆</span><strong>Year-one bonuses &amp; adjustments</strong><b>£${money(bonusTotal)}</b></summary><div class="summary-table"><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited offer</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband offer</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong>${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong>−£${money(result.exitFeeDeduction)}</strong></div>` : ''}</div></details><details><summary><span class="accordion-icon">▰</span><strong>Cashback Card benefits</strong><b>${cashbackAnnual ? `£${money(cashbackAnnual)}` : 'Not included'}</b></summary><div><p class="lead">Cashback contribution is folded into the effective monthly UW position above.</p></div></details></div>`;
+  return `<div class="summary-accordions"><details><summary><span class="accordion-icon">▥</span><strong>Year-one savings on services</strong><b>£${money(serviceAnnual)}</b></summary><div>${summaryLines(result)}</div></details><details><summary><span class="accordion-icon">◆</span><strong>Year-one bonuses &amp; adjustments</strong><b>£${money(bonusTotal)}</b></summary><div class="summary-table"><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited offer</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband offer</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong>${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong>−£${money(result.exitFeeDeduction)}</strong></div>` : ''}</div></details><details><summary><span class="accordion-icon">▰</span><strong>Cashback Card benefits</strong><b>${cashbackAnnual ? `£${money(cashbackAnnual)}` : 'Not included'}</b></summary><div><p class="lead">Cashback contribution is folded into the effective monthly UW position above.</p></div></details></div>`;
 }
 
 function mealDealBlock(preview, active, customer = false) {
@@ -531,6 +558,7 @@ function renderSummary() {
   const showingPreview = Boolean(mealDealPreviewActive && preview);
   const result = showingPreview ? preview.previewResult : calculateAppointment(appointment);
   const displayAppointment = showingPreview ? preview.appointment : appointment;
+  window.scrollTo(0, 0);
   app.innerHTML = `<div class="summary-page partner-summary"><header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>${showingPreview ? '🥪 Meal Deal SIM preview' : 'What they pay now. What they could save.'}</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header>${showingPreview ? '<div class="preview-banner">Preview — the saved appointment has not changed.</div>' : ''}<section class="year-hero"><p>${showingPreview ? 'Preview year one in your pocket' : 'Year one in your pocket'}</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(appointment.person.name)}</small><span aria-hidden="true">◒</span></section>${basketStrip(displayAppointment.services,result.rules.serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${mealDealBlock(preview,showingPreview)}<section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section><section class="summary-actions"><button class="primary" type="button" data-share>Share summary</button><button class="secondary" type="button" data-save-snapshot>Save snapshot</button><button class="quiet" type="button" data-copy-figures>Copy figures</button></section><p class="compliance-note">Indicative summary based on the figures entered. Confirm prices and eligibility in the official UW process.</p></div>`;
 }
 
@@ -553,11 +581,27 @@ function renderTools() {
   app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">Tools</div><h1>Specialist conversations</h1><p class="lead">${currentRecord ? `Using ${escapeHtml(appointment.person.name)}'s known region and usage where the tool supports it.` : 'These tools also work without an Appointment Companion profile.'}</p></section><section class="card tool-card"><div class="tool-icon">📈</div><div class="tool-copy"><h2>Should I Fix?</h2><p class="lead">Compare usage against current and fixed tariff scenarios.</p></div><button class="primary" type="button" data-tool="fix">Open</button></section><section class="card tool-card"><div class="tool-icon">🚙</div><div class="tool-copy"><h2>EV Companion</h2><p class="lead">Explore home and EV charging costs with a standalone, shareable tool.</p></div><button class="primary" type="button" data-tool="ev">Open</button></section><section class="card tool-card"><div class="tool-icon">💷</div><div class="tool-copy"><h2>PET</h2><p class="lead">Partner Earnings - First 60 Days.</p></div><button class="secondary" type="button" data-tool="pet">Open</button></section></div>`;
 }
 
+function conflictValue(value) {
+  if (value === undefined) return 'Not set';
+  if (value === null) return 'None';
+  if (typeof value === 'object') {
+    const json = JSON.stringify(value);
+    return json.length > 160 ? `${json.slice(0,157)}…` : json;
+  }
+  const textValue = String(value);
+  return textValue.length > 160 ? `${textValue.slice(0,157)}…` : textValue;
+}
+
 function renderMore() {
   const brand = branding();
   const auth = getCloudAuth();
   const conflicts = people.filter(person => person.conflict);
-  app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">More</div><h1>Settings &amp; customer safety</h1><p class="lead">Local storage remains primary. Cloud is optional backup, sync and cross-device support.</p></section><section class="card"><div class="section-title"><div><div class="eyebrow">People</div><h2>${people.length} saved on this device</h2></div><button class="secondary" type="button" data-manage-people>Manage</button></div><p class="lead">Individual deletion, tick-and-delete, pending Cloud tombstones and conflict review are kept here.</p></section><section class="card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected for this session' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save for session &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key stays in session storage; it is not included in shared customer data.</p></section>${conflicts.length ? `<section class="card"><h2>Cloud conflicts need review</h2><div class="people-list">${conflicts.map(row => `<div class="person-row"><div style="flex:1"><strong>${escapeHtml(row.customer_name)}</strong><small>${row.conflict.paths?.length || 1} field conflict(s)</small></div><button class="secondary" data-conflict="${row.local_id}" data-choice="local">Keep mine</button><button class="quiet" data-conflict="${row.local_id}" data-choice="cloud">Use Cloud</button></div>`).join('')}</div></section>` : ''}<section class="card"><div class="eyebrow">Partner branding</div><h2>Customer-facing shares</h2><form id="brandingForm" class="grid-2"><label class="field"><span>Name</span><input name="name" value="${escapeHtml(brand.name || '')}"></label><label class="field"><span>Role</span><input name="role" value="${escapeHtml(brand.role || '')}"></label><label class="field"><span>Short message</span><input name="strap" value="${escapeHtml(brand.strap || '')}"></label><label class="field"><span>Join link (https)</span><input name="joinUrl" type="url" value="${escapeHtml(brand.joinUrl || '')}"></label><button class="primary" type="submit">Save branding</button></form></section><section class="card flat"><p class="hint">Appointment Companion V${VERSION}. Local database: ${customerStore.database.name}. October 2026 rule boundary.</p></section></div>`;
+  app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">More</div><h1>Settings &amp; customer safety</h1><p class="lead">Local storage remains primary. Cloud adds backup, sync and cross-device support.</p></section>
+    <section class="card"><div class="section-title"><div><div class="eyebrow">People</div><h2>${people.length} saved on this device</h2></div><button class="secondary" type="button" data-manage-people>Manage</button></div></section>
+    <section class="card cloud-card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected for this session' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save for session &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key stays in session storage and is never included in a customer share.</p></section>
+    ${conflicts.length ? `<section class="card"><div class="section-title"><div><div class="eyebrow">Cloud conflicts</div><h2>Inspect before choosing</h2></div></div><div class="conflict-list">${conflicts.map(row => `<details class="conflict-inspector"><summary><span>🔍</span><strong>${escapeHtml(row.customer_name)}</strong><small>${row.conflict.paths?.length || 1} difference${(row.conflict.paths?.length || 1)===1?'':'s'}</small></summary><div class="conflict-table"><div class="conflict-head"><b>Field</b><b>This device</b><b>Cloud</b></div>${(row.conflict.paths || []).map(item => `<div class="conflict-line"><strong>${escapeHtml(item.path || 'Record')}</strong><span>${escapeHtml(conflictValue(item.local))}</span><span>${escapeHtml(conflictValue(item.remote))}</span></div>`).join('') || '<p class="hint">The Cloud record changed in a way that needs a choice.</p>'}</div><div class="action-row"><button class="secondary" type="button" data-conflict="${row.local_id}" data-choice="local">Keep mine</button><button class="quiet" type="button" data-conflict="${row.local_id}" data-choice="cloud">Use Cloud</button></div></details>`).join('')}</div></section>` : ''}
+    <section class="card"><div class="eyebrow">Partner identity</div><h2>Customer-facing shares</h2>${brand.name ? '' : '<p class="notice">Set this up once. The role defaults to Authorised Utility Warehouse Partner.</p>'}<form id="brandingForm" class="grid-2"><label class="field"><span>Name</span><input name="name" value="${escapeHtml(brand.name || '')}"></label><label class="field"><span>Role</span><input name="role" value="${escapeHtml(brand.role || 'Authorised Utility Warehouse Partner')}"></label><label class="field"><span>Short message</span><input name="strap" value="${escapeHtml(brand.strap || '')}"></label><label class="field"><span>Join link (https)</span><input name="joinUrl" type="url" value="${escapeHtml(brand.joinUrl || '')}"></label><button class="primary" type="submit">Save details</button></form></section>
+    <section class="card flat"><p class="hint">Appointment Companion V${VERSION}. Local database: ${customerStore.database.name}. October 2026 rule boundary.</p></section></div>`;
 }
 
 function resultFromShared(data = {}) {
@@ -615,6 +659,7 @@ async function createPerson(name) {
   const cleaned = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 80);
   if (!cleaned) return;
   appointment = createAppointment(cleaned);
+  essentialsExpanded = true;
   currentRecord = null;
   guard.initialise(appointment);
   guard.changed(appointment);
@@ -734,6 +779,10 @@ document.addEventListener('input', event => {
   if (target.id === 'personNameInput') { showDuplicateWarning(target.value); showPersonSearch(target.value); return; }
   if (!target.dataset.field) return;
   setPath(appointment, target.dataset.field, inputValue(target));
+  if (target.dataset.field === 'cashback.monthlySpend') {
+    const output = document.querySelector('[data-cashback-output]');
+    if (output) output.textContent = `£${money(target.value)}/m`;
+  }
   if ((target.type === 'number' || target.dataset.type === 'number') && target.value === '') {
     appointment.completion.entered = appointment.completion.entered.filter(path => path !== target.dataset.field);
   } else markComparisonFieldEntered(appointment, target.dataset.field);
@@ -802,6 +851,30 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-manage-people')) return openPeopleDialog();
   if (target.hasAttribute('data-close-dialog')) return target.closest('dialog').close();
   if (target.dataset.historyId) return openHistorySummary(target.dataset.historyId);
+  if (target.hasAttribute('data-edit-essentials')) { essentialsExpanded = true; render(); return; }
+  if (target.dataset.jumpService) {
+    document.getElementById(target.dataset.jumpService)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (target.dataset.tariffFamily) {
+    appointment.energy.selectedTariffFamily = target.dataset.tariffFamily;
+    syncSelectedTariffTiers(target.dataset.tariffFamily);
+    markChanged(); render(); return;
+  }
+  if (target.dataset.broadbandFamily) {
+    appointment.broadband.connectionFamily = target.dataset.broadbandFamily;
+    const selectedPackage = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === appointment.broadband.packageId);
+    const selectedFamily = selectedPackage && (/^fibre/.test(selectedPackage.id) ? 'full' : 'part');
+    if (selectedFamily && selectedFamily !== appointment.broadband.connectionFamily) {
+      appointment.broadband.packageId = '';
+      appointment.broadband.uwMonthly = 0;
+    }
+    markChanged(); render(); return;
+  }
+  if (target.hasAttribute('data-toggle-sim-names')) {
+    appointment.mobile.showNames = !appointment.mobile.showNames;
+    markChanged(); render(); return;
+  }
   if (target.dataset.service) {
     const name = target.dataset.service;
     appointment.services[name] = !appointment.services[name];
@@ -810,14 +883,17 @@ document.addEventListener('click', async event => {
   }
   if (target.dataset.choice) {
     setPath(appointment, target.dataset.choice, target.dataset.value);
-    if (target.dataset.choice === 'person.homeStatus' && target.dataset.value === 'tenant') appointment.services.boilerCover = false;
+    if (target.dataset.choice === 'person.homeStatus') {
+      essentialsExpanded = false;
+      if (target.dataset.value === 'tenant') appointment.services.boilerCover = false;
+    }
     if (target.dataset.choice === 'energy.electricityProfile') appointment.energy.peakOffPeak = true;
     markChanged(); render(); return;
   }
   if (target.dataset.simCount) {
     const count = Number(target.dataset.simCount);
     appointment.mobile.simCount = count;
-    appointment.mobile.sims = Array.from({ length: count }, (_, index) => appointment.mobile.sims[index] || createSim(index));
+    appointment.mobile.sims = Array.from({ length: count }, (_, index) => ({ ...(appointment.mobile.sims[index] || createSim(index)), include: true }));
     markChanged(); render(); return;
   }
   if (target.dataset.simPlan) {
@@ -831,6 +907,7 @@ document.addEventListener('click', async event => {
     const selectedPackage = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === target.dataset.package);
     if (!selectedPackage) return;
     appointment.broadband.packageId = selectedPackage.id;
+    appointment.broadband.connectionFamily = /^fibre/.test(selectedPackage.id) ? 'full' : 'part';
     appointment.broadband.uwMonthly = selectedPackage.monthly;
     markChanged(); render(); return;
   }
@@ -941,6 +1018,7 @@ async function boot() {
     onData: (data, info) => {
       tariffData = data;
       tariffInfo = info;
+      if (appointment.services.energy) syncSelectedTariffTiers();
       if (view === 'appointment' && appointment.services.energy) render();
     },
     onError: (_error, info) => { tariffInfo = info; }
