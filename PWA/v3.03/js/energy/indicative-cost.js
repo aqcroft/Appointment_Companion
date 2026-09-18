@@ -58,11 +58,10 @@ function usableRows(data, region, tier, family = '') {
   });
 }
 
-function profileForFamily(appointment, family) {
+function profileForFamily(_appointment, family) {
   if (family === 'evVariable') return 'ev';
-  if (family === 'economy7Variable') return 'economy7';
-  if (family === 'standardVariable' || family === 'tracker') return 'standard';
-  return appointment.energy?.peakOffPeak ? appointment.energy.electricityProfile : 'standard';
+  if (family === 'economy7Variable' || family === 'fixedE7') return 'economy7';
+  return 'standard';
 }
 
 function calculateFromRow(row, appointment, tier, family = '') {
@@ -112,7 +111,8 @@ function calculateFromRow(row, appointment, tier, family = '') {
 }
 
 function chooseRow(data, appointment, tier, family = '') {
-  const rows = usableRows(data, appointment.energy.region, tier, family);
+  const sourceFamily = family === 'economy7Variable' ? 'standardVariable' : family === 'fixedE7' ? 'fixed' : family;
+  const rows = usableRows(data, appointment.energy.region, tier, sourceFamily);
   if (rows.length) return rows[0];
   if (family) return null;
   const legacy = usableRows(data, appointment.energy.region, tier);
@@ -136,7 +136,8 @@ export function buildTariffGrid(data, appointment) {
         ['standardVariable', 'Standard Variable'],
         ['economy7Variable', 'Economy 7 Variable'],
         ['tracker', 'Tracker'],
-        ['fixed', 'Fixed']
+        ['fixed', 'Fixed'],
+        ['fixedE7', 'Fixed Economy 7']
       ]
     : [
         ['standardVariable', 'Standard Variable'],
