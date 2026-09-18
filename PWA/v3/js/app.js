@@ -24,8 +24,9 @@ const peopleDialog = document.getElementById('peopleDialog');
 const shareDialog = document.getElementById('shareDialog');
 const historyDialog = document.getElementById('historyDialog');
 const toastElement = document.getElementById('toast');
-const CURRENT_KEY = 'apptCompanionV3Current';
-const BRAND_KEY = 'apptCompanionV3Partner';
+const CURRENT_KEY = 'apptCompanionV301Current';
+const BRAND_KEY = 'apptCompanionV301Partner';
+const LEGACY_BRAND_KEY = 'apptCompanionV3Partner';
 
 let currentRecord = null;
 let appointment = createAppointment();
@@ -71,7 +72,7 @@ function toast(message) {
 }
 
 function branding() {
-  try { return { role: 'Independent UW Partner', ...JSON.parse(localStorage.getItem(BRAND_KEY) || '{}') }; }
+  try { return { role: 'Independent UW Partner', ...JSON.parse(localStorage.getItem(BRAND_KEY) || localStorage.getItem(LEGACY_BRAND_KEY) || '{}') }; }
   catch { return { role: 'Independent UW Partner' }; }
 }
 
