@@ -4,7 +4,7 @@ import { clone } from './canonical-state.js';
 import { migrateAppointment, toLegacyCompatibleAppointment } from './migrations.js';
 import { reconcileSnapshots, remoteVersion } from './reconciliation.js';
 
-export const AUTH_KEY = 'apptCloudPilotAuthSession';
+export const AUTH_KEY = 'apptCompanionV301CloudAuthSession';
 
 export function getCloudAuth() {
   try {
