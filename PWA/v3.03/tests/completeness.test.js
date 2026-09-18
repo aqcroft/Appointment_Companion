@@ -3,8 +3,19 @@ import assert from 'node:assert/strict';
 import { appointmentCompleteness, markComparisonFieldEntered } from '../js/appointment/completeness.js';
 import { createAppointment, createSim, normaliseAppointment } from '../js/state/canonical-state.js';
 
+function homeowner(name = 'Test') {
+  const appointment = createAppointment(name);
+  appointment.person.homeStatus = 'homeowner';
+  return appointment;
+}
+
 function completeEnergy(appointment) {
   appointment.services.energy = true;
+  appointment.energy.fuel = 'dual';
+  appointment.energy.electricityUwKwh = 2500;
+  appointment.energy.gasUwKwh = 11500;
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.annualGasKwh = 11500;
   appointment.energy.currentMonthly = 100;
   appointment.energy.uwMonthly = 80;
 }
@@ -25,27 +36,45 @@ function completeMobile(appointment, count) {
   appointment.mobile.sims = Array.from({ length: count }, (_, index) => configuredSim(index));
 }
 
-test('Energy-only basket has two requirements when exit fees do not apply', () => {
-  const appointment = createAppointment('Energy');
+test('home status is a required one-time customer fact', () => {
+  const appointment = createAppointment('Customer');
+  appointment.services.broadband = true;
+  appointment.broadband.currentMonthly = 30;
+  appointment.broadband.uwMonthly = 24;
+  let status = appointmentCompleteness(appointment);
+  assert.equal(status.complete, false);
+  assert.equal(status.missing[0].label, 'Customer - homeowner or tenant missing');
+  appointment.person.homeStatus = 'tenant';
+  status = appointmentCompleteness(appointment);
+  assert.equal(status.complete, true);
+});
+
+test('Energy UW progress requires quote usage as well as a positive UW price', () => {
+  const appointment = homeowner('Energy');
   appointment.services.energy = true;
-  const status = appointmentCompleteness(appointment);
-  assert.equal(status.total, 2);
-  assert.equal(status.percentage, 0);
-  assert.deepEqual(status.missing.map(item => item.label), [
-    'Energy - current monthly cost missing',
-    'Energy - UW monthly cost missing'
-  ]);
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 80;
+  let status = appointmentCompleteness(appointment);
+  assert.equal(status.total, 3);
+  assert.equal(status.complete, false);
+  assert.equal(status.missing.at(-1).label, 'Energy - UW quote usage / price missing');
+
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.annualGasKwh = 11500;
+  status = appointmentCompleteness(appointment);
+  assert.equal(status.complete, true);
 });
 
 test('Energy exit-fee requirement appears only when enabled', () => {
-  const appointment = createAppointment('Energy exit');
+  const appointment = homeowner('Energy exit');
   completeEnergy(appointment);
-  assert.equal(appointmentCompleteness(appointment).total, 2);
+  assert.equal(appointmentCompleteness(appointment).total, 3);
   assert.equal(appointmentCompleteness(appointment).complete, true);
 
   appointment.energy.exitFeesApply = true;
   let status = appointmentCompleteness(appointment);
-  assert.equal(status.total, 3);
+  assert.equal(status.total, 4);
+  assert.equal(status.percentage, 75);
   assert.equal(status.complete, false);
   assert.equal(status.missing.at(-1).label, 'Energy - exit fee missing');
 
@@ -55,52 +84,50 @@ test('Energy exit-fee requirement appears only when enabled', () => {
 });
 
 test('dual-fuel Energy needs only one positive fee when exit fees apply', () => {
-  const appointment = createAppointment('Dual exit');
+  const appointment = homeowner('Dual exit');
   completeEnergy(appointment);
-  appointment.energy.fuel = 'dual';
   appointment.energy.exitFeesApply = true;
   appointment.energy.gasExitFee = 60;
   assert.equal(appointmentCompleteness(appointment).complete, true);
 });
 
-test('zero Current or UW remains incomplete even when the field was explicitly touched', () => {
-  const appointment = createAppointment('Zeros');
+test('zero Current or UW remains incomplete even when explicitly touched', () => {
+  const appointment = homeowner('Zeros');
   appointment.services.broadband = true;
-  appointment.broadband.currentMonthly = 0;
-  appointment.broadband.uwMonthly = 0;
   markComparisonFieldEntered(appointment, 'broadband.currentMonthly');
   markComparisonFieldEntered(appointment, 'broadband.uwMonthly');
-  assert.equal(appointmentCompleteness(appointment).completed, 0);
-  assert.equal(appointmentCompleteness(appointment).complete, false);
+  const status = appointmentCompleteness(appointment);
+  assert.equal(status.completed, 1);
+  assert.equal(status.complete, false);
 });
 
 test('Broadband exit-fee requirement is conditional', () => {
-  const appointment = createAppointment('Broadband');
+  const appointment = homeowner('Broadband');
   completeBroadband(appointment);
-  assert.equal(appointmentCompleteness(appointment).total, 2);
-  appointment.broadband.exitFeesApply = true;
   assert.equal(appointmentCompleteness(appointment).total, 3);
+  appointment.broadband.exitFeesApply = true;
+  assert.equal(appointmentCompleteness(appointment).total, 4);
   assert.equal(appointmentCompleteness(appointment).complete, false);
   appointment.broadband.exitFee = 45;
   assert.equal(appointmentCompleteness(appointment).complete, true);
 });
 
-test('one and five SIM baskets contribute two requirements per included SIM by default', () => {
+test('one and five SIM baskets contribute two requirements per SIM plus customer status', () => {
   for (const count of [1, 5]) {
-    const appointment = createAppointment(`${count} SIM`);
+    const appointment = homeowner(`${count} SIM`);
     completeMobile(appointment, count);
     const status = appointmentCompleteness(appointment);
-    assert.equal(status.total, count * 2);
+    assert.equal(status.total, 1 + count * 2);
     assert.equal(status.complete, true);
   }
 });
 
 test('Mobile adds an exit requirement only for SIMs where exit fees apply', () => {
-  const appointment = createAppointment('Mobile exits');
+  const appointment = homeowner('Mobile exits');
   completeMobile(appointment, 2);
   appointment.mobile.sims[1].exitFeesApply = true;
   let status = appointmentCompleteness(appointment);
-  assert.equal(status.total, 5);
+  assert.equal(status.total, 6);
   assert.equal(status.complete, false);
   appointment.mobile.sims[1].exitFee = 30;
   status = appointmentCompleteness(appointment);
@@ -108,77 +135,70 @@ test('Mobile adds an exit requirement only for SIMs where exit fees apply', () =
 });
 
 test('multiple-service baskets include only selected services', () => {
-  const appointment = createAppointment('Mixed');
+  const appointment = homeowner('Mixed');
   completeEnergy(appointment);
   completeBroadband(appointment);
   completeMobile(appointment, 2);
-  assert.equal(appointmentCompleteness(appointment).total, 8);
+  assert.equal(appointmentCompleteness(appointment).total, 9);
   appointment.services.broadband = false;
-  assert.equal(appointmentCompleteness(appointment).total, 6);
+  assert.equal(appointmentCompleteness(appointment).total, 7);
 });
 
-test('homeowner Boiler Cover contributes two requirements by default and tenant Boiler contributes none', () => {
-  const homeowner = createAppointment('Homeowner');
-  homeowner.person.homeStatus = 'homeowner';
-  homeowner.services.boilerCover = true;
-  homeowner.boilerCover.currentMonthly = 30;
-  assert.equal(appointmentCompleteness(homeowner).total, 2);
-  assert.equal(appointmentCompleteness(homeowner).complete, true);
+test('homeowner Boiler Cover contributes two service requirements and tenant cannot keep it selected', () => {
+  const home = homeowner('Homeowner');
+  home.services.boilerCover = true;
+  home.boilerCover.currentMonthly = 30;
+  assert.equal(appointmentCompleteness(home).total, 3);
+  assert.equal(appointmentCompleteness(home).complete, true);
 
-  homeowner.boilerCover.exitFeesApply = true;
-  assert.equal(appointmentCompleteness(homeowner).total, 3);
-  assert.equal(appointmentCompleteness(homeowner).complete, false);
-  homeowner.boilerCover.exitFee = 25;
-  assert.equal(appointmentCompleteness(homeowner).complete, true);
+  home.boilerCover.exitFeesApply = true;
+  assert.equal(appointmentCompleteness(home).total, 4);
+  assert.equal(appointmentCompleteness(home).complete, false);
+  home.boilerCover.exitFee = 25;
+  assert.equal(appointmentCompleteness(home).complete, true);
 
   const tenant = createAppointment('Tenant');
   tenant.person.homeStatus = 'tenant';
   tenant.services.boilerCover = true;
-  assert.equal(appointmentCompleteness(tenant).total, 0);
+  const status = appointmentCompleteness(tenant);
+  assert.equal(status.total, 1);
+  assert.equal(status.complete, false);
 });
 
 test('progress denominator changes immediately as services and SIMs are added', () => {
-  const appointment = createAppointment('Progress');
+  const appointment = homeowner('Progress');
   completeEnergy(appointment);
   assert.equal(appointmentCompleteness(appointment).percentage, 100);
   appointment.services.broadband = true;
-  assert.equal(appointmentCompleteness(appointment).percentage, 50);
+  assert.equal(appointmentCompleteness(appointment).percentage, 60);
   completeBroadband(appointment);
   assert.equal(appointmentCompleteness(appointment).percentage, 100);
   completeMobile(appointment, 1);
   assert.equal(appointmentCompleteness(appointment).percentage, 100);
   appointment.mobile.simCount = 2;
   appointment.mobile.sims.push(createSim(1));
-  assert.equal(appointmentCompleteness(appointment).percentage, 75);
+  assert.equal(appointmentCompleteness(appointment).percentage, 78);
 });
 
-test('summary completion reaches 100 percent at the same point it unlocks', () => {
-  const appointment = createAppointment('Gate');
+test('summary unlock follows the conditional Energy exit-fee dot', () => {
+  const appointment = homeowner('Gate');
   completeEnergy(appointment);
-  const complete = appointmentCompleteness(appointment);
-  assert.equal(complete.percentage, 100);
-  assert.equal(complete.complete, true);
-
+  assert.equal(appointmentCompleteness(appointment).complete, true);
   appointment.energy.exitFeesApply = true;
-  const blocked = appointmentCompleteness(appointment);
-  assert.equal(blocked.percentage, 67);
-  assert.equal(blocked.complete, false);
-
+  assert.equal(appointmentCompleteness(appointment).percentage, 75);
+  assert.equal(appointmentCompleteness(appointment).complete, false);
   appointment.energy.gasExitFee = 50;
-  const unlocked = appointmentCompleteness(appointment);
-  assert.equal(unlocked.percentage, 100);
-  assert.equal(unlocked.complete, true);
+  assert.equal(appointmentCompleteness(appointment).percentage, 100);
+  assert.equal(appointmentCompleteness(appointment).complete, true);
 });
 
 test('legacy positive exit fees infer the new toggle as on', () => {
   const legacy = createAppointment('Legacy');
   delete legacy.broadband.exitFeesApply;
   legacy.broadband.exitFee = 80;
-  const normalised = normaliseAppointment(legacy);
-  assert.equal(normalised.broadband.exitFeesApply, true);
+  assert.equal(normaliseAppointment(legacy).broadband.exitFeesApply, true);
 
   delete legacy.energy.exitFeesApply;
   legacy.energy.electricityExitFee = 100;
-  const energyNormalised = normaliseAppointment(legacy);
-  assert.equal(energyNormalised.energy.exitFeesApply, true);
+  assert.equal(normaliseAppointment(legacy).energy.exitFeesApply, true);
 });
