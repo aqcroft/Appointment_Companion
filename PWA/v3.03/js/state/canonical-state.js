@@ -36,14 +36,14 @@ export function createAppointment(name = '') {
       currentDayRate: 0, currentNightRate: 0, currentStandingCharge: 0,
       exitFeesApply: false, electricityExitFee: 0, gasExitFee: 0,
       uwQuoteMode: 'single', uwMonthly: 0, uwTier1: 0, uwTier2: 0, uwTier3: 0,
-      quoteStatus: 'indicative', adjustmentEnabled: false, adjustmentTarget: 'current',
+      quoteStatus: 'indicative', selectedTariffFamily: 'fixed', adjustmentEnabled: false, adjustmentTarget: 'current',
       adjustmentPeriod: 'monthly', adjustmentAmount: 0, e7StandardAnnualCost: 0
     },
     broadband: {
-      currentMonthly: 0, uwMonthly: 0, packageId: '', wholeHomeWifi: false,
+      currentMonthly: 0, uwMonthly: 0, packageId: '', connectionFamily: 'full', currentSpeed: '', wholeHomeWifi: false,
       homePhoneMonthly: 0, exitFeesApply: false, exitFee: 0, freeMonthsOffer: false
     },
-    mobile: { simCount: 1, sims: [createSim(0)] },
+    mobile: { simCount: 1, showNames: false, sims: [createSim(0)] },
     boilerCover: { currentMonthly: 0, monthly: 25, exitFeesApply: false, exitFee: 0 },
     cashback: { enabled: true, tier: 'average', monthlySpend: 1000 },
     adjustments: {
@@ -88,6 +88,7 @@ export function normaliseAppointment(input = {}) {
   if (out.person.homeStatus === 'tenant') out.services.boilerCover = false;
   out.energy.region = REGIONS.some(([id]) => id === String(out.energy.region)) ? String(out.energy.region) : '11';
   out.energy.fuel = ['electricity', 'gas', 'dual'].includes(out.energy.fuel) ? out.energy.fuel : 'dual';
+  out.energy.selectedTariffFamily = ['standardVariable','tracker','fixed','evVariable','economy7Variable'].includes(out.energy.selectedTariffFamily) ? out.energy.selectedTariffFamily : 'fixed';
   out.energy.electricityProfile = ['standard', 'economy7', 'ev'].includes(out.energy.electricityProfile) ? out.energy.electricityProfile : 'standard';
   const hasPeakOffPeak = Object.prototype.hasOwnProperty.call(source.energy || {}, 'peakOffPeak');
   out.energy.peakOffPeak = hasPeakOffPeak ? bool(source.energy.peakOffPeak) : out.energy.electricityProfile !== 'standard';
@@ -143,11 +144,15 @@ export function normaliseAppointment(input = {}) {
   out.energy.usageSource = out.energy.electricityUsageSource === out.energy.gasUsageSource
     ? out.energy.electricityUsageSource
     : 'mixed';
+  out.broadband.connectionFamily = ['full','part'].includes(out.broadband.connectionFamily) ? out.broadband.connectionFamily : /^fibre/.test(out.broadband.packageId) ? 'full' : /^ultra/.test(out.broadband.packageId) ? 'part' : 'full';
+  out.broadband.currentSpeed = text(out.broadband.currentSpeed, 60);
   out.broadband.exitFee = finite(out.broadband.exitFee);
   out.broadband.exitFeesApply = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'exitFeesApply')
     ? bool(source.broadband.exitFeesApply)
     : out.broadband.exitFee > 0;
   out.mobile.simCount = Math.max(1, Math.min(5, Math.round(finite(out.mobile.simCount, 1))));
+  const namesDiffer = (out.mobile.sims || []).some((sim, index) => text(sim?.name, 40) && text(sim?.name, 40) !== `SIM ${index + 1}`);
+  out.mobile.showNames = Object.prototype.hasOwnProperty.call(source.mobile || {}, 'showNames') ? bool(source.mobile.showNames) : namesDiffer;
   out.mobile.sims = Array.from({ length: out.mobile.simCount }, (_, index) => {
     const rawSim = out.mobile.sims?.[index] || {};
     const sim = { ...createSim(index), ...rawSim };
