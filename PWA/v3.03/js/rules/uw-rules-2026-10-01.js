@@ -72,7 +72,10 @@ export function deriveUwRules(facts = {}, rules = UW_RULES_2026_10_01) {
   const serviceCount = (energy ? 1 : 0) + (broadband ? 1 : 0) + mobileContribution + (boilerCover ? 1 : 0);
   const energyQualifiers = (broadband ? 1 : 0) + Math.min(2, sims.length) + (boilerCover ? 1 : 0);
   const energyTariff = energy ? Math.min(rules.energyTariffCap, 1 + energyQualifiers) : 0;
-  const serviceTypes = [energy, broadband, sims.length > 0, boilerCover].filter(Boolean).length;
+  // Go Essentials (£6) SIMs can improve Energy/service qualification but do not
+  // increase the Welcome Bonus under the current basket rules.
+  const mobileWelcomeBonusEligible = sims.some(sim => normalisePlanId(sim.planId) === 'unlimitedMax');
+  const serviceTypes = [energy, broadband, mobileWelcomeBonusEligible, boilerCover].filter(Boolean).length;
   const welcomeBonus = Number(rules.welcomeBonus[serviceTypes] || 0);
   const ongoingMobileMonthly = sims.reduce((sum, sim) => {
     const entered = sim.uwMonthly !== null && sim.uwMonthly !== '' && Number.isFinite(Number(sim.uwMonthly));
