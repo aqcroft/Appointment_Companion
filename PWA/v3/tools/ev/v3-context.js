@@ -53,7 +53,7 @@
         awayRate: numeric('awayRate')
       }
     };
-    try { localStorage.setItem('apptCompanionV3SpecialistReturn', JSON.stringify(payload)); } catch (_) {}
+    try { localStorage.setItem('apptCompanionV301SpecialistReturn', JSON.stringify(payload)); } catch (_) {}
   }
 
   if (returnUrl) {
