@@ -1025,7 +1025,7 @@ async function boot() {
     },
     onError: (_error, info) => { tariffInfo = info; }
   }).catch(() => {});
-  if (migration.imported) toast(`${migration.imported} existing ${migration.imported === 1 ? 'profile' : 'profiles'} copied safely into V3.`);
+  if (migration.imported) toast(`${migration.imported} existing ${migration.imported === 1 ? 'profile' : 'profiles'} copied safely into V3.03.`);
   scheduleSync(500);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => setSaveState('Saved locally · PWA update pending'));
   setInterval(() => scheduleSync(0), 45000);
@@ -1033,5 +1033,5 @@ async function boot() {
 
 boot().catch(error => {
   console.error(error);
-  app.innerHTML = `<section class="card"><h1>V3 needs attention</h1><p>${escapeHtml(error.message)}</p><p>Your existing donor data has not been changed.</p></section>`;
+  app.innerHTML = `<section class="card"><h1>V3.03 needs attention</h1><p>${escapeHtml(error.message)}</p><p>Your existing donor data has not been changed.</p></section>`;
 });
