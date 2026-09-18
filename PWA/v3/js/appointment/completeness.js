@@ -7,8 +7,8 @@ function entered(appointment, key) {
   return appointment.completion.entered.includes(key);
 }
 
-function valueComplete(appointment, key, value) {
-  return positive(value) || entered(appointment, key);
+function valueComplete(_appointment, _key, value) {
+  return positive(value);
 }
 
 function energyCurrentComplete(appointment) {
@@ -49,11 +49,12 @@ function energyUwComplete(appointment) {
 
 function energyExitComplete(appointment) {
   const energy = appointment.energy;
+  if (!energy.exitFeesApply) return true;
   const relevant = [
     ...(energy.fuel !== 'gas' ? ['energy.electricityExitFee'] : []),
     ...(energy.fuel !== 'electricity' ? ['energy.gasExitFee'] : [])
   ];
-  return relevant.some(key => positive(energy[key.split('.').at(-1)])) || relevant.every(key => entered(appointment, key));
+  return relevant.some(key => positive(energy[key.split('.').at(-1)]));
 }
 
 function requirement(id, service, label, complete) {
@@ -67,17 +68,21 @@ export function comparisonRequirements(input) {
   if (appointment.services.energy) {
     requirements.push(
       requirement('energy.current', 'energy', 'Energy - current monthly cost missing', energyCurrentComplete(appointment)),
-      requirement('energy.uw', 'energy', 'Energy - UW monthly cost missing', energyUwComplete(appointment)),
-      requirement('energy.exit', 'energy', 'Energy - exit fee missing', energyExitComplete(appointment))
+      requirement('energy.uw', 'energy', 'Energy - UW monthly cost missing', energyUwComplete(appointment))
     );
+    if (appointment.energy.exitFeesApply) {
+      requirements.push(requirement('energy.exit', 'energy', 'Energy - exit fee missing', energyExitComplete(appointment)));
+    }
   }
 
   if (appointment.services.broadband) {
     requirements.push(
       requirement('broadband.current', 'broadband', 'Broadband - current monthly cost missing', valueComplete(appointment, 'broadband.currentMonthly', appointment.broadband.currentMonthly)),
-      requirement('broadband.uw', 'broadband', 'Broadband - UW monthly cost missing', valueComplete(appointment, 'broadband.uwMonthly', appointment.broadband.uwMonthly)),
-      requirement('broadband.exit', 'broadband', 'Broadband - exit fee missing', valueComplete(appointment, 'broadband.exitFee', appointment.broadband.exitFee))
+      requirement('broadband.uw', 'broadband', 'Broadband - UW monthly cost missing', valueComplete(appointment, 'broadband.uwMonthly', appointment.broadband.uwMonthly))
     );
+    if (appointment.broadband.exitFeesApply) {
+      requirements.push(requirement('broadband.exit', 'broadband', 'Broadband - exit fee missing', positive(appointment.broadband.exitFee)));
+    }
   }
 
   if (appointment.services.mobile) {
@@ -86,18 +91,22 @@ export function comparisonRequirements(input) {
       const name = `Mobile SIM ${index + 1}`;
       requirements.push(
         requirement(`${prefix}.current`, 'mobile', `${name} - current monthly cost missing`, valueComplete(appointment, `${prefix}.currentMonthly`, sim.currentMonthly)),
-        requirement(`${prefix}.uw`, 'mobile', `${name} - UW monthly cost missing`, sim.uwMonthly !== null && sim.uwMonthly !== ''),
-        requirement(`${prefix}.exit`, 'mobile', `${name} - exit fee missing`, valueComplete(appointment, `${prefix}.exitFee`, sim.exitFee))
+        requirement(`${prefix}.uw`, 'mobile', `${name} - UW monthly cost missing`, positive(sim.uwMonthly))
       );
+      if (sim.exitFeesApply) {
+        requirements.push(requirement(`${prefix}.exit`, 'mobile', `${name} - exit fee missing`, positive(sim.exitFee)));
+      }
     });
   }
 
   if (appointment.services.boilerCover && appointment.person.homeStatus === 'homeowner') {
     requirements.push(
       requirement('boiler.current', 'boilerCover', 'Boiler Cover - current monthly cost missing', valueComplete(appointment, 'boilerCover.currentMonthly', appointment.boilerCover.currentMonthly)),
-      requirement('boiler.uw', 'boilerCover', 'Boiler Cover - UW monthly cost missing', positive(appointment.boilerCover.monthly)),
-      requirement('boiler.exit', 'boilerCover', 'Boiler Cover - exit fee missing', valueComplete(appointment, 'boilerCover.exitFee', appointment.boilerCover.exitFee))
+      requirement('boiler.uw', 'boilerCover', 'Boiler Cover - UW monthly cost missing', positive(appointment.boilerCover.monthly))
     );
+    if (appointment.boilerCover.exitFeesApply) {
+      requirements.push(requirement('boiler.exit', 'boilerCover', 'Boiler Cover - exit fee missing', positive(appointment.boilerCover.exitFee)));
+    }
   }
 
   return requirements;
