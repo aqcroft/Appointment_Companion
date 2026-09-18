@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V3 legacy import smoke fixture</title>
+</head>
+<body>
+  <h1>V3 legacy import smoke fixture</h1>
+  <p>Run this on a disposable local origin. It creates two fixture profiles in the legacy working-record slot and verifies repeated V3 scans do not duplicate them.</p>
+  <button id="run" type="button">Run later-profile import scenario</button>
+  <pre id="result" role="status">Not run.</pre>
+  <script type="module">
+    import { createAppointment } from '../js/state/canonical-state.js';
+    import { customerStore } from '../js/state/customer-store.js';
+
+    const result = document.getElementById('result');
+    const legacyKey = 'apptCompanionWorkingRecordV1';
+
+    function fixture(name) {
+      return { customer_name: name, appointment_state: createAppointment(name) };
+    }
+
+    document.getElementById('run').addEventListener('click', async () => {
+      const suffix = Date.now().toString(36);
+      const firstName = `Legacy first ${suffix}`;
+      const laterName = `Legacy later ${suffix}`;
+      try {
+        localStorage.setItem(legacyKey, JSON.stringify(fixture(firstName)));
+        const firstScan = await customerStore.migrate();
+        localStorage.setItem(legacyKey, JSON.stringify(fixture(laterName)));
+        const laterScan = await customerStore.migrate();
+        const repeatScan = await customerStore.migrate();
+        const matches = (await customerStore.list()).filter(row => [firstName, laterName].includes(row.customer_name));
+        const counts = Object.fromEntries([firstName, laterName].map(name => [name, matches.filter(row => row.customer_name === name).length]));
+        const passed = firstScan.imported === 1 && laterScan.imported === 1 && repeatScan.imported === 0
+          && counts[firstName] === 1 && counts[laterName] === 1;
+        result.textContent = JSON.stringify({ passed, firstScan, laterScan, repeatScan, counts }, null, 2);
+      } catch (error) {
+        result.textContent = JSON.stringify({ passed: false, error: error.message }, null, 2);
+      }
+    });
+  </script>
+</body>
+</html>

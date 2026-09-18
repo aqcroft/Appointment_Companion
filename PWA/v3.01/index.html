@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#7a42c8">
+  <meta name="description" content="Appointment Companion V3.01 preview - a local-first companion for UW appointments">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Companion V3.01">
+  <title>Appointment Companion V3.01 Preview</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/app.css?v=3.01-ui.1">
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <button class="brand" type="button" data-go="launchpad" aria-label="Appointment Companion home">
+      <img class="brand-mark" src="./assets/icons/app-icon.svg" alt=""><span><strong>Companion</strong><small>Appointment Companion</small></span>
+    </button>
+    <button class="person-chip" id="activePersonChip" type="button" data-go="profile" hidden></button>
+    <div class="save-state" id="saveState" aria-live="polite">Local first</div>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <nav class="global-nav" id="globalNav" aria-label="Main navigation" hidden>
+    <button type="button" data-section="save"><span aria-hidden="true">◉</span>Save Money</button>
+    <button type="button" data-section="make"><span aria-hidden="true">▥</span>Make Money</button>
+    <button type="button" data-section="tools"><span aria-hidden="true">▦</span>Tools</button>
+    <button type="button" data-section="more"><span aria-hidden="true">•••</span>More</button>
+  </nav>
+
+  <dialog id="unsavedDialog" class="modal">
+    <form method="dialog" class="modal-card">
+      <h2>Save these changes?</h2>
+      <p>There are meaningful changes that have not yet been stored safely on this device.</p>
+      <div class="modal-actions stacked-mobile">
+        <button type="button" class="primary" data-unsaved-action="save">Save &amp; leave</button>
+        <button type="button" class="danger-quiet" data-unsaved-action="discard">Leave without saving</button>
+        <button type="button" class="quiet" data-unsaved-action="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="peopleDialog" class="modal"></dialog>
+  <dialog id="shareDialog" class="modal"></dialog>
+  <dialog id="historyDialog" class="modal"></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./js/app.js?v=3.01-ui.1"></script>
+</body>
+</html>
