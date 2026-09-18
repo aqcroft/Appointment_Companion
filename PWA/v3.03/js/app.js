@@ -103,7 +103,7 @@ function setPath(object, path, value) {
 
 function inputValue(element) {
   if (element.type === 'checkbox') return element.checked;
-  if (element.type === 'number' || element.dataset.type === 'number') return element.value === '' ? null : Math.max(0, Number(element.value) || 0);
+  if (element.type === 'number' || element.type === 'range' || element.dataset.type === 'number') return element.value === '' ? null : Math.max(0, Number(element.value) || 0);
   return element.value;
 }
 
@@ -167,7 +167,7 @@ function scheduleSync(delay = 900) {
       setSaveState('Saved · Cloud synced', 'good');
       if (view === 'more') render();
     } catch {
-      setSaveState('Saved locally · Cloud pending');
+      setSaveState('Saved locally · Cloud retrying', 'bad');
       syncRetryMs = Math.min(syncRetryMs * 2, 120000);
       scheduleSync(syncRetryMs);
     }
@@ -359,8 +359,8 @@ function usageSourceBlock(fuel, label, estimates) {
   const billValue = energy[`${prefix}BillKwh`];
   return `<div class="alt-usage-block"><div class="section-title"><div><h3>${label}</h3><small>Currently using ${source === 'bill' ? 'customer bill' : source === 'estimated' ? 'estimate' : 'UW / quote'} usage.</small></div></div>
     <label class="field"><span>Customer bill annual usage</span>${field(`energy.${prefix}BillKwh`, billValue, 'type="number" inputmode="numeric" min="0"')}</label>
-    <div class="pills source-pills"><button class="pill${on(source,'uw')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="uw">Use UW / quote</button><button class="pill${on(source,'bill')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="bill" ${billValue > 0 ? '' : 'disabled'}>Use bill</button><button class="pill${on(source,'estimated')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="estimated">Use estimate</button></div>
-    ${source === 'estimated' ? `<div class="estimate-row">${estimates.map(([name,value]) => `<button class="pill${on(energy[`${prefix}EstimatedKwh`],value)}" type="button" data-estimate-fuel="${prefix}" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')} kWh</small></button>`).join('')}</div>` : ''}
+    <div class="pills source-pills"><button class="pill${on(source,'uw')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="uw">Use UW / quote</button><button class="pill${on(source,'bill')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="bill" ${billValue > 0 ? '' : 'disabled'}>Use bill</button></div>
+    <div class="estimate-choice"><small>Or use an estimate</small><div class="estimate-row">${estimates.map(([name,value]) => `<button class="pill${source === 'estimated' && on(energy[`${prefix}EstimatedKwh`],value)}" type="button" data-estimate-fuel="${prefix}" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')} kWh</small></button>`).join('')}</div></div>
   </div>`;
 }
 
@@ -446,7 +446,7 @@ function renderBroadband() {
   return `<section class="card service-workspace broadband-workspace" id="broadbandPanel"><div class="workspace-heading"><span class="feature-icon broadband">🛜</span><div><div class="eyebrow">Broadband</div><h2>Broadband</h2><p>Add the current total, then choose the closest UW connection and speed.</p></div></div>
     <div class="compare-grid">
       <div class="compare-column current-column"><div class="compare-label">CURRENT</div><label class="field"><span>Total monthly cost</span>${field('broadband.currentMonthly',bb.currentMonthly,'type="number" min="0" step="0.01" placeholder="£ per month"')}</label><details class="advanced compact-advanced" ${bb.currentSpeed ? 'open' : ''}><summary>Add current speed</summary><label class="field"><span>Current speed / note</span>${field('broadband.currentSpeed',bb.currentSpeed,'placeholder="e.g. 100 Mbps"')}</label></details></div>
-      <div class="compare-column uw-column"><div class="compare-label">UW</div><div class="field"><span>Connection</span><div class="segmented"><button class="${on(bb.connectionFamily,'full')}" type="button" data-broadband-family="full">Full Fibre</button><button class="${on(bb.connectionFamily,'part')}" type="button" data-broadband-family="part">Part Fibre</button></div></div><div class="pills package-pills field-gap">${packages.map(item => `<button type="button" class="pill${on(bb.packageId,item.id)}" data-package="${item.id}">${escapeHtml(item.label.replace(/^Full Fibre\s*/,'').replace(/^Ultra\+?\s*/,'Ultra '))}<small>£${money(item.monthly)}/m</small></button>`).join('')}</div><div class="auto-price compact"><small>UW monthly total</small><strong>${chosen ? `£${money(uwTotal)}/month` : 'Choose a package'}</strong></div></div>
+      <div class="compare-column uw-column"><div class="compare-label">UW</div><div class="field"><span>Connection</span><div class="segmented"><button class="${on(bb.connectionFamily,'full')}" type="button" data-broadband-family="full">Full Fibre</button><button class="${on(bb.connectionFamily,'part')}" type="button" data-broadband-family="part">Part Fibre</button></div></div><div class="pills package-pills field-gap">${packages.map(item => { const display = bb.connectionFamily === 'full' ? item.label.replace(/^Full Fibre\s*/,'') : item.label; return `<button type="button" class="pill${on(bb.packageId,item.id)}" data-package="${item.id}">${escapeHtml(display)}<small>£${money(item.monthly)}/m</small></button>`; }).join('')}</div><div class="auto-price compact"><small>UW monthly total</small><strong>${chosen ? `£${money(uwTotal)}/month` : 'Choose a package'}</strong></div></div>
     </div>
     <label class="essential-row clickable service-option-row"><span class="essential-copy"><strong>Whole Home Wi-Fi</strong><small>+£5/month</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.wholeHomeWifi"${checked(bb.wholeHomeWifi)}><i></i></span></label>
     ${appointment.person.homeStatus === 'homeowner' ? `<label class="essential-row clickable service-option-row"><span class="essential-copy"><strong>6 months free</strong><small>Switch on when the customer qualifies for the current broadband offer.</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
@@ -832,7 +832,7 @@ document.addEventListener('submit', async event => {
     setCloudAuth(data);
     toast('Cloud credentials saved for this session. Syncing…');
     try { await syncAll(); people = await customerStore.list(); setSaveState('Saved · Cloud synced','good'); }
-    catch { setSaveState('Saved locally · Cloud pending'); toast('Cloud is unavailable. Local work remains safe.'); }
+    catch { setSaveState('Saved locally · Cloud unavailable', 'bad'); toast('Cloud is unavailable. Local work remains safe.'); }
     render();
   }
   if (event.target.id === 'brandingForm') {
