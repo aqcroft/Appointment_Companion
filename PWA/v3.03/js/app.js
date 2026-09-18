@@ -1005,11 +1005,13 @@ async function boot() {
   currentRecord = currentId ? await customerStore.get(currentId) : null;
   if (currentRecord && !currentRecord.deleted) {
     appointment = normaliseAppointment(currentRecord.appointment_state);
+    essentialsExpanded = !appointment.person.homeStatus;
     persistedAppointment = clone(appointment);
     view = 'profile';
   } else {
     currentRecord = null;
     appointment = createAppointment();
+    essentialsExpanded = true;
     persistedAppointment = clone(appointment);
   }
   guard.initialise(appointment);
