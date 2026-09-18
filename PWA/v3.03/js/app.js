@@ -339,15 +339,18 @@ function stickyBasketBar() {
   const completion = appointmentCompleteness(appointment);
   const result = calculateAppointment(appointment);
   const ordered = [
-    ['energy','⚡🔥','Energy','energyPanel'],
-    ['broadband','🛜','Broadband','broadbandPanel'],
-    ['mobile','📱','Mobile','mobilePanel'],
-    ['boilerCover','🛠️','Boiler','boilerPanel']
-  ].filter(([key]) => appointment.services[key] && (key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner'));
+    ['energy','⚡🔥','Energy'],
+    ['broadband','🛜','Broadband'],
+    ['mobile','📱','Mobile'],
+    ['boilerCover','🛠️','Boiler']
+  ].filter(([key]) => key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner');
   const route = appointment.benefits.referral ? 'Referral' : appointment.benefits.nationalLeague ? 'National League' : '';
   return `<section class="sticky-basket" id="stickyBasket">
     <div class="sticky-customer"><button type="button" data-edit-essentials><strong>${escapeHtml(appointment.person.name)}</strong><span>${appointment.person.homeStatus === 'homeowner' ? 'Homeowner' : appointment.person.homeStatus === 'tenant' ? 'Tenant' : 'Set home status'}${route ? ` · ${route}` : ''}</span></button><div class="running-total"><span>Current <strong>£${money(result.current.total)}/m</strong></span><i>→</i><span>UW <strong>£${money(result.uw.total)}/m</strong></span></div></div>
-    <div class="sticky-services">${ordered.length ? ordered.map(([key,icon,label,id]) => `<button type="button" class="sticky-service service-${key}" data-jump-service="${id}" aria-label="Jump to ${label}"><span>${icon}</span><small>${label}</small>${serviceProgressDots(key)}</button>`).join('') : '<span class="sticky-empty">Choose services below</span>'}</div>
+    <div class="sticky-services">${ordered.map(([key,icon,label]) => {
+      const active = Boolean(appointment.services[key]);
+      return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}" data-service="${key}" aria-pressed="${active ? 'true' : 'false'}" aria-label="${active ? 'Remove' : 'Add'} ${label}"><span class="sticky-service-icon">${icon}</span><small>${label}</small><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
+    }).join('')}</div>
     <div class="sticky-progress"><span><strong>Basket ${completion.percentage}%</strong><small>${completion.completed}/${completion.total || 0} required items</small></span><i><b style="width:${completion.percentage}%"></b></i></div>
   </section>`;
 }
@@ -500,7 +503,6 @@ function renderAppointment() {
   app.innerHTML = `<div class="stack appointment-screen">
     ${customerEssentialsBlock()}
     ${stickyBasketBar()}
-    <section class="card service-picker-card"><div class="section-title"><div><div class="eyebrow">Basket</div><h2>Services</h2><p>Tap to add or remove a service.</p></div></div><div class="service-picker-grid">${serviceSelector('energy','⚡🔥','Energy')}${serviceSelector('broadband','🛜','Broadband')}${serviceSelector('mobile','📱','Mobile')}${home === 'homeowner' ? serviceSelector('boilerCover','🛠️','Boiler Cover') : ''}</div></section>
     ${appointment.services.energy ? renderEnergy() : ''}${appointment.services.broadband ? renderBroadband() : ''}${appointment.services.mobile ? renderMobile() : ''}${appointment.services.boilerCover && home === 'homeowner' ? renderBoilerCover() : ''}
     ${renderAdjustments()}
     <section class="action-bar"><button class="quiet" type="button" data-save>Save</button><button class="primary" type="button" data-go="summary" ${completion.complete ? '' : 'disabled aria-disabled="true"'}>Show Summary</button></section>
@@ -852,10 +854,6 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-close-dialog')) return target.closest('dialog').close();
   if (target.dataset.historyId) return openHistorySummary(target.dataset.historyId);
   if (target.hasAttribute('data-edit-essentials')) { essentialsExpanded = true; render(); return; }
-  if (target.dataset.jumpService) {
-    document.getElementById(target.dataset.jumpService)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return;
-  }
   if (target.dataset.tariffFamily) {
     appointment.energy.selectedTariffFamily = target.dataset.tariffFamily;
     syncSelectedTariffTiers(target.dataset.tariffFamily);
