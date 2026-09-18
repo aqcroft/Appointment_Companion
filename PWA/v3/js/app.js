@@ -182,8 +182,8 @@ async function loadPerson(localId) {
 async function consumeSpecialistReturn() {
   let payload;
   try {
-    payload = JSON.parse(localStorage.getItem('apptCompanionV3SpecialistReturn') || 'null');
-    localStorage.removeItem('apptCompanionV3SpecialistReturn');
+    payload = JSON.parse(localStorage.getItem('apptCompanionV301SpecialistReturn') || 'null');
+    localStorage.removeItem('apptCompanionV301SpecialistReturn');
   } catch { return; }
   if (!payload?.tool || !payload?.localId) return;
   const record = await customerStore.get(payload.localId);
