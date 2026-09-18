@@ -407,7 +407,7 @@ function renderEnergy() {
   const result = calculateAppointment(appointment);
   const tariffLabel = {
     standardVariable: 'Standard Variable', tracker: 'Tracker', fixed: 'Fixed',
-    evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable'
+    evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable', fixedE7: 'Fixed Economy 7'
   }[energy.selectedTariffFamily] || 'Fixed';
   return `<section class="card service-workspace energy-workspace" id="energyPanel">
     <div class="workspace-heading"><span class="feature-icon energy">${energy.fuel === 'electricity' ? '⚡' : energy.fuel === 'gas' ? '🔥' : '⚡🔥'}</span><div><div class="eyebrow">Energy</div><h2>Energy</h2><p>For most customers: paste the UW quote usage, add their current monthly payment, and continue.</p></div></div>
@@ -514,7 +514,7 @@ function updateLiveResults() {
   if (host) {
     const label = {
       standardVariable: 'Standard Variable', tracker: 'Tracker', fixed: 'Fixed',
-      evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable'
+      evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable', fixedE7: 'Fixed Economy 7'
     }[appointment.energy.selectedTariffFamily] || 'Fixed';
     host.innerHTML = `<small>${escapeHtml(label)} · ${result.rules.energyTariff || 1}-service rate</small><strong>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/month` : 'Calculated from usage'}</strong><span>Live tariff data</span>`;
   }
