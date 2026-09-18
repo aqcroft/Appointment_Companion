@@ -630,3 +630,41 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .auto-price strong { font-size:16px; }
   .selected-tariff-card { grid-template-columns:1fr; }
 }
+
+
+/* V3.03 service selector refinement - sticky basket is the selector */
+.sticky-service {
+  position: relative;
+  opacity: .48;
+  background: #fff !important;
+  border-color: var(--line);
+}
+.sticky-service.on {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--service-accent) 42%, white);
+  background: color-mix(in srgb, var(--service-accent) 8%, white) !important;
+}
+.sticky-service-mark {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #f0edf3;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+}
+.sticky-service.on .sticky-service-mark {
+  background: var(--service-accent);
+  color: #fff;
+}
+.sticky-service:not(.on) .progress-dots {
+  display: none;
+}
+.service-picker-card {
+  display: none !important;
+}
