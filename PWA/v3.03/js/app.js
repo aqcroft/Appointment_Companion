@@ -12,7 +12,7 @@ import { createSummaryActivity, summaryHistory } from './summary/history.js';
 import { UnsavedWorkGuard } from './shell/unsaved-work-guard.js';
 import { launchTool } from './specialists/launcher.js';
 import { loadTariffs, TARIFF_FEED_URL } from './data/tariff-client.js';
-import { buildIndicativeTiers } from './energy/indicative-cost.js';
+import { buildIndicativeTiers, buildTariffGrid } from './energy/indicative-cost.js';
 import { buildMealDealPreview } from './appointment/upgrade-preview.js';
 import { safeHttps } from './summary/share-policy.js';
 
@@ -24,9 +24,9 @@ const peopleDialog = document.getElementById('peopleDialog');
 const shareDialog = document.getElementById('shareDialog');
 const historyDialog = document.getElementById('historyDialog');
 const toastElement = document.getElementById('toast');
-const CURRENT_KEY = 'apptCompanionV301Current';
-const BRAND_KEY = 'apptCompanionV301Partner';
-const LEGACY_BRAND_KEY = 'apptCompanionV3Partner';
+const CURRENT_KEY = 'apptCompanionV303Current';
+const BRAND_KEY = 'apptCompanionV303Partner';
+const LEGACY_BRAND_KEY = 'apptCompanionV301Partner';
 
 let currentRecord = null;
 let appointment = createAppointment();
@@ -43,6 +43,7 @@ let tariffInfo = null;
 let mealDealPreviewActive = false;
 let sharedSummaryData = null;
 let sharedMealDealActive = false;
+let essentialsExpanded = false;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -72,13 +73,21 @@ function toast(message) {
 }
 
 function branding() {
-  try { return { role: 'Independent UW Partner', ...JSON.parse(localStorage.getItem(BRAND_KEY) || localStorage.getItem(LEGACY_BRAND_KEY) || '{}') }; }
-  catch { return { role: 'Independent UW Partner' }; }
+  try { return { role: 'Authorised Utility Warehouse Partner', ...JSON.parse(localStorage.getItem(BRAND_KEY) || localStorage.getItem(LEGACY_BRAND_KEY) || '{}') }; }
+  catch { return { role: 'Authorised Utility Warehouse Partner' }; }
 }
 
 function setSaveState(text, tone = '') {
   saveState.textContent = text;
   saveState.className = `save-state ${tone}`;
+  const status = String(text || '').toLowerCase();
+  document.documentElement.dataset.cloudState = status.includes('cloud synced')
+    ? 'synced'
+    : status.includes('cloud syncing') || status.includes('cloud pending')
+      ? 'pending'
+      : status.includes('cloud') && (status.includes('attention') || status.includes('failed') || tone === 'bad')
+        ? 'problem'
+        : 'local';
 }
 
 function getPath(object, path) {
@@ -110,6 +119,7 @@ const guard = new UnsavedWorkGuard({
 
 function markChanged() {
   appointment = normaliseAppointment(appointment);
+  if (appointment.services.energy && tariffData) syncSelectedTariffTiers();
   guard.changed(appointment);
   setSaveState(currentRecord ? 'Saving locally…' : 'Add name to save');
   clearTimeout(autosaveTimer);
@@ -182,8 +192,8 @@ async function loadPerson(localId) {
 async function consumeSpecialistReturn() {
   let payload;
   try {
-    payload = JSON.parse(localStorage.getItem('apptCompanionV301SpecialistReturn') || 'null');
-    localStorage.removeItem('apptCompanionV301SpecialistReturn');
+    payload = JSON.parse(localStorage.getItem('apptCompanionV303SpecialistReturn') || 'null');
+    localStorage.removeItem('apptCompanionV303SpecialistReturn');
   } catch { return; }
   if (!payload?.tool || !payload?.localId) return;
   const record = await customerStore.get(payload.localId);
@@ -260,46 +270,22 @@ function progress() {
   return appointmentCompleteness(appointment).percentage;
 }
 
-function customerEssentialsBlock() {
+function customerEssentialsBlock(forceCompact = false) {
   const home = appointment.person.homeStatus;
   const first = appointment.person.name.split(/\s+/)[0] || 'this customer';
+  if (home && !essentialsExpanded) {
+    if (!forceCompact) return '';
+    const route = appointment.benefits.referral ? 'Referral' : appointment.benefits.nationalLeague ? 'National League' : '';
+    return `<button class="customer-context-compact" type="button" data-edit-essentials><strong>${escapeHtml(appointment.person.name)}</strong><span>${home === 'homeowner' ? 'Homeowner' : 'Tenant'}${route ? ` · ${route}` : ''}</span><i>✎</i></button>`;
+  }
   return `<section class="card essentials-card">
     <div class="section-title essentials-title"><div><div class="eyebrow">Customer essentials</div><h2>About ${escapeHtml(first)}</h2></div></div>
     <div class="essential-list">
-      <div class="essential-row essential-home"><span class="essential-copy"><strong>Home status</strong><small>Sets homeowner-only services and eligibility.</small></span><div class="segmented compact"><button class="${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner">Homeowner</button><button class="${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant">Tenant</button></div></div>
-      <label class="essential-row clickable"><span class="essential-copy"><strong>Referred by an existing customer</strong><small>Standard referral route</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.referral"${checked(appointment.benefits.referral)} aria-label="Referred by an existing customer"><i></i></span></label>
-      <label class="essential-row clickable"><span class="essential-copy"><strong>⚽ National League referral</strong><small>Homeowner or tenant</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)} aria-label="National League referral"><i></i></span></label>
+      <div class="essential-row essential-home"><span class="essential-copy"><strong>Home status</strong><small>Choose once - it controls homeowner-only services and eligibility.</small></span><div class="segmented compact"><button class="${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner">Homeowner</button><button class="${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant">Tenant</button></div></div>
+      <label class="essential-row clickable"><span class="essential-copy"><strong>Referred by an existing customer</strong><small>Optional</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.referral"${checked(appointment.benefits.referral)} aria-label="Referred by an existing customer"><i></i></span></label>
+      <label class="essential-row clickable"><span class="essential-copy"><strong>⚽ National League referral</strong><small>Optional</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)} aria-label="National League referral"><i></i></span></label>
     </div>
   </section>`;
-}
-
-function renderProfile() {
-  const pct = progress();
-  const completion = appointmentCompleteness(appointment);
-  const services = activeServiceNames();
-  const history = summaryHistory(appointment.activity);
-  const toolEvents = appointment.activity.filter(item => item?.tool).slice(-3).reverse();
-  app.innerHTML = `<div class="stack profile-hub">
-    <section class="person-heading"><span class="avatar large">${escapeHtml(initials(appointment.person.name))}</span><div><h1>${escapeHtml(appointment.person.name)}</h1><span class="context-pill">Save Money</span></div><button class="icon-button" type="button" data-manage-people aria-label="Manage people">•••</button></section>
-    ${customerEssentialsBlock()}
-    <section class="card appointment-card">
-      <div class="appointment-title"><span class="feature-icon appointment">📋</span><div><h2>Appointment</h2><p>${services.length} service${services.length === 1 ? '' : 's'} selected</p></div><strong>${pct}%</strong></div>
-      <div class="progress"><span style="width:${pct}%"></span></div>
-      <button class="primary wide" type="button" data-go="appointment">${pct ? 'Continue appointment' : 'Start appointment'} <span aria-hidden="true">→</span></button>
-      <p class="autosave-note">Your progress is saved automatically</p>
-    </section>
-    <section><div class="section-title"><h2>Tools for ${escapeHtml(appointment.person.name.split(/\s+/)[0])}</h2><button class="text-button" type="button" data-section="tools">See all ›</button></div><div class="tool-grid">
-      <button class="tool-tile fix" type="button" data-tool="fix"><span>📈</span><strong>Should I Fix?</strong><small>Region and usage prefilled</small></button>
-      <button class="tool-tile ev" type="button" data-tool="ev"><span>🚙</span><strong>EV Companion</strong><small>Explore EV savings</small></button>
-    </div></section>
-    <section><h2>Summary</h2><div class="list-card"><button type="button" data-go="summary"><span>▤</span>${completion.complete ? 'Build or view summary' : 'Complete comparison data'}<b>›</b></button><button type="button" data-share><span>⌯</span>Share summary<b>›</b></button><button type="button" data-go="summary"><span>↗</span>${appointment.summary.basketUrl ? 'View basket link' : 'Add basket link (optional)'}<b>›</b></button></div>${completion.missing.length ? `<p class="hint gate-hint">${completion.missing.length} required comparison field${completion.missing.length === 1 ? '' : 's'} remaining.</p>` : ''}</section>
-    <section><div class="section-title"><h2>Recent activity</h2>${history.length ? '<span class="hint">Tap a summary to reopen</span>' : ''}</div><div class="list-card history-list">
-      ${history.map(item => `<button type="button" data-history-id="${escapeHtml(item.id)}"><span>▤</span><span><strong>${item.type === 'summary_shared' ? 'Summary shared' : 'Summary saved'}</strong><small>${escapeHtml((item.services || []).map(name => serviceLabels[name] || name).join(' · '))}</small></span><time>${escapeHtml(relativeDate(item.at))}</time></button>`).join('')}
-      ${toolEvents.map(item => `<div class="history-row"><span>◆</span><span><strong>${escapeHtml(item.tool === 'ev' ? 'EV Companion used' : item.tool === 'fix' ? 'Should I Fix? opened' : 'PET opened')}</strong></span><time>${escapeHtml(relativeDate(item.at))}</time></div>`).join('')}
-      ${!history.length && !toolEvents.length ? '<p class="empty-state">Summaries and tools used for this person will appear here.</p>' : ''}
-    </div></section>
-    <section class="card notes-card"><div class="section-title"><h2>Notes</h2><small class="hint">Private · never shared</small></div><textarea data-field="summary.privateNotes" placeholder="Useful follow-up notes">${escapeHtml(appointment.summary.privateNotes)}</textarea></section>
-  </div>`;
 }
 
 function serviceState(name) {
@@ -327,26 +313,66 @@ function serviceProgressDots(name) {
 
 function serviceSelector(name, icon, label) {
   const active = Boolean(appointment.services[name]);
-  return `<button type="button" class="service-selector service-${name}${active ? ' on' : ''}" data-service="${name}" aria-pressed="${active ? 'true' : 'false'}"><span class="service-emoji" aria-hidden="true">${icon}</span><span class="service-selector-copy"><strong>${label}</strong><small>${serviceState(name)}</small></span><span class="service-dots-host">${serviceProgressDots(name)}</span><span class="service-toggle-mark" aria-hidden="true">${active ? '✓' : '＋'}</span></button>`;
+  return `<button type="button" class="service-selector service-${name}${active ? ' on' : ''}" data-service="${name}" aria-pressed="${active ? 'true' : 'false'}"><span class="service-emoji" aria-hidden="true">${icon}</span><span class="service-selector-copy"><strong>${label}</strong></span><span class="service-toggle-mark" aria-hidden="true">${active ? '✓' : '＋'}</span></button>`;
+}
+
+function stickyBasketBar() {
+  const completion = appointmentCompleteness(appointment);
+  const result = calculateAppointment(appointment);
+  const ordered = [
+    ['energy','⚡🔥','Energy','energyPanel'],
+    ['broadband','🛜','Broadband','broadbandPanel'],
+    ['mobile','📱','Mobile','mobilePanel'],
+    ['boilerCover','🛠️','Boiler','boilerPanel']
+  ].filter(([key]) => appointment.services[key] && (key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner'));
+  const route = appointment.benefits.referral ? 'Referral' : appointment.benefits.nationalLeague ? 'National League' : '';
+  return `<section class="sticky-basket" id="stickyBasket">
+    <div class="sticky-customer"><button type="button" data-edit-essentials><strong>${escapeHtml(appointment.person.name)}</strong><span>${appointment.person.homeStatus === 'homeowner' ? 'Homeowner' : appointment.person.homeStatus === 'tenant' ? 'Tenant' : 'Set home status'}${route ? ` · ${route}` : ''}</span></button><div class="running-total"><span>Current <strong>£${money(result.current.total)}/m</strong></span><i>→</i><span>UW <strong>£${money(result.uw.total)}/m</strong></span></div></div>
+    <div class="sticky-services">${ordered.length ? ordered.map(([key,icon,label,id]) => `<button type="button" class="sticky-service service-${key}" data-jump-service="${id}" aria-label="Jump to ${label}"><span>${icon}</span><small>${label}</small>${serviceProgressDots(key)}</button>`).join('') : '<span class="sticky-empty">Choose services below</span>'}</div>
+    <div class="sticky-progress"><span><strong>Basket ${completion.percentage}%</strong><small>${completion.completed}/${completion.total || 0} required items</small></span><i><b style="width:${completion.percentage}%"></b></i></div>
+  </section>`;
 }
 
 function usageSourceBlock(fuel, label, estimates) {
   const energy = appointment.energy;
   const prefix = fuel === 'electricity' ? 'electricity' : 'gas';
   const source = energy[`${prefix}UsageSource`];
-  const active = energy[fuel === 'electricity' ? 'annualElectricityKwh' : 'annualGasKwh'];
-  return `<div class="usage-card"><div class="section-title"><div><h3>${label}</h3><small>Active figure: ${Math.round(active).toLocaleString('en-GB')} kWh/year</small></div><span class="source-badge">${source === 'bill' ? 'Bill' : source === 'estimated' ? 'Estimated' : 'UW / database'}</span></div>
-    <label class="field"><span>UW / database annual usage</span>${field(`energy.${prefix}UwKwh`, energy[`${prefix}UwKwh`], 'type="number" inputmode="numeric" min="0"')}</label>
-    ${energy.billUsageAvailable ? `<label class="field"><span>Customer bill annual usage</span>${field(`energy.${prefix}BillKwh`, energy[`${prefix}BillKwh`], 'type="number" inputmode="numeric" min="0"')}</label>` : ''}
-    <div class="pills source-pills"><button class="pill${on(source,'uw')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="uw">Use UW / database</button>${energy.billUsageAvailable ? `<button class="pill${on(source,'bill')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="bill" ${energy[`${prefix}BillKwh`] ? '' : 'disabled'}>Use bill</button>` : ''}<button class="pill${on(source,'estimated')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="estimated">Use estimate</button></div>
-    ${source === 'estimated' ? `<div class="estimate-row">${estimates.map(([name,value]) => `<button class="pill${on(energy[`${prefix}EstimatedKwh`],value)}" type="button" data-estimate-fuel="${prefix}" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')}</small></button>`).join('')}</div>` : ''}
+  const billValue = energy[`${prefix}BillKwh`];
+  return `<div class="alt-usage-block"><div class="section-title"><div><h3>${label}</h3><small>Currently using ${source === 'bill' ? 'customer bill' : source === 'estimated' ? 'estimate' : 'UW / quote'} usage.</small></div></div>
+    <label class="field"><span>Customer bill annual usage</span>${field(`energy.${prefix}BillKwh`, billValue, 'type="number" inputmode="numeric" min="0"')}</label>
+    <div class="pills source-pills"><button class="pill${on(source,'uw')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="uw">Use UW / quote</button><button class="pill${on(source,'bill')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="bill" ${billValue > 0 ? '' : 'disabled'}>Use bill</button><button class="pill${on(source,'estimated')}" type="button" data-choice="energy.${prefix}UsageSource" data-value="estimated">Use estimate</button></div>
+    ${source === 'estimated' ? `<div class="estimate-row">${estimates.map(([name,value]) => `<button class="pill${on(energy[`${prefix}EstimatedKwh`],value)}" type="button" data-estimate-fuel="${prefix}" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')} kWh</small></button>`).join('')}</div>` : ''}
   </div>`;
 }
 
+function syncSelectedTariffTiers(preferredFamily = appointment.energy.selectedTariffFamily || 'fixed') {
+  if (!tariffData || !appointment.services.energy) return false;
+  const rows = buildTariffGrid(tariffData, appointment);
+  const row = rows.find(item => item.id === preferredFamily)
+    || rows.find(item => item.id === 'fixed')
+    || rows.find(item => item.id === 'standardVariable')
+    || rows[0];
+  if (!row) return false;
+  appointment.energy.selectedTariffFamily = row.id;
+  appointment.energy.uwQuoteMode = 'tiers';
+  appointment.energy.quoteStatus = 'indicative';
+  [1,2,3].forEach(tier => {
+    appointment.energy[`uwTier${tier}`] = Number(row.values[tier]?.monthly || 0);
+  });
+  return true;
+}
+
 function indicativePanel() {
-  const indicative = tariffData ? buildIndicativeTiers(tariffData, appointment) : {};
-  const selectedIndicative = indicative[calculateAppointment(appointment).rules.energyTariff || 1];
-  return `<section class="workspace-section indicative-panel"><div class="section-title"><div><h3>Indicative UW Energy</h3><p>Central tariff data applied to the active usage above.</p></div><span class="source-badge">${tariffInfo?.source === 'live' ? 'Live' : tariffData ? 'Cached' : 'Checking'}</span></div>${tariffData ? `<div class="tariff-tier-grid">${[1,2,3].map(tier => `<div class="${tier === calculateAppointment(appointment).rules.energyTariff ? 'selected' : ''}"><small>${tier}-service</small><strong>${indicative[tier] ? `£${money(indicative[tier].monthly)}` : '—'}</strong><span>/month</span></div>`).join('')}</div><p class="hint">${selectedIndicative ? `${escapeHtml(selectedIndicative.tariffName)} · ${escapeHtml(selectedIndicative.sourceRef)} · Indicative, based on usage entered.` : 'No matching central row was found for this profile.'}</p><button class="secondary wide" type="button" data-use-indicative ${Object.values(indicative).some(Boolean) ? '' : 'disabled'}>Use these indicative bundle tiers</button>` : '<p class="hint">Checking the central tariff feed. Manual or confirmed quote entry remains available below.</p>'}</section>`;
+  const rows = tariffData ? buildTariffGrid(tariffData, appointment) : [];
+  const tier = calculateAppointment(appointment).rules.energyTariff || 1;
+  const selectedFamily = appointment.energy.selectedTariffFamily || 'fixed';
+  const selectedRow = rows.find(row => row.id === selectedFamily);
+  const selectedCost = selectedRow?.values?.[tier];
+  return `<section class="workspace-section indicative-panel">
+    <div class="section-title"><div><h3>UW Energy tariff</h3><p>${selectedRow ? escapeHtml(selectedRow.label) : 'Fixed'} is used for the basket unless another tariff is selected.</p></div><span class="source-badge">${tariffInfo?.source === 'live' ? 'Live' : tariffData ? 'Cached' : 'Checking'}</span></div>
+    <div class="selected-tariff-card"><span><small>Selected tariff</small><strong>${escapeHtml(selectedRow?.label || 'Fixed')}</strong></span><span><small>${tier}-service rate</small><strong>${selectedCost ? `£${money(selectedCost.monthly)}/m` : 'Waiting for tariff data'}</strong></span></div>
+    ${tariffData ? `<details class="advanced tariff-comparison"><summary>View all available tariffs</summary>${rows.length ? `<div class="tariff-table"><div class="tariff-row tariff-head"><strong>Tariff</strong>${[1,2,3].map(n => `<strong class="${n===tier?'active-tier':''}">${n} service${n===1?'':'s'}</strong>`).join('')}</div>${rows.map(row => `<button class="tariff-row${row.id===selectedFamily?' selected':''}" type="button" data-tariff-family="${row.id}"><span><i></i>${escapeHtml(row.label)}</span>${[1,2,3].map(n => `<b class="${n===tier?'active-tier':''}">${row.values[n] ? `£${money(row.values[n].monthly)}` : '—'}</b>`).join('')}</button>`).join('')}</div><p class="hint">The highlighted column follows the qualifying service count in the basket automatically. Tracker appears only when the tariff feed supplies it.</p>` : '<p class="hint">No matching tariff rows are currently available for this profile.</p>'}</details>` : '<p class="hint">Checking the central tariff feed.</p>'}
+  </section>`;
 }
 
 function refreshIndicativePanel() {
