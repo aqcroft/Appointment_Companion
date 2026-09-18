@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppointment, normaliseAppointment } from '../js/state/canonical-state.js';
 import { calculateAppointment } from '../js/appointment/calculations.js';
-import { calculateIndicativeEnergyCost } from '../js/energy/indicative-cost.js';
+import { calculateIndicativeEnergyCost, buildTariffGrid } from '../js/energy/indicative-cost.js';
 import { buildMealDealPreview } from '../js/appointment/upgrade-preview.js';
 
 test('UW/database and bill usage remain separate while the selected source drives calculations', () => {
@@ -50,6 +50,7 @@ test('split electricity then gas and exit-fee deduction are retained', () => {
   appointment.energy.currentElectricityMonthly = 60;
   appointment.energy.currentGasMonthly = 40;
   appointment.energy.uwMonthly = 80;
+  appointment.energy.exitFeesApply = true;
   appointment.energy.electricityExitFee = 100;
   appointment.energy.gasExitFee = 50;
   const result = calculateAppointment(appointment);
@@ -164,4 +165,43 @@ test('zero Cashback spend produces zero Cashback without falling back to referen
     { selected: 0, monthlyNet: 0, feeWaiver: 0 }
   );
   assert.equal(result.effectiveUwMonthly, result.uw.total);
+});
+
+
+test('V3.03 tariff grid defaults to standard rows and derives Economy 7 from the same variable row', () => {
+  const appointment = createAppointment('Grid');
+  appointment.services.energy = true;
+  appointment.energy.region = '11';
+  appointment.energy.electricityUwKwh = 2500;
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.fuel = 'electricity';
+  const rows = [
+    { region_no: 11, payment_method: 'DD', tariff_name: 'Value', tariff_type: 'variable', EDSC_Std: 50, EUR_Std: 24, EDSC_E7: 50, EUR_E7_Day: 30, EUR_E7_Night: 12 },
+    { region_no: 11, payment_method: 'DD', tariff_name: 'Fixed Start', tariff_type: 'fixed', EDSC_Std: 50, EUR_Std: 22, EDSC_E7: 50, EUR_E7_Day: 28, EUR_E7_Night: 11 }
+  ];
+  const normal = buildTariffGrid({ tariffLive: rows }, appointment);
+  assert.deepEqual(normal.map(row => row.id), ['standardVariable','fixed']);
+
+  appointment.energy.peakOffPeak = true;
+  appointment.energy.electricityProfile = 'economy7';
+  appointment.energy.dayKwh = 1800;
+  appointment.energy.nightKwh = 700;
+  const peak = buildTariffGrid({ tariffLive: rows }, appointment);
+  assert.deepEqual(peak.map(row => row.id), ['standardVariable','economy7Variable','fixed','fixedE7']);
+  assert.ok(peak.find(row => row.id === 'economy7Variable').values[1]);
+  assert.ok(peak.find(row => row.id === 'fixedE7').values[1]);
+});
+
+test('Tracker row appears only when tracker data exists', () => {
+  const appointment = createAppointment('Tracker');
+  appointment.services.energy = true;
+  appointment.energy.region = '11';
+  appointment.energy.fuel = 'electricity';
+  appointment.energy.annualElectricityKwh = 2500;
+  const data = { tariffLive: [
+    { region_no: 11, payment_method: 'DD', tariff_name: 'Value', tariff_type: 'variable', EDSC_Std: 50, EUR_Std: 24 },
+    { region_no: 11, payment_method: 'DD', tariff_name: 'Tracker Value', tariff_type: 'tracker', EDSC_Std: 50, EUR_Std: 23 },
+    { region_no: 11, payment_method: 'DD', tariff_name: 'Fixed Start', tariff_type: 'fixed', EDSC_Std: 50, EUR_Std: 22 }
+  ] };
+  assert.deepEqual(buildTariffGrid(data, appointment).map(row => row.id), ['standardVariable','tracker','fixed']);
 });
