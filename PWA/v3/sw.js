@@ -1,4 +1,4 @@
-const CACHE = 'appointment-companion-v3-20260917-10';
+const CACHE = 'appointment-companion-v3-20260918-v301-1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/app-icon-192.png', './assets/icons/app-icon-512.png',
