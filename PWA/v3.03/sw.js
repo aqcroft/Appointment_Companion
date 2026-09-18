@@ -1,4 +1,4 @@
-const CACHE = 'appointment-companion-v301-20260918-1';
+const CACHE = 'appointment-companion-v303-20260918-1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/app-icon-192.png', './assets/icons/app-icon-512.png',
@@ -20,7 +20,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys
-    .filter(key => key.startsWith('appointment-companion-v301-') && key !== CACHE)
+    .filter(key => key.startsWith('appointment-companion-v303-') && key !== CACHE)
     .map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 
