@@ -1,12 +1,12 @@
 import { clone, hasMeaningfulIdentity, normaliseAppointment } from './canonical-state.js';
 import { migrateRecord } from './migrations.js';
 
-const DB_NAME = 'apptCompanionV3';
+const DB_NAME = 'apptCompanionV301Preview';
 const DB_VERSION = 1;
 const CUSTOMERS = 'customers';
 const META = 'meta';
-const MIGRATION_KEY = 'v3-import-2026-09-15';
-const LEGACY_DATABASES = ['apptCompanionConsolidatedV1', 'apptCompanionLocalFirstV1'];
+const MIGRATION_KEY = 'v301-preview-import-2026-09-18';
+const LEGACY_DATABASES = ['apptCompanionV3', 'apptCompanionConsolidatedV1', 'apptCompanionLocalFirstV1'];
 
 const now = () => new Date().toISOString();
 const makeId = (prefix = 'local') => globalThis.crypto?.randomUUID
