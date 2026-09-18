@@ -90,9 +90,12 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   }
   const referral = appointment.benefits.referral && appointment.person.homeStatus === 'homeowner' && derived.serviceCount >= rules.referral.minimumServiceCount ? rules.referral.amount : 0;
   const nationalLeague = appointment.benefits.nationalLeague && derived.serviceCount >= rules.nationalLeague.minimumServiceCount ? rules.nationalLeague.amount : 0;
-  const exitFees = (appointment.services.energy ? Number(appointment.energy.electricityExitFee) + Number(appointment.energy.gasExitFee) : 0) +
-    (appointment.services.broadband ? Number(appointment.broadband.exitFee) : 0) + sims.reduce((sum, sim) => sum + Number(sim.exitFee || 0), 0) +
-    (derived.boilerCover ? Number(appointment.boilerCover.exitFee || 0) : 0);
+  const exitFees = (appointment.services.energy && appointment.energy.exitFeesApply
+    ? Number(appointment.energy.electricityExitFee) + Number(appointment.energy.gasExitFee)
+    : 0) +
+    (appointment.services.broadband && appointment.broadband.exitFeesApply ? Number(appointment.broadband.exitFee) : 0) +
+    sims.reduce((sum, sim) => sum + (sim.exitFeesApply ? Number(sim.exitFee || 0) : 0), 0) +
+    (derived.boilerCover && appointment.boilerCover.exitFeesApply ? Number(appointment.boilerCover.exitFee || 0) : 0);
   const exitFeeRefundEligible = derived.serviceCount >= rules.exitFeeRefund.minimumServiceCount;
   const exitFeeDeduction = exitFeeRefundEligible ? Math.max(0, exitFees - rules.exitFeeRefund.maximum) : exitFees;
   const card = cashback(appointment, derived.serviceCount, rules);
