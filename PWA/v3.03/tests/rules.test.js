@@ -10,15 +10,15 @@ const basket = ({ energy = true, broadband = false, boilerCover = false, homeSta
 });
 
 const cases = [
-  ['Energy + 1 Essentials', basket({ plans: ['essentialMax'] }), 2, 2, 50, 6, 0],
-  ['Energy + 2 Essentials', basket({ plans: ['essentialMax','essentialMax'] }), 2, 3, 50, 12, 0],
-  ['Energy + 3 Essentials', basket({ plans: ['essentialMax','essentialMax','essentialMax'] }), 2, 3, 50, 18, 0],
+  ['Energy + 1 Essentials', basket({ plans: ['essentialMax'] }), 2, 2, 0, 6, 0],
+  ['Energy + 2 Essentials', basket({ plans: ['essentialMax','essentialMax'] }), 2, 3, 0, 12, 0],
+  ['Energy + 3 Essentials', basket({ plans: ['essentialMax','essentialMax','essentialMax'] }), 2, 3, 0, 18, 0],
   ['Energy + 1 Unlimited', basket({ plans: ['unlimitedMax'] }), 2, 2, 50, 13, 0],
   ['Energy + 1 Unlimited + 1 Essentials', basket({ plans: ['unlimitedMax','essentialMax'] }), 2, 3, 50, 19, 0],
   ['Energy + 2 Unlimited', basket({ plans: ['unlimitedMax','unlimitedMax'] }), 3, 3, 50, 26, 39],
   ['Energy + 3 Unlimited', basket({ plans: ['unlimitedMax','unlimitedMax','unlimitedMax'] }), 3, 3, 50, 39, 78],
-  ['Energy + Broadband + 1 Essentials', basket({ broadband: true, plans: ['essentialMax'] }), 3, 3, 150, 6, 0],
-  ['Energy + Broadband + 2 Essentials', basket({ broadband: true, plans: ['essentialMax','essentialMax'] }), 3, 3, 150, 12, 0],
+  ['Energy + Broadband + 1 Essentials', basket({ broadband: true, plans: ['essentialMax'] }), 3, 3, 50, 6, 0],
+  ['Energy + Broadband + 2 Essentials', basket({ broadband: true, plans: ['essentialMax','essentialMax'] }), 3, 3, 50, 12, 0],
   ['Energy + Broadband + 1 Unlimited + 1 Essentials', basket({ broadband: true, plans: ['unlimitedMax','essentialMax'] }), 3, 3, 150, 19, 0],
   ['Energy + Broadband + 2 Unlimited', basket({ broadband: true, plans: ['unlimitedMax','unlimitedMax'] }), 4, 3, 150, 26, 39]
 ];
@@ -53,8 +53,8 @@ test('Tenant cannot add Boiler Cover', () => {
 
 for (const [name, facts, expectedCount, expectedBonus] of [
   ['Energy + Broadband + Boiler Cover', basket({ broadband: true, boilerCover: true }), 3, 150],
-  ['Energy + Mobile + Boiler Cover', basket({ boilerCover: true, plans: ['essentialMax'] }), 3, 150],
-  ['Energy + Broadband + Mobile + Boiler Cover', basket({ broadband: true, boilerCover: true, plans: ['essentialMax'] }), 4, 250]
+  ['Energy + Mobile + Boiler Cover', basket({ boilerCover: true, plans: ['essentialMax'] }), 3, 50],
+  ['Energy + Broadband + Mobile + Boiler Cover', basket({ broadband: true, boilerCover: true, plans: ['essentialMax'] }), 4, 150]
 ]) {
   test(name, () => {
     const result = deriveUwRules(facts);
@@ -74,8 +74,15 @@ test('Income Protector is always zero and not a service type', () => {
   assert.equal(result.serviceTypes, 1);
 });
 
-test('Four unique types receive £250 without creating a 4-service Energy tariff', () => {
+test('Essentials SIMs do not increase Welcome Bonus service types', () => {
   const result = deriveUwRules(basket({ broadband: true, boilerCover: true, plans: ['essentialMax'] }));
+  assert.equal(result.serviceTypes, 3);
+  assert.equal(result.welcomeBonus, 150);
+  assert.equal(result.energyTariff, 3);
+});
+
+test('Unlimited Mobile can still contribute a Welcome Bonus service type', () => {
+  const result = deriveUwRules(basket({ broadband: true, boilerCover: true, plans: ['unlimitedMax'] }));
   assert.equal(result.serviceTypes, 4);
   assert.equal(result.welcomeBonus, 250);
   assert.equal(result.energyTariff, 3);
