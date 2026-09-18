@@ -16,7 +16,7 @@ const text = (value, max = 500) => String(value || '').trim().slice(0, max);
 const bool = value => value === true || value === 'true' || value === 1 || value === '1';
 
 export function createSim(index = 0) {
-  return { name: `SIM ${index + 1}`, include: true, planId: '', currentMonthly: 0, uwMonthly: null, exitFee: 0 };
+  return { name: `SIM ${index + 1}`, include: true, planId: '', currentMonthly: 0, uwMonthly: null, exitFeesApply: false, exitFee: 0 };
 }
 
 export function createAppointment(name = '') {
@@ -34,17 +34,17 @@ export function createAppointment(name = '') {
       currentCostMode: 'monthly', currentMonthly: 0, currentElectricityMonthly: 0,
       currentGasMonthly: 0, annualElectricityCost: 0, annualGasCost: 0,
       currentDayRate: 0, currentNightRate: 0, currentStandingCharge: 0,
-      electricityExitFee: 0, gasExitFee: 0,
+      exitFeesApply: false, electricityExitFee: 0, gasExitFee: 0,
       uwQuoteMode: 'single', uwMonthly: 0, uwTier1: 0, uwTier2: 0, uwTier3: 0,
       quoteStatus: 'indicative', adjustmentEnabled: false, adjustmentTarget: 'current',
       adjustmentPeriod: 'monthly', adjustmentAmount: 0, e7StandardAnnualCost: 0
     },
     broadband: {
       currentMonthly: 0, uwMonthly: 0, packageId: '', wholeHomeWifi: false,
-      homePhoneMonthly: 0, exitFee: 0, freeMonthsOffer: false
+      homePhoneMonthly: 0, exitFeesApply: false, exitFee: 0, freeMonthsOffer: false
     },
     mobile: { simCount: 1, sims: [createSim(0)] },
-    boilerCover: { currentMonthly: 0, monthly: 25, exitFee: 0 },
+    boilerCover: { currentMonthly: 0, monthly: 25, exitFeesApply: false, exitFee: 0 },
     cashback: { enabled: true, tier: 'average', monthlySpend: 1000 },
     adjustments: {
       recurringEnabled: false, period: 'monthly', currentAmount: 0, uwAmount: 0,
@@ -99,6 +99,10 @@ export function normaliseAppointment(input = {}) {
     'currentDayRate', 'currentNightRate', 'currentStandingCharge', 'electricityExitFee', 'gasExitFee',
     'uwMonthly', 'uwTier1', 'uwTier2', 'uwTier3', 'adjustmentAmount', 'e7StandardAnnualCost'
   ].forEach(key => { out.energy[key] = finite(out.energy[key]); });
+  const energyExitFlagSupplied = Object.prototype.hasOwnProperty.call(source.energy || {}, 'exitFeesApply');
+  out.energy.exitFeesApply = energyExitFlagSupplied
+    ? bool(source.energy.exitFeesApply)
+    : out.energy.electricityExitFee > 0 || out.energy.gasExitFee > 0;
   const sourceFor = value => ['uw', 'bill', 'estimated'].includes(value) ? value : value === 'actual' ? 'bill' : 'uw';
   const seedUsage = (fuel, legacyKey) => {
     const sourceKey = `${fuel}UsageSource`;
@@ -139,6 +143,10 @@ export function normaliseAppointment(input = {}) {
   out.energy.usageSource = out.energy.electricityUsageSource === out.energy.gasUsageSource
     ? out.energy.electricityUsageSource
     : 'mixed';
+  out.broadband.exitFee = finite(out.broadband.exitFee);
+  out.broadband.exitFeesApply = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'exitFeesApply')
+    ? bool(source.broadband.exitFeesApply)
+    : out.broadband.exitFee > 0;
   out.mobile.simCount = Math.max(1, Math.min(5, Math.round(finite(out.mobile.simCount, 1))));
   out.mobile.sims = Array.from({ length: out.mobile.simCount }, (_, index) => {
     const rawSim = out.mobile.sims?.[index] || {};
@@ -153,6 +161,9 @@ export function normaliseAppointment(input = {}) {
         ? UW_RULES_2026_10_01.mobile[normalisePlanId(sim.planId)].monthly
         : null;
     sim.exitFee = finite(sim.exitFee);
+    sim.exitFeesApply = Object.prototype.hasOwnProperty.call(rawSim, 'exitFeesApply')
+      ? bool(rawSim.exitFeesApply)
+      : sim.exitFee > 0;
     delete sim.uwPlan;
     delete sim.monthlyCost;
     return sim;
@@ -160,6 +171,9 @@ export function normaliseAppointment(input = {}) {
   out.boilerCover.currentMonthly = finite(out.boilerCover.currentMonthly);
   out.boilerCover.monthly = finite(out.boilerCover.monthly, 25) || 25;
   out.boilerCover.exitFee = finite(out.boilerCover.exitFee);
+  out.boilerCover.exitFeesApply = Object.prototype.hasOwnProperty.call(source.boilerCover || {}, 'exitFeesApply')
+    ? bool(source.boilerCover.exitFeesApply)
+    : out.boilerCover.exitFee > 0;
   out.completion.entered = [...new Set((Array.isArray(out.completion.entered) ? out.completion.entered : [])
     .map(value => text(value, 120)).filter(Boolean))];
   out.summary.basketUrl = text(out.summary.basketUrl, 500);
