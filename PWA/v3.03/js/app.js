@@ -539,7 +539,7 @@ function renderAppointment() {
     ${stickyBasketBar()}
     ${appointment.services.energy ? renderEnergy() : ''}${appointment.services.broadband ? renderBroadband() : ''}${appointment.services.mobile ? renderMobile() : ''}${appointment.services.boilerCover && home === 'homeowner' ? renderBoilerCover() : ''}
     ${renderAdjustments()}
-    <section class="action-bar"><button class="quiet" type="button" data-save>Save</button><button class="primary" type="button" data-go="summary" ${completion.complete ? '' : 'disabled aria-disabled="true"'}>Show Summary</button></section>
+    <section class="action-bar summary-only"><button class="primary wide" type="button" data-go="summary" ${completion.complete ? '' : 'disabled aria-disabled="true"'}>Show Summary</button></section>
     ${completion.complete ? '' : '<p class="summary-ready-hint">Complete the remaining progress dots to enable Show Summary.</p>'}
   </div>`;
 }
@@ -887,7 +887,54 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-manage-people')) return openPeopleDialog();
   if (target.hasAttribute('data-close-dialog')) return target.closest('dialog').close();
   if (target.dataset.historyId) return openHistorySummary(target.dataset.historyId);
-  if (target.hasAttribute('data-edit-essentials')) { essentialsExpanded = true; render(); return; }
+  if (target.hasAttribute('data-edit-essentials')) {
+    essentialsExpanded = true;
+    render();
+    requestAnimationFrame(() => document.querySelector('.essentials-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    return;
+  }
+  if (target.dataset.serviceSetup) {
+    const name = target.dataset.serviceSetup;
+    const wasActive = Boolean(appointment.services[name]);
+    if (!wasActive) {
+      appointment.services[name] = true;
+      if (name === 'boilerCover' && appointment.person.homeStatus !== 'homeowner') appointment.services.boilerCover = false;
+    }
+    serviceSetupOpen = serviceSetupOpen === name && wasActive ? '' : name;
+    if (!wasActive) markChanged();
+    render();
+    return;
+  }
+  if (target.dataset.serviceRemove) {
+    const name = target.dataset.serviceRemove;
+    appointment.services[name] = false;
+    if (serviceSetupOpen === name) serviceSetupOpen = '';
+    markChanged(); render(); return;
+  }
+  if (target.dataset.quickEnergyFuel) {
+    appointment.energy.fuel = target.dataset.quickEnergyFuel;
+    serviceSetupOpen = '';
+    markChanged(); render(); return;
+  }
+  if (target.dataset.quickBroadbandFamily) {
+    appointment.broadband.connectionFamily = target.dataset.quickBroadbandFamily;
+    const chosen = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === appointment.broadband.packageId);
+    const chosenFamily = chosen && (/^fibre/.test(chosen.id) ? 'full' : 'part');
+    if (chosenFamily && chosenFamily !== appointment.broadband.connectionFamily) {
+      appointment.broadband.packageId = '';
+      appointment.broadband.uwMonthly = 0;
+    }
+    markChanged(); render(); return;
+  }
+  if (target.dataset.quickPackage) {
+    const chosen = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === target.dataset.quickPackage);
+    if (!chosen) return;
+    appointment.broadband.packageId = chosen.id;
+    appointment.broadband.connectionFamily = /^fibre/.test(chosen.id) ? 'full' : 'part';
+    appointment.broadband.uwMonthly = chosen.monthly;
+    serviceSetupOpen = '';
+    markChanged(); render(); return;
+  }
   if (target.dataset.tariffFamily) {
     appointment.energy.selectedTariffFamily = target.dataset.tariffFamily;
     syncSelectedTariffTiers(target.dataset.tariffFamily);
@@ -916,8 +963,10 @@ document.addEventListener('click', async event => {
   if (target.dataset.choice) {
     setPath(appointment, target.dataset.choice, target.dataset.value);
     if (target.dataset.choice === 'person.homeStatus') {
-      essentialsExpanded = false;
-      if (target.dataset.value === 'tenant') appointment.services.boilerCover = false;
+      if (target.dataset.value === 'tenant') {
+        appointment.services.boilerCover = false;
+        if (serviceSetupOpen === 'boilerCover') serviceSetupOpen = '';
+      }
     }
     if (target.dataset.choice === 'energy.electricityProfile') appointment.energy.peakOffPeak = true;
     markChanged(); render(); return;
@@ -926,6 +975,7 @@ document.addEventListener('click', async event => {
     const count = Number(target.dataset.simCount);
     appointment.mobile.simCount = count;
     appointment.mobile.sims = Array.from({ length: count }, (_, index) => ({ ...(appointment.mobile.sims[index] || createSim(index)), include: true }));
+    if (serviceSetupOpen === 'mobile') serviceSetupOpen = '';
     markChanged(); render(); return;
   }
   if (target.dataset.simPlan) {
