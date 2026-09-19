@@ -44,6 +44,7 @@ let mealDealPreviewActive = false;
 let sharedSummaryData = null;
 let sharedMealDealActive = false;
 let essentialsExpanded = false;
+let serviceSetupOpen = '';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -274,18 +275,18 @@ function progress() {
 
 function customerEssentialsBlock(forceCompact = false) {
   const home = appointment.person.homeStatus;
-  const first = appointment.person.name.split(/\s+/)[0] || 'this customer';
-  if (home && !essentialsExpanded) {
-    if (!forceCompact) return '';
-    const route = appointment.benefits.referral ? 'Referral' : appointment.benefits.nationalLeague ? 'National League' : '';
-    return `<button class="customer-context-compact" type="button" data-edit-essentials><strong>${escapeHtml(appointment.person.name)}</strong><span>${home === 'homeowner' ? 'Homeowner' : 'Tenant'}${route ? ` · ${route}` : ''}</span><i>✎</i></button>`;
+  if (forceCompact && home && !essentialsExpanded) {
+    const route = appointment.benefits.referral ? '🤝 Referral' : appointment.benefits.nationalLeague ? '⚽ National League' : 'No referral';
+    return `<button class="customer-context-compact" type="button" data-edit-essentials><strong>${home === 'homeowner' ? '🏠 Homeowner' : '🔑 Tenant'}</strong><span>${route}</span><i>✎</i></button>`;
   }
-  return `<section class="card essentials-card">
-    <div class="section-title essentials-title"><div><div class="eyebrow">Customer essentials</div><h2>About ${escapeHtml(first)}</h2></div></div>
-    <div class="essential-list">
-      <div class="essential-row essential-home"><span class="essential-copy"><strong>Home status</strong><small>Choose once - it controls homeowner-only services and eligibility.</small></span><div class="segmented compact"><button class="${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner">Homeowner</button><button class="${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant">Tenant</button></div></div>
-      <label class="essential-row clickable"><span class="essential-copy"><strong>Referred by an existing customer</strong><small>Optional</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.referral"${checked(appointment.benefits.referral)} aria-label="Referred by an existing customer"><i></i></span></label>
-      <label class="essential-row clickable"><span class="essential-copy"><strong>⚽ National League referral</strong><small>Optional</small></span><span class="switch-control"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)} aria-label="National League referral"><i></i></span></label>
+  return `<section class="card essentials-card essentials-compact-card">
+    <div class="essentials-home-buttons">
+      <button class="home-status-button${on(home,'homeowner')}" type="button" data-choice="person.homeStatus" data-value="homeowner"><span>🏠</span><strong>Homeowner</strong></button>
+      <button class="home-status-button${on(home,'tenant')}" type="button" data-choice="person.homeStatus" data-value="tenant"><span>🔑</span><strong>Tenant</strong></button>
+    </div>
+    <div class="essentials-referral-row">
+      <label class="compact-toggle"><span>🤝 Referral</span><span class="switch-control"><input type="checkbox" data-field="benefits.referral"${checked(appointment.benefits.referral)} aria-label="Referred by an existing customer"><i></i></span></label>
+      <label class="compact-toggle"><span>⚽ National League</span><span class="switch-control"><input type="checkbox" data-field="benefits.nationalLeague"${checked(appointment.benefits.nationalLeague)} aria-label="National League referral"><i></i></span></label>
     </div>
   </section>`;
 }
@@ -335,6 +336,38 @@ function serviceSelector(name, icon, label) {
   return `<button type="button" class="service-selector service-${name}${active ? ' on' : ''}" data-service="${name}" aria-pressed="${active ? 'true' : 'false'}"><span class="service-emoji" aria-hidden="true">${icon}</span><span class="service-selector-copy"><strong>${label}</strong></span><span class="service-toggle-mark" aria-hidden="true">${active ? '✓' : '＋'}</span></button>`;
 }
 
+function serviceSetupSummary(key) {
+  if (key === 'energy') return appointment.energy.fuel === 'electricity' ? 'Electricity' : appointment.energy.fuel === 'gas' ? 'Gas' : 'Dual';
+  if (key === 'broadband') {
+    const chosen = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === appointment.broadband.packageId);
+    if (chosen) return chosen.label.replace('Full Fibre ', 'FF ');
+    return appointment.broadband.connectionFamily === 'part' ? 'Part Fibre' : 'Full Fibre';
+  }
+  if (key === 'mobile') return `${appointment.mobile.simCount} SIM${appointment.mobile.simCount === 1 ? '' : 's'}`;
+  if (key === 'boilerCover') return '£25/m';
+  return '';
+}
+
+function quickServiceSetup() {
+  const key = serviceSetupOpen;
+  if (!key || !appointment.services[key]) return '';
+  if (key === 'energy') {
+    return `<div class="quick-service-setup quick-energy"><div class="quick-setup-head"><strong>⚡🔥 Energy</strong><button type="button" data-service-remove="energy">Remove</button></div><div class="segmented"><button class="${on(appointment.energy.fuel,'electricity')}" type="button" data-quick-energy-fuel="electricity">⚡ Electricity</button><button class="${on(appointment.energy.fuel,'gas')}" type="button" data-quick-energy-fuel="gas">🔥 Gas</button><button class="${on(appointment.energy.fuel,'dual')}" type="button" data-quick-energy-fuel="dual">⚡🔥 Dual</button></div></div>`;
+  }
+  if (key === 'broadband') {
+    const bb = appointment.broadband;
+    const packages = UW_RULES_2026_10_01.broadband.packages.filter(item => bb.connectionFamily === 'part' ? /^ultra/.test(item.id) : /^fibre/.test(item.id));
+    return `<div class="quick-service-setup quick-broadband"><div class="quick-setup-head"><strong>🛜 Broadband</strong><button type="button" data-service-remove="broadband">Remove</button></div><div class="segmented"><button class="${on(bb.connectionFamily,'full')}" type="button" data-quick-broadband-family="full">Full Fibre</button><button class="${on(bb.connectionFamily,'part')}" type="button" data-quick-broadband-family="part">Part Fibre</button></div><div class="quick-package-row">${packages.map(item => {
+      const label = bb.connectionFamily === 'full' ? item.label.replace('Full Fibre ', '') : item.label;
+      return `<button class="pill${on(bb.packageId,item.id)}" type="button" data-quick-package="${item.id}"><strong>${escapeHtml(label)}</strong><small>£${money(item.monthly)}/m</small></button>`;
+    }).join('')}</div></div>`;
+  }
+  if (key === 'mobile') {
+    return `<div class="quick-service-setup quick-mobile"><div class="quick-setup-head"><strong>📱 Mobile</strong><button type="button" data-service-remove="mobile">Remove</button></div><div class="segmented quick-sim-count">${[1,2,3,4,5].map(count => `<button class="${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count}</button>`).join('')}</div></div>`;
+  }
+  return `<div class="quick-service-setup quick-boiler"><div class="quick-setup-head"><strong>🛠️ Boiler Cover · £25/m</strong><button type="button" data-service-remove="boilerCover">Remove</button></div></div>`;
+}
+
 function stickyBasketBar() {
   const completion = appointmentCompleteness(appointment);
   const result = calculateAppointment(appointment);
@@ -344,13 +377,15 @@ function stickyBasketBar() {
     ['mobile','📱','Mobile'],
     ['boilerCover','🛠️','Boiler']
   ].filter(([key]) => key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner');
-  const route = appointment.benefits.referral ? 'Referral' : appointment.benefits.nationalLeague ? 'National League' : '';
+  const home = appointment.person.homeStatus === 'homeowner' ? '🏠 Homeowner' : appointment.person.homeStatus === 'tenant' ? '🔑 Tenant' : 'Set home status';
+  const route = appointment.benefits.referral ? ' · 🤝' : appointment.benefits.nationalLeague ? ' · ⚽' : '';
   return `<section class="sticky-basket" id="stickyBasket">
-    <div class="sticky-customer"><button type="button" data-edit-essentials><strong>${escapeHtml(appointment.person.name)}</strong><span>${appointment.person.homeStatus === 'homeowner' ? 'Homeowner' : appointment.person.homeStatus === 'tenant' ? 'Tenant' : 'Set home status'}${route ? ` · ${route}` : ''}</span></button><div class="running-total"><span>Current <strong>£${money(result.current.total)}/m</strong></span><i>→</i><span>UW <strong>£${money(result.uw.total)}/m</strong></span></div></div>
+    <div class="sticky-status-row"><button type="button" data-edit-essentials>${home}${route}</button><div class="running-total"><span>Current <strong>£${money(result.current.total)}/m</strong></span><i>→</i><span>UW <strong>£${money(result.uw.total)}/m</strong></span></div></div>
     <div class="sticky-services">${ordered.map(([key,icon,label]) => {
       const active = Boolean(appointment.services[key]);
-      return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}" data-service="${key}" aria-pressed="${active ? 'true' : 'false'}" aria-label="${active ? 'Remove' : 'Add'} ${label}"><span class="sticky-service-icon">${icon}</span><small>${label}</small><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
+      return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
     }).join('')}</div>
+    ${quickServiceSetup()}
     <div class="sticky-progress"><span><strong>Basket ${completion.percentage}%</strong><small>${completion.completed}/${completion.total || 0} required items</small></span><i><b style="width:${completion.percentage}%"></b></i></div>
   </section>`;
 }
