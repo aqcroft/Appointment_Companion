@@ -547,9 +547,9 @@ function renderBroadband() {
       </div>
       <div class="compare-column uw-column"><div class="compare-label">UW</div>
         <small class="uw-subhead">${escapeHtml(familyLabel)}</small>
-        <div class="broadband-package-list">${packages.map(item => {
+        <div class="broadband-package-list ${bb.connectionFamily === 'full' ? 'full-fibre-row' : 'part-fibre-row'}">${packages.map(item => {
           const speedLabel = bb.connectionFamily === 'full' ? item.label.replace('Full Fibre ', '') : item.label;
-          return `<button class="broadband-package-option${on(bb.packageId,item.id)}" type="button" data-package="${item.id}"><strong>${escapeHtml(speedLabel)}</strong><span>£${money(item.monthly)}/m</span></button>`;
+          return `<button class="broadband-package-option${on(bb.packageId,item.id)}" type="button" data-package="${item.id}"><strong>${escapeHtml(speedLabel)}</strong></button>`;
         }).join('')}</div>
         ${chosen ? `<div class="selected-service-price broadband-price"><strong>${escapeHtml(chosen.label)}</strong><span>£${money(result.uw.broadband)}/m</span></div>` : '<p class="hint">Choose the speed/package above.</p>'}
         <div class="uw-side-options">
