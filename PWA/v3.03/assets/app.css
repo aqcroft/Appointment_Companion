@@ -1198,3 +1198,220 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
     padding: 6px 4px;
   }
 }
+
+
+/* V3.03 consolidated UI feedback polish */
+
+/* Keep Energy headings aligned across Current and UW */
+.usage-section-label {
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:3px;
+}
+.usage-section-label span {
+  color:var(--muted);
+  font-size:8px;
+  font-weight:650;
+  text-transform:none;
+  letter-spacing:0;
+}
+.usage-section-label em {
+  display:inline;
+  margin:0;
+}
+
+/* Broadband package buttons: one row, centred, speed shading */
+.broadband-package-option {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:6px 4px;
+  text-align:center;
+}
+.broadband-package-option strong {
+  line-height:1;
+}
+.full-fibre-row .broadband-package-option:nth-child(1) {
+  background:#d8efe3;
+  border-color:#83c4a4;
+}
+.full-fibre-row .broadband-package-option:nth-child(2) {
+  background:#e6f5ed;
+  border-color:#a5d4bc;
+}
+.full-fibre-row .broadband-package-option:nth-child(3) {
+  background:#f2faf6;
+  border-color:#c5e5d4;
+}
+.part-fibre-row .broadband-package-option:nth-child(1) {
+  background:#e1f2e9;
+  border-color:#93cbae;
+}
+.part-fibre-row .broadband-package-option:nth-child(2) {
+  background:#f1f9f5;
+  border-color:#c1dfcf;
+}
+.broadband-package-option.on {
+  background:#d4ecdf !important;
+  border-color:#3c966b !important;
+  box-shadow:inset 0 0 0 1px rgba(60,150,107,.35);
+}
+
+/* Digital phone line */
+.digital-phone-options {
+  display:grid;
+  gap:8px;
+  padding:9px 0 2px;
+}
+.phone-bundle-pills {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:4px;
+}
+.phone-bundle-pills .pill {
+  min-width:0;
+  min-height:34px;
+  padding:5px 4px;
+  font-size:8.5px;
+  text-align:center;
+}
+
+/* Cashback Card should feel like a basket adjustment, not an admin panel */
+.cashback-card {
+  padding:12px;
+}
+.cashback-card .compact-workspace-title {
+  margin-bottom:6px;
+}
+.cashback-toggle {
+  border-top:0 !important;
+  padding:7px 0 !important;
+  min-height:34px !important;
+}
+.cashback-slider-compact {
+  margin:6px 0 4px;
+  padding:9px 10px;
+}
+.cashback-slider-compact .slider-heading {
+  margin-bottom:4px;
+}
+.cashback-slider-compact .slider-heading strong {
+  font-size:12px;
+}
+.cashback-slider-compact .slider-heading output {
+  font-size:14px;
+}
+.cashback-slider-compact input[type="range"] {
+  min-height:22px;
+}
+.cashback-estimate {
+  margin:3px 0 4px;
+  color:var(--muted);
+  font-size:9.5px;
+}
+.cashback-estimate strong {
+  color:var(--ink);
+}
+.advanced-adjustments {
+  margin-top:7px;
+  border-top:1px solid var(--line);
+}
+.advanced-adjustments > summary {
+  padding:9px 0 5px;
+  font-size:11px;
+  font-weight:850;
+}
+.advanced-adjustments .compact-toggle {
+  min-height:36px;
+}
+
+/* Tariff chooser: make the decision large and one-handed */
+.tariff-modal-card {
+  width:min(100%,700px);
+  padding:18px;
+}
+.tariff-modal-head h2 {
+  font-size:26px;
+}
+.tariff-modal-intro {
+  margin:6px 0 14px;
+  font-size:12px;
+  font-weight:700;
+}
+.tariff-modal-row {
+  min-height:56px;
+}
+.tariff-modal-row > * {
+  padding:13px 9px;
+  font-size:12px;
+}
+.tariff-modal-header > * {
+  font-size:10px;
+}
+.tariff-modal-row span {
+  gap:2px;
+}
+.tariff-modal-row span strong {
+  font-size:13px;
+}
+.tariff-modal-row span i {
+  width:13px;
+  height:13px;
+  margin-right:8px;
+}
+.tariff-modal-row b {
+  font-size:12px;
+}
+.tariff-modal-row.selected {
+  box-shadow:inset 4px 0 0 var(--purple);
+}
+.tariff-modal-row.selected span strong {
+  color:var(--purple-dark);
+}
+.tariff-modal-foot {
+  margin-top:14px;
+}
+.tariff-modal-foot .primary {
+  min-height:44px;
+  padding:9px 18px;
+}
+
+/* Keep the summary CTA close without oversized secondary panels */
+.cashback-card + .action-bar.summary-only {
+  margin-top:2px;
+}
+
+@media(max-width:560px) {
+  .phone-bundle-pills {
+    grid-template-columns:1fr;
+  }
+  .tariff-modal-backdrop {
+    padding:0;
+    align-items:end;
+  }
+  .tariff-modal-card {
+    width:100%;
+    max-height:90vh;
+    padding:16px 12px 14px;
+    border-radius:20px 20px 0 0;
+  }
+  .tariff-modal-head h2 {
+    font-size:24px;
+  }
+  .tariff-modal-row {
+    grid-template-columns:minmax(105px,1.18fr) repeat(3,minmax(62px,.72fr));
+    min-height:58px;
+  }
+  .tariff-modal-row > * {
+    padding:12px 5px;
+    font-size:11px;
+  }
+  .tariff-modal-row span strong {
+    font-size:12px;
+  }
+  .tariff-modal-row b {
+    font-size:11px;
+  }
+}
