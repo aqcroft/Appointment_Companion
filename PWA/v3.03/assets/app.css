@@ -1105,3 +1105,25 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   }
   .tariff-modal-header > * { font-size:8px; }
 }
+
+
+/* V3.03 Energy sequence refinement */
+.energy-top-row > .tariff-select-button {
+  align-self:end;
+  min-height:42px;
+}
+.energy-cost-block {
+  display:grid;
+  gap:7px;
+  margin-top:11px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+}
+.energy-usage-pair.first-block {
+  margin-top:0;
+  padding-top:0;
+  border-top:0;
+}
+.energy-cost-block .selected-service-price {
+  min-height:64px;
+}
