@@ -14,7 +14,8 @@ export function calculateAnnualDayNightSplit(totalAnnualKwh, sampleDayKwh, sampl
   };
 }
 
-export function calculateEconomy7AnnualCost({ dayKwh = 0, nightKwh = 0, dayRate = 0, nightRate = 0, standingCharge = 0 }) {
-  return (Number(dayKwh) * Number(dayRate) + Number(nightKwh) * Number(nightRate)) / 100 + Number(standingCharge) * 3.65;
+export function calculateEconomy7AnnualCost({ dayKwh = 0, nightKwh = 0, dayRate = 0, nightRate = 0, standingCharge = 0, ratesIncludeVat = true }) {
+  const multiplier = ratesIncludeVat ? 1 : 1.05;
+  return ((Number(dayKwh) * Number(dayRate) + Number(nightKwh) * Number(nightRate)) / 100 + Number(standingCharge) * 3.65) * multiplier;
 }
 
