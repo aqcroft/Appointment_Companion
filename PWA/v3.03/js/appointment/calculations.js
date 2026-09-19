@@ -67,7 +67,9 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const currentBroadband = appointment.services.broadband ? Number(appointment.broadband.currentMonthly) : 0;
   const uwBroadbandRaw = appointment.services.broadband ? Number(appointment.broadband.uwMonthly) : 0;
   const uwBroadband = appointment.services.broadband
-    ? Math.ceil(uwBroadbandRaw) + (appointment.broadband.wholeHomeWifi ? rules.broadband.wholeHomeWifiMonthly : 0) + Number(appointment.broadband.homePhoneMonthly || 0)
+    ? Math.ceil(uwBroadbandRaw)
+      + (appointment.broadband.wholeHomeWifi ? rules.broadband.wholeHomeWifiMonthly : 0)
+      + (appointment.broadband.homePhoneEnabled ? Number(appointment.broadband.homePhoneMonthly || 0) : 0)
     : 0;
   const sims = appointment.services.mobile ? appointment.mobile.sims.filter(sim => sim.include !== false) : [];
   const currentMobile = sims.reduce((sum, sim) => sum + Number(sim.currentMonthly || 0), 0);
