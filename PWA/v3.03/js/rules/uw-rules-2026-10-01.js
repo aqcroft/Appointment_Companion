@@ -16,6 +16,11 @@ export const UW_RULES_2026_10_01 = Object.freeze({
     freeMonths: 6,
     aprilIncrease: 4,
     wholeHomeWifiMonthly: 5,
+    digitalPhone: {
+      fullFibreLineRental: 0,
+      offPeakSaverMonthly: 6.5,
+      peakSaverMonthly: 13
+    },
     packages: [
       { id: 'fibre900', label: 'Full Fibre 900', monthly: 35 },
       { id: 'fibre500', label: 'Full Fibre 500', monthly: 30 },
