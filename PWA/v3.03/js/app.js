@@ -350,11 +350,7 @@ function serviceSelector(name, icon, label) {
 
 function serviceSetupSummary(key) {
   if (key === 'energy') return appointment.energy.fuel === 'electricity' ? 'Electricity' : appointment.energy.fuel === 'gas' ? 'Gas' : 'Dual';
-  if (key === 'broadband') {
-    const chosen = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === appointment.broadband.packageId);
-    if (chosen) return chosen.label.replace('Full Fibre ', 'FF ');
-    return appointment.broadband.connectionFamily === 'part' ? 'Part Fibre' : 'Full Fibre';
-  }
+  if (key === 'broadband') return appointment.broadband.connectionFamily === 'part' ? 'Part Fibre' : 'Full Fibre';
   if (key === 'mobile') return `${appointment.mobile.simCount} SIM${appointment.mobile.simCount === 1 ? '' : 's'}`;
   if (key === 'boilerCover') return '£25/m';
   return '';
