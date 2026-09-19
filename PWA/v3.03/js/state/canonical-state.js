@@ -41,7 +41,7 @@ export function createAppointment(name = '') {
     },
     broadband: {
       currentMonthly: 0, uwMonthly: 0, packageId: '', connectionFamily: 'full', currentSpeed: '', wholeHomeWifi: false,
-      homePhoneMonthly: 0, exitFeesApply: false, exitFee: 0, freeMonthsOffer: false
+      homePhoneEnabled: false, homePhoneBundle: 'none', homePhoneMonthly: 0, exitFeesApply: false, exitFee: 0, freeMonthsOffer: false
     },
     mobile: { simCount: 1, showNames: false, sims: [createSim(0)] },
     boilerCover: { currentMonthly: 0, monthly: 25, exitFeesApply: false, exitFee: 0 },
@@ -146,6 +146,15 @@ export function normaliseAppointment(input = {}) {
     : 'mixed';
   out.broadband.connectionFamily = ['full','part'].includes(out.broadband.connectionFamily) ? out.broadband.connectionFamily : /^fibre/.test(out.broadband.packageId) ? 'full' : /^ultra/.test(out.broadband.packageId) ? 'part' : 'full';
   out.broadband.currentSpeed = text(out.broadband.currentSpeed, 60);
+  out.broadband.homePhoneMonthly = finite(out.broadband.homePhoneMonthly);
+  out.broadband.homePhoneEnabled = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'homePhoneEnabled')
+    ? bool(source.broadband.homePhoneEnabled)
+    : out.broadband.homePhoneMonthly > 0;
+  out.broadband.homePhoneBundle = ['none','peakSaver','offPeakSaver'].includes(out.broadband.homePhoneBundle) ? out.broadband.homePhoneBundle : 'none';
+  if (!out.broadband.homePhoneEnabled) {
+    out.broadband.homePhoneBundle = 'none';
+    out.broadband.homePhoneMonthly = 0;
+  }
   out.broadband.exitFee = finite(out.broadband.exitFee);
   out.broadband.exitFeesApply = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'exitFeesApply')
     ? bool(source.broadband.exitFeesApply)
