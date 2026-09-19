@@ -45,6 +45,7 @@ let sharedSummaryData = null;
 let sharedMealDealActive = false;
 let essentialsExpanded = false;
 let serviceSetupOpen = '';
+let energyTariffOpen = false;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -419,17 +420,28 @@ function syncSelectedTariffTiers(preferredFamily = appointment.energy.selectedTa
   return true;
 }
 
-function indicativePanel() {
+function energyTariffControl() {
   const rows = tariffData ? buildTariffGrid(tariffData, appointment) : [];
   const tier = calculateAppointment(appointment).rules.energyTariff || 1;
   const selectedFamily = appointment.energy.selectedTariffFamily || 'fixed';
   const selectedRow = rows.find(row => row.id === selectedFamily);
-  const selectedCost = selectedRow?.values?.[tier];
-  return `<section class="workspace-section indicative-panel">
-    <div class="section-title"><div><h3>UW Energy tariff</h3><p>${selectedRow ? escapeHtml(selectedRow.label) : 'Fixed'} is used for the basket unless another tariff is selected.</p></div><span class="source-badge">${tariffInfo?.source === 'live' ? 'Live' : tariffData ? 'Cached' : 'Checking'}</span></div>
-    <div class="selected-tariff-card"><span><small>Selected tariff</small><strong>${escapeHtml(selectedRow?.label || 'Fixed')}</strong></span><span><small>${tier}-service rate</small><strong>${selectedCost ? `£${money(selectedCost.monthly)}/m` : 'Waiting for tariff data'}</strong></span></div>
-    ${tariffData ? `<details class="advanced tariff-comparison"><summary>View all available tariffs</summary>${rows.length ? `<div class="tariff-table"><div class="tariff-row tariff-head"><strong>Tariff</strong>${[1,2,3].map(n => `<strong class="${n===tier?'active-tier':''}">${n} service${n===1?'':'s'}</strong>`).join('')}</div>${rows.map(row => `<button class="tariff-row${row.id===selectedFamily?' selected':''}" type="button" data-tariff-family="${row.id}"><span><i></i>${escapeHtml(row.label)}</span>${[1,2,3].map(n => `<b class="${n===tier?'active-tier':''}">${row.values[n] ? `£${money(row.values[n].monthly)}` : '—'}</b>`).join('')}</button>`).join('')}</div><p class="hint">The highlighted column follows the qualifying service count in the basket automatically. Tracker appears only when the tariff feed supplies it.</p>` : '<p class="hint">No matching tariff rows are currently available for this profile.</p>'}</details>` : '<p class="hint">Checking the central tariff feed.</p>'}
-  </section>`;
+  const labelMap = {
+    standardVariable: 'Variable',
+    tracker: 'Tracker',
+    fixed: 'Fixed',
+    evVariable: 'EV Variable',
+    economy7Variable: 'Economy 7 Variable',
+    fixedE7: 'Fixed Economy 7'
+  };
+  const selectedLabel = labelMap[selectedFamily] || selectedRow?.label || 'Fixed';
+  return `<div class="uw-tariff-control">
+    <button class="tariff-select-button" type="button" data-toggle-energy-tariff aria-expanded="${energyTariffOpen ? 'true' : 'false'}"><span>Tariff</span><strong>${escapeHtml(selectedLabel)}</strong><b aria-hidden="true">${energyTariffOpen ? '▴' : '▾'}</b></button>
+    ${energyTariffOpen ? `<div class="tariff-inline-panel">
+      <div class="tariff-choice-row">${rows.map(row => `<button class="${row.id===selectedFamily?'on':''}" type="button" data-tariff-family="${row.id}">${escapeHtml(labelMap[row.id] || row.label)}</button>`).join('')}</div>
+      ${rows.length ? `<div class="mini-tariff-table"><div class="mini-tariff-head"><span>Tariff</span><b class="${tier===1?'active-tier':''}">1</b><b class="${tier===2?'active-tier':''}">2</b><b class="${tier===3?'active-tier':''}">3</b></div>${rows.map(row => `<button class="mini-tariff-row${row.id===selectedFamily?' selected':''}" type="button" data-tariff-family="${row.id}"><span>${escapeHtml(labelMap[row.id] || row.label)}</span>${[1,2,3].map(n => `<b class="${n===tier?'active-tier':''}">${row.values[n] ? `£${money(row.values[n].monthly)}` : '—'}</b>`).join('')}</button>`).join('')}</div>` : '<p class="hint">Tariff breakdown will appear when the live tariff feed is available.</p>'}
+      <small class="tariff-feed-note">${tariffInfo?.source === 'live' ? 'Live tariff feed' : tariffData ? 'Cached tariff feed' : 'Checking tariff feed'} · highlighted column = current basket service count</small>
+    </div>` : ''}
+  </div>`;
 }
 
 function refreshIndicativePanel() {
