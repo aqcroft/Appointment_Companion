@@ -1,4 +1,4 @@
-const CACHE = 'appointment-companion-v303-20260918-1';
+const CACHE = 'appointment-companion-v303-20260919-2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './assets/app.css',
   './assets/icons/app-icon.svg', './assets/icons/app-icon-192.png', './assets/icons/app-icon-512.png',
@@ -35,8 +35,8 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match(url.pathname.includes('/tools/ev/') ? './tools/ev/index.html' : './index.html')));
     return;
   }
-  event.respondWith(caches.match(request, { ignoreSearch: true }).then(cached => cached || fetch(request).then(response => {
+  event.respondWith(fetch(request).then(response => {
     if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, response.clone())));
     return response;
-  })));
+  }).catch(() => caches.match(request, { ignoreSearch: true })));
 });
