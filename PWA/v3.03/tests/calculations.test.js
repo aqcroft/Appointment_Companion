@@ -262,7 +262,7 @@ test('indicative Energy result exposes electricity gas and rate breakdowns', () 
   appointment.energy.annualElectricityKwh = 2500;
   appointment.energy.annualGasKwh = 11500;
   const data = { tariffLive: [{
-    region_no: 11, payment_method: 'DD', tariff_name: 'Fixed 12M', tariff_type: 'fixed',
+    region_no: 11, payment_method: 'DD', tariff_name: 'Fixed Saver 12M', tariff_type: 'fixed',
     EDSC_Std: 50, EUR_Std: 24, GDSC: 24, GUR: 7, dual_fuel_discount_ex_vat: 0
   }] };
   const detail = calculateIndicativeEnergyCost(data, appointment, 3, 'fixed');
