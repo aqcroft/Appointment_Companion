@@ -488,7 +488,11 @@ function splitEstimatorModal() {
   </div>`;
 }
 
-function energyUsageSelection
+function energyUsageSelection(source) {
+  const energy = appointment.energy;
+  const relevant = energy.fuel === 'electricity' ? ['electricity'] : energy.fuel === 'gas' ? ['gas'] : ['electricity','gas'];
+  return relevant.every(fuel => energy[`${fuel}UsageSource`] === source);
+}
 
 function energyUsageReady(source) {
   const energy = appointment.energy;
