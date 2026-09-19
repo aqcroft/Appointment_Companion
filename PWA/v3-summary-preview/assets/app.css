@@ -2240,3 +2240,214 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .summary-compare-side strong { font-size:17px; }
   .summary-v3-overhaul .monthly-grid { grid-template-columns:1.2fr repeat(3,.72fr); font-size:10px; }
 }
+
+
+/* Summary preview v2 - restore the v2.42 basket-level hierarchy */
+.summary-v3-overhaul {
+  max-width:620px;
+}
+.summary-basket-strip {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 11px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+}
+.summary-basket-strip strong {
+  color:var(--muted);
+  font-size:10px;
+}
+.summary-basket-icons {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:18px;
+}
+.basket-monthly-card {
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  box-shadow:none;
+}
+.basket-monthly-title {
+  margin-bottom:8px;
+  color:var(--ink);
+  font-size:12px;
+  font-weight:900;
+}
+.basket-monthly-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+.basket-monthly-grid > div {
+  display:grid;
+  gap:2px;
+  padding:8px;
+  border-radius:9px;
+  background:#f8f7fa;
+}
+.basket-monthly-grid > div:nth-child(2) {
+  background:#f5effb;
+}
+.basket-monthly-grid > div:nth-child(3) {
+  background:#f0f8f3;
+}
+.basket-monthly-grid small {
+  color:var(--muted);
+  font-size:7.5px;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.basket-monthly-grid strong {
+  font-size:20px;
+  line-height:1.1;
+}
+.basket-monthly-card > p {
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:8px;
+}
+.basket-outcomes {
+  display:grid;
+  gap:7px;
+}
+.basket-outcome-block {
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+}
+.basket-outcome-block > summary {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+  list-style:none;
+  cursor:pointer;
+}
+.basket-outcome-block > summary::-webkit-details-marker {
+  display:none;
+}
+.basket-outcome-block > summary span {
+  display:grid;
+  gap:1px;
+}
+.basket-outcome-block > summary small {
+  color:var(--muted);
+  font-size:7.5px;
+  font-weight:900;
+  letter-spacing:.07em;
+}
+.basket-outcome-block > summary strong {
+  font-size:12px;
+}
+.basket-outcome-block > summary b {
+  font-size:22px;
+  line-height:1;
+}
+.basket-outcome-block > summary b.good {
+  color:var(--good);
+}
+.basket-outcome-block > summary b.bad {
+  color:var(--bad);
+}
+.service-saving-block {
+  border-color:#c9dfe3;
+  background:linear-gradient(145deg,#f8fcfd,#fff 58%);
+}
+.benefits-block {
+  border-color:#d9cbea;
+  background:linear-gradient(145deg,#faf7fd,#fff 58%);
+}
+.basket-outcome-detail {
+  padding:0 12px 12px;
+}
+.v242-breakdown-table {
+  display:grid;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+}
+.v242-breakdown-head,
+.v242-breakdown-row {
+  display:grid;
+  grid-template-columns:1.5fr repeat(3,.7fr);
+  align-items:center;
+}
+.v242-breakdown-head > *,
+.v242-breakdown-row > * {
+  min-width:0;
+  padding:7px 5px;
+  border-top:1px solid #f0edf3;
+  text-align:right;
+  font-size:9px;
+}
+.v242-breakdown-head > * {
+  border-top:0;
+  background:#f8f6fa;
+  color:var(--muted);
+  font-size:7px;
+  text-transform:uppercase;
+}
+.v242-breakdown-head > :first-child,
+.v242-breakdown-row > :first-child {
+  text-align:left;
+}
+.v242-breakdown-row span {
+  color:var(--ink-soft);
+}
+.v242-breakdown-row b.good {
+  color:var(--good);
+}
+.v242-breakdown-row b.bad {
+  color:var(--bad);
+}
+.v242-benefit-list {
+  display:grid;
+}
+.v242-benefit-list > div {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:7px 2px;
+  border-top:1px solid #eee9f1;
+  font-size:10px;
+}
+.v242-benefit-list > div:first-child {
+  border-top:0;
+}
+.v242-benefit-list span {
+  color:var(--ink-soft);
+}
+.v242-benefit-list strong.good {
+  color:var(--good);
+}
+.v242-benefit-list strong.bad {
+  color:var(--bad);
+}
+/* Hide superseded experiment components if old cached markup ever survives */
+.summary-v3-overhaul .summary-service-stack,
+.summary-v3-overhaul .summary-extras-card {
+  display:none;
+}
+@media(max-width:560px) {
+  .basket-outcome-block > summary {
+    padding:11px 12px;
+  }
+  .basket-outcome-block > summary b {
+    font-size:20px;
+  }
+  .v242-breakdown-head > *,
+  .v242-breakdown-row > * {
+    padding:6px 3px;
+    font-size:8px;
+  }
+}
