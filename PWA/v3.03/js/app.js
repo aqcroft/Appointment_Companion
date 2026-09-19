@@ -567,13 +567,13 @@ function renderAppointment() {
 
 function updateLiveResults() {
   const result = calculateAppointment(appointment);
-  const host = document.querySelector('.energy-workspace .uw-column .auto-price');
+  const host = document.querySelector('.energy-price');
   if (host) {
     const label = {
-      standardVariable: 'Standard Variable', tracker: 'Tracker', fixed: 'Fixed',
+      standardVariable: 'Variable', tracker: 'Tracker', fixed: 'Fixed',
       evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable', fixedE7: 'Fixed Economy 7'
     }[appointment.energy.selectedTariffFamily] || 'Fixed';
-    host.innerHTML = `<small>${escapeHtml(label)} · ${result.rules.energyTariff || 1}-service rate</small><strong>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/month` : 'Calculated from usage'}</strong><span>Live tariff data</span>`;
+    host.innerHTML = `<strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(label)} · ${result.rules.energyTariff || 1}-service rate</small>`;
   }
 }
 
@@ -955,6 +955,11 @@ document.addEventListener('click', async event => {
     appointment.broadband.uwMonthly = chosen.monthly;
     serviceSetupOpen = '';
     markChanged(); render(); return;
+  }
+  if (target.hasAttribute('data-toggle-energy-tariff')) {
+    energyTariffOpen = !energyTariffOpen;
+    render();
+    return;
   }
   if (target.dataset.tariffFamily) {
     appointment.energy.selectedTariffFamily = target.dataset.tariffFamily;
