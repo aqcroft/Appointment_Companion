@@ -978,6 +978,7 @@ document.addEventListener('click', async event => {
     const name = target.dataset.serviceRemove;
     appointment.services[name] = false;
     if (serviceSetupOpen === name) serviceSetupOpen = '';
+    if (name === 'energy') energyTariffOpen = false;
     markChanged(); render(); return;
   }
   if (target.dataset.quickEnergyFuel) {
@@ -1004,8 +1005,27 @@ document.addEventListener('click', async event => {
     serviceSetupOpen = '';
     markChanged(); render(); return;
   }
+  if (target.dataset.energyUsageSource) {
+    const source = target.dataset.energyUsageSource;
+    const fuels = appointment.energy.fuel === 'electricity'
+      ? ['electricity']
+      : appointment.energy.fuel === 'gas'
+        ? ['gas']
+        : ['electricity','gas'];
+    if (source === 'bill' && !energyUsageReady('bill')) {
+      toast('Add the current provider usage first.');
+      return;
+    }
+    fuels.forEach(fuel => { appointment.energy[`${fuel}UsageSource`] = source; });
+    markChanged(); render(); return;
+  }
   if (target.hasAttribute('data-toggle-energy-tariff')) {
-    energyTariffOpen = !energyTariffOpen;
+    energyTariffOpen = true;
+    render();
+    return;
+  }
+  if (target.hasAttribute('data-close-energy-tariff')) {
+    energyTariffOpen = false;
     render();
     return;
   }
