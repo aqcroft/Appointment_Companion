@@ -501,27 +501,26 @@ function renderEnergy() {
   const currentUsageReady = energyUsageReady('bill');
   return `<section class="card service-workspace energy-workspace" id="energyPanel">
     <div class="compact-workspace-title"><strong>⚡🔥 Energy</strong><span>${escapeHtml(fuelLabel)}</span></div>
-    <div class="energy-top-row"><label class="field region-field"><span>Region</span><select data-field="energy.region">${REGIONS.map(([id,label]) => `<option value="${id}"${selected(energy.region,id)}>${label}</option>`).join('')}</select></label><div class="compact-status"><small>Profile</small><strong>${escapeHtml(fuelLabel)}</strong><span>${escapeHtml(regionLabel)}</span></div></div>
+    <div class="energy-top-row"><label class="field region-field"><span>Region</span><select data-field="energy.region">${REGIONS.map(([id,label]) => `<option value="${id}"${selected(energy.region,id)}>${label}</option>`).join('')}</select></label>${energyTariffControl()}</div>
     <div class="compare-grid energy-core-compare">
       <div class="compare-column current-column${usingCurrentUsage ? ' usage-selected' : ''}"><div class="compare-label">CURRENT</div>
-        ${currentBlock}
-        <div class="energy-usage-pair"><small class="usage-section-label">Current provider usage</small>
+        <div class="energy-usage-pair first-block"><small class="usage-section-label">Current provider usage</small>
           ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${field('energy.electricityBillKwh',energy.electricityBillKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
           ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${field('energy.gasBillKwh',energy.gasBillKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
           <button class="usage-choice-button${usingCurrentUsage ? ' selected' : ''}" type="button" data-energy-usage-source="bill" ${currentUsageReady ? '' : 'disabled'}>${usingCurrentUsage ? '✓ Using this usage' : 'Use this usage'}</button>
         </div>
+        <div class="energy-cost-block"><small class="usage-section-label">Current cost</small>${currentBlock}</div>
         <details class="advanced compact-advanced" ${energy.currentCostMode !== 'monthly' ? 'open' : ''}><summary>Different cost setup</summary><div class="segmented wrap"><button class="${on(energy.currentCostMode,'monthly')}" type="button" data-choice="energy.currentCostMode" data-value="monthly">One payment</button><button class="${on(energy.currentCostMode,'split')}" type="button" data-choice="energy.currentCostMode" data-value="split">Separate</button><button class="${on(energy.currentCostMode,'annual')}" type="button" data-choice="energy.currentCostMode" data-value="annual">Annual</button></div></details>
         <label class="compact-toggle full current-side-option"><span>Exit fees</span><span class="switch-control"><input type="checkbox" data-field="energy.exitFeesApply"${checked(energy.exitFeesApply)} aria-label="Energy exit fees apply"><i></i></span></label>
         ${energy.exitFeesApply ? `<div class="grid-2 compact-split field-gap">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity exit fee</span>${field('energy.electricityExitFee',energy.electricityExitFee,'type="number" min="0"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas exit fee</span>${field('energy.gasExitFee',energy.gasExitFee,'type="number" min="0"')}</label>` : ''}</div>` : ''}
       </div>
       <div class="compare-column uw-column${usingUwUsage ? ' usage-selected' : ''}"><div class="compare-label">UW</div>
-        <div class="energy-usage-pair"><small class="usage-section-label">Quote usage <em>National database</em></small>
+        <div class="energy-usage-pair first-block"><small class="usage-section-label">Quote usage <em>National database</em></small>
           ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${field('energy.electricityUwKwh',energy.electricityUwKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
           ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${field('energy.gasUwKwh',energy.gasUwKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
           <button class="usage-choice-button${usingUwUsage ? ' selected' : ''}" type="button" data-energy-usage-source="uw">${usingUwUsage ? '✓ Using this usage' : 'Use this usage'}</button>
         </div>
-        ${energyTariffControl()}
-        <div class="selected-service-price energy-price"><strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(tariffLabel)} · ${result.rules.energyTariff || 1}-service rate</small></div>
+        <div class="energy-cost-block"><small class="usage-section-label">UW cost</small><div class="selected-service-price energy-price"><strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(tariffLabel)} · ${result.rules.energyTariff || 1}-service rate</small></div></div>
       </div>
     </div>
 
