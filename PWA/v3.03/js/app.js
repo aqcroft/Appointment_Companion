@@ -357,11 +357,7 @@ function quickServiceSetup() {
   }
   if (key === 'broadband') {
     const bb = appointment.broadband;
-    const packages = UW_RULES_2026_10_01.broadband.packages.filter(item => bb.connectionFamily === 'part' ? /^ultra/.test(item.id) : /^fibre/.test(item.id));
-    return `<div class="quick-service-setup quick-broadband"><div class="quick-setup-head"><strong>🛜 Broadband</strong><button type="button" data-service-remove="broadband">Remove</button></div><div class="segmented"><button class="${on(bb.connectionFamily,'full')}" type="button" data-quick-broadband-family="full">Full Fibre</button><button class="${on(bb.connectionFamily,'part')}" type="button" data-quick-broadband-family="part">Part Fibre</button></div><div class="quick-package-row">${packages.map(item => {
-      const label = bb.connectionFamily === 'full' ? item.label.replace('Full Fibre ', '') : item.label;
-      return `<button class="pill${on(bb.packageId,item.id)}" type="button" data-quick-package="${item.id}"><strong>${escapeHtml(label)}</strong><small>£${money(item.monthly)}/m</small></button>`;
-    }).join('')}</div></div>`;
+    return `<div class="quick-service-setup quick-broadband"><div class="quick-setup-head"><strong>🛜 Broadband</strong><button type="button" data-service-remove="broadband">Remove</button></div><div class="segmented"><button class="${on(bb.connectionFamily,'full')}" type="button" data-quick-broadband-family="full">Full Fibre</button><button class="${on(bb.connectionFamily,'part')}" type="button" data-quick-broadband-family="part">Part Fibre</button></div></div>`;
   }
   if (key === 'mobile') {
     return `<div class="quick-service-setup quick-mobile"><div class="quick-setup-head"><strong>📱 Mobile</strong><button type="button" data-service-remove="mobile">Remove</button></div><div class="segmented quick-sim-count">${[1,2,3,4,5].map(count => `<button class="${on(appointment.mobile.simCount,count)}" type="button" data-sim-count="${count}">${count}</button>`).join('')}</div></div>`;
@@ -537,10 +533,12 @@ function renderEnergy() {
 
 function renderBroadband() {
   const bb = appointment.broadband;
+  const packages = UW_RULES_2026_10_01.broadband.packages.filter(item => bb.connectionFamily === 'part' ? /^ultra/.test(item.id) : /^fibre/.test(item.id));
   const chosen = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === bb.packageId);
   const result = calculateAppointment(appointment);
+  const familyLabel = bb.connectionFamily === 'part' ? 'Part Fibre' : 'Full Fibre';
   return `<section class="card service-workspace broadband-workspace" id="broadbandPanel">
-    <div class="compact-workspace-title"><strong>🛜 Broadband</strong><span>${chosen ? escapeHtml(chosen.label) : 'Choose package above'}</span></div>
+    <div class="compact-workspace-title"><strong>🛜 Broadband</strong><span>${escapeHtml(familyLabel)}</span></div>
     <div class="compare-grid">
       <div class="compare-column current-column"><div class="compare-label">CURRENT</div>
         <label class="field"><span>Monthly cost</span>${field('broadband.currentMonthly',bb.currentMonthly,'type="number" min="0" step="0.01" placeholder="£ per month"')}</label>
@@ -548,7 +546,12 @@ function renderBroadband() {
         <label class="compact-toggle full current-side-option"><span>Exit fees</span><span class="switch-control"><input type="checkbox" data-field="broadband.exitFeesApply"${checked(bb.exitFeesApply)}><i></i></span></label>${bb.exitFeesApply ? `<label class="field field-gap"><span>Broadband exit fee</span>${field('broadband.exitFee',bb.exitFee,'type="number" min="0"')}</label>` : ''}
       </div>
       <div class="compare-column uw-column"><div class="compare-label">UW</div>
-        ${chosen ? `<div class="selected-service-price"><strong>${escapeHtml(chosen.label)}</strong><span>£${money(result.uw.broadband)}/m</span></div>` : '<button class="choose-above-button" type="button" data-service-setup="broadband">Choose package ↑</button>'}
+        <small class="uw-subhead">${escapeHtml(familyLabel)}</small>
+        <div class="broadband-package-list">${packages.map(item => {
+          const speedLabel = bb.connectionFamily === 'full' ? item.label.replace('Full Fibre ', '') : item.label;
+          return `<button class="broadband-package-option${on(bb.packageId,item.id)}" type="button" data-package="${item.id}"><strong>${escapeHtml(speedLabel)}</strong><span>£${money(item.monthly)}/m</span></button>`;
+        }).join('')}</div>
+        ${chosen ? `<div class="selected-service-price broadband-price"><strong>${escapeHtml(chosen.label)}</strong><span>£${money(result.uw.broadband)}/m</span></div>` : '<p class="hint">Choose the speed/package above.</p>'}
         <div class="uw-side-options">
           <label class="compact-toggle full"><span>Whole Home Wi-Fi <small>+£5/m</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.wholeHomeWifi"${checked(bb.wholeHomeWifi)}><i></i></span></label>
           ${appointment.person.homeStatus === 'homeowner' ? `<label class="compact-toggle full"><span>6 months free</span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
@@ -993,6 +996,7 @@ document.addEventListener('click', async event => {
       appointment.broadband.packageId = '';
       appointment.broadband.uwMonthly = 0;
     }
+    serviceSetupOpen = '';
     markChanged(); render(); return;
   }
   if (target.dataset.quickPackage) {
