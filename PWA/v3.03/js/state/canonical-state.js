@@ -37,7 +37,7 @@ export function createAppointment(name = '') {
       exitFeesApply: false, electricityExitFee: 0, gasExitFee: 0,
       uwQuoteMode: 'single', uwMonthly: 0, uwTier1: 0, uwTier2: 0, uwTier3: 0,
       quoteStatus: 'indicative', selectedTariffFamily: 'fixed', adjustmentEnabled: false, adjustmentTarget: 'current',
-      adjustmentPeriod: 'monthly', adjustmentAmount: 0, e7StandardAnnualCost: 0
+      adjustmentPeriod: 'monthly', adjustmentAmount: 0, adjustmentSign: 'plus', adjustmentReason: '', e7StandardAnnualCost: 0
     },
     broadband: {
       currentMonthly: 0, uwMonthly: 0, packageId: '', connectionFamily: 'full', currentSpeed: '', wholeHomeWifi: false,
@@ -111,6 +111,8 @@ export function normaliseAppointment(input = {}) {
   out.energy.exitFeesApply = energyExitFlagSupplied
     ? bool(source.energy.exitFeesApply)
     : out.energy.electricityExitFee > 0 || out.energy.gasExitFee > 0;
+  out.energy.adjustmentSign = ['plus','minus'].includes(out.energy.adjustmentSign) ? out.energy.adjustmentSign : 'plus';
+  out.energy.adjustmentReason = text(out.energy.adjustmentReason, 120);
   const sourceFor = value => ['uw', 'bill', 'estimated'].includes(value) ? value : value === 'actual' ? 'bill' : 'uw';
   const seedUsage = (fuel, legacyKey) => {
     const sourceKey = `${fuel}UsageSource`;
