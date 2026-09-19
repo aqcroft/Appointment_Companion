@@ -46,6 +46,7 @@ let sharedMealDealActive = false;
 let essentialsExpanded = false;
 let serviceSetupOpen = '';
 let energyTariffOpen = false;
+let splitEstimatorOpen = false;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -57,6 +58,12 @@ const field = (path, value, attrs = '') => {
   const explicitlyEntered = appointment.completion?.entered?.includes(path);
   const display = value === 0 && !explicitlyEntered ? '' : value ?? '';
   return `<input data-field="${path}" value="${escapeHtml(display)}" ${attrs}>`;
+};
+const integerField = (path, value, attrs = '') => {
+  const explicitlyEntered = appointment.completion?.entered?.includes(path);
+  const numeric = Number(value || 0);
+  const display = numeric === 0 && !explicitlyEntered ? '' : Math.round(numeric).toLocaleString('en-GB');
+  return `<input data-field="${path}" data-type="number" data-format-number="integer" inputmode="numeric" value="${escapeHtml(display)}" ${attrs}>`;
 };
 const serviceLabels = Object.freeze({ energy: 'Energy', broadband: 'Broadband', mobile: 'Mobile', boilerCover: 'Boiler Cover' });
 
@@ -106,7 +113,10 @@ function setPath(object, path, value) {
 
 function inputValue(element) {
   if (element.type === 'checkbox') return element.checked;
-  if (element.type === 'number' || element.type === 'range' || element.dataset.type === 'number') return element.value === '' ? null : Math.max(0, Number(element.value) || 0);
+  if (element.type === 'number' || element.type === 'range' || element.dataset.type === 'number') {
+    const raw = String(element.value || '').replace(/,/g, '').trim();
+    return raw === '' ? null : Math.max(0, Number(raw) || 0);
+  }
   return element.value;
 }
 
