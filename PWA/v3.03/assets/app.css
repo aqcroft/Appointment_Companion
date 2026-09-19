@@ -1956,3 +1956,21 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
 .cashback-card .switch-control input:checked + i {
   background:#7654a8;
 }
+
+
+/* Final V3.03-ui.10 small control polish */
+.cashback-slider input[type="range"] {
+  accent-color:#7654a8;
+}
+.energy-workspace input[type="range"] {
+  accent-color:#4a92a0;
+}
+.broadband-workspace input[type="range"] {
+  accent-color:#3c966b;
+}
+.mobile-workspace input[type="range"] {
+  accent-color:#be568e;
+}
+.boiler-workspace input[type="range"] {
+  accent-color:#d86a2b;
+}
