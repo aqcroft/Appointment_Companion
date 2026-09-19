@@ -33,7 +33,7 @@ export function createAppointment(name = '') {
       dayKwh: 0, nightKwh: 0, splitSampleDayKwh: 0, splitSampleNightKwh: 0,
       currentCostMode: 'monthly', currentMonthly: 0, currentElectricityMonthly: 0,
       currentGasMonthly: 0, annualElectricityCost: 0, annualGasCost: 0,
-      currentDayRate: 0, currentNightRate: 0, currentStandingCharge: 0,
+      currentDayRate: 0, currentNightRate: 0, currentStandingCharge: 0, currentRatesIncludeVat: false,
       exitFeesApply: false, electricityExitFee: 0, gasExitFee: 0,
       uwQuoteMode: 'single', uwMonthly: 0, uwTier1: 0, uwTier2: 0, uwTier3: 0,
       quoteStatus: 'indicative', selectedTariffFamily: 'fixed', adjustmentEnabled: false, adjustmentTarget: 'current',
@@ -47,9 +47,13 @@ export function createAppointment(name = '') {
     boilerCover: { currentMonthly: 0, monthly: 25, exitFeesApply: false, exitFee: 0 },
     cashback: { enabled: true, tier: 'average', monthlySpend: 1000 },
     adjustments: {
-      recurringEnabled: false, period: 'monthly', currentAmount: 0, uwAmount: 0,
-      currentReason: '', uwReason: '', oneOffEnabled: false, oneOffType: 'benefit',
-      oneOffAmount: 0, oneOffLabel: ''
+      recurringEnabled: false, period: 'monthly',
+      currentAmount: 0, uwAmount: 0, currentReason: '', uwReason: '',
+      currentPeriod: 'monthly', uwPeriod: 'monthly', currentSign: 'plus', uwSign: 'plus',
+      oneOffEnabled: false, oneOffType: 'benefit', oneOffAmount: 0, oneOffLabel: '',
+      oneOffCurrentAmount: 0, oneOffUwAmount: 0,
+      oneOffCurrentReason: '', oneOffUwReason: '',
+      oneOffCurrentSign: 'plus', oneOffUwSign: 'minus'
     },
     benefits: { referral: false, nationalLeague: false },
     completion: { entered: [] },
@@ -92,6 +96,9 @@ export function normaliseAppointment(input = {}) {
   out.energy.electricityProfile = ['standard', 'economy7', 'ev'].includes(out.energy.electricityProfile) ? out.energy.electricityProfile : 'standard';
   const hasPeakOffPeak = Object.prototype.hasOwnProperty.call(source.energy || {}, 'peakOffPeak');
   out.energy.peakOffPeak = hasPeakOffPeak ? bool(source.energy.peakOffPeak) : out.energy.electricityProfile !== 'standard';
+  out.energy.currentRatesIncludeVat = Object.prototype.hasOwnProperty.call(source.energy || {}, 'currentRatesIncludeVat')
+    ? bool(source.energy.currentRatesIncludeVat)
+    : false;
   if (!out.energy.peakOffPeak) out.energy.electricityProfile = 'standard';
   ['annualElectricityKwh', 'annualGasKwh', 'dayKwh', 'nightKwh', 'splitSampleDayKwh', 'splitSampleNightKwh',
     'electricityUwKwh', 'electricityBillKwh', 'electricityEstimatedKwh',
@@ -188,6 +195,30 @@ export function normaliseAppointment(input = {}) {
   out.boilerCover.exitFeesApply = Object.prototype.hasOwnProperty.call(source.boilerCover || {}, 'exitFeesApply')
     ? bool(source.boilerCover.exitFeesApply)
     : out.boilerCover.exitFee > 0;
+  const legacyAdjustmentPeriod = ['monthly','annual'].includes(out.adjustments.period) ? out.adjustments.period : 'monthly';
+  out.adjustments.currentPeriod = ['monthly','annual'].includes(out.adjustments.currentPeriod) ? out.adjustments.currentPeriod : legacyAdjustmentPeriod;
+  out.adjustments.uwPeriod = ['monthly','annual'].includes(out.adjustments.uwPeriod) ? out.adjustments.uwPeriod : legacyAdjustmentPeriod;
+  out.adjustments.currentSign = ['plus','minus'].includes(out.adjustments.currentSign) ? out.adjustments.currentSign : 'plus';
+  out.adjustments.uwSign = ['plus','minus'].includes(out.adjustments.uwSign) ? out.adjustments.uwSign : 'plus';
+  out.adjustments.currentAmount = finite(out.adjustments.currentAmount);
+  out.adjustments.uwAmount = finite(out.adjustments.uwAmount);
+  out.adjustments.currentReason = text(out.adjustments.currentReason, 120);
+  out.adjustments.uwReason = text(out.adjustments.uwReason, 120);
+
+  const legacyOneOffAmount = finite(out.adjustments.oneOffAmount);
+  const oneOffFieldsSupplied = ['oneOffCurrentAmount','oneOffUwAmount','oneOffCurrentReason','oneOffUwReason']
+    .some(key => Object.prototype.hasOwnProperty.call(source.adjustments || {}, key));
+  if (!oneOffFieldsSupplied && legacyOneOffAmount > 0) {
+    out.adjustments.oneOffUwAmount = legacyOneOffAmount;
+    out.adjustments.oneOffUwReason = text(out.adjustments.oneOffLabel, 120);
+    out.adjustments.oneOffUwSign = out.adjustments.oneOffType === 'charge' ? 'plus' : 'minus';
+  }
+  out.adjustments.oneOffCurrentAmount = finite(out.adjustments.oneOffCurrentAmount);
+  out.adjustments.oneOffUwAmount = finite(out.adjustments.oneOffUwAmount);
+  out.adjustments.oneOffCurrentReason = text(out.adjustments.oneOffCurrentReason, 120);
+  out.adjustments.oneOffUwReason = text(out.adjustments.oneOffUwReason, 120);
+  out.adjustments.oneOffCurrentSign = ['plus','minus'].includes(out.adjustments.oneOffCurrentSign) ? out.adjustments.oneOffCurrentSign : 'plus';
+  out.adjustments.oneOffUwSign = ['plus','minus'].includes(out.adjustments.oneOffUwSign) ? out.adjustments.oneOffUwSign : 'minus';
   out.completion.entered = [...new Set((Array.isArray(out.completion.entered) ? out.completion.entered : [])
     .map(value => text(value, 120)).filter(Boolean))];
   out.summary.basketUrl = text(out.summary.basketUrl, 500);
