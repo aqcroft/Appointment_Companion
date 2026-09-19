@@ -47,6 +47,7 @@ let essentialsExpanded = false;
 let serviceSetupOpen = '';
 let energyTariffOpen = false;
 let splitEstimatorOpen = false;
+let summaryGateExpanded = false;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -727,6 +728,7 @@ function renderAppointment() {
   if (appointment.services.energy && tariffData) syncSelectedTariffTiers();
   const home = appointment.person.homeStatus;
   const completion = appointmentCompleteness(appointment);
+  if (completion.complete) summaryGateExpanded = false;
   app.innerHTML = `<div class="stack appointment-screen">
     ${customerEssentialsBlock()}
     ${stickyBasketBar()}
@@ -735,7 +737,7 @@ function renderAppointment() {
     ${energyTariffModal()}
     ${splitEstimatorModal()}
     <section class="action-bar summary-only"><button class="primary wide${completion.complete ? '' : ' gated'}" type="button" data-go="summary" aria-disabled="${completion.complete ? 'false' : 'true'}">Show Summary</button></section>
-    ${completion.complete ? '' : summaryGatePanel(completion)}
+    ${completion.complete || !summaryGateExpanded ? '' : summaryGatePanel(completion)}
   </div>`;
 }
 
@@ -1006,8 +1008,9 @@ function showSummaryBlocked() {
   mealDealPreviewActive = false;
   view = 'appointment';
   section = 'save';
+  summaryGateExpanded = true;
   render();
-  document.getElementById('summaryGate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  requestAnimationFrame(() => document.getElementById('summaryGate')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   toast('Complete the listed comparison fields to unlock the summary.');
   return false;
 }
