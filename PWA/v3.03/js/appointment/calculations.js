@@ -60,7 +60,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   let currentEnergy = appointment.services.energy ? currentEnergyMonthly(appointment.energy) : 0;
   let uwEnergy = appointment.services.energy ? uwEnergyMonthly(appointment.energy, derived.energyTariff) : 0;
   if (appointment.energy.adjustmentEnabled && appointment.services.energy) {
-    const adjustment = Number(appointment.energy.adjustmentAmount) / (appointment.energy.adjustmentPeriod === 'annual' ? 12 : 1);
+    const signed = Number(appointment.energy.adjustmentAmount) * (appointment.energy.adjustmentSign === 'minus' ? -1 : 1);
+    const adjustment = signed / (appointment.energy.adjustmentPeriod === 'annual' ? 12 : 1);
     if (appointment.energy.adjustmentTarget === 'uw') uwEnergy += adjustment;
     else currentEnergy += adjustment;
   }
