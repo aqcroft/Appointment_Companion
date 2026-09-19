@@ -159,7 +159,11 @@ export function normaliseAppointment(input = {}) {
   out.broadband.homePhoneEnabled = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'homePhoneEnabled')
     ? bool(source.broadband.homePhoneEnabled)
     : out.broadband.homePhoneMonthly > 0;
+  const bundleSupplied = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'homePhoneBundle');
   out.broadband.homePhoneBundle = ['none','peakSaver','offPeakSaver'].includes(out.broadband.homePhoneBundle) ? out.broadband.homePhoneBundle : 'none';
+  if (out.broadband.homePhoneEnabled && !bundleSupplied && out.broadband.homePhoneMonthly > 0) {
+    out.broadband.homePhoneBundle = out.broadband.homePhoneMonthly >= 10 ? 'peakSaver' : 'offPeakSaver';
+  }
   if (!out.broadband.homePhoneEnabled) {
     out.broadband.homePhoneBundle = 'none';
     out.broadband.homePhoneMonthly = 0;
@@ -204,8 +208,12 @@ export function normaliseAppointment(input = {}) {
     ? bool(source.boilerCover.exitFeesApply)
     : out.boilerCover.exitFee > 0;
   const legacyAdjustmentPeriod = ['monthly','annual'].includes(out.adjustments.period) ? out.adjustments.period : 'monthly';
-  out.adjustments.currentPeriod = ['monthly','annual'].includes(out.adjustments.currentPeriod) ? out.adjustments.currentPeriod : legacyAdjustmentPeriod;
-  out.adjustments.uwPeriod = ['monthly','annual'].includes(out.adjustments.uwPeriod) ? out.adjustments.uwPeriod : legacyAdjustmentPeriod;
+  out.adjustments.currentPeriod = Object.prototype.hasOwnProperty.call(source.adjustments || {}, 'currentPeriod') && ['monthly','annual'].includes(source.adjustments.currentPeriod)
+    ? source.adjustments.currentPeriod
+    : legacyAdjustmentPeriod;
+  out.adjustments.uwPeriod = Object.prototype.hasOwnProperty.call(source.adjustments || {}, 'uwPeriod') && ['monthly','annual'].includes(source.adjustments.uwPeriod)
+    ? source.adjustments.uwPeriod
+    : legacyAdjustmentPeriod;
   out.adjustments.currentSign = ['plus','minus'].includes(out.adjustments.currentSign) ? out.adjustments.currentSign : 'plus';
   out.adjustments.uwSign = ['plus','minus'].includes(out.adjustments.uwSign) ? out.adjustments.uwSign : 'plus';
   out.adjustments.currentAmount = finite(out.adjustments.currentAmount);
