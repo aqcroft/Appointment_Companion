@@ -653,7 +653,7 @@ function renderBroadband() {
           <label class="compact-toggle full"><span>Whole Home Wi-Fi <small>+£5/m</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.wholeHomeWifi"${checked(bb.wholeHomeWifi)}><i></i></span></label>
           ${appointment.person.homeStatus === 'homeowner' ? `<label class="compact-toggle full"><span>6 months free</span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
           <label class="compact-toggle full"><span>Digital phone line</span><span class="switch-control"><input type="checkbox" data-field="broadband.homePhoneEnabled"${checked(bb.homePhoneEnabled)}><i></i></span></label>
-          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="phone-bundle-pills"><button class="phone-bundle-option${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none"><strong>No bundle</strong><small>£0/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver"><strong>Off-Peak Saver</strong><small>£6.50/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver"><strong>Peak Saver</strong><small>£13/m</small></button></div><p class="micro-copy">Choose one call bundle only. Digital Home Phone line rental is £0 with Full Fibre.</p></div>` : ''}
+          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="phone-bundle-pills"><button class="phone-bundle-option${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none"><strong>No bundle</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.fullFibreLineRental)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver"><strong>Off-Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.offPeakSaverMonthly)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver"><strong>Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.peakSaverMonthly)}/m</small></button></div><p class="micro-copy">Choose one call bundle only. Digital Home Phone line rental is £0 with Full Fibre.</p></div>` : ''}
         </div>
       </div>
     </div>
@@ -1252,7 +1252,11 @@ document.addEventListener('click', async event => {
   if (target.dataset.choice) {
     setPath(appointment, target.dataset.choice, target.dataset.value);
     if (target.dataset.choice === 'broadband.homePhoneBundle') {
-      appointment.broadband.homePhoneMonthly = target.dataset.value === 'peakSaver' ? 13 : target.dataset.value === 'offPeakSaver' ? 6.5 : 0;
+      appointment.broadband.homePhoneMonthly = target.dataset.value === 'peakSaver'
+        ? UW_RULES_2026_10_01.broadband.digitalPhone.peakSaverMonthly
+        : target.dataset.value === 'offPeakSaver'
+          ? UW_RULES_2026_10_01.broadband.digitalPhone.offPeakSaverMonthly
+          : UW_RULES_2026_10_01.broadband.digitalPhone.fullFibreLineRental;
     }
     if (target.dataset.choice === 'person.homeStatus') {
       if (target.dataset.value === 'tenant') {
