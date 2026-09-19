@@ -651,9 +651,9 @@ function renderBroadband() {
         ${chosen ? `<div class="selected-service-price broadband-price"><strong>${escapeHtml(chosen.label)}</strong><span>£${money(result.uw.broadband)}/m</span></div>` : '<p class="hint">Choose the speed/package above.</p>'}
         <div class="uw-side-options">
           <label class="compact-toggle full"><span>Whole Home Wi-Fi <small>+£5/m</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.wholeHomeWifi"${checked(bb.wholeHomeWifi)}><i></i></span></label>
-          ${appointment.person.homeStatus === 'homeowner' ? `<label class="compact-toggle full"><span>6 months free</span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
-          <label class="compact-toggle full"><span>Digital phone line</span><span class="switch-control"><input type="checkbox" data-field="broadband.homePhoneEnabled"${checked(bb.homePhoneEnabled)}><i></i></span></label>
-          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="phone-bundle-pills"><button class="phone-bundle-option${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none"><strong>No bundle</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.fullFibreLineRental)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver"><strong>Off-Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.offPeakSaverMonthly)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver"><strong>Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.peakSaverMonthly)}/m</small></button></div><p class="micro-copy">Choose one call bundle only. Digital Home Phone line rental is £0 with Full Fibre.</p></div>` : ''}
+          ${appointment.person.homeStatus === 'homeowner' && bb.connectionFamily === 'full' ? `<label class="compact-toggle full"><span>6 months free</span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
+          ${bb.connectionFamily === 'full' ? `<label class="compact-toggle full"><span>Digital phone line</span><span class="switch-control"><input type="checkbox" data-field="broadband.homePhoneEnabled"${checked(bb.homePhoneEnabled)}><i></i></span></label>
+          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="phone-bundle-pills"><button class="phone-bundle-option${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none"><strong>No bundle</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.fullFibreLineRental)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver"><strong>Off-Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.offPeakSaverMonthly)}/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver"><strong>Peak Saver</strong><small>£${money(UW_RULES_2026_10_01.broadband.digitalPhone.peakSaverMonthly)}/m</small></button></div><p class="micro-copy">Choose one call bundle only. Digital Home Phone line rental is £0 with Full Fibre.</p></div>` : ''}` : ''}
         </div>
       </div>
     </div>
@@ -1157,6 +1157,12 @@ document.addEventListener('click', async event => {
       appointment.broadband.packageId = '';
       appointment.broadband.uwMonthly = 0;
     }
+    if (appointment.broadband.connectionFamily === 'part') {
+      appointment.broadband.freeMonthsOffer = false;
+      appointment.broadband.homePhoneEnabled = false;
+      appointment.broadband.homePhoneBundle = 'none';
+      appointment.broadband.homePhoneMonthly = 0;
+    }
     serviceSetupOpen = '';
     markChanged(); render(); return;
   }
@@ -1294,6 +1300,12 @@ document.addEventListener('click', async event => {
     appointment.broadband.packageId = selectedPackage.id;
     appointment.broadband.connectionFamily = /^fibre/.test(selectedPackage.id) ? 'full' : 'part';
     appointment.broadband.uwMonthly = selectedPackage.monthly;
+    if (appointment.broadband.connectionFamily === 'part') {
+      appointment.broadband.freeMonthsOffer = false;
+      appointment.broadband.homePhoneEnabled = false;
+      appointment.broadband.homePhoneBundle = 'none';
+      appointment.broadband.homePhoneMonthly = 0;
+    }
     markChanged(); render(); return;
   }
   if (target.dataset.estimateFuel) {
