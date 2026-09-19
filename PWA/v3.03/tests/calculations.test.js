@@ -252,3 +252,42 @@ test('peak off-peak current rates add VAT when bill rates are entered ex VAT', (
   appointment.energy.e7StandardAnnualCost = 800;
   assert.equal(calculateAppointment(appointment).e7StandardAnnualSaving, 126.63);
 });
+
+
+test('indicative Energy result exposes electricity gas and rate breakdowns', () => {
+  const appointment = createAppointment('Breakdown');
+  appointment.services.energy = true;
+  appointment.energy.region = '11';
+  appointment.energy.fuel = 'dual';
+  appointment.energy.annualElectricityKwh = 2500;
+  appointment.energy.annualGasKwh = 11500;
+  const data = { tariffLive: [{
+    region_no: 11, payment_method: 'DD', tariff_name: 'Fixed 12M', tariff_type: 'fixed',
+    EDSC_Std: 50, EUR_Std: 24, GDSC: 24, GUR: 7, dual_fuel_discount_ex_vat: 0
+  }] };
+  const detail = calculateIndicativeEnergyCost(data, appointment, 3, 'fixed');
+  assert.ok(detail.electricityMonthly > 0);
+  assert.ok(detail.gasMonthly > 0);
+  assert.equal(Math.round((detail.electricityMonthly + detail.gasMonthly) * 100) / 100, detail.monthly);
+  assert.equal(detail.electricityRates.unit, 25.2);
+  assert.equal(detail.gasRates.unit, 7.35);
+});
+
+test('Part Fibre does not apply Full Fibre-only phone or six-month benefits', () => {
+  const appointment = createAppointment('Part Fibre');
+  appointment.person.homeStatus = 'homeowner';
+  appointment.services.energy = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 90;
+  appointment.services.broadband = true;
+  appointment.broadband.connectionFamily = 'part';
+  appointment.broadband.currentMonthly = 35;
+  appointment.broadband.uwMonthly = 26;
+  appointment.broadband.homePhoneEnabled = true;
+  appointment.broadband.homePhoneBundle = 'peakSaver';
+  appointment.broadband.homePhoneMonthly = 13;
+  appointment.broadband.freeMonthsOffer = true;
+  const result = calculateAppointment(appointment);
+  assert.equal(result.uw.broadband, 26);
+  assert.equal(result.broadbandIntroBenefit, 0);
+});
