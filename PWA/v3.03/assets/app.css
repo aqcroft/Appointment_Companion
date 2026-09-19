@@ -1169,3 +1169,32 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .broadband-package-list { grid-template-columns:1fr; }
   .broadband-package-option { min-height:44px; }
 }
+
+
+/* V3.03 compact Broadband package rows */
+.broadband-package-list.full-fibre-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.broadband-package-list.part-fibre-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.broadband-package-option {
+  justify-items: center;
+  min-height: 40px;
+  text-align: center;
+}
+.broadband-package-option strong {
+  font-size: 12px;
+}
+@media(max-width:560px) {
+  .broadband-package-list.full-fibre-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .broadband-package-list.part-fibre-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .broadband-package-option {
+    min-height: 38px;
+    padding: 6px 4px;
+  }
+}
