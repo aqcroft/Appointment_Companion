@@ -12,7 +12,7 @@ import { createSummaryActivity, summaryHistory } from './summary/history.js';
 import { UnsavedWorkGuard } from './shell/unsaved-work-guard.js';
 import { launchTool } from './specialists/launcher.js';
 import { loadTariffs, TARIFF_FEED_URL } from './data/tariff-client.js';
-import { buildIndicativeTiers, buildTariffGrid } from './energy/indicative-cost.js';
+import { buildIndicativeTiers, buildTariffGrid, calculateIndicativeEnergyCost } from './energy/indicative-cost.js';
 import { buildMealDealPreview } from './appointment/upgrade-preview.js';
 import { safeHttps } from './summary/share-policy.js';
 
