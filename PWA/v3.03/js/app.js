@@ -632,7 +632,7 @@ function renderBroadband() {
     <div class="compact-workspace-title"><strong>🛜 Broadband</strong><span>${escapeHtml(familyLabel)}</span></div>
     <div class="compare-grid">
       <div class="compare-column current-column"><div class="compare-label">CURRENT</div>
-        <label class="field"><span>Monthly cost</span>${field('broadband.currentMonthly',bb.currentMonthly,'type="number" min="0" step="0.01" placeholder="£ per month"')}</label>
+        <label class="field"><span>Monthly cost</span>${field('broadband.currentMonthly',bb.currentMonthly,'type="number" min="0" step="1" data-round-whole="true" placeholder="£ per month"')}</label>
         <details class="advanced compact-advanced" ${bb.currentSpeed ? 'open' : ''}><summary>Current speed <small>(optional)</small></summary><label class="field"><span>Speed / note</span>${field('broadband.currentSpeed',bb.currentSpeed,'placeholder="e.g. 100 Mbps"')}</label></details>
         <label class="compact-toggle full current-side-option"><span>Exit fees</span><span class="switch-control"><input type="checkbox" data-field="broadband.exitFeesApply"${checked(bb.exitFeesApply)}><i></i></span></label>${bb.exitFeesApply ? `<label class="field field-gap"><span>Broadband exit fee</span>${field('broadband.exitFee',bb.exitFee,'type="number" min="0"')}</label>` : ''}
       </div>
@@ -647,7 +647,7 @@ function renderBroadband() {
           <label class="compact-toggle full"><span>Whole Home Wi-Fi <small>+£5/m</small></span><span class="switch-control"><input type="checkbox" data-field="broadband.wholeHomeWifi"${checked(bb.wholeHomeWifi)}><i></i></span></label>
           ${appointment.person.homeStatus === 'homeowner' ? `<label class="compact-toggle full"><span>6 months free</span><span class="switch-control"><input type="checkbox" data-field="broadband.freeMonthsOffer"${checked(bb.freeMonthsOffer)}><i></i></span></label>` : ''}
           <label class="compact-toggle full"><span>Digital phone line</span><span class="switch-control"><input type="checkbox" data-field="broadband.homePhoneEnabled"${checked(bb.homePhoneEnabled)}><i></i></span></label>
-          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="pills phone-bundle-pills"><button class="pill${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none">No bundle</button><button class="pill${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver">Peak Saver</button><button class="pill${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver">Off-Peak Saver</button></div><label class="field"><span>${escapeHtml(phoneBundleLabel)} monthly price</span>${field('broadband.homePhoneMonthly',bb.homePhoneMonthly,'type="number" min="0" step="0.01" placeholder="£ per month"')}</label></div>` : ''}
+          ${bb.homePhoneEnabled ? `<div class="digital-phone-options"><small class="uw-subhead">Call bundle</small><div class="phone-bundle-pills"><button class="phone-bundle-option${on(bb.homePhoneBundle,'none')}" type="button" data-choice="broadband.homePhoneBundle" data-value="none"><strong>No bundle</strong><small>£0/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'offPeakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="offPeakSaver"><strong>Off-Peak Saver</strong><small>£6.50/m</small></button><button class="phone-bundle-option${on(bb.homePhoneBundle,'peakSaver')}" type="button" data-choice="broadband.homePhoneBundle" data-value="peakSaver"><strong>Peak Saver</strong><small>£13/m</small></button></div><p class="micro-copy">Choose one call bundle only. Digital Home Phone line rental is £0 with Full Fibre.</p></div>` : ''}
         </div>
       </div>
     </div>
@@ -1187,6 +1187,9 @@ document.addEventListener('click', async event => {
   }
   if (target.dataset.choice) {
     setPath(appointment, target.dataset.choice, target.dataset.value);
+    if (target.dataset.choice === 'broadband.homePhoneBundle') {
+      appointment.broadband.homePhoneMonthly = target.dataset.value === 'peakSaver' ? 13 : target.dataset.value === 'offPeakSaver' ? 6.5 : 0;
+    }
     if (target.dataset.choice === 'person.homeStatus') {
       if (target.dataset.value === 'tenant') {
         appointment.services.boilerCover = false;
