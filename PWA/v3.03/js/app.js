@@ -515,7 +515,7 @@ function renderEnergy() {
   const baseDetail = tariffData ? calculateIndicativeEnergyCost(tariffData, appointment, tier, energy.selectedTariffFamily) : null;
   const peakFamily = energy.electricityProfile === 'ev'
     ? 'evVariable'
-    : energy.selectedTariffFamily === 'fixed' ? 'fixedE7'
+    : ['fixed','fixedE7'].includes(energy.selectedTariffFamily) ? 'fixedE7'
       : energy.selectedTariffFamily === 'tracker' ? 'tracker'
         : 'economy7Variable';
   const peakDetail = tariffData && energy.peakOffPeak ? calculateIndicativeEnergyCost(tariffData, appointment, tier, peakFamily) : null;
@@ -557,7 +557,9 @@ function renderEnergy() {
     : `<div class="selected-service-price energy-price"><strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${wholeMoney(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(tariffLabel)} · ${tier}-service price</small></div>`;
 
   const uwPeakRates = peakDetail?.electricityRates;
-  const liveSuite = tariffData ? [1,2,3].map(count => calculateIndicativeEnergyCost(tariffData, appointment, count, energy.selectedTariffFamily)) : [];
+  const liveSuiteRows = tariffData
+    ? buildTariffGrid(tariffData, appointment).filter(row => ['standardVariable','tracker','fixed'].includes(row.id))
+    : [];
 
   return `<section class="card service-workspace energy-workspace" id="energyPanel">
     <div class="compact-workspace-title"><strong>⚡🔥 Energy</strong><span>${escapeHtml(fuelLabel)}</span></div>
@@ -616,7 +618,7 @@ function renderEnergy() {
       <div class="segmented wrap"><button class="${on(energy.uwQuoteMode,'single')}" type="button" data-choice="energy.uwQuoteMode" data-value="single">Manual UW quote</button><button class="${on(energy.uwQuoteMode,'tiers')}" type="button" data-choice="energy.uwQuoteMode" data-value="tiers">Live tariff suite</button></div>
       ${energy.uwQuoteMode === 'single'
         ? `<div class="compare-grid field-gap"><div class="compare-column current-column"><div class="compare-label">CURRENT</div><p class="micro-copy">No UW quote override applies here.</p></div><div class="compare-column uw-column"><div class="compare-label">UW</div><label class="field"><span>Confirmed UW monthly amount</span>${field('energy.uwMonthly',energy.uwMonthly,'type="number" min="0" step="1" data-round-whole="true"')}</label></div></div>`
-        : `<div class="compare-grid field-gap"><div class="compare-column current-column"><div class="compare-label">CURRENT</div><p class="micro-copy">The live suite applies to UW only.</p></div><div class="compare-column uw-column"><div class="compare-label">UW TARIFF SUITE</div><div class="suite-price-list">${liveSuite.map((detail,index) => `<span><small>${index+1} service${index ? 's' : ''}</small><strong>${detail ? `£${wholeMoney(detail.monthly)}/m` : '—'}</strong><b>${escapeHtml(detail?.tariffName || tariffLabel)}</b></span>`).join('')}</div></div></div>`}
+        : `<div class="compare-grid field-gap"><div class="compare-column current-column"><div class="compare-label">CURRENT</div><p class="micro-copy">The live tariff suite applies to UW only. The selected tariff above drives the main comparison.</p></div><div class="compare-column uw-column"><div class="compare-label">UW TARIFF SUITE</div><div class="suite-family-list">${liveSuiteRows.map(row => `<div class="suite-family"><strong>${escapeHtml(row.label)}</strong><div class="suite-price-list">${[1,2,3].map(count => { const detail = row.values[count]; return `<span><small>${count} service${count === 1 ? '' : 's'}</small><strong>${detail ? `£${wholeMoney(detail.monthly)}/m` : '—'}</strong><b>${escapeHtml(detail?.tariffName || row.label)}</b></span>`; }).join('')}</div></div>`).join('') || '<p class="micro-copy">No live tariff suite data is available for this region.</p>'}</div></div>`}
       <label class="compact-toggle full"><span>Manual Energy adjustment</span><span class="switch-control"><input type="checkbox" data-field="energy.adjustmentEnabled"${checked(energy.adjustmentEnabled)}><i></i></span></label>
       ${energy.adjustmentEnabled ? `<div class="compare-grid field-gap manual-energy-adjustment">
         ${['current','uw'].map(side => `<div class="compare-column ${side === 'uw' ? 'uw-column' : 'current-column'}"><div class="compare-label">${side === 'uw' ? 'UW' : 'CURRENT'}</div><button class="side-select ${on(energy.adjustmentTarget,side)}" type="button" data-choice="energy.adjustmentTarget" data-value="${side}">${energy.adjustmentTarget === side ? '✓ Adjusting this side' : 'Adjust this side'}</button>${energy.adjustmentTarget === side ? `<div class="segmented sign-toggle"><button class="${on(energy.adjustmentSign,'plus')}" type="button" data-choice="energy.adjustmentSign" data-value="plus">+ add cost</button><button class="${on(energy.adjustmentSign,'minus')}" type="button" data-choice="energy.adjustmentSign" data-value="minus">− reduce cost</button></div><label class="field"><span>Amount</span>${field('energy.adjustmentAmount',energy.adjustmentAmount,'type="number" min="0" step="1"')}</label><label class="field"><span>Regularity</span><select data-field="energy.adjustmentPeriod"><option value="monthly"${selected(energy.adjustmentPeriod,'monthly')}>Monthly</option><option value="annual"${selected(energy.adjustmentPeriod,'annual')}>Annual</option></select></label><label class="field"><span>Reason</span>${field('energy.adjustmentReason',energy.adjustmentReason,'placeholder="Optional note"')}</label>` : ''}</div>`).join('')}
@@ -1019,6 +1021,10 @@ document.addEventListener('input', event => {
   if (target.id === 'personNameInput') { showDuplicateWarning(target.value); showPersonSearch(target.value); return; }
   if (!target.dataset.field) return;
   setPath(appointment, target.dataset.field, inputValue(target));
+  if (target.dataset.formatNumber === 'integer') {
+    const rawDigits = String(target.value || '').replace(/[^0-9]/g,'').replace(/^0+(?=\d)/,'');
+    target.value = rawDigits ? Number(rawDigits).toLocaleString('en-GB') : '';
+  }
   if (target.dataset.field === 'cashback.monthlySpend') {
     const output = document.querySelector('[data-cashback-output]');
     if (output) output.textContent = `£${money(target.value)}/m`;
@@ -1077,6 +1083,11 @@ document.addEventListener('change', event => {
       render();
       return;
     }
+  }
+  if (/^energy\.(region|electricity(Uw|Bill|Estimated)Kwh|gas(Uw|Bill|Estimated)Kwh|dayKwh|nightKwh|currentDayRate|currentNightRate|currentStandingCharge)$/.test(path)) {
+    markChanged();
+    render();
+    return;
   }
   if (['energy.billUsageAvailable','energy.peakOffPeak','energy.adjustmentEnabled','broadband.freeMonthsOffer','broadband.homePhoneEnabled','cashback.enabled','adjustments.recurringEnabled','adjustments.oneOffEnabled','person.homeStatus','benefits.referral','benefits.nationalLeague'].includes(path) || /\.exitFeesApply$/.test(path)) render();
 });
