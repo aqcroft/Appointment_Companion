@@ -470,11 +470,25 @@ function energyTariffModal() {
   </div>`;
 }
 
-function energyUsageSelection(source) {
+function splitEstimatorModal() {
+  if (!splitEstimatorOpen) return '';
   const energy = appointment.energy;
-  const relevant = energy.fuel === 'electricity' ? ['electricity'] : energy.fuel === 'gas' ? ['gas'] : ['electricity','gas'];
-  return relevant.every(fuel => energy[`${fuel}UsageSource`] === source);
+  const split = calculateAnnualDayNightSplit(energy.annualElectricityKwh, energy.splitSampleDayKwh, energy.splitSampleNightKwh);
+  return `<div class="tariff-modal-backdrop split-modal-backdrop" role="presentation">
+    <section class="tariff-modal-card split-modal-card" role="dialog" aria-modal="true" aria-labelledby="splitModalTitle">
+      <div class="tariff-modal-head"><div><small>Peak / off-peak</small><h2 id="splitModalTitle">Estimate the annual split</h2></div><button type="button" data-close-split-estimator aria-label="Close split estimator">×</button></div>
+      <p class="tariff-modal-intro">Use any matching peak and off-peak readings from a bill. The Companion will apply that ratio to the selected annual electricity usage.</p>
+      <div class="grid-2 split-sample-grid">
+        <label class="field"><span>☀️ Peak sample kWh</span>${integerField('energy.splitSampleDayKwh',energy.splitSampleDayKwh,'min="0"')}</label>
+        <label class="field"><span>🌙 Off-peak sample kWh</span>${integerField('energy.splitSampleNightKwh',energy.splitSampleNightKwh,'min="0"')}</label>
+      </div>
+      ${split.annualDayKwh || split.annualNightKwh ? `<div class="split-preview"><span><small>Peak</small><strong>${split.dayPercent.toFixed(1)}%</strong><b>${split.annualDayKwh.toLocaleString('en-GB')} kWh</b></span><span><small>Off-peak</small><strong>${split.nightPercent.toFixed(1)}%</strong><b>${split.annualNightKwh.toLocaleString('en-GB')} kWh</b></span></div>` : '<p class="notice">Add both sample figures to calculate the split.</p>'}
+      <div class="tariff-modal-foot"><small>Based on annual electricity usage of ${Math.round(Number(energy.annualElectricityKwh || 0)).toLocaleString('en-GB')} kWh.</small><div class="action-row"><button class="quiet" type="button" data-close-split-estimator>Cancel</button><button class="primary" type="button" data-apply-split ${split.annualDayKwh || split.annualNightKwh ? '' : 'disabled'}>Apply split</button></div></div>
+    </section>
+  </div>`;
 }
+
+function energyUsageSelection
 
 function energyUsageReady(source) {
   const energy = appointment.energy;
@@ -492,60 +506,118 @@ function refreshIndicativePanel() {
 
 function renderEnergy() {
   const energy = appointment.energy;
-  const split = calculateAnnualDayNightSplit(energy.annualElectricityKwh, energy.splitSampleDayKwh, energy.splitSampleNightKwh);
-  const e7CurrentAnnual = calculateEconomy7AnnualCost({ dayKwh: energy.dayKwh, nightKwh: energy.nightKwh, dayRate: energy.currentDayRate, nightRate: energy.currentNightRate, standingCharge: energy.currentStandingCharge });
-  const e7Saving = e7CurrentAnnual && energy.e7StandardAnnualCost ? e7CurrentAnnual - energy.e7StandardAnnualCost : 0;
   const result = calculateAppointment(appointment);
+  const tier = result.rules.energyTariff || 1;
+  const baseDetail = tariffData ? calculateIndicativeEnergyCost(tariffData, appointment, tier, energy.selectedTariffFamily) : null;
+  const peakFamily = energy.electricityProfile === 'ev'
+    ? 'evVariable'
+    : energy.selectedTariffFamily === 'fixed' ? 'fixedE7'
+      : energy.selectedTariffFamily === 'tracker' ? 'tracker'
+        : 'economy7Variable';
+  const peakDetail = tariffData && energy.peakOffPeak ? calculateIndicativeEnergyCost(tariffData, appointment, tier, peakFamily) : null;
+  const e7CurrentAnnual = calculateEconomy7AnnualCost({
+    dayKwh: energy.dayKwh,
+    nightKwh: energy.nightKwh,
+    dayRate: energy.currentDayRate,
+    nightRate: energy.currentNightRate,
+    standingCharge: energy.currentStandingCharge,
+    ratesIncludeVat: energy.currentRatesIncludeVat
+  });
   const tariffLabel = {
     standardVariable: 'Variable', tracker: 'Tracker', fixed: 'Fixed',
     evVariable: 'EV Variable', economy7Variable: 'Economy 7 Variable', fixedE7: 'Fixed Economy 7'
   }[energy.selectedTariffFamily] || 'Fixed';
-  const regionLabel = REGIONS.find(([id]) => String(id) === String(energy.region))?.[1] || 'Region';
   const fuelLabel = energy.fuel === 'electricity' ? 'Electricity' : energy.fuel === 'gas' ? 'Gas' : 'Dual fuel';
-  const currentBlock = energy.currentCostMode === 'monthly'
-    ? `<label class="field"><span>Monthly payment</span>${field('energy.currentMonthly',energy.currentMonthly,'type="number" min="0" step="0.01" placeholder="£ per month"')}</label>`
-    : energy.currentCostMode === 'split'
-      ? `<div class="grid-2 compact-split">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity / month</span>${field('energy.currentElectricityMonthly',energy.currentElectricityMonthly,'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas / month</span>${field('energy.currentGasMonthly',energy.currentGasMonthly,'type="number" min="0" step="0.01"')}</label>` : ''}</div>`
-      : `<div class="grid-2 compact-split">${energy.fuel !== 'gas' ? `<label class="field"><span>Annual electricity</span>${field('energy.annualElectricityCost',energy.annualElectricityCost,'type="number" min="0" step="0.01"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Annual gas</span>${field('energy.annualGasCost',energy.annualGasCost,'type="number" min="0" step="0.01"')}</label>` : ''}</div>`;
   const usingCurrentUsage = energyUsageSelection('bill');
   const usingUwUsage = energyUsageSelection('uw');
+  const usingEstimate = energyUsageSelection('estimated');
   const currentUsageReady = energyUsageReady('bill');
+
+  const currentBlock = energy.currentCostMode === 'monthly'
+    ? `<label class="field"><span>Total monthly Direct Debit</span>${field('energy.currentMonthly',energy.currentMonthly,'type="number" min="0" step="1" data-round-whole="true" placeholder="£ per month"')}</label>`
+    : energy.currentCostMode === 'split'
+      ? `<div class="grid-2 compact-split">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity monthly DD</span>${field('energy.currentElectricityMonthly',energy.currentElectricityMonthly,'type="number" min="0" step="1" data-round-whole="true"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas monthly DD</span>${field('energy.currentGasMonthly',energy.currentGasMonthly,'type="number" min="0" step="1" data-round-whole="true"')}</label>` : ''}</div>`
+      : `<div class="grid-2 compact-split">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity annual cost</span>${field('energy.annualElectricityCost',energy.annualElectricityCost,'type="number" min="0" step="1" data-round-whole="true"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas annual cost</span>${field('energy.annualGasCost',energy.annualGasCost,'type="number" min="0" step="1" data-round-whole="true"')}</label>` : ''}</div>`;
+
+  const estimateBands = [
+    ['low','Low',1600,7500],
+    ['medium','Medium',2500,11500],
+    ['high','High',3800,17000]
+  ];
+  const estimateSummary = usingEstimate
+    ? `<div class="estimate-active"><strong>Using estimate</strong><span>${energy.fuel !== 'gas' ? Math.round(energy.electricityEstimatedKwh).toLocaleString('en-GB') + ' kWh electricity' : ''}${energy.fuel === 'dual' ? ' · ' : ''}${energy.fuel !== 'electricity' ? Math.round(energy.gasEstimatedKwh).toLocaleString('en-GB') + ' kWh gas' : ''}</span></div>`
+    : '';
+
+  const uwBreakdown = baseDetail
+    ? `<div class="energy-cost-breakdown">${energy.fuel !== 'gas' ? `<span><small>Electricity</small><strong>£${wholeMoney(baseDetail.electricityMonthly)}/m</strong></span>` : ''}${energy.fuel !== 'electricity' ? `<span><small>Gas</small><strong>£${wholeMoney(baseDetail.gasMonthly)}/m</strong></span>` : ''}<span class="total"><small>Total</small><strong>£${wholeMoney(result.uw.energy)}/m</strong></span></div>`
+    : `<div class="selected-service-price energy-price"><strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${wholeMoney(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(tariffLabel)} · ${tier}-service price</small></div>`;
+
+  const uwPeakRates = peakDetail?.electricityRates;
+  const liveSuite = tariffData ? [1,2,3].map(count => calculateIndicativeEnergyCost(tariffData, appointment, count, energy.selectedTariffFamily)) : [];
+
   return `<section class="card service-workspace energy-workspace" id="energyPanel">
     <div class="compact-workspace-title"><strong>⚡🔥 Energy</strong><span>${escapeHtml(fuelLabel)}</span></div>
     <div class="energy-top-row"><label class="field region-field"><span>Region</span><select data-field="energy.region">${REGIONS.map(([id,label]) => `<option value="${id}"${selected(energy.region,id)}>${label}</option>`).join('')}</select></label>${energyTariffControl()}</div>
+
+    ${estimateSummary}
     <div class="compare-grid energy-core-compare">
       <div class="compare-column current-column${usingCurrentUsage ? ' usage-selected' : ''}"><div class="compare-label">CURRENT</div>
         <div class="energy-usage-pair first-block"><small class="usage-section-label">Current provider usage</small>
-          ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${field('energy.electricityBillKwh',energy.electricityBillKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
-          ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${field('energy.gasBillKwh',energy.gasBillKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
+          ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${integerField('energy.electricityBillKwh',energy.electricityBillKwh,'min="0" placeholder="kWh/year"')}</label>` : ''}
+          ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${integerField('energy.gasBillKwh',energy.gasBillKwh,'min="0" placeholder="kWh/year"')}</label>` : ''}
           <button class="usage-choice-button${usingCurrentUsage ? ' selected' : ''}" type="button" data-energy-usage-source="bill" ${currentUsageReady ? '' : 'disabled'}>${usingCurrentUsage ? '✓ Using this usage' : 'Use this usage'}</button>
         </div>
         <div class="energy-cost-block"><small class="usage-section-label">Current cost</small>${currentBlock}</div>
-        <details class="advanced compact-advanced" ${energy.currentCostMode !== 'monthly' ? 'open' : ''}><summary>Different cost setup</summary><div class="segmented wrap"><button class="${on(energy.currentCostMode,'monthly')}" type="button" data-choice="energy.currentCostMode" data-value="monthly">One payment</button><button class="${on(energy.currentCostMode,'split')}" type="button" data-choice="energy.currentCostMode" data-value="split">Separate</button><button class="${on(energy.currentCostMode,'annual')}" type="button" data-choice="energy.currentCostMode" data-value="annual">Annual</button></div></details>
+        <details class="advanced compact-advanced" ${energy.currentCostMode !== 'monthly' ? 'open' : ''}><summary>Current cost options</summary><p class="micro-copy">Usually use the total monthly Direct Debit. Open this only if the fuels are billed separately or annual costs are easier.</p><div class="segmented wrap"><button class="${on(energy.currentCostMode,'monthly')}" type="button" data-choice="energy.currentCostMode" data-value="monthly">Monthly DD</button><button class="${on(energy.currentCostMode,'split')}" type="button" data-choice="energy.currentCostMode" data-value="split">Separate DDs</button><button class="${on(energy.currentCostMode,'annual')}" type="button" data-choice="energy.currentCostMode" data-value="annual">Annual costs</button></div></details>
         <label class="compact-toggle full current-side-option"><span>Exit fees</span><span class="switch-control"><input type="checkbox" data-field="energy.exitFeesApply"${checked(energy.exitFeesApply)} aria-label="Energy exit fees apply"><i></i></span></label>
-        ${energy.exitFeesApply ? `<div class="grid-2 compact-split field-gap">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity exit fee</span>${field('energy.electricityExitFee',energy.electricityExitFee,'type="number" min="0"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas exit fee</span>${field('energy.gasExitFee',energy.gasExitFee,'type="number" min="0"')}</label>` : ''}</div>` : ''}
+        ${energy.exitFeesApply ? `<div class="grid-2 compact-split field-gap">${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity exit fee</span>${field('energy.electricityExitFee',energy.electricityExitFee,'type="number" min="0" step="1"')}</label>` : ''}${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas exit fee</span>${field('energy.gasExitFee',energy.gasExitFee,'type="number" min="0" step="1"')}</label>` : ''}</div>` : ''}
       </div>
+
       <div class="compare-column uw-column${usingUwUsage ? ' usage-selected' : ''}"><div class="compare-label">UW</div>
         <div class="energy-usage-pair first-block"><small class="usage-section-label">Quote usage <span>(national database)</span></small>
-          ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${field('energy.electricityUwKwh',energy.electricityUwKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
-          ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${field('energy.gasUwKwh',energy.gasUwKwh,'type="number" inputmode="numeric" min="0" placeholder="kWh/year"')}</label>` : ''}
+          ${energy.fuel !== 'gas' ? `<label class="field"><span>Electricity <small>Annual kWh</small></span>${integerField('energy.electricityUwKwh',energy.electricityUwKwh,'min="0" placeholder="kWh/year"')}</label>` : ''}
+          ${energy.fuel !== 'electricity' ? `<label class="field"><span>Gas <small>Annual kWh</small></span>${integerField('energy.gasUwKwh',energy.gasUwKwh,'min="0" placeholder="kWh/year"')}</label>` : ''}
           <button class="usage-choice-button${usingUwUsage ? ' selected' : ''}" type="button" data-energy-usage-source="uw">${usingUwUsage ? '✓ Using this usage' : 'Use this usage'}</button>
         </div>
-        <div class="energy-cost-block"><small class="usage-section-label">UW cost</small><div class="selected-service-price energy-price"><strong>UW Energy</strong><span>${result.uw.energy > 0 ? `£${money(result.uw.energy)}/m` : 'Waiting for usage'}</span><small>${escapeHtml(tariffLabel)} · ${result.rules.energyTariff || 1}-service rate</small></div></div>
+        <div class="energy-cost-block"><small class="usage-section-label">UW cost</small>${uwBreakdown}<small class="tariff-source-line">${escapeHtml(baseDetail?.tariffName || tariffLabel)} · ${tier}-service price</small></div>
       </div>
     </div>
 
-    <details class="advanced usage-estimate-fallback"><summary>Need an estimate instead?</summary><div class="usage-grid">
-      ${energy.fuel !== 'gas' ? `<div class="estimate-choice"><strong>Electricity</strong><div class="estimate-row">${[['Low',1600],['Typical',2500],['High',3800]].map(([name,value]) => `<button class="pill${energy.electricityUsageSource === 'estimated' && on(energy.electricityEstimatedKwh,value)}" type="button" data-estimate-fuel="electricity" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')} kWh</small></button>`).join('')}</div></div>` : ''}
-      ${energy.fuel !== 'electricity' ? `<div class="estimate-choice"><strong>Gas</strong><div class="estimate-row">${[['Low',7500],['Typical',11500],['High',17000]].map(([name,value]) => `<button class="pill${energy.gasUsageSource === 'estimated' && on(energy.gasEstimatedKwh,value)}" type="button" data-estimate-fuel="gas" data-estimate-value="${value}">${name}<small>${value.toLocaleString('en-GB')} kWh</small></button>`).join('')}</div></div>` : ''}
-    </div></details>
+    <details class="advanced usage-estimate-fallback"><summary>Using Low, Medium or High?</summary><p class="micro-copy">Use one preset for the whole household. It replaces any electricity and gas usage already entered above.</p><div class="estimate-band-row">${estimateBands.map(([id,label,electricity,gas]) => `<button class="estimate-band${usingEstimate && ((energy.fuel === 'gas' ? energy.gasEstimatedKwh === gas : energy.electricityEstimatedKwh === electricity)) ? ' on' : ''}" type="button" data-estimate-band="${id}" data-electricity="${electricity}" data-gas="${gas}"><strong>${label}</strong><small>${energy.fuel !== 'gas' ? electricity.toLocaleString('en-GB') + ' elec' : ''}${energy.fuel === 'dual' ? '<br>' : ''}${energy.fuel !== 'electricity' ? gas.toLocaleString('en-GB') + ' gas' : ''}</small></button>`).join('')}</div></details>
 
-    ${energy.fuel !== 'gas' ? `<section class="workspace-section compact-options offpeak-section"><label class="compact-toggle full"><span>Peak / off-peak</span><span class="switch-control"><input type="checkbox" data-field="energy.peakOffPeak"${checked(energy.peakOffPeak)}><i></i></span></label>${energy.peakOffPeak ? `<div class="offpeak-grid">
-      <div class="offpeak-panel"><div class="compare-label">USAGE</div><div class="segmented"><button class="${on(energy.electricityProfile,'economy7')}" type="button" data-choice="energy.electricityProfile" data-value="economy7">Economy 7</button><button class="${on(energy.electricityProfile,'ev')}" type="button" data-choice="energy.electricityProfile" data-value="ev">EV</button></div><div class="grid-2 field-gap"><label class="field"><span>Day / peak kWh</span>${field('energy.dayKwh',energy.dayKwh,'type="number" min="0"')}</label><label class="field"><span>Night / off-peak kWh</span>${field('energy.nightKwh',energy.nightKwh,'type="number" min="0"')}</label></div><details class="advanced compact-advanced"><summary>Estimate day/night split</summary><div class="grid-2"><label class="field"><span>Bill day kWh</span>${field('energy.splitSampleDayKwh',energy.splitSampleDayKwh,'type="number" min="0"')}</label><label class="field"><span>Bill night kWh</span>${field('energy.splitSampleNightKwh',energy.splitSampleNightKwh,'type="number" min="0"')}</label></div><p class="notice">${split.annualDayKwh || split.annualNightKwh ? `${split.dayPercent.toFixed(1)}% day / ${split.nightPercent.toFixed(1)}% night → ${split.annualDayKwh} / ${split.annualNightKwh} kWh.` : 'Add matching day and night bill figures.'}</p><button class="secondary" type="button" data-apply-split ${split.annualDayKwh || split.annualNightKwh ? '' : 'disabled'}>Apply split</button></details></div>
-      <div class="offpeak-panel"><div class="compare-label">COST</div><div class="offpeak-cost-row"><span>Current provider</span><strong>${e7CurrentAnnual ? `£${wholeMoney(e7CurrentAnnual / 12)}/m` : 'Add rates'}</strong></div><div class="offpeak-cost-row uw"><span>UW</span><strong>${result.uw.energy > 0 ? `£${wholeMoney(result.uw.energy)}/m` : 'Waiting for usage'}</strong></div><details class="advanced compact-advanced"><summary>Current peak/off-peak rates</summary><div class="grid-3"><label class="field"><span>Day p/kWh</span>${field('energy.currentDayRate',energy.currentDayRate,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Night p/kWh</span>${field('energy.currentNightRate',energy.currentNightRate,'type="number" min="0" step="0.01"')}</label><label class="field"><span>Standing p/day</span>${field('energy.currentStandingCharge',energy.currentStandingCharge,'type="number" min="0" step="0.01"')}</label></div><label class="field"><span>Standard alternative annual cost</span>${field('energy.e7StandardAnnualCost',energy.e7StandardAnnualCost,'type="number" min="0" step="0.01"')}</label>${e7CurrentAnnual && energy.e7StandardAnnualCost ? `<p class="notice ${e7Saving < 0 ? 'warn' : ''}">${e7Saving >= 0 ? `Standard could save about £${money(e7Saving)}/year.` : `Economy 7 is about £${money(Math.abs(e7Saving))}/year lower.`}</p>` : ''}</details></div>
-    </div>` : ''}</section>` : ''}
+    ${energy.fuel !== 'gas' ? `<section class="workspace-section compact-options offpeak-section">
+      <label class="compact-toggle full"><span>Peak / off-peak</span><span class="switch-control"><input type="checkbox" data-field="energy.peakOffPeak"${checked(energy.peakOffPeak)}><i></i></span></label>
+      ${energy.peakOffPeak ? `<button class="secondary wide split-estimator-launch" type="button" data-open-split-estimator>Estimate peak / off-peak split</button>
+      <div class="compare-grid offpeak-compare">
+        <div class="compare-column current-column offpeak-side">
+          <div class="compare-label">CURRENT PROVIDER</div>
+          <div class="segmented service-colour-segmented"><button class="${on(energy.electricityProfile,'economy7')}" type="button" data-choice="energy.electricityProfile" data-value="economy7">Economy 7</button><button class="${on(energy.electricityProfile,'ev')}" type="button" data-choice="energy.electricityProfile" data-value="ev">EV</button></div>
+          <div class="grid-2 offpeak-usage-fields"><label class="field"><span>☀️ Peak usage</span>${integerField('energy.dayKwh',energy.dayKwh,'min="0" placeholder="kWh"')}</label><label class="field"><span>🌙 Off-peak usage</span>${integerField('energy.nightKwh',energy.nightKwh,'min="0" placeholder="kWh"')}</label></div>
+          <div class="rate-fields"><label class="field"><span>☀️ Peak unit rate</span>${field('energy.currentDayRate',energy.currentDayRate,'type="number" min="0" step="0.01" placeholder="p/kWh"')}</label><label class="field"><span>🌙 Off-peak unit rate</span>${field('energy.currentNightRate',energy.currentNightRate,'type="number" min="0" step="0.01" placeholder="p/kWh"')}</label><label class="field"><span>Standing charge</span>${field('energy.currentStandingCharge',energy.currentStandingCharge,'type="number" min="0" step="0.01" placeholder="p/day"')}</label></div>
+          <div class="segmented vat-toggle"><button class="${!energy.currentRatesIncludeVat ? 'on' : ''}" type="button" data-current-vat="ex">Rates exclude VAT</button><button class="${energy.currentRatesIncludeVat ? 'on' : ''}" type="button" data-current-vat="inc">Rates include VAT</button></div>
+          <div class="offpeak-cost-row"><span>Calculated monthly cost</span><strong>${e7CurrentAnnual ? `£${wholeMoney(e7CurrentAnnual / 12)}/m` : 'Add usage + rates'}</strong></div>
+        </div>
 
-    <details class="advanced"><summary>Confirmed quote &amp; Energy adjustments</summary><div class="segmented wrap"><button class="${on(energy.uwQuoteMode,'single')}" type="button" data-choice="energy.uwQuoteMode" data-value="single">Manual quote</button><button class="${on(energy.uwQuoteMode,'tiers')}" type="button" data-choice="energy.uwQuoteMode" data-value="tiers">Live tiers</button></div><div class="grid-3 field-gap">${energy.uwQuoteMode === 'single' ? `<label class="field"><span>Confirmed UW monthly amount</span>${field('energy.uwMonthly',energy.uwMonthly,'type="number" min="0" step="0.01"')}</label>` : [1,2,3].map(tier => `<label class="field"><span>${tier}-service / month</span>${field(`energy.uwTier${tier}`,energy[`uwTier${tier}`],'type="number" min="0" step="0.01"')}</label>`).join('')}</div><label class="toggle-row"><input type="checkbox" data-field="energy.adjustmentEnabled"${checked(energy.adjustmentEnabled)}><span><strong>Manual Energy adjustment</strong></span></label>${energy.adjustmentEnabled ? `<div class="grid-3"><label class="field"><span>Apply to</span><select data-field="energy.adjustmentTarget"><option value="current"${selected(energy.adjustmentTarget,'current')}>Current</option><option value="uw"${selected(energy.adjustmentTarget,'uw')}>UW</option></select></label><label class="field"><span>Period</span><select data-field="energy.adjustmentPeriod"><option value="monthly"${selected(energy.adjustmentPeriod,'monthly')}>Monthly</option><option value="annual"${selected(energy.adjustmentPeriod,'annual')}>Annual</option></select></label><label class="field"><span>Amount</span>${field('energy.adjustmentAmount',energy.adjustmentAmount,'type="number" min="0" step="0.01"')}</label></div>` : ''}</details>
+        <div class="compare-column uw-column offpeak-side">
+          <div class="compare-label">UW</div>
+          <div class="segmented service-colour-segmented"><button class="${on(energy.electricityProfile,'economy7')}" type="button" data-choice="energy.electricityProfile" data-value="economy7">Economy 7</button><button class="${on(energy.electricityProfile,'ev')}" type="button" data-choice="energy.electricityProfile" data-value="ev">EV</button></div>
+          <div class="offpeak-readonly-grid"><span><small>☀️ Peak usage</small><strong>${Math.round(Number(energy.dayKwh || 0)).toLocaleString('en-GB')} kWh</strong></span><span><small>🌙 Off-peak usage</small><strong>${Math.round(Number(energy.nightKwh || 0)).toLocaleString('en-GB')} kWh</strong></span></div>
+          ${uwPeakRates && uwPeakRates.peak != null ? `<div class="rate-readout"><span><small>☀️ Peak unit rate</small><strong>${money(uwPeakRates.peak)}p/kWh</strong></span><span><small>🌙 Off-peak unit rate</small><strong>${money(uwPeakRates.offPeak)}p/kWh</strong></span><span><small>Standing charge</small><strong>${money(uwPeakRates.standing)}p/day</strong></span><small class="vat-note">UW rates shown including VAT</small></div>` : '<p class="notice">This peak / off-peak tariff is not currently available in the live feed for this region and basket.</p>'}
+          <div class="offpeak-cost-row uw"><span>Calculated UW monthly cost</span><strong>${peakDetail ? `£${wholeMoney(peakDetail.monthly)}/m` : 'Not available'}</strong></div>
+        </div>
+      </div>` : ''}
+    </section>` : ''}
+
+    <details class="advanced energy-advanced"><summary>Confirmed quote / manual Energy override</summary>
+      <div class="segmented wrap"><button class="${on(energy.uwQuoteMode,'single')}" type="button" data-choice="energy.uwQuoteMode" data-value="single">Manual UW quote</button><button class="${on(energy.uwQuoteMode,'tiers')}" type="button" data-choice="energy.uwQuoteMode" data-value="tiers">Live tariff suite</button></div>
+      ${energy.uwQuoteMode === 'single'
+        ? `<div class="compare-grid field-gap"><div class="compare-column current-column"><div class="compare-label">CURRENT</div><p class="micro-copy">No UW quote override applies here.</p></div><div class="compare-column uw-column"><div class="compare-label">UW</div><label class="field"><span>Confirmed UW monthly amount</span>${field('energy.uwMonthly',energy.uwMonthly,'type="number" min="0" step="1" data-round-whole="true"')}</label></div></div>`
+        : `<div class="compare-grid field-gap"><div class="compare-column current-column"><div class="compare-label">CURRENT</div><p class="micro-copy">The live suite applies to UW only.</p></div><div class="compare-column uw-column"><div class="compare-label">UW TARIFF SUITE</div><div class="suite-price-list">${liveSuite.map((detail,index) => `<span><small>${index+1} service${index ? 's' : ''}</small><strong>${detail ? `£${wholeMoney(detail.monthly)}/m` : '—'}</strong><b>${escapeHtml(detail?.tariffName || tariffLabel)}</b></span>`).join('')}</div></div></div>`}
+      <label class="compact-toggle full"><span>Manual Energy adjustment</span><span class="switch-control"><input type="checkbox" data-field="energy.adjustmentEnabled"${checked(energy.adjustmentEnabled)}><i></i></span></label>
+      ${energy.adjustmentEnabled ? `<div class="compare-grid field-gap manual-energy-adjustment">
+        ${['current','uw'].map(side => `<div class="compare-column ${side === 'uw' ? 'uw-column' : 'current-column'}"><div class="compare-label">${side === 'uw' ? 'UW' : 'CURRENT'}</div><button class="side-select ${on(energy.adjustmentTarget,side)}" type="button" data-choice="energy.adjustmentTarget" data-value="${side}">${energy.adjustmentTarget === side ? '✓ Adjusting this side' : 'Adjust this side'}</button>${energy.adjustmentTarget === side ? `<div class="segmented sign-toggle"><button class="${on(energy.adjustmentSign,'plus')}" type="button" data-choice="energy.adjustmentSign" data-value="plus">+ add cost</button><button class="${on(energy.adjustmentSign,'minus')}" type="button" data-choice="energy.adjustmentSign" data-value="minus">− reduce cost</button></div><label class="field"><span>Amount</span>${field('energy.adjustmentAmount',energy.adjustmentAmount,'type="number" min="0" step="1"')}</label><label class="field"><span>Regularity</span><select data-field="energy.adjustmentPeriod"><option value="monthly"${selected(energy.adjustmentPeriod,'monthly')}>Monthly</option><option value="annual"${selected(energy.adjustmentPeriod,'annual')}>Annual</option></select></label><label class="field"><span>Reason</span>${field('energy.adjustmentReason',energy.adjustmentReason,'placeholder="Optional note"')}</label>` : ''}</div>`).join('')}
+      </div>` : ''}
+    </details>
   </section>`;
 }
 
