@@ -163,6 +163,12 @@ export function normaliseAppointment(input = {}) {
   if (!out.broadband.homePhoneEnabled) {
     out.broadband.homePhoneBundle = 'none';
     out.broadband.homePhoneMonthly = 0;
+  } else {
+    out.broadband.homePhoneMonthly = out.broadband.homePhoneBundle === 'peakSaver'
+      ? 13
+      : out.broadband.homePhoneBundle === 'offPeakSaver'
+        ? 6.5
+        : 0;
   }
   out.broadband.exitFee = finite(out.broadband.exitFee);
   out.broadband.exitFeesApply = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'exitFeesApply')
