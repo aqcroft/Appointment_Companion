@@ -867,3 +867,241 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .mini-tariff-table { min-width: 220px; }
   .mini-tariff-head > *, .mini-tariff-row > * { padding: 4px 3px; font-size: 7px; }
 }
+
+
+/* V3.03 paired Energy usage + tariff modal */
+.energy-usage-pair {
+  display:grid;
+  gap:7px;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+}
+.usage-section-label {
+  color:var(--ink-soft);
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.usage-section-label em {
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:8px;
+  font-style:normal;
+  font-weight:650;
+  text-transform:none;
+  letter-spacing:0;
+}
+.usage-choice-button {
+  min-height:34px;
+  padding:7px 9px;
+  border:1px solid #d6cfdf;
+  border-radius:9px;
+  background:#fff;
+  color:var(--ink-soft);
+  font-size:9px;
+  font-weight:850;
+}
+.usage-choice-button.selected {
+  border-color:var(--purple);
+  background:var(--purple-soft);
+  color:var(--purple-dark);
+}
+.usage-choice-button:disabled {
+  opacity:.38;
+}
+.compare-column.usage-selected {
+  box-shadow:inset 0 0 0 1px rgba(122,66,200,.18);
+}
+.usage-estimate-fallback {
+  margin-top:9px;
+}
+.usage-estimate-fallback summary {
+  padding:9px 0;
+  font-size:10px;
+}
+.usage-estimate-fallback .estimate-choice > strong {
+  display:block;
+  margin-bottom:5px;
+  font-size:10px;
+}
+
+.tariff-modal-backdrop {
+  position:fixed;
+  z-index:120;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(38,22,79,.46);
+  backdrop-filter:blur(4px);
+}
+.tariff-modal-card {
+  width:min(100%,620px);
+  max-height:min(82vh,720px);
+  overflow:auto;
+  padding:16px;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(38,22,79,.28);
+}
+.tariff-modal-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.tariff-modal-head small {
+  color:var(--muted);
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.tariff-modal-head h2 {
+  margin:2px 0 0;
+  font-size:22px;
+}
+.tariff-modal-head > button {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:#fff;
+  color:var(--ink);
+  font-size:22px;
+  line-height:1;
+}
+.tariff-modal-intro {
+  margin:8px 0 12px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.4;
+}
+.tariff-modal-table {
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+.tariff-modal-row {
+  display:grid;
+  grid-template-columns:minmax(112px,1.35fr) repeat(3,minmax(64px,.72fr));
+  width:100%;
+  border:0;
+  border-top:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  text-align:center;
+}
+.tariff-modal-row:first-child {
+  border-top:0;
+}
+.tariff-modal-row > * {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  padding:10px 7px;
+  border-left:1px solid var(--line);
+  font-size:10px;
+}
+.tariff-modal-row > :first-child {
+  justify-content:flex-start;
+  border-left:0;
+  text-align:left;
+}
+.tariff-modal-header > * {
+  background:#f7f4fa;
+  color:var(--ink-soft);
+  font-size:9px;
+}
+.tariff-modal-row span i {
+  width:9px;
+  height:9px;
+  margin-right:7px;
+  border:1.5px solid #b8afc0;
+  border-radius:50%;
+}
+.tariff-modal-row.selected {
+  background:#f6f1fb;
+}
+.tariff-modal-row.selected span i {
+  border-color:var(--purple);
+  background:var(--purple);
+}
+.tariff-modal-row .active-tier {
+  background:#eee5f8;
+  color:var(--purple-dark);
+  font-weight:950;
+}
+.tariff-modal-foot {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:12px;
+}
+.tariff-modal-foot small {
+  color:var(--muted);
+  font-size:8.5px;
+  line-height:1.3;
+}
+.tariff-modal-foot .primary {
+  flex:0 0 auto;
+  min-height:38px;
+  padding:8px 13px;
+}
+
+.compact-plans {
+  grid-template-columns:1fr !important;
+  gap:7px;
+}
+.compact-plans .plan-option {
+  width:100%;
+  min-height:54px;
+}
+.compact-plans .plan-option[data-value="essentialMax"] {
+  background:#fff6fb;
+  border-color:#ecd8e4;
+}
+.compact-plans .plan-option[data-value="unlimitedMax"] {
+  background:#ead2df;
+  border-color:#d6a9c0;
+}
+.compact-plans .plan-option[data-value="essentialMax"].on {
+  background:#f8e8f1;
+  border-color:#be568e;
+}
+.compact-plans .plan-option[data-value="unlimitedMax"].on {
+  background:#d9afc5;
+  border-color:#9e3e72;
+  box-shadow:inset 0 0 0 1px #9e3e72;
+}
+.compact-plans .plan-option[data-value="unlimitedMax"] strong,
+.compact-plans .plan-option[data-value="unlimitedMax"] span {
+  color:#4e2440;
+}
+
+@media(max-width:560px) {
+  .tariff-modal-backdrop { padding:10px; align-items:end; }
+  .tariff-modal-card {
+    width:100%;
+    max-height:86vh;
+    padding:14px;
+    border-radius:18px 18px 10px 10px;
+  }
+  .tariff-modal-row {
+    grid-template-columns:minmax(100px,1.25fr) repeat(3,minmax(58px,.72fr));
+  }
+  .tariff-modal-row > * {
+    padding:9px 5px;
+    font-size:9px;
+  }
+  .tariff-modal-header > * { font-size:8px; }
+}
