@@ -731,6 +731,7 @@ function renderAppointment() {
     ${appointment.services.energy ? renderEnergy() : ''}${appointment.services.broadband ? renderBroadband() : ''}${appointment.services.mobile ? renderMobile() : ''}${appointment.services.boilerCover && home === 'homeowner' ? renderBoilerCover() : ''}
     ${renderAdjustments()}
     ${energyTariffModal()}
+    ${splitEstimatorModal()}
     <section class="action-bar summary-only"><button class="primary wide${completion.complete ? '' : ' gated'}" type="button" data-go="summary" aria-disabled="${completion.complete ? 'false' : 'true'}">Show Summary</button></section>
     ${completion.complete ? '' : summaryGatePanel(completion)}
   </div>`;
@@ -1029,6 +1030,13 @@ document.addEventListener('input', event => {
     appointment.energy.electricityProfile = target.checked
       ? appointment.energy.electricityProfile === 'standard' ? 'economy7' : appointment.energy.electricityProfile
       : 'standard';
+    if (target.checked) {
+      appointment.energy.selectedTariffFamily = appointment.energy.selectedTariffFamily === 'fixed'
+        ? 'fixedE7'
+        : appointment.energy.electricityProfile === 'ev' ? 'evVariable' : 'economy7Variable';
+    } else if (['fixedE7','economy7Variable','evVariable'].includes(appointment.energy.selectedTariffFamily)) {
+      appointment.energy.selectedTariffFamily = appointment.energy.selectedTariffFamily === 'fixedE7' ? 'fixed' : 'standardVariable';
+    }
   }
   if (target.dataset.field === 'benefits.referral' && target.checked) appointment.benefits.nationalLeague = false;
   if (target.dataset.field === 'benefits.nationalLeague' && target.checked) appointment.benefits.referral = false;
@@ -1038,7 +1046,7 @@ document.addEventListener('input', event => {
   const billUsageMatch = target.dataset.field.match(/^energy\.(electricity|gas)BillKwh$/);
   if (billUsageMatch) {
     const button = document.querySelector(`[data-choice="energy.${billUsageMatch[1]}UsageSource"][data-value="bill"]`);
-    if (button) button.disabled = !(Number(target.value) > 0);
+    if (button) button.disabled = !(Number(String(target.value).replace(/,/g,'')) > 0);
   }
   if (/^energy\.(region|annualElectricityKwh|annualGasKwh|electricity(Uw|Bill|Estimated)Kwh|gas(Uw|Bill|Estimated)Kwh|dayKwh|nightKwh)$/.test(target.dataset.field)) refreshIndicativePanel();
   updateLiveResults();
@@ -1047,6 +1055,16 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   const path = event.target.dataset.field;
   if (!path) return;
+  if (event.target.dataset.roundWhole === 'true' && event.target.value !== '') {
+    const rounded = Math.round(Number(String(event.target.value).replace(/,/g,'')) || 0);
+    event.target.value = String(rounded);
+    setPath(appointment, path, rounded);
+    markChanged();
+  }
+  if (event.target.dataset.formatNumber === 'integer' && event.target.value !== '') {
+    const numeric = Math.round(Number(String(event.target.value).replace(/,/g,'')) || 0);
+    event.target.value = numeric.toLocaleString('en-GB');
+  }
   if (path === 'broadband.packageId' && event.target.value) {
     const selectedPackage = UW_RULES_2026_10_01.broadband.packages.find(item => item.id === event.target.value);
     if (selectedPackage) {
@@ -1150,6 +1168,37 @@ document.addEventListener('click', async event => {
     fuels.forEach(fuel => { appointment.energy[`${fuel}UsageSource`] = source; });
     markChanged(); render(); return;
   }
+  if (target.hasAttribute('data-open-split-estimator')) {
+    splitEstimatorOpen = true;
+    render();
+    return;
+  }
+  if (target.hasAttribute('data-close-split-estimator')) {
+    splitEstimatorOpen = false;
+    render();
+    return;
+  }
+  if (target.dataset.currentVat) {
+    appointment.energy.currentRatesIncludeVat = target.dataset.currentVat === 'inc';
+    markChanged(); render(); return;
+  }
+  if (target.dataset.estimateBand) {
+    const energy = appointment.energy;
+    const hasExisting = [energy.electricityUwKwh, energy.gasUwKwh, energy.electricityBillKwh, energy.gasBillKwh].some(value => Number(value || 0) > 0);
+    if (hasExisting && !window.confirm('This will replace the usage already entered in the Current and UW columns. Use the selected estimate instead?')) return;
+    const electricity = Number(target.dataset.electricity || 0);
+    const gas = Number(target.dataset.gas || 0);
+    if (energy.fuel !== 'gas') {
+      energy.electricityUwKwh = 0; energy.electricityBillKwh = 0;
+      energy.electricityEstimatedKwh = electricity; energy.electricityUsageSource = 'estimated';
+    }
+    if (energy.fuel !== 'electricity') {
+      energy.gasUwKwh = 0; energy.gasBillKwh = 0;
+      energy.gasEstimatedKwh = gas; energy.gasUsageSource = 'estimated';
+    }
+    appointment.completion.entered = appointment.completion.entered.filter(path => !/^energy\.(electricity|gas)(Uw|Bill)Kwh$/.test(path));
+    markChanged(); render(); return;
+  }
   if (target.hasAttribute('data-toggle-energy-tariff')) {
     energyTariffOpen = true;
     render();
@@ -1196,7 +1245,14 @@ document.addEventListener('click', async event => {
         if (serviceSetupOpen === 'boilerCover') serviceSetupOpen = '';
       }
     }
-    if (target.dataset.choice === 'energy.electricityProfile') appointment.energy.peakOffPeak = true;
+    if (target.dataset.choice === 'energy.electricityProfile') {
+      appointment.energy.peakOffPeak = true;
+      appointment.energy.selectedTariffFamily = target.dataset.value === 'ev'
+        ? 'evVariable'
+        : appointment.energy.selectedTariffFamily === 'fixed' || appointment.energy.selectedTariffFamily === 'fixedE7'
+          ? 'fixedE7'
+          : 'economy7Variable';
+    }
     markChanged(); render(); return;
   }
   if (target.dataset.simCount) {
@@ -1230,6 +1286,7 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-apply-split')) {
     const split = calculateAnnualDayNightSplit(appointment.energy.annualElectricityKwh, appointment.energy.splitSampleDayKwh, appointment.energy.splitSampleNightKwh);
     appointment.energy.dayKwh = split.annualDayKwh; appointment.energy.nightKwh = split.annualNightKwh;
+    splitEstimatorOpen = false;
     markChanged(); render(); return;
   }
   if (target.hasAttribute('data-save')) return persistActive(false);
