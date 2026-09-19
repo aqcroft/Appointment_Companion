@@ -59,19 +59,23 @@ test('split electricity then gas and exit-fee deduction are retained', () => {
   assert.equal(result.exitFeeDeduction, 150);
 });
 
-test('manual recurring and one-off adjustments stay distinct', () => {
+test('manual recurring and one-off adjustments stay distinct across Current and UW', () => {
   const appointment = createAppointment('Alex');
   appointment.person.homeStatus = 'homeowner';
   appointment.services.energy = true;
   appointment.energy.currentMonthly = 100;
   appointment.energy.uwMonthly = 90;
   appointment.adjustments.recurringEnabled = true;
-  appointment.adjustments.period = 'annual';
+  appointment.adjustments.currentPeriod = 'annual';
+  appointment.adjustments.uwPeriod = 'annual';
   appointment.adjustments.currentAmount = 120;
   appointment.adjustments.uwAmount = 60;
+  appointment.adjustments.currentSign = 'plus';
+  appointment.adjustments.uwSign = 'plus';
   appointment.adjustments.oneOffEnabled = true;
-  appointment.adjustments.oneOffType = 'charge';
-  appointment.adjustments.oneOffAmount = 25;
+  appointment.adjustments.oneOffCurrentAmount = 0;
+  appointment.adjustments.oneOffUwAmount = 25;
+  appointment.adjustments.oneOffUwSign = 'plus';
   const result = calculateAppointment(appointment);
   assert.equal(result.current.total, 110);
   assert.equal(result.uw.total, 95);
@@ -101,6 +105,7 @@ test('E7 vs standard insight is derived from tariff facts, not stored as a total
   appointment.energy.currentDayRate = 30;
   appointment.energy.currentNightRate = 10;
   appointment.energy.currentStandingCharge = 50;
+  appointment.energy.currentRatesIncludeVat = true;
   appointment.energy.e7StandardAnnualCost = 800;
   const result = calculateAppointment(appointment);
   assert.equal(result.e7StandardAnnualSaving, 82.5);
@@ -219,14 +224,31 @@ test('digital phone line contributes only when enabled', () => {
 
   appointment.broadband.homePhoneEnabled = true;
   appointment.broadband.homePhoneBundle = 'peakSaver';
-  assert.equal(calculateAppointment(appointment).uw.broadband, 33);
+  assert.equal(calculateAppointment(appointment).uw.broadband, 37);
 });
 
-test('legacy Broadband phone monthly value infers digital phone enabled', () => {
+test('legacy Broadband phone monthly value maps to the closest current call bundle', () => {
   const appointment = createAppointment('Legacy phone');
   delete appointment.broadband.homePhoneEnabled;
+  delete appointment.broadband.homePhoneBundle;
   appointment.broadband.homePhoneMonthly = 7;
   const normalised = normaliseAppointment(appointment);
   assert.equal(normalised.broadband.homePhoneEnabled, true);
-  assert.equal(normalised.broadband.homePhoneMonthly, 7);
+  assert.equal(normalised.broadband.homePhoneBundle, 'offPeakSaver');
+  assert.equal(normalised.broadband.homePhoneMonthly, 6.5);
+});
+
+test('peak off-peak current rates add VAT when bill rates are entered ex VAT', () => {
+  const appointment = createAppointment('VAT');
+  appointment.services.energy = true;
+  appointment.energy.electricityProfile = 'economy7';
+  appointment.energy.peakOffPeak = true;
+  appointment.energy.dayKwh = 2000;
+  appointment.energy.nightKwh = 1000;
+  appointment.energy.currentDayRate = 30;
+  appointment.energy.currentNightRate = 10;
+  appointment.energy.currentStandingCharge = 50;
+  appointment.energy.currentRatesIncludeVat = false;
+  appointment.energy.e7StandardAnnualCost = 800;
+  assert.equal(calculateAppointment(appointment).e7StandardAnnualSaving, 126.63);
 });
