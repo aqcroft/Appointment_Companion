@@ -1,3 +1,3 @@
-export const VERSION = '3.03-ui.2';
+export const VERSION = '3.03-ui.3';
 export const RULE_VERSION = '2026-10-01';
-export const CACHE_VERSION = 'appointment-companion-v303-20260919-2';
+export const CACHE_VERSION = 'appointment-companion-v303-20260919-3';
