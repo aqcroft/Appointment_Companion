@@ -797,3 +797,73 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .compact-plans .plan-option strong { font-size:12px; }
   .compact-plans .plan-option { min-width:0; }
 }
+
+
+/* V3.03 tariff-in-column refinement */
+.current-side-option { margin-top: 9px; }
+.uw-side-options { margin-top: 10px; border-top: 1px solid var(--line); }
+.uw-usage-block { display: grid; gap: 7px; }
+.uw-subhead { color: var(--muted); font-size: 8.5px; font-weight: 850; text-transform: uppercase; letter-spacing: .05em; }
+
+.uw-tariff-control { margin-top: 10px; }
+.tariff-select-button {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px;
+  width: 100%; min-height: 42px; padding: 8px 9px;
+  border: 1px solid #d9cbea; border-radius: 10px;
+  background: #fff; color: var(--ink); text-align: left;
+}
+.tariff-select-button span { color: var(--muted); font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.tariff-select-button strong { font-size: 12px; }
+.tariff-select-button b { color: var(--purple); font-size: 11px; }
+
+.tariff-inline-panel {
+  margin-top: 6px; padding: 7px;
+  border: 1px solid #ddd0ef; border-radius: 10px;
+  background: #faf7ff; overflow-x: auto;
+}
+.tariff-choice-row {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px;
+}
+.tariff-choice-row button {
+  min-height: 28px; padding: 5px 7px;
+  border: 1px solid #d9cbea; border-radius: 999px;
+  background: #fff; color: var(--ink); font-size: 8.5px; font-weight: 850;
+}
+.tariff-choice-row button.on {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+}
+.mini-tariff-table { min-width: 232px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+.mini-tariff-head, .mini-tariff-row {
+  display: grid; grid-template-columns: 1.35fr repeat(3,.72fr);
+}
+.mini-tariff-head > *, .mini-tariff-row > * {
+  min-width: 0; padding: 5px 4px;
+  border-left: 1px solid var(--line); border-top: 1px solid var(--line);
+  font-size: 7.5px; text-align: center;
+}
+.mini-tariff-head > *:first-child, .mini-tariff-row > *:first-child { border-left: 0; text-align: left; }
+.mini-tariff-head > * { border-top: 0; background: #f7f4fa; }
+.mini-tariff-row {
+  width: 100%; border: 0; background: #fff; color: var(--ink);
+}
+.mini-tariff-row.selected { background: #f3ecfb; }
+.mini-tariff-row .active-tier, .mini-tariff-head .active-tier {
+  background: #eee5f8;
+  color: var(--purple-dark);
+  font-weight: 950;
+}
+.tariff-feed-note {
+  display: block; margin-top: 6px; color: var(--muted); font-size: 7.5px; line-height: 1.25;
+}
+.energy-price { margin-top: 8px; min-height: 58px; }
+.energy-price small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+
+@media(max-width:560px) {
+  .tariff-inline-panel { margin-right: -1px; padding: 5px; }
+  .tariff-choice-row { gap: 3px; }
+  .tariff-choice-row button { padding: 4px 6px; font-size: 8px; }
+  .mini-tariff-table { min-width: 220px; }
+  .mini-tariff-head > *, .mini-tariff-row > * { padding: 4px 3px; font-size: 7px; }
+}
