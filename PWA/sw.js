@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v18';
+const CACHE_NAME = 'appointment-companion-v19-v242-recovery';
 const APP_SHELL = [
   './',
   './index.html',
