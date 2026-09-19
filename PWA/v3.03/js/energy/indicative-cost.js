@@ -98,11 +98,39 @@ function calculateFromRow(row, appointment, tier, family = '') {
 
   const dualDiscount = energy.fuel === 'dual' ? (number(row.dual_fuel_discount_ex_vat) || 0) * VAT : 0;
   const annual = Math.max(0, electricityAnnual + gasAnnual - dualDiscount);
+
+  const electricityRates = energy.fuel === 'gas' ? null : profile === 'economy7'
+    ? {
+        peak: number(row.EUR_E7_Day) === null ? null : Math.round(number(row.EUR_E7_Day) * VAT * 100) / 100,
+        offPeak: number(row.EUR_E7_Night) === null ? null : Math.round(number(row.EUR_E7_Night) * VAT * 100) / 100,
+        standing: number(row.EDSC_E7) === null ? null : Math.round(number(row.EDSC_E7) * VAT * 100) / 100
+      }
+    : profile === 'ev' && number(row.EUR_EV_Peak) !== null && number(row.EUR_EV_OffPeak) !== null
+      ? {
+          peak: Math.round(number(row.EUR_EV_Peak) * VAT * 100) / 100,
+          offPeak: Math.round(number(row.EUR_EV_OffPeak) * VAT * 100) / 100,
+          standing: number(row.EDSC_Std) === null ? null : Math.round(number(row.EDSC_Std) * VAT * 100) / 100
+        }
+      : {
+          unit: number(row.EUR_Std) === null ? null : Math.round(number(row.EUR_Std) * VAT * 100) / 100,
+          standing: number(row.EDSC_Std) === null ? null : Math.round(number(row.EDSC_Std) * VAT * 100) / 100
+        };
+
+  const gasRates = energy.fuel === 'electricity' ? null : {
+    unit: number(row.GUR) === null ? null : Math.round(number(row.GUR) * VAT * 100) / 100,
+    standing: number(row.GDSC) === null ? null : Math.round(number(row.GDSC) * VAT * 100) / 100
+  };
+
   return {
     tier,
     family: family || tariffFamilyFromRow(row),
     monthly: Math.round(annual / 12 * 100) / 100,
     annual: Math.round(annual * 100) / 100,
+    electricityMonthly: Math.round(electricityAnnual / 12 * 100) / 100,
+    gasMonthly: Math.round(gasAnnual / 12 * 100) / 100,
+    dualDiscountAnnual: Math.round(dualDiscount * 100) / 100,
+    electricityRates,
+    gasRates,
     tariffName: String(row.tariff_name ?? row.tariffName ?? 'Central tariff'),
     tariffType: String(row.tariff_type ?? row.tariffType ?? ''),
     sourceRef: String(row.source_ref ?? ''),
