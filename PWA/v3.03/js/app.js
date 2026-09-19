@@ -388,7 +388,11 @@ function stickyBasketBar() {
   const home = appointment.person.homeStatus === 'homeowner' ? '🏠 Homeowner' : appointment.person.homeStatus === 'tenant' ? '🔑 Tenant' : 'Set home status';
   const route = appointment.benefits.referral ? ' · 🤝' : appointment.benefits.nationalLeague ? ' · ⚽' : '';
   return `<section class="sticky-basket" id="stickyBasket">
-    <div class="sticky-status-row"><button type="button" data-edit-essentials>${home}${route}</button><div class="running-total"><span>Current <strong>£${wholeMoney(result.current.total)}/m</strong></span><i>→</i><span>UW <strong>£${wholeMoney(result.uw.total)}/m</strong></span></div></div>
+    <div class="sticky-status-row sticky-status-grid">
+      <span class="sticky-total current-total"><small>Current</small><strong>£${wholeMoney(result.current.total)}/m</strong></span>
+      <button class="sticky-home" type="button" data-edit-essentials>${home}${route}</button>
+      <span class="sticky-total uw-total"><small>UW</small><strong>£${wholeMoney(result.uw.total)}/m</strong></span>
+    </div>
     <div class="sticky-services">${ordered.map(([key,icon,label]) => {
       const active = Boolean(appointment.services[key]);
       return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
@@ -636,8 +640,8 @@ function renderAppointment() {
     ${appointment.services.energy ? renderEnergy() : ''}${appointment.services.broadband ? renderBroadband() : ''}${appointment.services.mobile ? renderMobile() : ''}${appointment.services.boilerCover && home === 'homeowner' ? renderBoilerCover() : ''}
     ${renderAdjustments()}
     ${energyTariffModal()}
-    <section class="action-bar summary-only"><button class="primary wide" type="button" data-go="summary" ${completion.complete ? '' : 'disabled aria-disabled="true"'}>Show Summary</button></section>
-    ${completion.complete ? '' : '<p class="summary-ready-hint">Complete the remaining progress dots to enable Show Summary.</p>'}
+    <section class="action-bar summary-only"><button class="primary wide${completion.complete ? '' : ' gated'}" type="button" data-go="summary" aria-disabled="${completion.complete ? 'false' : 'true'}">Show Summary</button></section>
+    ${completion.complete ? '' : summaryGatePanel(completion)}
   </div>`;
 }
 
@@ -790,7 +794,14 @@ async function navigate(nextView, nextSection = section) {
 
 async function createPerson(name) {
   const cleaned = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 80);
-  if (!cleaned) return;
+  if (!cleaned) {
+    toast('Enter name first.');
+    const input = document.getElementById('personNameInput');
+    input?.focus();
+    input?.classList.add('needs-attention');
+    setTimeout(() => input?.classList.remove('needs-attention'), 1400);
+    return;
+  }
   appointment = createAppointment(cleaned);
   essentialsExpanded = true;
   currentRecord = null;
