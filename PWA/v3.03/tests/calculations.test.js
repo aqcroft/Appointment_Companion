@@ -205,3 +205,28 @@ test('Tracker row appears only when tracker data exists', () => {
   ] };
   assert.deepEqual(buildTariffGrid(data, appointment).map(row => row.id), ['standardVariable','tracker','fixed']);
 });
+
+
+test('digital phone line contributes only when enabled', () => {
+  const appointment = createAppointment('Phone line');
+  appointment.person.homeStatus = 'homeowner';
+  appointment.services.broadband = true;
+  appointment.broadband.currentMonthly = 45;
+  appointment.broadband.uwMonthly = 24;
+  appointment.broadband.homePhoneMonthly = 9;
+  appointment.broadband.homePhoneEnabled = false;
+  assert.equal(calculateAppointment(appointment).uw.broadband, 24);
+
+  appointment.broadband.homePhoneEnabled = true;
+  appointment.broadband.homePhoneBundle = 'peakSaver';
+  assert.equal(calculateAppointment(appointment).uw.broadband, 33);
+});
+
+test('legacy Broadband phone monthly value infers digital phone enabled', () => {
+  const appointment = createAppointment('Legacy phone');
+  delete appointment.broadband.homePhoneEnabled;
+  appointment.broadband.homePhoneMonthly = 7;
+  const normalised = normaliseAppointment(appointment);
+  assert.equal(normalised.broadband.homePhoneEnabled, true);
+  assert.equal(normalised.broadband.homePhoneMonthly, 7);
+});
