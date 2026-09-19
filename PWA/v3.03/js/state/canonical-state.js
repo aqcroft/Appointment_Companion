@@ -169,10 +169,10 @@ export function normaliseAppointment(input = {}) {
     out.broadband.homePhoneMonthly = 0;
   } else {
     out.broadband.homePhoneMonthly = out.broadband.homePhoneBundle === 'peakSaver'
-      ? 13
+      ? UW_RULES_2026_10_01.broadband.digitalPhone.peakSaverMonthly
       : out.broadband.homePhoneBundle === 'offPeakSaver'
-        ? 6.5
-        : 0;
+        ? UW_RULES_2026_10_01.broadband.digitalPhone.offPeakSaverMonthly
+        : UW_RULES_2026_10_01.broadband.digitalPhone.fullFibreLineRental;
   }
   out.broadband.exitFee = finite(out.broadband.exitFee);
   out.broadband.exitFeesApply = Object.prototype.hasOwnProperty.call(source.broadband || {}, 'exitFeesApply')
