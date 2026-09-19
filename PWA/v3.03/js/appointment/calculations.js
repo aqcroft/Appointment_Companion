@@ -71,7 +71,7 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const uwBroadband = appointment.services.broadband
     ? Math.ceil(uwBroadbandRaw)
       + (appointment.broadband.wholeHomeWifi ? rules.broadband.wholeHomeWifiMonthly : 0)
-      + (appointment.broadband.homePhoneEnabled ? Number(appointment.broadband.homePhoneMonthly || 0) : 0)
+      + (appointment.broadband.connectionFamily === 'full' && appointment.broadband.homePhoneEnabled ? Number(appointment.broadband.homePhoneMonthly || 0) : 0)
     : 0;
   const sims = appointment.services.mobile ? appointment.mobile.sims.filter(sim => sim.include !== false) : [];
   const currentMobile = sims.reduce((sum, sim) => sum + Number(sim.currentMonthly || 0), 0);
@@ -90,7 +90,7 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const monthlyServiceSaving = currentMonthly - uwMonthly;
 
   let broadbandIntroBenefit = 0;
-  if (appointment.services.broadband && appointment.broadband.freeMonthsOffer && appointment.person.homeStatus === 'homeowner' && (appointment.services.energy || sims.length)) {
+  if (appointment.services.broadband && appointment.broadband.connectionFamily === 'full' && appointment.broadband.freeMonthsOffer && appointment.person.homeStatus === 'homeowner' && (appointment.services.energy || sims.length)) {
     const months = rules.broadband.freeMonths;
     const beforeApril = monthsUntilApril(date);
     broadbandIntroBenefit = Math.round(beforeApril >= months
