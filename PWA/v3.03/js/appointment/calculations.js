@@ -24,7 +24,8 @@ function currentEnergyMonthly(energy) {
       nightKwh: energy.nightKwh,
       dayRate: energy.currentDayRate,
       nightRate: energy.currentNightRate,
-      standingCharge: energy.currentStandingCharge
+      standingCharge: energy.currentStandingCharge,
+      ratesIncludeVat: energy.currentRatesIncludeVat
     }) / 12;
   }
   return Number(energy.currentMonthly) || 0;
@@ -75,9 +76,14 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const currentMobile = sims.reduce((sum, sim) => sum + Number(sim.currentMonthly || 0), 0);
   const currentBoilerCover = derived.boilerCover ? Number(appointment.boilerCover.currentMonthly || 0) : 0;
   const uwBoilerCover = derived.boilerCover ? Number(appointment.boilerCover.monthly || rules.boilerCover.monthly) : 0;
-  const recurringDivisor = appointment.adjustments.period === 'annual' ? 12 : 1;
-  const adjustmentCurrent = appointment.adjustments.recurringEnabled ? Number(appointment.adjustments.currentAmount) / recurringDivisor : 0;
-  const adjustmentUw = appointment.adjustments.recurringEnabled ? Number(appointment.adjustments.uwAmount) / recurringDivisor : 0;
+  const currentAdjustmentDivisor = appointment.adjustments.currentPeriod === 'annual' ? 12 : 1;
+  const uwAdjustmentDivisor = appointment.adjustments.uwPeriod === 'annual' ? 12 : 1;
+  const adjustmentCurrent = appointment.adjustments.recurringEnabled
+    ? Number(appointment.adjustments.currentAmount) / currentAdjustmentDivisor * (appointment.adjustments.currentSign === 'minus' ? -1 : 1)
+    : 0;
+  const adjustmentUw = appointment.adjustments.recurringEnabled
+    ? Number(appointment.adjustments.uwAmount) / uwAdjustmentDivisor * (appointment.adjustments.uwSign === 'minus' ? -1 : 1)
+    : 0;
   const currentMonthly = currentEnergy + currentBroadband + currentMobile + currentBoilerCover + adjustmentCurrent;
   const uwMonthly = uwEnergy + uwBroadband + derived.ongoingMobileMonthly + uwBoilerCover + adjustmentUw;
   const monthlyServiceSaving = currentMonthly - uwMonthly;
@@ -102,9 +108,13 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
   const exitFeeDeduction = exitFeeRefundEligible ? Math.max(0, exitFees - rules.exitFeeRefund.maximum) : exitFees;
   const card = cashback(appointment, derived.serviceCount, rules);
   card.active = Boolean(appointment.cashback.enabled && derived.serviceCount > 0);
-  const oneOff = appointment.adjustments.oneOffEnabled
-    ? Number(appointment.adjustments.oneOffAmount) * (appointment.adjustments.oneOffType === 'charge' ? -1 : 1)
+  const currentOneOff = appointment.adjustments.oneOffEnabled
+    ? Number(appointment.adjustments.oneOffCurrentAmount || 0) * (appointment.adjustments.oneOffCurrentSign === 'minus' ? -1 : 1)
     : 0;
+  const uwOneOff = appointment.adjustments.oneOffEnabled
+    ? Number(appointment.adjustments.oneOffUwAmount || 0) * (appointment.adjustments.oneOffUwSign === 'minus' ? -1 : 1)
+    : 0;
+  const oneOff = currentOneOff - uwOneOff;
   const annualCashback = card.active ? card.monthlyNet * 12 + card.feeWaiver : 0;
   const effectiveUwMonthly = uwMonthly - (card.active ? card.monthlyNet : 0);
   const effectiveMonthlySaving = currentMonthly - effectiveUwMonthly;
@@ -118,7 +128,8 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
       nightKwh: appointment.energy.nightKwh,
       dayRate: appointment.energy.currentDayRate,
       nightRate: appointment.energy.currentNightRate,
-      standingCharge: appointment.energy.currentStandingCharge
+      standingCharge: appointment.energy.currentStandingCharge,
+      ratesIncludeVat: appointment.energy.currentRatesIncludeVat
     })
     : 0;
   const e7StandardAnnualSaving = currentE7AnnualCost && appointment.energy.e7StandardAnnualCost
