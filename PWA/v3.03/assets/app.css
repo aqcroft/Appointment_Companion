@@ -1927,3 +1927,32 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
   .cashback-compare .compare-column,
   .manual-adjustment-grid .compare-column { padding:8px; }
 }
+
+
+/* Keep toggles and controls inside each service on that service's colourway */
+.service-workspace .switch-control input:checked + i {
+  background:var(--service-accent);
+}
+.energy-workspace .tariff-select-button {
+  border-color:#a9d0d7;
+  background:#eef8fa;
+}
+.energy-workspace .tariff-select-button b,
+.energy-workspace .tariff-select-button strong {
+  color:#376f79;
+}
+.energy-workspace .region-field select {
+  background:#f5fbfc;
+  border-color:#c3dfe4;
+}
+.split-modal-card .primary,
+.tariff-modal-card:not(.split-modal-card) .primary {
+  background:#4a92a0;
+  border-color:#4a92a0;
+}
+.split-modal-card .quiet {
+  color:#376f79;
+}
+.cashback-card .switch-control input:checked + i {
+  background:#7654a8;
+}
