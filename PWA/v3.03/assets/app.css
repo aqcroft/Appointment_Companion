@@ -2319,3 +2319,48 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
     padding: 5px 4px;
   }
 }
+
+
+/* Summary Cashback Card comparison tile */
+.basket-service.cashback-toggle {
+  position: relative;
+  border: 1px solid rgba(122,66,200,.28);
+  background: #f5effd;
+  color: var(--purple);
+  font: inherit;
+}
+button.basket-service.cashback-toggle {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.basket-service.cashback-toggle i {
+  filter: none;
+}
+.basket-service.cashback-toggle em {
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 6px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .05em;
+  line-height: 1.25;
+}
+.basket-service.cashback-toggle.off {
+  border-style: dashed;
+  background: #f7f7f9;
+  color: var(--muted);
+  opacity: .62;
+}
+.basket-service.cashback-toggle.off i {
+  filter: grayscale(1);
+}
+.basket-service.cashback-toggle.off em {
+  background: #8b8791;
+}
+.cashback-preview-note {
+  background: #f4effb;
+  color: var(--purple);
+}
