@@ -118,6 +118,7 @@ function saveProspect(body) {
     ok:true,
     prospect_name:name,
     row:targetRow,
+    capture_id:captureId,
     folder_url:folder.getUrl(),
     files:uploaded,
     handoff_url:handoffFile.getUrl(),
