@@ -754,45 +754,112 @@ function updateLiveResults() {
 }
 
 function summaryLines(result) {
-  return `<div class="summary-table"><div class="summary-line"><span>Current monthly cost</span><strong>£${wholeMoney(result.current.total)}</strong></div><div class="summary-line"><span>UW service cost</span><strong>£${wholeMoney(result.uw.total)}</strong></div><div class="summary-line"><span>Effective UW monthly position</span><strong>£${wholeMoney(result.effectiveUwMonthly ?? result.uw.total)}</strong></div><div class="summary-line"><span>Effective monthly saving</span><strong class="money ${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) >= 0 ? 'good' : 'bad'}">${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) < 0 ? '−' : ''}£${wholeMoney(Math.abs(result.effectiveMonthlySaving ?? result.monthlyServiceSaving))}</strong></div><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited first 3 months</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband introductory benefit</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong class="money ${result.oneOff > 0 ? 'good' : 'bad'}">${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong class="money bad">−£${money(result.exitFeeDeduction)}</strong></div>` : ''}<div class="summary-line"><span><strong>First-year result</strong></span><strong class="money ${result.yearOneResult >= 0 ? 'good' : 'bad'}">${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</strong></div></div>`;
+  return `<div class="summary-table"><div class="summary-line"><span>Current monthly cost</span><strong>£${wholeMoney(result.current.total)}</strong></div><div class="summary-line"><span>UW service cost</span><strong>£${wholeMoney(result.uw.total)}</strong></div><div class="summary-line"><span>Effective UW monthly position</span><strong>£${wholeMoney(result.effectiveUwMonthly ?? result.uw.total)}</strong></div><div class="summary-line"><span>Effective monthly saving</span><strong class="money ${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) >= 0 ? 'good' : 'bad'}">${(result.effectiveMonthlySaving ?? result.monthlyServiceSaving) < 0 ? '−' : ''}£${wholeMoney(Math.abs(result.effectiveMonthlySaving ?? result.monthlyServiceSaving))}</strong></div><div class="summary-line"><span>Welcome Bonus</span><strong>£${wholeMoney(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited first 3 months</span><strong>£${wholeMoney(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband introductory benefit</span><strong>£${wholeMoney(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${wholeMoney(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${wholeMoney(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong class="money ${result.oneOff > 0 ? 'good' : 'bad'}">${result.oneOff < 0 ? '−' : ''}£${wholeMoney(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong class="money bad">−£${wholeMoney(result.exitFeeDeduction)}</strong></div>` : ''}<div class="summary-line"><span><strong>First-year result</strong></span><strong class="money ${result.yearOneResult >= 0 ? 'good' : 'bad'}">${result.yearOneResult < 0 ? '−' : ''}£${wholeMoney(Math.abs(result.yearOneResult))}</strong></div></div>`;
 }
 
-function basketStrip(services = {}, count = 0) {
-  const items = [
-    ['energy','⚡🔥','Energy'], ['broadband','🛜','Broadband'], ['mobile','📱','Mobile'], ['boilerCover','🛠️','Boiler Cover']
+function summaryHero(result, name = '', preview = null, active = false, customer = false) {
+  const delta = preview ? Number(preview.improvement || 0) : 0;
+  const control = preview
+    ? `<button class="meal-hero-toggle${active ? ' on' : ''}" type="button" ${active ? 'data-meal-back' : 'data-meal-preview'} aria-pressed="${active ? 'true' : 'false'}"><span aria-hidden="true">🥪</span><b>${active ? 'Added' : 'Try adding'}</b></button>`
+    : '';
+  return `<section class="summary-outcome-card">
+    <div class="summary-outcome-main">
+      <small>YEAR ONE IN YOUR POCKET</small>
+      <div class="summary-hero-number"><h1>${result.yearOneResult < 0 ? '−' : ''}£${wholeMoney(Math.abs(result.yearOneResult))}</h1>${active && delta ? `<span class="summary-hero-delta">+${delta < 0 ? '−' : ''}£${wholeMoney(Math.abs(delta))}</span>` : ''}</div>
+      <strong>One app · One password · One bill</strong>
+      <span>Prepared for ${escapeHtml(name || 'you')}</span>
+    </div>
+    ${customer ? '' : control}
+  </section>`;
+}
+
+function basketStrip242(services = {}, count = 0, preview = null, active = false) {
+  const items = [];
+  if (services.energy) items.push('<span class="basket-service energy-group" title="Energy"><i>⚡🔥</i><b>Energy</b></span>');
+  if (services.broadband) items.push('<span class="basket-service" title="Broadband"><i>🛜</i><b>Broadband</b></span>');
+  if (services.mobile) items.push(`<span class="basket-service${active ? ' meal-preview-service' : ''}" title="Mobile"><i>📱${active ? '<sup>🥪</sup>' : ''}</i><b>Mobile</b></span>`);
+  if (services.boilerCover) items.push('<span class="basket-service" title="Boiler Cover"><i>🛠️</i><b>Boiler Cover</b></span>');
+  const originalCount = preview?.originalResult?.rules?.serviceCount ?? preview?.originalResult?.serviceCount;
+  const countText = active && preview && Number.isFinite(Number(originalCount))
+    ? `${originalCount} <span class="basket-arrow">→</span> ${count} services`
+    : `${count} service${count === 1 ? '' : 's'}`;
+  return `<section class="summary-basket-strip"><div class="summary-basket-services">${items.join('')}</div><strong>${countText}</strong></section>`;
+}
+
+function monthlySummary242(result) {
+  const effective = Number(result.effectiveUwMonthly ?? result.uw?.total ?? 0);
+  const saving = Number(result.effectiveMonthlySaving ?? result.monthlyServiceSaving ?? 0);
+  return `<section class="summary-monthly-card">
+    <div class="summary-monthly-title">Total monthly summary</div>
+    <div class="summary-monthly-grid">
+      <div><small>CURRENT</small><strong>£${wholeMoney(result.current?.total)}</strong></div>
+      <div><small>UW*</small><strong>£${wholeMoney(effective)}</strong></div>
+      <div><small>SAVING</small><strong class="money ${saving >= 0 ? 'good' : 'bad'}">${saving < 0 ? '−' : ''}£${wholeMoney(Math.abs(saving))}</strong></div>
+    </div>
+    <p>* UW monthly position minus estimated Cashback Card contribution where selected.</p>
+  </section>`;
+}
+
+function serviceBreakdown242(result, services = {}) {
+  const rows = [
+    ['energy','⚡🔥 Energy','energy'],
+    ['broadband','🛜 Broadband','broadband'],
+    ['mobile','📱 Mobile','mobile'],
+    ['boilerCover','🛠️ Boiler Cover','boilerCover']
   ].filter(([key]) => services[key]);
-  return `<section class="basket-strip"><div class="section-title"><strong>${count} service${count === 1 ? '' : 's'} in this basket</strong><span class="basket-glyph">▰</span></div><div class="basket-services">${items.map(([key,icon,label]) => `<span class="basket-${key}"><i>${icon}</i>${label}</span>`).join('')}</div></section>`;
-}
-
-function monthlySummary(result) {
-  const effective = result.effectiveUwMonthly ?? result.uw?.total ?? 0;
-  const saving = result.effectiveMonthlySaving ?? result.monthlyServiceSaving ?? 0;
-  return `<section class="monthly-summary"><div class="section-title"><strong>Monthly summary <small>(including Cashback Card)</small></strong><span title="The effective UW position includes the selected Cashback Card estimate.">ⓘ</span></div><div class="monthly-grid"><span></span><b>Current</b><b>UW*</b><b>Saving</b><strong>Total monthly</strong><strong>£${wholeMoney(result.current?.total)}</strong><strong>£${wholeMoney(effective)}</strong><strong class="money ${saving >= 0 ? 'good' : 'bad'}">${saving < 0 ? '−' : ''}£${wholeMoney(Math.abs(saving))}</strong></div><p>* UW service cost minus estimated Cashback Card contribution where selected.</p></section>`;
-}
-
-function summaryAccordions(result) {
-  const serviceAnnual = Number(result.monthlyServiceSaving || 0) * 12;
-  const bonusTotal = Number(result.welcomeBonus || 0) + Number(result.mobileIntroBenefit || 0) + Number(result.broadbandIntroBenefit || 0) + Number(result.referral || 0) + Number(result.nationalLeague || 0) + Number(result.oneOff || 0) - Number(result.exitFeeDeduction || 0);
   const cashbackAnnual = Number(result.cashback?.active ? result.cashback.monthlyNet * 12 + result.cashback.feeWaiver : result.cashbackAnnual || 0);
-  return `<div class="summary-accordions"><details><summary><span class="accordion-icon">▥</span><strong>Year-one savings on services</strong><b>£${money(serviceAnnual)}</b></summary><div>${summaryLines(result)}</div></details><details><summary><span class="accordion-icon">◆</span><strong>Year-one bonuses &amp; adjustments</strong><b>£${money(bonusTotal)}</b></summary><div class="summary-table"><div class="summary-line"><span>Welcome Bonus</span><strong>£${money(result.welcomeBonus)}</strong></div>${result.mobileIntroBenefit ? `<div class="summary-line"><span>Additional Unlimited offer</span><strong>£${money(result.mobileIntroBenefit)}</strong></div>` : ''}${result.broadbandIntroBenefit ? `<div class="summary-line"><span>Broadband offer</span><strong>£${money(result.broadbandIntroBenefit)}</strong></div>` : ''}${result.referral ? `<div class="summary-line"><span>Referral</span><strong>£${money(result.referral)}</strong></div>` : ''}${result.nationalLeague ? `<div class="summary-line"><span>National League voucher</span><strong>£${money(result.nationalLeague)}</strong></div>` : ''}${result.oneOff ? `<div class="summary-line"><span>${result.oneOff > 0 ? 'One-off benefit' : 'One-off charge'}</span><strong>${result.oneOff < 0 ? '−' : ''}£${money(Math.abs(result.oneOff))}</strong></div>` : ''}${result.exitFeeDeduction ? `<div class="summary-line"><span>Exit-fee deduction</span><strong>−£${money(result.exitFeeDeduction)}</strong></div>` : ''}</div></details><details><summary><span class="accordion-icon">▰</span><strong>Cashback Card benefits</strong><b>${cashbackAnnual ? `£${money(cashbackAnnual)}` : 'Not included'}</b></summary><div><p class="lead">Cashback contribution is folded into the effective monthly UW position above.</p></div></details></div>`;
+  return `<div class="summary-breakdown-table"><div class="summary-breakdown-head"><span></span><b>Current</b><b>UW</b><b>Saving</b></div>${rows.map(([key,label,resultKey]) => {
+    const current = Number(result.current?.[resultKey] || 0);
+    const uw = Number(result.uw?.[resultKey] || 0);
+    const saving = current - uw;
+    return `<div class="summary-breakdown-row"><span>${label}</span><b>£${wholeMoney(current)}</b><b>£${wholeMoney(uw)}</b><b class="${saving >= 0 ? 'good' : 'bad'}">${saving < 0 ? '−' : ''}£${wholeMoney(Math.abs(saving))}</b></div>`;
+  }).join('')}${cashbackAnnual ? `<div class="summary-breakdown-row"><span>💳 Cashback Card</span><b>—</b><b>−£${wholeMoney(cashbackAnnual / 12)}</b><b class="good">£${wholeMoney(cashbackAnnual / 12)}</b></div>` : ''}</div>`;
 }
 
-function mealDealBlock(preview, active, customer = false) {
-  if (!preview) return '';
-  const result = preview.previewResult || preview.result;
-  const change = Number(preview.improvement || 0);
-  return `<section class="upgrade-card meal-deal-card"><div class="meal-deal-heading"><span class="meal-icon">🥪</span><div><h2>🥪 Meal Deal SIM</h2><p>${active ? 'Previewing the whole basket with the temporary £6 SIM scenario.' : 'See whether a £6 SIM changes the wider basket enough to improve the overall result.'}</p></div></div>${active ? `<div class="preview-badge">Preview only · saved appointment unchanged</div><div class="metric-grid"><div class="metric"><small>SIM cost</small><strong>£${money(preview.addedMonthlyCost)}/mo</strong></div><div class="metric"><small>Annual cost included</small><strong>£${money(preview.addedAnnualCost)}</strong></div><div class="metric"><small>First-year change</small><strong class="money ${change >= 0 ? 'good' : 'bad'}">${change >= 0 ? '+' : '−'}£${money(Math.abs(change))}</strong></div><div class="metric"><small>Energy tariff</small><strong>${result.energyTariff ?? result.rules?.energyTariff ?? '—'}</strong></div></div><div class="meal-actions">${customer ? '' : '<button class="primary" type="button" data-meal-add>Add £6 SIM to basket</button>'}<button class="secondary" type="button" data-meal-back>Back to original basket</button></div>` : '<button class="primary wide" type="button" data-meal-preview>Preview 🥪 Meal Deal SIM →</button>'}</section>`;
+function benefitsBreakdown242(result) {
+  const items = [
+    ['🎁 Welcome Bonus',result.welcomeBonus],
+    ['📱 Mobile introductory benefit',result.mobileIntroBenefit],
+    ['🛜 Broadband introductory benefit',result.broadbandIntroBenefit],
+    ['🤝 Referral bonus',result.referral],
+    ['⚽ National League voucher',result.nationalLeague],
+    ['💷 One-off benefit / adjustment',result.oneOff],
+    ['⚠️ Exit fees to pay',result.exitFeeDeduction ? -Number(result.exitFeeDeduction) : 0]
+  ].filter(([,value]) => Number(value || 0) !== 0);
+  return items.length ? `<div class="summary-benefit-list">${items.map(([label,value]) => `<div><span>${label}</span><strong class="${Number(value) >= 0 ? 'good' : 'bad'}">${Number(value) < 0 ? '−' : ''}£${wholeMoney(Math.abs(Number(value)))}</strong></div>`).join('')}</div>` : '<p class="hint">No additional year-one bonuses or adjustments in this basket.</p>';
+}
+
+function basketOutcomeBlocks242(result, services = {}) {
+  const serviceAnnual = Number(result.effectiveMonthlySaving ?? result.monthlyServiceSaving ?? 0) * 12;
+  const benefitsTotal = Number(result.yearOneResult || 0) - serviceAnnual;
+  return `<section class="summary-outcome-blocks">
+    <article class="summary-subhero service-subhero"><div><small>TOTAL BASKET</small><strong>Year-one Savings on Services</strong></div><b class="${serviceAnnual >= 0 ? 'good' : 'bad'}">${serviceAnnual < 0 ? '−' : ''}£${wholeMoney(Math.abs(serviceAnnual))}</b><details><summary>View breakdown ↓</summary>${serviceBreakdown242(result,services)}</details></article>
+    <article class="summary-subhero benefits-subhero"><div><small>TOTAL BASKET</small><strong>Year-one Welcome Bonuses &amp; Benefits</strong></div><b class="${benefitsTotal >= 0 ? 'good' : 'bad'}">${benefitsTotal < 0 ? '−' : ''}£${wholeMoney(Math.abs(benefitsTotal))}</b><details><summary>View breakdown ↓</summary>${benefitsBreakdown242(result)}</details></article>
+  </section>`;
 }
 
 function renderSummary() {
   const completion = appointmentCompleteness(appointment);
   if (!completion.complete) { view = 'appointment'; renderAppointment(); return; }
   const preview = buildMealDealPreview(appointment);
+  if (!preview) mealDealPreviewActive = false;
   const showingPreview = Boolean(mealDealPreviewActive && preview);
   const result = showingPreview ? preview.previewResult : calculateAppointment(appointment);
   const displayAppointment = showingPreview ? preview.appointment : appointment;
+  const serviceCount = result.rules.serviceCount;
   window.scrollTo(0, 0);
-  app.innerHTML = `<div class="summary-page partner-summary"><header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>${showingPreview ? '🥪 Meal Deal SIM preview' : 'What they pay now. What they could save.'}</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header>${showingPreview ? '<div class="preview-banner">Preview — the saved appointment has not changed.</div>' : ''}<section class="year-hero"><p>${showingPreview ? 'Preview year one in your pocket' : 'Year one in your pocket'}</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(appointment.person.name)}</small><span aria-hidden="true">◒</span></section>${basketStrip(displayAppointment.services,result.rules.serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${mealDealBlock(preview,showingPreview)}<section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section><section class="summary-actions"><button class="primary" type="button" data-share>Share summary</button><button class="secondary" type="button" data-save-snapshot>Save snapshot</button><button class="quiet" type="button" data-copy-figures>Copy figures</button></section><p class="compliance-note">Indicative summary based on the figures entered. Confirm prices and eligibility in the official UW process.</p></div>`;
+  app.innerHTML = `<div class="summary-page partner-summary summary-242-experiment">
+    <header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>First 12 months summary</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header>
+    ${summaryHero(result,appointment.person.name,preview,showingPreview,false)}
+    ${basketStrip242(displayAppointment.services,serviceCount,preview,showingPreview)}
+    ${monthlySummary242(result)}
+    ${basketOutcomeBlocks242(result,displayAppointment.services)}
+    ${showingPreview ? '<p class="summary-preview-note">🥪 Preview only - the saved appointment has not changed.</p>' : ''}
+    ${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${wholeMoney(result.e7StandardAnnualSaving)}/year.</p>` : ''}
+    <section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section>
+    <section class="summary-actions"><button class="primary" type="button" data-share>Share summary</button><button class="secondary" type="button" data-save-snapshot>Save snapshot</button><button class="quiet" type="button" data-copy-figures>Copy figures</button></section>
+    <p class="compliance-note">Indicative summary based on the figures entered. Confirm prices and eligibility in the official UW process.</p>
+  </div>`;
 }
 
 function basketLinkAction(url) {
@@ -862,7 +929,17 @@ function renderCustomerView(data) {
   const result = resultFromShared(source);
   const services = showingPreview ? preview.services : data.services || {};
   const serviceCount = showingPreview ? preview.result.serviceCount : Number(data.serviceCount || 0);
-  app.innerHTML = `<div class="summary-page customer-summary"><header class="summary-header"><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>${showingPreview ? '🥪 Meal Deal SIM preview' : 'Your personalised summary'}</small></div></header>${showingPreview ? '<div class="preview-banner">Preview only — this does not change the Partner’s saved appointment.</div>' : ''}<section class="year-hero"><p>${showingPreview ? 'Preview year one in your pocket' : 'Year one in your pocket'}</p><h1>${result.yearOneResult < 0 ? '−' : ''}£${money(Math.abs(result.yearOneResult))}</h1><strong>One app · One password · One bill</strong><small>Prepared for ${escapeHtml(data.personName || 'you')}</small><span aria-hidden="true">◒</span></section>${basketStrip(services,serviceCount)}${monthlySummary(result)}${summaryAccordions(result)}${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${money(result.e7StandardAnnualSaving)}/year.</p>` : ''}${mealDealBlock(preview,showingPreview,true)}${data.basketUrl ? `<section class="customer-cta"><span class="basket-glyph">▰</span><div><h2>Ready to get started?</h2><p>View your basket and take the next step.</p></div><a class="action primary wide" href="${escapeHtml(data.basketUrl)}" rel="noopener">View your basket →</a></section>` : ''}<div class="partner">${data.partnerName ? `<small>Your Partner</small><strong>${escapeHtml(data.partnerName)}</strong><p>${escapeHtml(data.partnerRole || '')}${data.partnerStrap ? `<br>${escapeHtml(data.partnerStrap)}` : ''}</p>` : ''}${data.joinUrl ? `<a href="${escapeHtml(data.joinUrl)}" rel="noopener">Start saving here →</a>` : ''}</div><p class="compliance-note">Illustrative summary, not a formal quote.</p></div>`;
+  app.innerHTML = `<div class="summary-page customer-summary summary-242-experiment">
+    <header class="summary-header"><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>Your personalised summary</small></div></header>
+    ${summaryHero(result,data.personName || 'you',null,false,true)}
+    ${basketStrip242(services,serviceCount,null,false)}
+    ${monthlySummary242(result)}
+    ${basketOutcomeBlocks242(result,services)}
+    ${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${wholeMoney(result.e7StandardAnnualSaving)}/year.</p>` : ''}
+    ${data.basketUrl ? `<section class="customer-cta"><span class="basket-glyph">▰</span><div><h2>Ready to get started?</h2><p>View your basket and take the next step.</p></div><a class="action primary wide" href="${escapeHtml(data.basketUrl)}" rel="noopener">View your basket →</a></section>` : ''}
+    <div class="partner">${data.partnerName ? `<small>Your Partner</small><strong>${escapeHtml(data.partnerName)}</strong><p>${escapeHtml(data.partnerRole || '')}${data.partnerStrap ? `<br>${escapeHtml(data.partnerStrap)}` : ''}</p>` : ''}${data.joinUrl ? `<a href="${escapeHtml(data.joinUrl)}" rel="noopener">Start saving here →</a>` : ''}</div>
+    <p class="compliance-note">Illustrative summary, not a formal quote.</p>
+  </div>`;
 }
 
 function render() {

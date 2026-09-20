@@ -77,7 +77,10 @@ export function buildMealDealPreview(input) {
         improvement: Math.round((after.yearOneResult - before.yearOneResult) * 100) / 100
       };
     })
-    .filter(Boolean)
+    .filter(option => option
+      && appointment.services.energy
+      && option.result.rules.energyTariff !== before.rules.energyTariff
+      && option.improvement > 0)
     .sort((a, b) => b.result.yearOneResult - a.result.yearOneResult || a.addedSimCount - b.addedSimCount);
 
   if (!options.length) return null;
