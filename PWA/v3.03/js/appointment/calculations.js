@@ -117,11 +117,12 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     : 0;
   const oneOff = currentOneOff - uwOneOff;
   const annualCashback = card.active ? card.monthlyNet * 12 + card.feeWaiver : 0;
+  const welcomeBonus = card.active ? derived.welcomeBonus : 0;
   const effectiveUwMonthly = uwMonthly - (card.active ? card.monthlyNet : 0);
   const effectiveMonthlySaving = currentMonthly - effectiveUwMonthly;
-  const benefitsTotal = derived.welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral + nationalLeague + oneOff +
+  const benefitsTotal = welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral + nationalLeague + oneOff +
     (card.active ? card.feeWaiver : 0) - exitFeeDeduction;
-  const yearOneResult = monthlyServiceSaving * 12 + derived.welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral +
+  const yearOneResult = monthlyServiceSaving * 12 + welcomeBonus + derived.mobileIntroBenefit + broadbandIntroBenefit + referral +
     nationalLeague + oneOff - exitFeeDeduction + annualCashback;
   const currentE7AnnualCost = appointment.energy.electricityProfile !== 'standard'
     ? calculateEconomy7AnnualCost({
@@ -147,7 +148,7 @@ export function calculateAppointment(input, rules = UW_RULES_2026_10_01, date = 
     broadbandIntroBenefit: moneyNumber(broadbandIntroBenefit),
     mobileIntroBenefit: moneyNumber(derived.mobileIntroBenefit),
     boilerCoverIntroBenefit: 0,
-    welcomeBonus: derived.welcomeBonus,
+    welcomeBonus,
     referral,
     nationalLeague,
     exitFees: moneyNumber(exitFees),
