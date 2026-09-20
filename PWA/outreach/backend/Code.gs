@@ -63,8 +63,10 @@ function saveProspect(body) {
   writeByHeaders(sheet, headers, existingRow || sheet.getLastRow()+1, values);
 
   uploaded.forEach(file => appendHistory(ss, {
-    prospect:name,date:now,direction:'External',type:'Screenshot / source',
-    summary:'Captured with initial prospect record',file:file.url,linkedin:sourceUrl || profileUrl,
+    prospect:name,date:now,direction:'External',
+    type:file.purpose === 'job_preferences' ? 'Job preferences screenshot' : 'Screenshot / source',
+    summary:file.purpose === 'job_preferences' ? 'LinkedIn Job preferences captured' : 'Captured with initial prospect record',
+    file:file.url,linkedin:sourceUrl || profileUrl,
     next:'Review and prepare relationship-first outreach',status:'New',notes:''
   }));
 
@@ -115,10 +117,11 @@ function saveFiles(folder, files, name) {
     if (!match) throw new Error('Invalid screenshot payload.');
     const ext = mimeExt(match[1]);
     const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd_HHmmss');
-    const filename = stamp + '_' + (i+1) + '_' + cleanName(name) + ext;
+    const purpose = cleanName(f.purpose || 'context').replace(/\s+/g,'-').toLowerCase();
+    const filename = stamp + '_' + (i+1) + '_' + purpose + '_' + cleanName(name) + ext;
     const blob = Utilities.newBlob(Utilities.base64Decode(match[2]), match[1], filename);
     const file = folder.createFile(blob);
-    return {id:file.getId(),url:file.getUrl(),name:file.getName()};
+    return {id:file.getId(),url:file.getUrl(),name:file.getName(),purpose:String(f.purpose || 'context')};
   });
 }
 
