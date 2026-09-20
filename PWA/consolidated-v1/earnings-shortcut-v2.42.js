@@ -3,7 +3,7 @@
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
 
-  var EARNINGS_URL = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v21.html';
+  var EARNINGS_URL = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html';
 
   function firstName(value) {
     return String(value || '').trim().replace(/\s+/g, ' ').split(' ')[0].slice(0, 40);
