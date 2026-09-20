@@ -33,11 +33,17 @@ function saveProspect(body) {
   const p = body.prospect || {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(PROSPECTS_SHEET);
-  const headers = headerMap(sheet);
+  let headers = headerMap(sheet);
+  const captureHeader = ensureHeader(sheet, headers, 'Last capture ID');
+  headers = headerMap(sheet);
+  const captureId = String(body.capture_id || '').trim();
   const profileUrl = String(p.profile_url || '').trim();
   const sourceUrl = String(p.source_url || '').trim();
   let name = String(p.name || '').trim() || nameFromProfile(profileUrl) || 'Unnamed prospect';
   const existingRow = findProspectRow(sheet, headers, profileUrl, name);
+  if (existingRow && captureId && String(sheet.getRange(existingRow, captureHeader).getDisplayValue() || '') === captureId) {
+    return {ok:true,duplicate:true,prospect_name:name,row:existingRow,files:[]};
+  }
   const folder = getOrCreateProspectFolder(name);
   const uploaded = saveFiles(folder, body.files || [], name);
   const now = new Date();
@@ -58,7 +64,8 @@ function saveProspect(body) {
     'Source': String(p.source || ''),
     'Relationship': String(p.relationship || ''),
     'North Star': p.track === 'Redundancy / job seeker' ? 'Gold Standard 1' : '',
-    'Primary objective': p.track === 'Potential customer' ? 'Customer savings' : 'Partner opportunity'
+    'Primary objective': p.track === 'Potential customer' ? 'Customer savings' : 'Partner opportunity',
+    'Last capture ID': captureId
   };
   writeByHeaders(sheet, headers, existingRow || sheet.getLastRow()+1, values);
 
@@ -136,6 +143,13 @@ function childFolder(parent,name) {
 }
 function cleanName(v){return String(v||'Unnamed prospect').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim().slice(0,80)}
 function mimeExt(m){return m==='image/png'?'.png':m==='image/webp'?'.webp':m==='image/jpeg'?'.jpg':'.bin'}
+
+function ensureHeader(sheet, headers, name) {
+  if (headers[name]) return headers[name];
+  const col = Math.max(1, sheet.getLastColumn() + 1);
+  sheet.getRange(1, col).setValue(name);
+  return col;
+}
 
 function headerMap(sheet) {
   const last = sheet.getLastColumn();
