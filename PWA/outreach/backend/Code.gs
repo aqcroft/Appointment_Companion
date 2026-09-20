@@ -137,7 +137,9 @@ function buildHandoffMarkdown(x) {
     '## Instruction',
     'Process this prospect using the Cold Outreach relationship-first project instructions already available in this ChatGPT project.',
     '',
-    'Read the linked prospect screenshots/files from the connected sandbox Google Drive. Analyse only what the supplied material supports. Do not invent missing facts.',
+    'Read the linked prospect screenshots/files from the connected Google Drive. Treat those screenshots plus the capture context below as the factual source material. Analyse only what they support. Do not invent missing facts.',
+    '',
+    '**Do not browse the web or research the LinkedIn profile/source URLs.** The URLs are CRM/navigation references only. Do not open them unless Adrian explicitly asks for external research. This handoff is intentionally designed to be processed from the screenshots and supplied context.',
     '',
     'Then:',
     '1. Assess what happened, what the person appears to want, the relationship context, and whether UW is genuinely relevant.',
@@ -146,6 +148,7 @@ function buildHandoffMarkdown(x) {
     '4. Draft the connection-request instruction. Normally this is a standard connection request with no note.',
     '5. Draft the first UW DM only if appropriate. For job seekers, explicitly protect the role/career they actually want and position UW only alongside it.',
     '6. Present the copy-ready public comment and, separately, the stored first DM.',
+    '6a. When writing Conversation History, use these exact Type labels so the Companion can retrieve the output: `Suggested public comment - Draft`, `Connection request instruction - Draft`, and `Suggested first DM - Draft`.',
     '7. Update the main Google Sheet Prospects row identified below. Populate Situation, Why relevant, Target role, Job preferences, Recommended approach, Analysis summary, Draft status, Status and Next action as appropriate.',
     '8. Append Conversation History entries for the analysis, suggested public comment, connection-request instruction and suggested first DM.',
     '9. Do not mark Comment sent, Connection sent, Connected or First UW DM sent unless Adrian explicitly confirms those actions happened.',
@@ -234,7 +237,7 @@ function listProspects() {
   const last = sheet.getLastRow();
   if (last < 2) return {ok:true,prospects:[]};
   const vals = sheet.getRange(2,1,last-1,sheet.getLastColumn()).getValues();
-  const drafts = latestDmDrafts(ss);
+  const drafts = latestOutreachDrafts(ss);
   const prospects = vals.map((r,idx)=>{
     const get = h => headers[h] ? r[headers[h]-1] : '';
     const name = String(get('Name') || '');
@@ -254,13 +257,17 @@ function listProspects() {
       connection_sent:!!get('Connection sent'),
       connected:!!get('Connected'),
       first_dm_sent:!!get('First UW DM sent'),
-      first_dm:drafts[name.toLowerCase()] || ''
+      public_comment:(drafts[name.toLowerCase()] || {}).public_comment || '',
+      connection_instruction:(drafts[name.toLowerCase()] || {}).connection_instruction || '',
+      first_dm:(drafts[name.toLowerCase()] || {}).first_dm || '',
+      draft_status:String(get('Draft status') || ''),
+      capture_id:String(get('Last capture ID') || '')
     };
   }).filter(p=>p.name).reverse();
   return {ok:true,prospects:prospects};
 }
 
-function latestDmDrafts(ss) {
+function latestOutreachDrafts(ss) {
   const sheet = ss.getSheetByName(HISTORY_SHEET);
   const last = sheet.getLastRow();
   const out = {};
@@ -269,7 +276,12 @@ function latestDmDrafts(ss) {
   for (let i=vals.length-1;i>=0;i--) {
     const name=String(vals[i][0]||'').trim();
     const type=String(vals[i][3]||'').trim();
-    if (name && type === 'Suggested first DM - Draft' && !out[name.toLowerCase()]) out[name.toLowerCase()] = vals[i][4] || '';
+    if (!name) continue;
+    const key=name.toLowerCase();
+    if (!out[key]) out[key]={public_comment:'',connection_instruction:'',first_dm:''};
+    if (type === 'Suggested public comment - Draft' && !out[key].public_comment) out[key].public_comment = vals[i][4] || '';
+    if (type === 'Connection request instruction - Draft' && !out[key].connection_instruction) out[key].connection_instruction = vals[i][4] || '';
+    if (type === 'Suggested first DM - Draft' && !out[key].first_dm) out[key].first_dm = vals[i][4] || '';
   }
   return out;
 }
