@@ -2,7 +2,7 @@ export const TOOLS = Object.freeze({
   pet: {
     id: 'pet',
     label: 'Partner Earnings - First 60 Days',
-    url: 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v21.html',
+    url: 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html',
     context: false
   },
   ev: {
