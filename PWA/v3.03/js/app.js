@@ -385,7 +385,7 @@ function stickyBasketBar() {
   ].filter(([key]) => key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner');
   const cashbackActive = appointment.cashback.enabled !== false;
   const effectiveUw = Number(result.effectiveUwMonthly ?? result.uw.total ?? 0);
-  const cashbackEstimate = Number(result.cashback?.selected || 0);
+  const cashbackEstimate = Number(result.cashback?.monthlyNet || 0);
   const home = appointment.person.homeStatus === 'homeowner' ? '🏠 Homeowner' : appointment.person.homeStatus === 'tenant' ? '🔑 Tenant' : 'Set home status';
   const route = appointment.benefits.referral ? ' · 🤝' : appointment.benefits.nationalLeague ? ' · ⚽' : '';
   const serviceTiles = ordered.map(([key,icon,label]) => {
@@ -807,7 +807,7 @@ function monthlySummary242(result, cashbackActive = true) {
       <div><small>UW*</small><strong>£${wholeMoney(effective)}</strong></div>
       <div><small>SAVING</small><strong class="money ${saving >= 0 ? 'good' : 'bad'}">${saving < 0 ? '−' : ''}£${wholeMoney(Math.abs(saving))}</strong></div>
     </div>
-    <p>${cashbackActive ? '* UW monthly position minus estimated Cashback Card contribution.' : '* Cashback Card removed from this comparison.'}</p>
+    <p>${cashbackActive ? '* UW monthly position minus estimated Cashback Card contribution.' : '* Cashback Card and associated Welcome Bonus removed from this comparison.'}</p>
   </section>`;
 }
 
@@ -867,7 +867,7 @@ function renderSummary() {
     ${basketStrip242(displayAppointment.services,serviceCount,preview,showingPreview,summaryCashbackActive,true)}
     ${monthlySummary242(result,summaryCashbackActive)}
     ${basketOutcomeBlocks242(result,displayAppointment.services)}
-    ${!summaryCashbackActive ? '<p class="summary-preview-note cashback-preview-note">💳 Cashback Card removed for comparison - the saved appointment has not changed.</p>' : ''}
+    ${!summaryCashbackActive ? '<p class="summary-preview-note cashback-preview-note">💳 Cashback Card removed for comparison - the Welcome Bonus is removed too. The saved appointment has not changed.</p>' : ''}
     ${showingPreview ? '<p class="summary-preview-note">🥪 Preview only - the saved appointment has not changed.</p>' : ''}
     ${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${wholeMoney(result.e7StandardAnnualSaving)}/year.</p>` : ''}
     <section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section>
