@@ -22,6 +22,8 @@ function doPost(e) {
     if (action === 'health') return json({ok:true, ai_configured:!!getOpenAIKey(), model:getOpenAIModel()});
     if (action === 'saveProspect') return json(saveProspect(body));
     if (action === 'addHistory') return json(addHistory(body));
+    if (action === 'markAction') return json(markAction(body));
+    if (action === 'listProspects') return json(listProspects());
     return json({ok:false,error:'Unknown action'});
   } catch (err) {
     return json({ok:false,error:String(err && err.message || err)});
@@ -279,6 +281,106 @@ function buildJobPreferences(a) {
   return parts.join(' | ');
 }
 
+function markAction(body) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const profileUrl = String(body.profile_url || '').trim();
+  const name = String(body.prospect_name || '').trim();
+  const row = findProspectRow(sheet, headers, profileUrl, name);
+  if (!row) throw new Error('Prospect not found in CRM.');
+
+  const actualName = headers['Name'] ? sheet.getRange(row,headers['Name']).getDisplayValue() : name;
+  const now = new Date();
+  const action = String(body.action_name || '');
+
+  if (action === 'comment_connection_sent') {
+    writeByHeaders(sheet,headers,row,{
+      'Comment sent':now,
+      'Connection sent':now,
+      'Initial action date':now,
+      'Status':'Connection sent',
+      'Last contact':now,
+      'Next action':'Wait for connection acceptance'
+    });
+    appendHistory(ss,{prospect:actualName,date:now,direction:'Outbound',type:'Public comment + connection request',summary:'Public comment posted and normal connection request sent.',file:'',linkedin:profileUrl,next:'Wait for connection acceptance',status:'Connection sent',notes:''});
+  } else if (action === 'connected') {
+    writeByHeaders(sheet,headers,row,{
+      'Connected':now,
+      'Connected date':now,
+      'Status':'Connected',
+      'Last contact':now,
+      'Next action':'Send first UW DM'
+    });
+    appendHistory(ss,{prospect:actualName,date:now,direction:'External',type:'Connection accepted',summary:'LinkedIn connection accepted.',file:'',linkedin:profileUrl,next:'Send first UW DM',status:'Connected',notes:''});
+  } else if (action === 'dm_sent') {
+    writeByHeaders(sheet,headers,row,{
+      'First UW DM sent':now,
+      'First DM sent date':now,
+      'Status':'DM sent',
+      'Last contact':now,
+      'Next action':'Follow up in about 1 week if no reply',
+      'Follow-up date':new Date(now.getTime()+7*24*60*60*1000)
+    });
+    appendHistory(ss,{prospect:actualName,date:now,direction:'Outbound',type:'First UW DM sent',summary:'Stored first DM marked as sent.',file:'',linkedin:profileUrl,next:'Follow up in about 1 week if no reply',status:'DM sent',notes:''});
+  } else {
+    throw new Error('Unknown action.');
+  }
+  return {ok:true,action:action};
+}
+
+function listProspects() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const last = sheet.getLastRow();
+  if (last < 2) return {ok:true,prospects:[]};
+  const vals = sheet.getRange(2,1,last-1,sheet.getLastColumn()).getValues();
+  const drafts = latestDmDrafts(ss);
+  const prospects = vals.map((r,idx)=>{
+    const get = h => headers[h] ? r[headers[h]-1] : '';
+    const name = String(get('Name') || '');
+    return {
+      row:idx+2,
+      name:name,
+      profile_url:String(get('LinkedIn profile') || ''),
+      source_post:String(get('Source post') || ''),
+      source:String(get('Source') || ''),
+      track:String(get('Track') || ''),
+      relationship:String(get('Relationship') || ''),
+      status:String(get('Status') || ''),
+      next_action:String(get('Next action') || ''),
+      followup_date:dateIso(get('Follow-up date')),
+      folder_url:String(get('Prospect folder') || ''),
+      comment_sent:!!get('Comment sent'),
+      connection_sent:!!get('Connection sent'),
+      connected:!!get('Connected'),
+      first_dm_sent:!!get('First UW DM sent'),
+      first_dm:drafts[name.toLowerCase()] || ''
+    };
+  }).filter(p=>p.name).reverse();
+  return {ok:true,prospects:prospects};
+}
+
+function latestDmDrafts(ss) {
+  const sheet = ss.getSheetByName(HISTORY_SHEET);
+  const last = sheet.getLastRow();
+  const out = {};
+  if (last < 2) return out;
+  const vals = sheet.getRange(2,1,last-1,10).getDisplayValues();
+  for (let i=vals.length-1;i>=0;i--) {
+    const name=String(vals[i][0]||'').trim();
+    const type=String(vals[i][3]||'').trim();
+    if (name && type === 'Suggested first DM - Draft' && !out[name.toLowerCase()]) out[name.toLowerCase()] = vals[i][4] || '';
+  }
+  return out;
+}
+function dateIso(v) {
+  if (!v) return '';
+  const d = v instanceof Date ? v : new Date(v);
+  return isNaN(d.getTime()) ? '' : Utilities.formatDate(d, Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd');
+}
+
 function addHistory(body) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(PROSPECTS_SHEET);
@@ -346,7 +448,7 @@ function mimeExt(m){return m==='image/png'?'.png':m==='image/webp'?'.webp':m==='
 function ensureProspectHeaders(sheet) {
   let headers = headerMap(sheet);
   [
-    'Last capture ID','Target role','Job preferences','Recommended approach','Analysis summary','Draft status'
+    'Last capture ID','Target role','Job preferences','Recommended approach','Analysis summary','Draft status','Initial action date','Connected date','First DM sent date'
   ].forEach(name => ensureHeader(sheet, headers, name));
   return headerMap(sheet);
 }
