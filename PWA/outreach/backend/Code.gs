@@ -67,7 +67,7 @@ function saveProspect(body) {
     'Situation': '',
     'Why relevant': '',
     'Date identified': now,
-    'Status': 'Captured',
+    'Status': 'New',
     'Next action': 'Process ChatGPT handoff',
     'Customer angle': 'Not raised',
     'Notes': String(p.notes || '').trim(),
