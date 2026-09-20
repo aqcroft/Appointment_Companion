@@ -154,8 +154,8 @@ function switchTo(id){document.querySelectorAll('.view').forEach(v=>v.classList.
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.view)));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',e=>{const b=e.target.closest('.choice-btn');if(!b)return;const id=group.dataset.choiceGroup;const input=document.getElementById(id);if(input)input.value=b.dataset.value;group.querySelectorAll('.choice-btn').forEach(x=>x.classList.toggle('active',x===b));}));
 function preview(input, target){const box=document.getElementById(target);box.innerHTML='';[...input.files].forEach(f=>{const img=document.createElement('img');img.className='thumb';img.src=URL.createObjectURL(f);box.appendChild(img)})}
-document.getElementById('newFiles').addEventListener('change',e=>preview(e.target,'newPreview'));
-document.getElementById('updateFiles').addEventListener('change',e=>preview(e.target,'updatePreview'));
+document.getElementById('newFiles')?.addEventListener('change',e=>preview(e.target,'newPreview'));
+document.getElementById('updateFiles')?.addEventListener('change',e=>preview(e.target,'updatePreview'));
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
 function showDemo(){document.getElementById('demoOutput').style.display='block';document.getElementById('demoOutput').scrollIntoView({behavior:'smooth'})}
 const BACKEND_URL_KEY='acOutreachBackendUrl',BACKEND_KEY_KEY='acOutreachBackendKey';
@@ -340,7 +340,6 @@ async function loadFollowups(){
     box.innerHTML=ps.map(p=>`<div class="card"><div class="section-title"><h3>${escapeHtml(p.name)}</h3><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted"><strong>Next action:</strong> ${escapeHtml(p.first_dm_sent?(p.next_action||'Follow-up as appropriate'):p.connected?'Send first DM':p.connection_sent?'Waiting for connection acceptance':(p.next_action||'Review'))}</div></div>`).join('');
   }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
 }
-async function saveConversationUpdate(){try{const next=document.getElementById('customFollowup')?.value||'';const payload={action:'addHistory',prospect_name:'Philip Daley',profile_url:'https://www.linkedin.com/in/philipdaley',note:document.getElementById('updateNote').value.trim(),followup_date:next,files:await collectFiles('updateFiles')};await crmPost(payload);alert('Conversation update saved to CRM.');}catch(e){alert(e.message)}}
 async function testBackend(){try{const d=await crmPost({action:'health'});document.getElementById('backendState').textContent=d.ai_configured?'✅ CRM + AI connection is working.':'⚠️ CRM works, but OPENAI_API_KEY is not configured in Apps Script.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
 ['profileLink','sourceLink','prospectNotes','newFiles'].forEach(id=>document.getElementById(id)?.addEventListener('change',unlockProspectSave));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',()=>unlockProspectSave()));
