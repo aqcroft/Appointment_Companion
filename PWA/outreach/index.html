@@ -220,13 +220,19 @@ async function retrieveChatGPTOutput(){
       +'<div class="actions" style="margin-top:12px">'
       +(p.source_post?'<a class="btn small secondary" href="'+escapeHtml(p.source_post)+'" target="_blank">Open post</a>':'')
       +(p.profile_url?'<a class="btn small secondary" href="'+escapeHtml(p.profile_url)+'" target="_blank">Open profile</a>':'')
-      +(!p.connection_sent?'<button class="btn small good" onclick="markPipelineAction(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_connection_sent\');retrieveChatGPTOutput()">✓ Comment + connection sent</button>':'')
+      +(!p.comment_sent?'<button class="btn small good" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_sent\')">✓ Comment sent</button>':'<span class="pill">✓ Comment sent</span>')
+      +(!p.connection_sent?'<button class="btn small good" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'connection_sent\')">✓ Connection request sent</button>':'<span class="pill">✓ Connection sent</span>')
       +'</div>';
   }catch(e){
     box.style.display='block';box.innerHTML='<div class="output">⚠️ '+escapeHtml(e.message)+'</div>';
   }finally{
     btn.disabled=false;btn.textContent='Retrieve ChatGPT output';
   }
+}
+
+async function markAndRefreshRetrieved(profile,name,action){
+  await markPipelineAction(profile,name,action);
+  await retrieveChatGPTOutput();
 }
 
 function downloadHandoff(){
