@@ -196,7 +196,24 @@ function markAction(body) {
   const now = new Date();
   const action = String(body.action_name || '');
 
-  if (action === 'comment_connection_sent') {
+  if (action === 'comment_sent') {
+    writeByHeaders(sheet,headers,row,{
+      'Comment sent':now,
+      'Initial action date':now,
+      'Last contact':now,
+      'Next action':'Send connection request'
+    });
+    appendHistory(ss,{prospect:actualName,date:now,direction:'Outbound',type:'Public comment sent',summary:'Public LinkedIn comment posted.',file:'',linkedin:profileUrl,next:'Send connection request',status:'Comment sent',notes:''});
+  } else if (action === 'connection_sent') {
+    writeByHeaders(sheet,headers,row,{
+      'Connection sent':now,
+      'Initial action date':now,
+      'Status':'Connection sent',
+      'Last contact':now,
+      'Next action':'Wait for connection acceptance'
+    });
+    appendHistory(ss,{prospect:actualName,date:now,direction:'Outbound',type:'Connection request sent',summary:'LinkedIn connection request sent.',file:'',linkedin:profileUrl,next:'Wait for connection acceptance',status:'Connection sent',notes:''});
+  } else if (action === 'comment_connection_sent') {
     writeByHeaders(sheet,headers,row,{
       'Comment sent':now,
       'Connection sent':now,
