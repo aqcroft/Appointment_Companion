@@ -34,24 +34,33 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 <main>
 <section class="view active" id="new">
 <div class="stack">
+  <details class="card" id="backendSettings">
+    <summary><strong>⚙️ CRM connection</strong> <span class="muted">one-time setup</span></summary>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field wide"><label>Apps Script web app URL</label><input id="backendUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div class="field wide"><label>Workspace key</label><input id="backendKey" type="password" placeholder="Private key for this CRM"></div>
+    </div>
+    <div class="actions" style="margin-top:10px"><button class="btn small accent" onclick="saveBackendSettings()">Save connection</button><button class="btn small secondary" onclick="testBackend()">Test</button></div>
+    <p class="muted" id="backendState">Not connected yet. Until configured, the pilot still works as a read-only/test interface.</p>
+  </details>
   <div class="card">
     <h2>Capture someone</h2>
     <p class="muted">Paste what you have. The aim is to capture enough context now so you do not have to remember it later.</p>
     <div class="grid2">
       
-      <div class="field"><label>Relationship</label><select><option>Cold</option><option>Connected</option><option>Met once</option><option>Know reasonably well</option><option>Warm</option></select></div>
-      <div class="field"><label>Track</label><select><option>Redundancy / job seeker</option><option>Networking contact</option><option>Cold outreach</option><option>Potential customer</option><option>Connector / referral</option><option>Other</option></select></div>
-      <div class="field"><label>Source</label><select><option>LinkedIn</option><option>Networking</option><option>WhatsApp</option><option>Facebook</option><option>Referral</option><option>Phone / in person</option><option>Other</option></select></div>
-      <div class="field wide"><label>LinkedIn post / source link</label><input placeholder="Paste the post you spotted"></div>
-      <div class="field wide"><label>LinkedIn profile / contact link</label><input placeholder="Paste their profile link"></div>
+      <div class="field"><label>Relationship</label><select id="relationship"><option>Cold</option><option>Connected</option><option>Met once</option><option>Know reasonably well</option><option>Warm</option></select></div>
+      <div class="field"><label>Track</label><select id="track"><option>Redundancy / job seeker</option><option>Networking contact</option><option>Cold outreach</option><option>Potential customer</option><option>Connector / referral</option><option>Other</option></select></div>
+      <div class="field"><label>Source</label><select id="sourceType"><option>LinkedIn</option><option>Networking</option><option>WhatsApp</option><option>Facebook</option><option>Referral</option><option>Phone / in person</option><option>Other</option></select></div>
+      <div class="field wide"><label>LinkedIn post / source link</label><input id="sourceLink" placeholder="Paste the post you spotted"></div>
+      <div class="field wide"><label>LinkedIn profile / contact link</label><input id="profileLink" placeholder="Paste their profile link"></div>
       <div class="field wide"><div class="muted"><strong>Name:</strong> detected from the profile screenshot / profile data - no typing needed.</div></div>
-      <div class="field wide"><label>Anything else you know</label><textarea placeholder="Optional context"></textarea></div>
+      <div class="field wide"><label>Anything else you know</label><textarea id="prospectNotes" placeholder="Optional context"></textarea></div>
       <div class="field wide">
         <label>Screenshots</label>
         <div class="upload">Choose screenshots from your phone gallery<input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div><div class="muted" style="margin-top:8px">Tip: your phone controls which gallery/album opens. A web app cannot force Android to open the Screenshots album directly.</div></div>
       </div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save prospect</button><button class="btn secondary" onclick="showDemo()">Preview suggested output</button></div>
+    <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="saveProspect()">Save prospect</button><button class="btn secondary" onclick="showDemo()">Preview suggested output</button></div>
     <p class="muted" id="saveNote" style="display:none;margin-bottom:0">Pilot note: this live test page currently previews and organises the workflow. Automatic Drive/Sheet writing is the next wiring step.</p>
   </div>
   <div class="card" id="demoOutput" style="display:none">
@@ -101,9 +110,9 @@ If so, I’m very happy to send you a little info and you can decide for yoursel
   <div class="card">
     <h3>Add conversation update</h3>
     <p class="muted">Use this when someone accepts, replies, or you have another interaction to record.</p>
-    <div class="field"><label>What happened?</label><textarea placeholder="Optional note - a screenshot may be enough"></textarea></div>
+    <div class="field"><label>What happened?</label><textarea id="updateNote" placeholder="Optional note - a screenshot may be enough"></textarea></div>
     <div class="field" style="margin-top:10px"><label>Screenshot(s)</label><div class="upload">Choose from phone gallery<input id="updateFiles" type="file" accept="image/*" multiple><div class="preview" id="updatePreview"></div><div class="muted" style="margin-top:8px">The finished version will analyse the screenshot for context and any follow-up date you agreed.</div></div></div>
-    <div class="field" style="margin-top:12px"><label>Next follow-up</label><div class="actions"><button class="btn small secondary" onclick="setFollowup(7)">+1 week</button><button class="btn small secondary" onclick="setFollowup(24)">+3-4 weeks</button><button class="btn small secondary" onclick="setFollowup(90)">+3 months</button></div><input id="customFollowup" type="date" style="margin-top:8px"><div class="muted" id="followupHint" style="margin-top:6px">Or choose a specific date. Later, screenshot analysis can suggest this automatically from phrases such as “speak at the end of October”.</div></div><div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
+    <div class="field" style="margin-top:12px"><label>Next follow-up</label><div class="actions"><button class="btn small secondary" onclick="setFollowup(7)">+1 week</button><button class="btn small secondary" onclick="setFollowup(24)">+3-4 weeks</button><button class="btn small secondary" onclick="setFollowup(90)">+3 months</button></div><input id="customFollowup" type="date" style="margin-top:8px"><div class="muted" id="followupHint" style="margin-top:6px">Or choose a specific date. Later, screenshot analysis can suggest this automatically from phrases such as “speak at the end of October”.</div></div><div class="actions" style="margin-top:12px"><button class="btn accent" onclick="saveConversationUpdate()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
   </div>
   <div class="card">
     <h3>Conversation history</h3>
@@ -146,7 +155,19 @@ document.getElementById('newFiles').addEventListener('change',e=>preview(e.targe
 document.getElementById('updateFiles').addEventListener('change',e=>preview(e.target,'updatePreview'));
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
 function showDemo(){document.getElementById('demoOutput').style.display='block';document.getElementById('demoOutput').scrollIntoView({behavior:'smooth'})}
-function demoSave(){const n=document.getElementById('saveNote');if(n)n.style.display='block';alert('Pilot only for now. The next wiring step will save the screenshot to this prospect’s Drive folder, update conversation history, analyse the reply and set/suggest the next follow-up date.')} function openProfileModal(){document.getElementById('profileModal').classList.add('open')} function closeProfileModal(){document.getElementById('profileModal').classList.remove('open')} function setFollowup(days){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('customFollowup').value=d.toISOString().slice(0,10);document.getElementById('followupHint').textContent='Custom follow-up selected. You can overwrite it with any date.'}
+const BACKEND_URL_KEY='acOutreachBackendUrl',BACKEND_KEY_KEY='acOutreachBackendKey';
+function backendConfig(){return{url:localStorage.getItem(BACKEND_URL_KEY)||'',key:localStorage.getItem(BACKEND_KEY_KEY)||''}}
+function loadBackendSettings(){const c=backendConfig();const u=document.getElementById('backendUrl'),k=document.getElementById('backendKey');if(u)u.value=c.url;if(k)k.value=c.key;const s=document.getElementById('backendState');if(s)s.textContent=c.url&&c.key?'CRM connection saved on this device.':'Not connected yet. Until configured, the pilot still works as a read-only/test interface.'}
+function saveBackendSettings(){localStorage.setItem(BACKEND_URL_KEY,document.getElementById('backendUrl').value.trim());localStorage.setItem(BACKEND_KEY_KEY,document.getElementById('backendKey').value);loadBackendSettings()}
+async function crmPost(payload){const c=backendConfig();if(!c.url||!c.key)throw new Error('CRM connection is not configured yet.');const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,workspace_key:c.key}),redirect:'follow',cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch{throw new Error('CRM returned a non-JSON response.')}if(!d.ok)throw new Error(d.error||'CRM request failed.');return d}
+async function fileToDataUrl(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
+function inferredName(){const url=document.getElementById('profileLink')?.value||'';try{const p=new URL(url);const slug=p.pathname.split('/').filter(Boolean).pop()||'';return slug.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}catch{return''}}
+async function collectFiles(inputId){const files=[...(document.getElementById(inputId)?.files||[])];const out=[];for(const f of files)out.push({name:f.name,type:f.type,data_url:await fileToDataUrl(f)});return out}
+async function saveProspect(){try{const payload={action:'saveProspect',prospect:{name:inferredName(),profile_url:document.getElementById('profileLink').value.trim(),source_url:document.getElementById('sourceLink').value.trim(),track:document.getElementById('track').value,source:document.getElementById('sourceType').value,relationship:document.getElementById('relationship').value,notes:document.getElementById('prospectNotes').value.trim()},files:await collectFiles('newFiles')};const d=await crmPost(payload);alert('Saved to CRM'+(d.prospect_name?' as '+d.prospect_name:'')+'.');}catch(e){alert(e.message)}}
+async function saveConversationUpdate(){try{const next=document.getElementById('customFollowup')?.value||'';const payload={action:'addHistory',prospect_name:'Philip Daley',profile_url:'https://www.linkedin.com/in/philipdaley',note:document.getElementById('updateNote').value.trim(),followup_date:next,files:await collectFiles('updateFiles')};await crmPost(payload);alert('Conversation update saved to CRM.');}catch(e){alert(e.message)}}
+async function testBackend(){try{await crmPost({action:'health'});document.getElementById('backendState').textContent='✅ CRM connection is working.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
+window.addEventListener('DOMContentLoaded',loadBackendSettings);
+function openProfileModal(){document.getElementById('profileModal').classList.add('open')} function closeProfileModal(){document.getElementById('profileModal').classList.remove('open')} function setFollowup(days){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('customFollowup').value=d.toISOString().slice(0,10);document.getElementById('followupHint').textContent='Custom follow-up selected. You can overwrite it with any date.'}
 </script>
 </body>
 </html>
