@@ -97,33 +97,19 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
         <div class="upload"><strong>📸 Add everything useful in one go</strong><div class="muted" style="margin-top:6px">Profile, original post, Job preferences, messages or anything else relevant. The aim is for the tool to classify each screenshot by what it contains rather than making you sort them first.</div><input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
       </div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn accent" id="saveProspectBtn" onclick="saveProspect()">Save & analyse</button></div>
-    <p class="muted" id="saveNote" style="margin-bottom:0">Saving creates/updates the CRM record and uploads the selected screenshots. The outreach comment and DM drafting step will follow the analysis layer - it is not a separate required button.</p>
+    <div class="actions" style="margin-top:12px"><button class="btn accent" id="saveProspectBtn" onclick="saveProspect()">Save & create handoff</button></div>
+    <p class="muted" id="saveNote" style="margin-bottom:0">Saving creates/updates the CRM record, uploads the screenshots and creates a ChatGPT handoff file. Nothing is cleared until you choose to start the next prospect.</p>
   </div>
   <div class="card" id="analysisOutput" style="display:none">
-    <div class="section-title"><h3 id="processedTitle">Processed ✓</h3><span class="pill" id="analysisRecommendation">Relationship first</span></div>
+    <div class="section-title"><h3 id="processedTitle">Handoff ready ✓</h3><span class="pill">ChatGPT handoff</span></div>
     <div class="output" id="processReport" style="margin:10px 0 14px"></div>
-    <p class="muted" id="analysisReason"></p>
-    <div id="analysisFacts" class="muted" style="margin:10px 0 14px"></div>
-
-    <div id="commentBlock" style="display:none">
-      <div class="section-title"><h3>Public comment</h3><button class="btn small secondary" onclick="copyText('commentText')">Copy</button></div>
-      <div class="output" id="commentText"></div>
+    <div class="muted" style="margin-bottom:12px">Open a new chat in this Cold Outreach project, attach the .md file, then say <strong>Process this prospect.</strong> The handoff tells ChatGPT which Drive files and CRM record to use and what to update.</div>
+    <div class="actions">
+      <button class="btn accent" id="downloadHandoffBtn" onclick="downloadHandoff()">Download handoff .md</button>
+      <a class="btn secondary" id="openHandoffDriveBtn" href="#" target="_blank" style="text-decoration:none;display:none">Open Drive copy</a>
     </div>
-
-    <div id="connectionBlock" style="display:none;margin-top:12px">
-      <div class="section-title"><h3>Connection request</h3></div>
-      <div class="output" id="connectionText"></div>
-    </div>
-
-    <div id="storedDmNotice" class="muted" style="display:none;margin-top:12px">✉️ First DM drafted and stored in the CRM. It will be available from Pipeline if/when this person accepts the connection request.</div>
-
-    <div class="actions" id="initialActionButtons" style="margin-top:14px;display:none">
-      <button class="btn good" id="markInitialActionBtn" onclick="markInitialAction()">✓ Comment posted + connection request sent</button>
-    </div>
-
-    <div id="clearReady" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="muted" style="margin-bottom:8px">This prospect is safely stored in the CRM. Their DM can be picked up later from Pipeline after they connect.</div>
+    <div id="clearReady" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="muted" style="margin-bottom:8px">Keep this form until the handoff file is safely downloaded. Then clear it when you are ready for another prospect.</div>
       <button class="btn secondary" onclick="clearProspectForm()">Clear form / Next prospect</button>
     </div>
   </div>
@@ -165,7 +151,7 @@ function loadBackendSettings(){try{const c=backendConfig();const u=document.getE
 function saveBackendSettings(){try{const url=document.getElementById('backendUrl').value.trim();const key=document.getElementById('backendKey').value;if(!url||!key){document.getElementById('backendState').textContent='⚠️ Enter both the Apps Script URL and workspace key.';return}localStorage.setItem(BACKEND_URL_KEY,url);localStorage.setItem(BACKEND_KEY_KEY,key);loadBackendSettings();document.getElementById('backendState').textContent='✅ CRM connection saved on this device.';}catch(e){document.getElementById('backendState').textContent='⚠️ Could not save connection: '+e.message}}
 async function crmPost(payload){const c=backendConfig();if(!c.url||!c.key)throw new Error('CRM connection is not configured yet.');const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,workspace_key:c.key}),redirect:'follow',cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch{throw new Error('CRM returned a non-JSON response.')}if(!d.ok)throw new Error(d.error||'CRM request failed.');return d}
 async function fileToDataUrl(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
-function inferredName(){const url=document.getElementById('profileLink')?.value||'';try{const p=new URL(url);const slug=p.pathname.split('/').filter(Boolean).pop()||'';return slug.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}catch{return''}}
+function inferredName(){const url=document.getElementById('profileLink')?.value||'';try{const p=new URL(url);const slug=p.pathname.split('/').filter(Boolean).pop()||'';return slug.replace(/-\d{5,}$/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}catch{return''}}
 async function collectFiles(inputId,purpose='context'){const files=[...(document.getElementById(inputId)?.files||[])];const out=[];for(const f of files)out.push({name:f.name,type:f.type,purpose,data_url:await fileToDataUrl(f)});return out}
 let prospectSaveInFlight=false;
 function saveSignature(){const inp=document.getElementById('newFiles');const files=[...(inp?.files||[])].map(f=>[f.name,f.size,f.lastModified].join(':')).join('|');return [document.getElementById('profileLink')?.value.trim()||'',document.getElementById('sourceLink')?.value.trim()||'',document.getElementById('track')?.value||'',document.getElementById('sourceType')?.value||'',document.getElementById('relationship')?.value||'',document.getElementById('prospectNotes')?.value.trim()||'',files].join('||')}
@@ -174,57 +160,47 @@ function setProspectSaveState(state,message=''){const b=document.getElementById(
 function unlockProspectSave(){if(!prospectSaveInFlight){setProspectSaveState('ready','Ready to save. Any changed details or screenshots will create an updated capture.');document.getElementById('analysisOutput').style.display='none'}}
 function safeText(v){return String(v??'')}
 let currentSavedProspect=null;
+let currentHandoff=null;
 
-function renderAnalysis(a,d){
-  if(!a)return;
-  currentSavedProspect={name:d.prospect_name||a.extracted_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null};
+function renderHandoff(d){
+  currentSavedProspect={name:d.prospect_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null};
+  currentHandoff={content:d.handoff_markdown||'',filename:d.handoff_filename||'prospect-handoff.md',url:d.handoff_url||''};
+
   const card=document.getElementById('analysisOutput');
   card.style.display='block';
-  document.getElementById('processedTitle').textContent=(d.prospect_name||a.extracted_name||'Prospect')+' processed ✓';
-  document.getElementById('analysisRecommendation').textContent=(a.recommendation||'').replaceAll('_',' ');
-  document.getElementById('analysisReason').textContent=a.recommendation_reason||'';
-
-  const facts=[];
-  if(a.target_role)facts.push('Target role: '+safeText(a.target_role));
-  if((a.target_locations||[]).length)facts.push('Locations: '+a.target_locations.join(', '));
-  if((a.work_preferences||[]).length)facts.push('Work preference: '+a.work_preferences.join(', '));
-  if((a.employment_types||[]).length)facts.push('Employment: '+a.employment_types.join(', '));
-  if(a.why_relevant)facts.push('Why relevant: '+safeText(a.why_relevant));
-  document.getElementById('analysisFacts').innerHTML=facts.join('<br>');
+  document.getElementById('processedTitle').textContent=(d.prospect_name||'Prospect')+' handoff ready ✓';
 
   const report=[
     '📁 '+((d.files||[]).length)+' screenshot'+(((d.files||[]).length)===1?'':'s')+' saved to Drive',
     '📊 CRM record created / updated',
-    '🤖 '+((a.screenshot_types||[]).length||((d.files||[]).length))+' screenshot'+((((a.screenshot_types||[]).length||((d.files||[]).length))===1)?'':'s')+' analysed',
-    '🎯 Situation + relevance '+(a.situation_summary||a.why_relevant?'identified':'reviewed'),
-    a.public_comment?'💬 Public comment drafted + stored':'💬 No public comment recommended',
-    a.first_dm?'✉️ First DM drafted + stored for later':'✉️ No first DM recommended'
+    '📝 ChatGPT handoff .md created',
+    '🔗 Prospect folder linked',
+    '🧠 Analysis + drafting will happen in this ChatGPT project'
   ];
   document.getElementById('processReport').textContent=report.join('\n');
 
-  const comment=safeText(a.public_comment).trim();
-  const conn=safeText(a.connection_request_instruction).trim();
-  const dm=safeText(a.first_dm).trim();
-  document.getElementById('commentBlock').style.display=comment?'block':'none';
-  document.getElementById('commentText').textContent=comment;
-  document.getElementById('connectionBlock').style.display=conn?'block':'none';
-  document.getElementById('connectionText').textContent=conn;
-  document.getElementById('storedDmNotice').style.display=dm?'block':'none';
-
-  const canInitial = !!(comment || conn) && !['no_approach','supportive_comment_only'].includes(a.recommendation);
-  document.getElementById('initialActionButtons').style.display=canInitial?'flex':'none';
-  document.getElementById('clearReady').style.display=canInitial?'none':'block';
-
+  const driveBtn=document.getElementById('openHandoffDriveBtn');
+  if(d.handoff_url){driveBtn.href=d.handoff_url;driveBtn.style.display='inline-flex'}else{driveBtn.style.display='none'}
   card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function downloadHandoff(){
+  if(!currentHandoff?.content)return;
+  const blob=new Blob([currentHandoff.content],{type:'text/markdown;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=currentHandoff.filename||'prospect-handoff.md';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function setProspectSaveState(state,message=''){
   const b=document.getElementById('saveProspectBtn');
   const n=document.getElementById('saveNote');
   if(!b)return;
-  if(state==='saving'){b.disabled=true;b.textContent='Analysing…'}
-  else if(state==='saved'){b.disabled=true;b.textContent='Saved ✓'}
-  else{b.disabled=false;b.textContent='Save & analyse'}
+  if(state==='saving'){b.disabled=true;b.textContent='Saving…'}
+  else if(state==='saved'){b.disabled=true;b.textContent='Handoff ready ✓'}
+  else{b.disabled=false;b.textContent='Save & create handoff'}
   if(n&&message)n.textContent=message;
 }
 function unlockProspectSave(){
@@ -232,6 +208,7 @@ function unlockProspectSave(){
     setProspectSaveState('ready','Ready to save. Nothing is cleared until you explicitly start the next prospect.');
     document.getElementById('analysisOutput').style.display='none';
     currentSavedProspect=null;
+    currentHandoff=null;
   }
 }
 
@@ -239,14 +216,14 @@ async function saveProspect(){
   if(prospectSaveInFlight)return;
   try{
     prospectSaveInFlight=true;
-    setProspectSaveState('saving','Keeping this form intact whilst CRM, Drive and AI processing completes…');
+    setProspectSaveState('saving','Saving the CRM record, screenshots and ChatGPT handoff…');
     const capture_id=await sha256(saveSignature());
     const last=localStorage.getItem('acOutreachLastCaptureId')||'';
     if(last===capture_id){
-      setProspectSaveState('saved','This exact capture has already been processed on this device - duplicate upload blocked.');
+      setProspectSaveState('saved','This exact capture has already been saved on this device - duplicate upload blocked.');
       return;
     }
-    const files=await collectFiles('newFiles','auto');
+    const files=await collectFiles('newFiles','context');
     const payload={
       action:'saveProspect',
       capture_id,
@@ -262,28 +239,17 @@ async function saveProspect(){
       files
     };
     const d=await crmPost(payload);
+    if(d.duplicate){
+      setProspectSaveState('saved','Duplicate capture blocked by CRM - nothing uploaded twice.');
+      return;
+    }
     localStorage.setItem('acOutreachLastCaptureId',capture_id);
-    setProspectSaveState('saved',d.duplicate?'Duplicate capture blocked by CRM - nothing uploaded twice.':'Processing complete. The form will remain here until you clear it.');
-    if(d.analysis)renderAnalysis(d.analysis,d);
+    setProspectSaveState('saved','Saved. Download the handoff file, then process it in a new chat in this project.');
+    renderHandoff(d);
   }catch(e){
-    setProspectSaveState('ready','Processing failed: '+e.message+' Your links, notes and screenshots are still here - fix the issue and retry.');
+    setProspectSaveState('ready','Save failed: '+e.message+' Your links, notes and screenshots are still here - fix the issue and retry.');
   }finally{
     prospectSaveInFlight=false;
-  }
-}
-
-async function markInitialAction(){
-  if(!currentSavedProspect)return;
-  const btn=document.getElementById('markInitialActionBtn');
-  btn.disabled=true;btn.textContent='Saving…';
-  try{
-    await crmPost({action:'markAction',profile_url:currentSavedProspect.profile_url,prospect_name:currentSavedProspect.name,action_name:'comment_connection_sent'});
-    btn.textContent='Recorded ✓';
-    document.getElementById('clearReady').style.display='block';
-    document.getElementById('saveNote').textContent='Comment + connection request recorded. You can now clear the form; the stored DM will be waiting in Pipeline if they connect.';
-  }catch(e){
-    btn.disabled=false;btn.textContent='✓ Comment posted + connection request sent';
-    alert(e.message);
   }
 }
 
@@ -296,6 +262,7 @@ function clearProspectForm(){
   document.getElementById('newPreview').innerHTML='';
   document.getElementById('analysisOutput').style.display='none';
   currentSavedProspect=null;
+  currentHandoff=null;
   localStorage.removeItem('acOutreachLastCaptureId');
   setProspectSaveState('ready','Ready for the next prospect.');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -341,7 +308,7 @@ async function loadFollowups(){
     box.innerHTML=ps.map(p=>`<div class="card"><div class="section-title"><h3>${escapeHtml(p.name)}</h3><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted"><strong>Next action:</strong> ${escapeHtml(p.first_dm_sent?(p.next_action||'Follow-up as appropriate'):p.connected?'Send first DM':p.connection_sent?'Waiting for connection acceptance':(p.next_action||'Review'))}</div></div>`).join('');
   }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
 }
-async function testBackend(){try{const d=await crmPost({action:'health'});document.getElementById('backendState').textContent=d.ai_configured?'✅ CRM + AI connection is working.':'⚠️ CRM works, but OPENAI_API_KEY is not configured in Apps Script.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
+async function testBackend(){try{await crmPost({action:'health'});document.getElementById('backendState').textContent='✅ CRM connection is working.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
 ['profileLink','sourceLink','prospectNotes','newFiles'].forEach(id=>document.getElementById(id)?.addEventListener('change',unlockProspectSave));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',()=>unlockProspectSave()));
 window.addEventListener('DOMContentLoaded',loadBackendSettings);
