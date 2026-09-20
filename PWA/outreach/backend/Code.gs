@@ -3,13 +3,9 @@ const ROOT_FOLDER_ID = '1jXizwpG-CfCHQfa51lcUbCBEX40Q6Akg';
 const PROSPECTS_SHEET = 'Prospects';
 const HISTORY_SHEET = 'Conversation History';
 const KEY_PROPERTY = 'CRM_WORKSPACE_KEY';
-const OPENAI_KEY_PROPERTY = 'OPENAI_API_KEY';
-const OPENAI_MODEL_PROPERTY = 'OPENAI_MODEL';
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4';
-
 function doGet(e) {
   if ((e.parameter.action || '') === 'health') {
-    return json({ok:true, service:'Cold Outreach CRM', ai_configured:!!getOpenAIKey()});
+    return json({ok:true, service:'Cold Outreach CRM'});
   }
   return json({ok:false,error:'Unsupported GET action'});
 }
@@ -19,7 +15,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents || '{}');
     requireKey(body.workspace_key);
     const action = body.action || '';
-    if (action === 'health') return json({ok:true, ai_configured:!!getOpenAIKey(), model:getOpenAIModel()});
+    if (action === 'health') return json({ok:true});
     if (action === 'saveProspect') return json(saveProspect(body));
     if (action === 'addHistory') return json(addHistory(body));
     if (action === 'markAction') return json(markAction(body));
@@ -35,18 +31,11 @@ function requireKey(key) {
   if (!expected) throw new Error('CRM_WORKSPACE_KEY has not been configured in Script Properties.');
   if (String(key || '') !== expected) throw new Error('Invalid workspace key.');
 }
-function getOpenAIKey() {
-  return String(PropertiesService.getScriptProperties().getProperty(OPENAI_KEY_PROPERTY) || '').trim();
-}
-function getOpenAIModel() {
-  return String(PropertiesService.getScriptProperties().getProperty(OPENAI_MODEL_PROPERTY) || DEFAULT_OPENAI_MODEL).trim();
-}
-
 function saveProspect(body) {
   const p = body.prospect || {};
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(PROSPECTS_SHEET);
-  let headers = ensureProspectHeaders(sheet);
+  const headers = ensureProspectHeaders(sheet);
 
   const captureId = String(body.capture_id || '').trim();
   const profileUrl = String(p.profile_url || '').trim();
@@ -56,25 +45,30 @@ function saveProspect(body) {
   const captureHeader = headers['Last capture ID'];
 
   if (existingRow && captureId && String(sheet.getRange(existingRow, captureHeader).getDisplayValue() || '') === captureId) {
-    return {ok:true,duplicate:true,prospect_name:sheet.getRange(existingRow,headers['Name']).getDisplayValue() || fallbackName,row:existingRow,files:[]};
+    return {
+      ok:true,
+      duplicate:true,
+      prospect_name:sheet.getRange(existingRow,headers['Name']).getDisplayValue() || fallbackName,
+      row:existingRow,
+      files:[]
+    };
   }
 
-  // Analyse before uploading, so screenshot-derived name/context can drive the CRM record and folder.
-  const analysis = analyseProspect(p, body.files || []);
-  const name = String(analysis.extracted_name || '').trim() || fallbackName;
+  const name = cleanLinkedInName(fallbackName);
   const folder = getOrCreateProspectFolder(name);
   const uploaded = saveFiles(folder, body.files || [], name);
   const now = new Date();
+  const targetRow = existingRow || sheet.getLastRow() + 1;
 
   const values = {
     'Name': name,
     'LinkedIn profile': profileUrl,
     'Source post': sourceUrl,
-    'Situation': analysis.situation_summary || String(p.track || ''),
-    'Why relevant': analysis.why_relevant || '',
+    'Situation': '',
+    'Why relevant': '',
     'Date identified': now,
-    'Status': 'New',
-    'Next action': analysis.next_action || 'Review draft outreach',
+    'Status': 'Captured',
+    'Next action': 'Process ChatGPT handoff',
     'Customer angle': 'Not raised',
     'Notes': String(p.notes || '').trim(),
     'Prospect folder': folder.getUrl(),
@@ -84,24 +78,41 @@ function saveProspect(body) {
     'North Star': p.track === 'Redundancy / job seeker' ? 'Gold Standard 1' : '',
     'Primary objective': p.track === 'Potential customer' ? 'Customer savings' : 'Partner opportunity',
     'Last capture ID': captureId,
-    'Target role': analysis.target_role || '',
-    'Job preferences': buildJobPreferences(analysis),
-    'Recommended approach': analysis.recommendation || '',
-    'Analysis summary': analysis.analysis_summary || '',
-    'Draft status': 'AI draft - review before sending'
+    'Draft status': 'Awaiting ChatGPT analysis'
   };
-
-  const targetRow = existingRow || sheet.getLastRow() + 1;
   writeByHeaders(sheet, headers, targetRow, values);
 
   uploaded.forEach(file => appendHistory(ss, {
-    prospect:name,date:now,direction:'External',type:'Screenshot - analysed',
-    summary:'Captured and analysed with initial prospect record',
+    prospect:name,date:now,direction:'External',type:'Screenshot / source',
+    summary:'Captured with prospect handoff',
     file:file.url,linkedin:sourceUrl || profileUrl,
-    next:analysis.next_action || 'Review draft outreach',status:'New',notes:''
+    next:'Process ChatGPT handoff',status:'Captured',notes:''
   }));
 
-  appendAnalysisHistory(ss, name, now, profileUrl, analysis);
+  const handoff = buildHandoffMarkdown({
+    name:name,
+    row:targetRow,
+    captureId:captureId,
+    profileUrl:profileUrl,
+    sourceUrl:sourceUrl,
+    track:String(p.track || ''),
+    source:String(p.source || ''),
+    relationship:String(p.relationship || ''),
+    notes:String(p.notes || '').trim(),
+    folderUrl:folder.getUrl(),
+    files:uploaded
+  });
+
+  const handoffFilename = 'ChatGPT Handoff - ' + cleanName(name) + ' - ' +
+    Utilities.formatDate(now, Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd_HHmm') + '.md';
+  const handoffFile = folder.createFile(handoffFilename, handoff, MimeType.PLAIN_TEXT);
+
+  appendHistory(ss,{
+    prospect:name,date:now,direction:'System',type:'ChatGPT handoff created',
+    summary:'Handoff file created for analysis and drafting in the Cold Outreach ChatGPT project.',
+    file:handoffFile.getUrl(),linkedin:profileUrl,
+    next:'Process ChatGPT handoff',status:'Captured',notes:''
+  });
 
   return {
     ok:true,
@@ -109,176 +120,63 @@ function saveProspect(body) {
     row:targetRow,
     folder_url:folder.getUrl(),
     files:uploaded,
-    analysis:analysis
+    handoff_url:handoffFile.getUrl(),
+    handoff_filename:handoffFilename,
+    handoff_markdown:handoff
   };
 }
 
-function analyseProspect(p, files) {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) throw new Error('OPENAI_API_KEY has not been configured in Apps Script Script Properties.');
+function buildHandoffMarkdown(x) {
+  const fileLines = (x.files || []).map((f,i) =>
+    '- Screenshot ' + (i+1) + ': ' + f.name + '\n  - Drive URL: ' + f.url
+  ).join('\n');
 
-  const content = [{
-    type:'input_text',
-    text: buildAnalysisInput(p)
-  }];
-
-  (files || []).forEach(f => {
-    const dataUrl = String(f.data_url || '');
-    if (/^data:image\//.test(dataUrl)) {
-      content.push({type:'input_image', image_url:dataUrl, detail:'auto'});
-    }
-  });
-
-  const payload = {
-    model:getOpenAIModel(),
-    store:false,
-    reasoning:{effort:'low'},
-    instructions:RELATIONSHIP_FIRST_INSTRUCTIONS,
-    input:[{role:'user',content:content}],
-    text:{
-      format:{
-        type:'json_schema',
-        name:'relationship_first_outreach',
-        strict:true,
-        schema:{
-          type:'object',
-          additionalProperties:false,
-          properties:{
-            extracted_name:{type:'string'},
-            screenshot_types:{type:'array',items:{type:'string'}},
-            situation_summary:{type:'string'},
-            analysis_summary:{type:'string'},
-            target_role:{type:'string'},
-            target_locations:{type:'array',items:{type:'string'}},
-            work_preferences:{type:'array',items:{type:'string'}},
-            employment_types:{type:'array',items:{type:'string'}},
-            mutual_connections:{type:'array',items:{type:'string'}},
-            why_relevant:{type:'string'},
-            recommendation:{type:'string',enum:['approach','relationship_first','supportive_comment_only','no_approach']},
-            recommendation_reason:{type:'string'},
-            public_comment:{type:'string'},
-            connection_request_instruction:{type:'string'},
-            first_dm:{type:'string'},
-            next_action:{type:'string'}
-          },
-          required:[
-            'extracted_name','screenshot_types','situation_summary','analysis_summary','target_role',
-            'target_locations','work_preferences','employment_types','mutual_connections','why_relevant',
-            'recommendation','recommendation_reason','public_comment','connection_request_instruction',
-            'first_dm','next_action'
-          ]
-        }
-      },
-      verbosity:'medium'
-    }
-  };
-
-  const response = UrlFetchApp.fetch('https://api.openai.com/v1/responses', {
-    method:'post',
-    contentType:'application/json',
-    headers:{Authorization:'Bearer ' + apiKey},
-    payload:JSON.stringify(payload),
-    muteHttpExceptions:true
-  });
-
-  const status = response.getResponseCode();
-  const text = response.getContentText();
-  let data;
-  try { data = JSON.parse(text); }
-  catch (_) { throw new Error('OpenAI returned a non-JSON response (HTTP ' + status + ').'); }
-
-  if (status < 200 || status >= 300) {
-    const message = data && data.error && data.error.message ? data.error.message : 'OpenAI request failed.';
-    throw new Error('OpenAI: ' + message);
-  }
-
-  const outputText = extractOutputText(data);
-  if (!outputText) throw new Error('OpenAI returned no usable analysis text.');
-
-  try { return JSON.parse(outputText); }
-  catch (_) { throw new Error('OpenAI analysis could not be parsed as structured JSON.'); }
-}
-
-function extractOutputText(data) {
-  if (data && typeof data.output_text === 'string' && data.output_text.trim()) return data.output_text.trim();
-  const output = data && Array.isArray(data.output) ? data.output : [];
-  for (let i=0;i<output.length;i++) {
-    const content = output[i] && Array.isArray(output[i].content) ? output[i].content : [];
-    for (let j=0;j<content.length;j++) {
-      if (content[j] && content[j].type === 'output_text' && typeof content[j].text === 'string') return content[j].text.trim();
-    }
-  }
-  return '';
-}
-
-function buildAnalysisInput(p) {
   return [
-    'Analyse this prospect using the screenshots and supplied context.',
+    '# Cold Outreach Prospect Handoff',
     '',
-    'Platform: ' + String(p.source || ''),
-    'Situation selected: ' + String(p.track || ''),
-    'Relationship: ' + String(p.relationship || ''),
-    'Source/post URL: ' + String(p.source_url || ''),
-    'Profile/contact URL: ' + String(p.profile_url || ''),
-    'Adrian notes: ' + String(p.notes || ''),
+    '## Instruction',
+    'Process this prospect using the Cold Outreach relationship-first project instructions already available in this ChatGPT project.',
     '',
-    'Classify each screenshot by content where possible (profile, post, job preferences, conversation/message, other).',
-    'Extract only details genuinely visible or supplied. Do not invent missing facts.',
-    'For Open to work/job-seeker prospects, treat their desired role/career as the primary goal and UW only as something that might sit alongside it.',
-    'Return an empty string or empty array for facts not supported by the inputs.'
+    'Read the linked prospect screenshots/files from the connected sandbox Google Drive. Analyse only what the supplied material supports. Do not invent missing facts.',
+    '',
+    'Then:',
+    '1. Assess what happened, what the person appears to want, the relationship context, and whether UW is genuinely relevant.',
+    '2. Choose the appropriate route: approach, relationship-building first, supportive comment only, or no approach.',
+    '3. For LinkedIn outreach, draft the public comment first. Do not mention UW publicly unless the context specifically warrants it.',
+    '4. Draft the connection-request instruction. Normally this is a standard connection request with no note.',
+    '5. Draft the first UW DM only if appropriate. For job seekers, explicitly protect the role/career they actually want and position UW only alongside it.',
+    '6. Present the copy-ready public comment and, separately, the stored first DM.',
+    '7. Update the main Google Sheet Prospects row identified below. Populate Situation, Why relevant, Target role, Job preferences, Recommended approach, Analysis summary, Draft status, Status and Next action as appropriate.',
+    '8. Append Conversation History entries for the analysis, suggested public comment, connection-request instruction and suggested first DM.',
+    '9. Do not mark Comment sent, Connection sent, Connected or First UW DM sent unless Adrian explicitly confirms those actions happened.',
+    '',
+    '## Prospect identity / CRM key',
+    '- Prospect name at capture: ' + x.name,
+    '- Prospects sheet row at capture: ' + x.row,
+    '- LinkedIn profile: ' + (x.profileUrl || '(none supplied)'),
+    '- Capture ID: ' + (x.captureId || '(none)'),
+    '- Prospect Drive folder: ' + x.folderUrl,
+    '- Main CRM spreadsheet: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit',
+    '',
+    'Use the LinkedIn profile URL as the primary match key when updating the CRM. Do not create a duplicate prospect row if one already exists.',
+    '',
+    '## Capture context',
+    '- Platform: ' + (x.source || ''),
+    '- Situation selected: ' + (x.track || ''),
+    '- Relationship: ' + (x.relationship || ''),
+    '- Source / original post: ' + (x.sourceUrl || '(none supplied)'),
+    '- Adrian notes: ' + (x.notes || '(none)'),
+    '',
+    '## Uploaded files',
+    fileLines || '- No screenshots were uploaded.',
+    '',
+    '## Final response to Adrian',
+    'Keep the response practical and concise. Give the recommended approach, the copy-ready public comment, the connection-request action, and note that the first DM has been stored in the CRM for later if a connection is accepted.'
   ].join('\n');
 }
 
-const RELATIONSHIP_FIRST_INSTRUCTIONS = [
-  'You are drafting relationship-first outreach for Adrian Croft, a UK Utility Warehouse Authorised Partner of about 15 years.',
-  'Goal: relevance -> curiosity -> permission to explore. People and relationships first, business second.',
-  'Use British English, natural spoken wording, simple hyphens only, and "whilst" where natural. Avoid corporate recruitment language, marketing clichés, bait-and-switch wording, excessive polish and the word "quietly".',
-  'Never manufacture urgency from redundancy, financial pressure, illness, family circumstances or vulnerability.',
-  'For job seekers, never position UW as a replacement for finding the right role. Explicitly protect the role/career they actually want when the evidence supports it. UW can be framed as a way to earn additional income alongside job hunting, contracting, work or family life.',
-  'Public LinkedIn comments must be genuinely supportive first and must not mention UW unless the supplied context explicitly says otherwise.',
-  'A normal connection request should generally carry no note/message.',
-  'If a first DM is appropriate, reveal Utility Warehouse reasonably early. Describe the Authorised Partner opportunity simply as a way to earn additional income alongside whatever else they have going on in life. Adrian can mention about 15 years of experience for credibility where useful.',
-  'Keep the first ask small and permission-based. A useful close is: "I simply wanted to ask if you’d be open to exploring whether it could be a good fit for you right now?" Offer information so they can decide for themselves, and make declining genuinely easy.',
-  'Do not promise earnings or imply UW will solve financial problems.',
-  'Assess first whether the right recommendation is approach, relationship_first, supportive_comment_only, or no_approach. Redundancy/open-to-work status alone is not sufficient reason to approach.',
-  'If recommendation is supportive_comment_only or no_approach, leave first_dm empty unless a DM is genuinely appropriate for non-UW relationship-building.',
-  'If there is no public post to comment on, leave public_comment empty.',
-  'Preserve humanity: even if the person has no interest in UW, the outreach should still feel thoughtful and well-intentioned.',
-  'Do not identify or infer sensitive personal characteristics. Use only professional/contextual details supplied or visible in the screenshots.'
-].join('\n');
-
-function appendAnalysisHistory(ss, name, now, profileUrl, a) {
-  appendHistory(ss,{
-    prospect:name,date:now,direction:'System',type:'AI analysis',
-    summary:a.analysis_summary || a.situation_summary || '',
-    file:'',linkedin:profileUrl,next:a.next_action || '',status:'AI draft',notes:a.recommendation_reason || ''
-  });
-  if (String(a.public_comment || '').trim()) {
-    appendHistory(ss,{
-      prospect:name,date:now,direction:'Draft',type:'Suggested public comment - Draft',
-      summary:a.public_comment,file:'',linkedin:profileUrl,next:'Review before posting',status:'AI draft',notes:''
-    });
-  }
-  if (String(a.connection_request_instruction || '').trim()) {
-    appendHistory(ss,{
-      prospect:name,date:now,direction:'Draft',type:'Connection request instruction - Draft',
-      summary:a.connection_request_instruction,file:'',linkedin:profileUrl,next:'Review before action',status:'AI draft',notes:''
-    });
-  }
-  if (String(a.first_dm || '').trim()) {
-    appendHistory(ss,{
-      prospect:name,date:now,direction:'Draft',type:'Suggested first DM - Draft',
-      summary:a.first_dm,file:'',linkedin:profileUrl,next:'Review before sending',status:'AI draft',notes:''
-    });
-  }
-}
-
-function buildJobPreferences(a) {
-  const parts = [];
-  if ((a.target_locations || []).length) parts.push('Locations: ' + a.target_locations.join(', '));
-  if ((a.work_preferences || []).length) parts.push('Work: ' + a.work_preferences.join(', '));
-  if ((a.employment_types || []).length) parts.push('Employment: ' + a.employment_types.join(', '));
-  return parts.join(' | ');
+function cleanLinkedInName(name) {
+  return String(name || '').replace(/\s+\d{5,}$/,'').trim() || 'Unnamed prospect';
 }
 
 function markAction(body) {
@@ -488,6 +386,6 @@ function findProspectRow(sheet, headers, profileUrl, name) {
 function nameFromProfile(url) {
   const m=String(url||'').match(/linkedin\.com\/in\/([^/?#]+)/i);
   if(!m)return '';
-  return decodeURIComponent(m[1]).replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  return decodeURIComponent(m[1]).replace(/-\d{5,}$/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 }
 function json(obj){return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON)}
