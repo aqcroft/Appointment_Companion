@@ -16,7 +16,7 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:6px}.field label{font-size:12px;font-weight:700;color:#4d5563}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 12px;font:inherit;color:var(--ink)}.field textarea{min-height:90px;resize:vertical}.wide{grid-column:1/-1}
 .upload{border:1.5px dashed #bcc2cc;border-radius:14px;padding:18px;text-align:center;background:#fafbfc}.upload input{margin-top:10px;width:100%}.preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.thumb{width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;background:var(--ink);color:white}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.accent{background:var(--accent)}.btn.small{padding:8px 10px;font-size:12px}.btn.good{background:var(--ok)}
-.person{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#e9eaf0;font-weight:900}.person h3{margin:0;font-size:15px}.meta{font-size:12px;color:var(--muted)}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fff4df;color:#865300}.status.new{background:#edf3ff;color:#345c9c}
+.person{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#e9eaf0;font-weight:900;border:0;padding:0;overflow:hidden}.photoAvatar img{width:100%;height:100%;object-fit:cover}.modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);padding:18px}.modal.open{display:grid;place-items:center}.modalCard{background:#fff;border-radius:18px;width:min(600px,100%);max-height:92vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto}.modalHead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}.modalBody{min-height:60vh;background:#111}.modalBody iframe{width:100%;height:70vh;border:0}.modalFoot{display:flex;gap:8px;padding:12px}.person h3{margin:0;font-size:15px}.meta{font-size:12px;color:var(--muted)}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fff4df;color:#865300}.status.new{background:#edf3ff;color:#345c9c}
 .output{white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.5}.section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}.section-title h3{margin:0}.timeline{display:grid;gap:9px}.event{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.event:first-child{border-top:0}.event .date{font-size:12px;color:var(--muted);font-weight:700}.event strong{font-size:13px}.due{border-left:4px solid #d88400}.footbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(245,245,247,.97);border-top:1px solid var(--line);display:flex;gap:8px}.footbar .btn{flex:1}
 @media(max-width:560px){.grid2{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:18px}.event{grid-template-columns:68px 1fr}.tabs{gap:5px}.tab{font-size:12px;padding:9px 4px}}
 </style>
@@ -38,16 +38,17 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
     <h2>Capture someone</h2>
     <p class="muted">Paste what you have. The aim is to capture enough context now so you do not have to remember it later.</p>
     <div class="grid2">
-      <div class="field"><label>Name</label><input placeholder="e.g. Philip Daley"></div>
+      
       <div class="field"><label>Relationship</label><select><option>Cold</option><option>Connected</option><option>Met once</option><option>Know reasonably well</option><option>Warm</option></select></div>
       <div class="field"><label>Track</label><select><option>Redundancy / job seeker</option><option>Networking contact</option><option>Cold outreach</option><option>Potential customer</option><option>Connector / referral</option><option>Other</option></select></div>
       <div class="field"><label>Source</label><select><option>LinkedIn</option><option>Networking</option><option>WhatsApp</option><option>Facebook</option><option>Referral</option><option>Phone / in person</option><option>Other</option></select></div>
-      <div class="field wide"><label>LinkedIn profile / contact link</label><input placeholder="Paste profile link"></div>
-      <div class="field wide"><label>Original post / source link</label><input placeholder="Paste post or source link"></div>
+      <div class="field wide"><label>LinkedIn post / source link</label><input placeholder="Paste the post you spotted"></div>
+      <div class="field wide"><label>LinkedIn profile / contact link</label><input placeholder="Paste their profile link"></div>
+      <div class="field wide"><div class="muted"><strong>Name:</strong> detected from the profile screenshot / profile data - no typing needed.</div></div>
       <div class="field wide"><label>Anything else you know</label><textarea placeholder="Optional context"></textarea></div>
       <div class="field wide">
         <label>Screenshots</label>
-        <div class="upload">Choose screenshots from your phone gallery<input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
+        <div class="upload">Choose screenshots from your phone gallery<input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div><div class="muted" style="margin-top:8px">Tip: your phone controls which gallery/album opens. A web app cannot force Android to open the Screenshots album directly.</div></div>
       </div>
     </div>
     <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save prospect</button><button class="btn secondary" onclick="showDemo()">Preview suggested output</button></div>
@@ -71,13 +72,14 @@ I’ve sent you a connection request as well - I always think it’s good to wid
 <section class="view" id="pipeline">
 <div class="stack">
   <div class="card">
-    <div class="person"><div class="avatar">PD</div><div><h3>Philip Daley</h3><div class="meta">LinkedIn · Redundancy / job seeker · Cold</div></div><span class="status new">NEW</span></div>
+    <div class="person"><button class="avatar photoAvatar" onclick="openProfileModal()" aria-label="Open Philip profile snapshot"><img src="https://drive.google.com/thumbnail?id=1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx&sz=w200" alt="Philip Daley"></button><div><h3>Philip Daley</h3><div class="meta">LinkedIn · Redundancy / job seeker · Cold</div><div class="meta">2 mutual connections: Natalie and Neil</div></div><span class="status new">NEW</span></div>
     <div class="actions" style="margin-top:12px">
       <a class="btn small secondary" href="https://www.linkedin.com/in/philipdaley" target="_blank">Profile</a>
       <a class="btn small secondary" href="https://lnkd.in/p/eZewaKwp" target="_blank">Original post</a>
       <a class="btn small secondary" href="https://drive.google.com/drive/folders/1c287-GSRBzzmsDGLQeOn_WKRT2VbVxAu" target="_blank">Prospect files</a>
     </div>
   </div>
+  <div class="card"><div class="section-title"><h3>Relationship clues</h3><span class="pill">Profile screenshot</span></div><p class="muted">2 mutual connections detected: <strong>Natalie</strong> and <strong>Neil</strong>. The finished version can use a small number of identifiable mutual connections as optional personalisation context - only where it feels natural, never as a forced line.</p></div>
   <div class="card">
     <div class="section-title"><h3>DM after connection</h3><button class="btn small secondary" onclick="copyText('dmText')">Copy</button></div>
     <div class="output" id="dmText">Hi Philip 👋
@@ -100,8 +102,8 @@ If so, I’m very happy to send you a little info and you can decide for yoursel
     <h3>Add conversation update</h3>
     <p class="muted">Use this when someone accepts, replies, or you have another interaction to record.</p>
     <div class="field"><label>What happened?</label><textarea placeholder="Optional note - a screenshot may be enough"></textarea></div>
-    <div class="field" style="margin-top:10px"><label>Screenshot(s)</label><div class="upload">Choose from phone gallery<input id="updateFiles" type="file" accept="image/*" multiple><div class="preview" id="updatePreview"></div></div></div>
-    <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
+    <div class="field" style="margin-top:10px"><label>Screenshot(s)</label><div class="upload">Choose from phone gallery<input id="updateFiles" type="file" accept="image/*" multiple><div class="preview" id="updatePreview"></div><div class="muted" style="margin-top:8px">The finished version will analyse the screenshot for context and any follow-up date you agreed.</div></div></div>
+    <div class="field" style="margin-top:12px"><label>Next follow-up</label><div class="actions"><button class="btn small secondary" onclick="setFollowup(7)">+1 week</button><button class="btn small secondary" onclick="setFollowup(24)">+3-4 weeks</button><button class="btn small secondary" onclick="setFollowup(90)">+3 months</button></div><input id="customFollowup" type="date" style="margin-top:8px"><div class="muted" id="followupHint" style="margin-top:6px">Or choose a specific date. Later, screenshot analysis can suggest this automatically from phrases such as “speak at the end of October”.</div></div><div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
   </div>
   <div class="card">
     <h3>Conversation history</h3>
@@ -119,7 +121,7 @@ If so, I’m very happy to send you a little info and you can decide for yoursel
     <div class="section-title"><div><h3>This week</h3><div class="muted">Your focused follow-up list</div></div><span class="pill">1 due</span></div>
   </div>
   <div class="card">
-    <div class="person"><div class="avatar">PD</div><div><h3>Philip Daley</h3><div class="meta">Next action: supportive comment + normal connection request</div></div><span class="status">DUE</span></div>
+    <div class="person"><button class="avatar photoAvatar" onclick="openProfileModal()" aria-label="Open Philip profile snapshot"><img src="https://drive.google.com/thumbnail?id=1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx&sz=w200" alt="Philip Daley"></button><div><h3>Philip Daley</h3><div class="meta">Next action: supportive comment + normal connection request</div></div><span class="status">DUE</span></div>
     <p class="muted">Why: first contact has been prepared but not yet recorded as sent.</p>
     <div class="actions"><button class="btn small" onclick="switchTo('pipeline')">Open Philip</button><button class="btn small secondary">Snooze</button></div>
   </div>
@@ -133,7 +135,7 @@ If so, I’m very happy to send you a little info and you can decide for yoursel
   </div>
 </div>
 </section>
-</main>
+</main><div class="modal" id="profileModal" onclick="if(event.target===this)closeProfileModal()"><div class="modalCard"><div class="modalHead"><strong>Philip Daley - profile snapshot</strong><button class="btn small secondary" onclick="closeProfileModal()">Close</button></div><div class="modalBody"><iframe src="https://drive.google.com/file/d/1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx/preview" title="Philip Daley profile screenshot"></iframe></div><div class="modalFoot"><a class="btn accent" style="text-decoration:none;text-align:center;flex:1" href="https://www.linkedin.com/in/philipdaley" target="_blank">Open LinkedIn profile</a></div></div></div>
 <div class="footbar"><button class="btn secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/1nS-dlFnVq3lYb1mbEMD-HDOszRTnLbUkoWlUlsBwyAY/edit','_blank')">Open CRM</button><button class="btn accent" onclick="switchTo('new')">+ New prospect</button></div>
 </div>
 <script>
@@ -144,7 +146,7 @@ document.getElementById('newFiles').addEventListener('change',e=>preview(e.targe
 document.getElementById('updateFiles').addEventListener('change',e=>preview(e.target,'updatePreview'));
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
 function showDemo(){document.getElementById('demoOutput').style.display='block';document.getElementById('demoOutput').scrollIntoView({behavior:'smooth'})}
-function demoSave(){document.getElementById('saveNote').style.display='block';alert('Saved locally for this pilot view. Automatic Google Drive / Sheet writing is the next wiring step.')}
+function demoSave(){const n=document.getElementById('saveNote');if(n)n.style.display='block';alert('Pilot only for now. The next wiring step will save the screenshot to this prospect’s Drive folder, update conversation history, analyse the reply and set/suggest the next follow-up date.')} function openProfileModal(){document.getElementById('profileModal').classList.add('open')} function closeProfileModal(){document.getElementById('profileModal').classList.remove('open')} function setFollowup(days){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('customFollowup').value=d.toISOString().slice(0,10);document.getElementById('followupHint').textContent='Custom follow-up selected. You can overwrite it with any date.'}
 </script>
 </body>
 </html>
