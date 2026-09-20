@@ -263,11 +263,6 @@ async function saveProspect(){
     prospectSaveInFlight=true;
     setProspectSaveState('saving','Saving the CRM record, screenshots and ChatGPT handoff…');
     const capture_id=await sha256(saveSignature());
-    const last=localStorage.getItem('acOutreachLastCaptureId')||'';
-    if(last===capture_id){
-      setProspectSaveState('saved','This exact capture has already been saved on this device - duplicate upload blocked.');
-      return;
-    }
     const files=await collectFiles('newFiles','context');
     const payload={
       action:'saveProspect',
