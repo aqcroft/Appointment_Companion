@@ -383,18 +383,23 @@ function stickyBasketBar() {
     ['mobile','📱','Mobile'],
     ['boilerCover','🛠️','Boiler']
   ].filter(([key]) => key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner');
+  const cashbackActive = appointment.cashback.enabled !== false;
+  const effectiveUw = Number(result.effectiveUwMonthly ?? result.uw.total ?? 0);
+  const cashbackEstimate = Number(result.cashback?.selected || 0);
   const home = appointment.person.homeStatus === 'homeowner' ? '🏠 Homeowner' : appointment.person.homeStatus === 'tenant' ? '🔑 Tenant' : 'Set home status';
   const route = appointment.benefits.referral ? ' · 🤝' : appointment.benefits.nationalLeague ? ' · ⚽' : '';
+  const serviceTiles = ordered.map(([key,icon,label]) => {
+    const active = Boolean(appointment.services[key]);
+    return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
+  }).join('');
+  const cashbackTile = `<button type="button" class="sticky-service service-cashback${cashbackActive ? ' on' : ''}" data-cashback-sticky-toggle aria-pressed="${cashbackActive ? 'true' : 'false'}" title="Cashback Card - tap to ${cashbackActive ? 'remove' : 'include'}"><span class="sticky-service-icon">💳</span><span class="sticky-service-copy"><strong>Cashback</strong><small>${cashbackActive ? `~£${wholeMoney(cashbackEstimate)}/m` : 'Off'}</small></span><b class="sticky-service-mark" aria-hidden="true">${cashbackActive ? '✓' : '+'}</b></button>`;
   return `<section class="sticky-basket" id="stickyBasket">
     <div class="sticky-status-row sticky-status-grid">
       <span class="sticky-total current-total"><small>Current</small><strong>£${wholeMoney(result.current.total)}/m</strong></span>
       <button class="sticky-home" type="button" data-edit-essentials>${home}${route}</button>
-      <span class="sticky-total uw-total"><small>UW</small><strong>£${wholeMoney(result.uw.total)}/m</strong></span>
+      <span class="sticky-total uw-total"><small>UW</small><strong>£${wholeMoney(effectiveUw)}/m</strong></span>
     </div>
-    <div class="sticky-services">${ordered.map(([key,icon,label]) => {
-      const active = Boolean(appointment.services[key]);
-      return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
-    }).join('')}</div>
+    <div class="sticky-services" style="--sticky-columns:${ordered.length + 1}">${serviceTiles}${cashbackTile}</div>
     ${quickServiceSetup()}
     <div class="sticky-progress"><span><strong>Basket ${completion.percentage}%</strong><small>${completion.completed}/${completion.total || 0} required items</small></span><i><b style="width:${completion.percentage}%"></b></i></div>
   </section>`;
@@ -1229,6 +1234,12 @@ document.addEventListener('click', async event => {
     if (serviceSetupOpen === name) serviceSetupOpen = '';
     if (name === 'energy') energyTariffOpen = false;
     markChanged(); render(); return;
+  }
+  if (target.hasAttribute('data-cashback-sticky-toggle')) {
+    appointment.cashback.enabled = !appointment.cashback.enabled;
+    markChanged();
+    render();
+    return;
   }
   if (target.dataset.quickEnergyFuel) {
     appointment.energy.fuel = target.dataset.quickEnergyFuel;
