@@ -966,7 +966,7 @@ function render() {
 
 async function navigate(nextView, nextSection = section) {
   if (nextView === 'summary' && !appointmentCompleteness(appointment).complete) return showSummaryBlocked();
-  if (nextView === 'summary' && view !== 'summary') summaryCashbackActive = true;
+  if (nextView === 'summary' && view !== 'summary') summaryCashbackActive = appointment.cashback.enabled !== false;
   if ((nextView !== view || nextSection !== section) && !(await guard.confirmNavigation())) return;
   section = nextSection;
   if (nextView === 'launchpad' && currentRecord) return leavePerson();
