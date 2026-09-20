@@ -13,7 +13,11 @@ header{position:sticky;top:0;z-index:20;background:rgba(245,245,247,.95);backdro
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.tab{border:1px solid var(--line);background:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:13px}.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
 main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stack{display:grid;gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .card h2,.card h3{margin:0 0 8px}.card h2{font-size:18px}.card h3{font-size:15px}.muted{color:var(--muted);font-size:13px;line-height:1.45}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700;background:var(--soft);color:var(--accent)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:6px}.field label{font-size:12px;font-weight:700;color:#4d5563}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 12px;font:inherit;color:var(--ink)}.field textarea{min-height:90px;resize:vertical}.wide{grid-column:1/-1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:6px}
+.choice-block{display:grid;gap:7px}.choice-label{font-size:12px;font-weight:800;color:#4d5563}.choice-row{display:flex;gap:7px;flex-wrap:wrap}.choice-btn{border:1px solid var(--line);border-radius:999px;padding:9px 12px;font:750 12px/1.1 system-ui;background:#fff;color:var(--ink);cursor:pointer;transition:.15s ease}.choice-btn:active{transform:scale(.98)}
+.choice-block.platform .choice-btn{background:#f5f2ff;border-color:#d9d1fb;color:#4e3aa8}.choice-block.platform .choice-btn.active{background:#6f5bd3;border-color:#6f5bd3;color:#fff}
+.choice-block.situation .choice-btn{background:#eef6ff;border-color:#c9dcf5;color:#315f8f}.choice-block.situation .choice-btn.active{background:#4f86bd;border-color:#4f86bd;color:#fff}
+.choice-block.relationship .choice-btn{background:#f3f7f2;border-color:#d2dfd0;color:#436441}.choice-block.relationship .choice-btn.active{background:#62875e;border-color:#62875e;color:#fff}.field label{font-size:12px;font-weight:700;color:#4d5563}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 12px;font:inherit;color:var(--ink)}.field textarea{min-height:90px;resize:vertical}.wide{grid-column:1/-1}
 .upload{border:1.5px dashed #bcc2cc;border-radius:14px;padding:18px;text-align:center;background:#fafbfc}.upload input{margin-top:10px;width:100%}.preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.thumb{width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;background:var(--ink);color:white}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.accent{background:var(--accent)}.btn.small{padding:8px 10px;font-size:12px}.btn.good{background:var(--ok)}
 .person{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#e9eaf0;font-weight:900;border:0;padding:0;overflow:hidden}.photoAvatar img{width:100%;height:100%;object-fit:cover}.modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);padding:18px}.modal.open{display:grid;place-items:center}.modalCard{background:#fff;border-radius:18px;width:min(600px,100%);max-height:92vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto}.modalHead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}.modalBody{min-height:60vh;background:#111}.modalBody iframe{width:100%;height:70vh;border:0}.modalFoot{display:flex;gap:8px;padding:12px}.person h3{margin:0;font-size:15px}.meta{font-size:12px;color:var(--muted)}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fff4df;color:#865300}.status.new{background:#edf3ff;color:#345c9c}
@@ -48,9 +52,42 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
     <p class="muted">Paste what you have. The aim is to capture enough context now so you do not have to remember it later.</p>
     <div class="grid2">
       
-      <div class="field"><label>Relationship</label><select id="relationship"><option>Cold</option><option>Connected</option><option>Met once</option><option>Know reasonably well</option><option>Warm</option></select></div>
-      <div class="field"><label>Track</label><select id="track"><option>Redundancy / job seeker</option><option>Networking contact</option><option>Cold outreach</option><option>Potential customer</option><option>Connector / referral</option><option>Other</option></select></div>
-      <div class="field"><label>Source</label><select id="sourceType"><option>LinkedIn</option><option>Networking</option><option>WhatsApp</option><option>Facebook</option><option>Referral</option><option>Phone / in person</option><option>Other</option></select></div>
+      <div class="field wide choice-block platform">
+        <div class="choice-label">1. Platform</div>
+        <input id="sourceType" type="hidden" value="LinkedIn">
+        <div class="choice-row" data-choice-group="sourceType">
+          <button type="button" class="choice-btn active" data-value="LinkedIn">LinkedIn</button>
+          <button type="button" class="choice-btn" data-value="Networking">Networking</button>
+          <button type="button" class="choice-btn" data-value="WhatsApp">WhatsApp</button>
+          <button type="button" class="choice-btn" data-value="Facebook">Facebook</button>
+          <button type="button" class="choice-btn" data-value="Referral">Referral</button>
+          <button type="button" class="choice-btn" data-value="Phone / in person">Phone / in person</button>
+          <button type="button" class="choice-btn" data-value="Other">Other</button>
+        </div>
+      </div>
+      <div class="field wide choice-block situation">
+        <div class="choice-label">2. Situation</div>
+        <input id="track" type="hidden" value="Redundancy / job seeker">
+        <div class="choice-row" data-choice-group="track">
+          <button type="button" class="choice-btn active" data-value="Redundancy / job seeker">Open to work</button>
+          <button type="button" class="choice-btn" data-value="Networking contact">Networking contact</button>
+          <button type="button" class="choice-btn" data-value="Cold outreach">Cold outreach</button>
+          <button type="button" class="choice-btn" data-value="Potential customer">Potential customer</button>
+          <button type="button" class="choice-btn" data-value="Connector / referral">Connector / referral</button>
+          <button type="button" class="choice-btn" data-value="Other">Other</button>
+        </div>
+      </div>
+      <div class="field wide choice-block relationship">
+        <div class="choice-label">3. Relationship</div>
+        <input id="relationship" type="hidden" value="Cold">
+        <div class="choice-row" data-choice-group="relationship">
+          <button type="button" class="choice-btn active" data-value="Cold">Cold</button>
+          <button type="button" class="choice-btn" data-value="Connected">Connected</button>
+          <button type="button" class="choice-btn" data-value="Met once">Met once</button>
+          <button type="button" class="choice-btn" data-value="Know reasonably well">Know reasonably well</button>
+          <button type="button" class="choice-btn" data-value="Warm">Warm</button>
+        </div>
+      </div>
       <div class="field wide"><label>LinkedIn post / source link</label><input id="sourceLink" placeholder="Paste the post you spotted"></div>
       <div class="field wide"><label>LinkedIn profile / contact link</label><input id="profileLink" placeholder="Paste their profile link"></div>
       <div class="field wide"><div class="muted"><strong>Name:</strong> detected from the profile screenshot / profile data - no typing needed.</div></div>
@@ -150,6 +187,7 @@ If so, I’m very happy to send you a little info and you can decide for yoursel
 <script>
 function switchTo(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');const tab=document.querySelector('[data-view="'+id+'"]');if(tab)tab.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.view)));
+document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',e=>{const b=e.target.closest('.choice-btn');if(!b)return;const id=group.dataset.choiceGroup;const input=document.getElementById(id);if(input)input.value=b.dataset.value;group.querySelectorAll('.choice-btn').forEach(x=>x.classList.toggle('active',x===b));}));
 function preview(input, target){const box=document.getElementById(target);box.innerHTML='';[...input.files].forEach(f=>{const img=document.createElement('img');img.className='thumb';img.src=URL.createObjectURL(f);box.appendChild(img)})}
 document.getElementById('newFiles').addEventListener('change',e=>preview(e.target,'newPreview'));
 document.getElementById('updateFiles').addEventListener('change',e=>preview(e.target,'updatePreview'));
