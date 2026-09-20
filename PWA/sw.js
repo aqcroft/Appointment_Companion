@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-v19-v242-recovery';
+const CACHE_NAME = 'appointment-companion-v19-version-chooser-20260921';
 const APP_SHELL = [
   './',
   './index.html',
@@ -80,7 +80,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => cacheResponse(request, response))
-        .catch(() => caches.match('./consolidated-v1/index.html'))
+        .catch(() => caches.match('./index.html').then(response => response || caches.match('./consolidated-v1/index.html')))
     );
     return;
   }
