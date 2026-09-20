@@ -64,8 +64,8 @@ function saveProspect(body) {
 
   uploaded.forEach(file => appendHistory(ss, {
     prospect:name,date:now,direction:'External',
-    type:file.purpose === 'job_preferences' ? 'Job preferences screenshot' : 'Screenshot / source',
-    summary:file.purpose === 'job_preferences' ? 'LinkedIn Job preferences captured' : 'Captured with initial prospect record',
+    type:file.purpose === 'job_preferences' ? 'Job preferences screenshot' : file.purpose === 'auto' ? 'Screenshot - auto classify' : 'Screenshot / source',
+    summary:file.purpose === 'job_preferences' ? 'LinkedIn Job preferences captured' : file.purpose === 'auto' ? 'Captured for automatic screenshot classification' : 'Captured with initial prospect record',
     file:file.url,linkedin:sourceUrl || profileUrl,
     next:'Review and prepare relationship-first outreach',status:'New',notes:''
   }));
