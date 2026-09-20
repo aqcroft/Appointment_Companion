@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Cold Outreach Companion v1</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--ink:#1f2430;--muted:#69707d;--line:#e3e6eb;--accent:#5b4bdb;--soft:#efedff;--ok:#1f8a4c;--warn:#b56a00;--danger:#b83a3a}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+.app{max-width:760px;margin:0 auto;min-height:100vh;background:var(--bg)}
+header{position:sticky;top:0;z-index:20;background:rgba(245,245,247,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 16px 10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand h1{font-size:20px;margin:0}.brand .sub{font-size:12px;color:var(--muted)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.tab{border:1px solid var(--line);background:#fff;padding:10px 8px;border-radius:12px;font-weight:700;font-size:13px}.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stack{display:grid;gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.card h2,.card h3{margin:0 0 8px}.card h2{font-size:18px}.card h3{font-size:15px}.muted{color:var(--muted);font-size:13px;line-height:1.45}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700;background:var(--soft);color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:6px}.field label{font-size:12px;font-weight:700;color:#4d5563}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 12px;font:inherit;color:var(--ink)}.field textarea{min-height:90px;resize:vertical}.wide{grid-column:1/-1}
+.upload{border:1.5px dashed #bcc2cc;border-radius:14px;padding:18px;text-align:center;background:#fafbfc}.upload input{margin-top:10px;width:100%}.preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.thumb{width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;background:var(--ink);color:white}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.accent{background:var(--accent)}.btn.small{padding:8px 10px;font-size:12px}.btn.good{background:var(--ok)}
+.person{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#e9eaf0;font-weight:900}.person h3{margin:0;font-size:15px}.meta{font-size:12px;color:var(--muted)}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fff4df;color:#865300}.status.new{background:#edf3ff;color:#345c9c}
+.output{white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.5}.section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}.section-title h3{margin:0}.timeline{display:grid;gap:9px}.event{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.event:first-child{border-top:0}.event .date{font-size:12px;color:var(--muted);font-weight:700}.event strong{font-size:13px}.due{border-left:4px solid #d88400}.footbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(245,245,247,.97);border-top:1px solid var(--line);display:flex;gap:8px}.footbar .btn{flex:1}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:18px}.event{grid-template-columns:68px 1fr}.tabs{gap:5px}.tab{font-size:12px;padding:9px 4px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><div><h1>Relationship Follow-up</h1><div class="sub">Partner Companion - test module</div></div><span class="pill">v1 pilot</span></div>
+  <div class="tabs">
+    <button class="tab active" data-view="new">New prospect</button>
+    <button class="tab" data-view="pipeline">Pipeline</button>
+    <button class="tab" data-view="followups">Follow-ups</button>
+  </div>
+</header>
+<main>
+<section class="view active" id="new">
+<div class="stack">
+  <div class="card">
+    <h2>Capture someone</h2>
+    <p class="muted">Paste what you have. The aim is to capture enough context now so you do not have to remember it later.</p>
+    <div class="grid2">
+      <div class="field"><label>Name</label><input placeholder="e.g. Philip Daley"></div>
+      <div class="field"><label>Relationship</label><select><option>Cold</option><option>Connected</option><option>Met once</option><option>Know reasonably well</option><option>Warm</option></select></div>
+      <div class="field"><label>Track</label><select><option>Redundancy / job seeker</option><option>Networking contact</option><option>Cold outreach</option><option>Potential customer</option><option>Connector / referral</option><option>Other</option></select></div>
+      <div class="field"><label>Source</label><select><option>LinkedIn</option><option>Networking</option><option>WhatsApp</option><option>Facebook</option><option>Referral</option><option>Phone / in person</option><option>Other</option></select></div>
+      <div class="field wide"><label>LinkedIn profile / contact link</label><input placeholder="Paste profile link"></div>
+      <div class="field wide"><label>Original post / source link</label><input placeholder="Paste post or source link"></div>
+      <div class="field wide"><label>Anything else you know</label><textarea placeholder="Optional context"></textarea></div>
+      <div class="field wide">
+        <label>Screenshots</label>
+        <div class="upload">Choose screenshots from your phone gallery<input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save prospect</button><button class="btn secondary" onclick="showDemo()">Preview suggested output</button></div>
+    <p class="muted" id="saveNote" style="display:none;margin-bottom:0">Pilot note: this live test page currently previews and organises the workflow. Automatic Drive/Sheet writing is the next wiring step.</p>
+  </div>
+  <div class="card" id="demoOutput" style="display:none">
+    <div class="section-title"><h3>Suggested approach</h3><span class="pill">Relationship first</span></div>
+    <p class="muted"><strong>Recommendation:</strong> Approach. Public interaction stays supportive; UW is only introduced after connection.</p>
+    <div class="section-title"><h3>Public comment</h3><button class="btn small secondary" onclick="copyText('commentText')">Copy</button></div>
+    <div class="output" id="commentText">Sorry to hear you’re leaving Coventry BS, Philip, although it sounds like you’ve got a really clear idea of what you want next.
+
+Wishing you all the best getting back into the right contracting role from November. 🤞
+
+I’ve sent you a connection request as well - I always think it’s good to widen our networks a little, particularly when someone’s putting themselves out there like this. 👍</div>
+    <div class="section-title" style="margin-top:12px"><h3>Connection request</h3></div>
+    <div class="output">Send the normal connection request - no message attached.</div>
+  </div>
+</div>
+</section>
+
+<section class="view" id="pipeline">
+<div class="stack">
+  <div class="card">
+    <div class="person"><div class="avatar">PD</div><div><h3>Philip Daley</h3><div class="meta">LinkedIn · Redundancy / job seeker · Cold</div></div><span class="status new">NEW</span></div>
+    <div class="actions" style="margin-top:12px">
+      <a class="btn small secondary" href="https://www.linkedin.com/in/philipdaley" target="_blank">Profile</a>
+      <a class="btn small secondary" href="https://lnkd.in/p/eZewaKwp" target="_blank">Original post</a>
+      <a class="btn small secondary" href="https://drive.google.com/drive/folders/1c287-GSRBzzmsDGLQeOn_WKRT2VbVxAu" target="_blank">Prospect files</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title"><h3>DM after connection</h3><button class="btn small secondary" onclick="copyText('dmText')">Copy</button></div>
+    <div class="output" id="dmText">Hi Philip 👋
+
+Thanks for connecting. 😊
+
+Your post caught my eye, so I wanted to ask whether you’ve ever come across Utility Warehouse and its Authorised Partner opportunity before?
+
+I’ve been a Partner myself for about 15 years, and these days my focus is very much on helping people - either in work or looking for work - build an additional income stream alongside whatever else they’ve already got going on in life.
+
+I’m not suggesting it as an alternative to getting back into the right contracting role - hopefully that comes together quickly for November. It can simply sit alongside contracting or whatever you end up doing next.
+
+With your background in stakeholder management, delivery and working with people, I thought it was relevant enough to put on your radar.
+
+I simply wanted to ask if you’d be open to exploring whether it could be a good fit for you right now?
+
+If so, I’m very happy to send you a little info and you can decide for yourself whether it’s even remotely interesting. And if not, that’s really fine too. 👍</div>
+  </div>
+  <div class="card">
+    <h3>Add conversation update</h3>
+    <p class="muted">Use this when someone accepts, replies, or you have another interaction to record.</p>
+    <div class="field"><label>What happened?</label><textarea placeholder="Optional note - a screenshot may be enough"></textarea></div>
+    <div class="field" style="margin-top:10px"><label>Screenshot(s)</label><div class="upload">Choose from phone gallery<input id="updateFiles" type="file" accept="image/*" multiple><div class="preview" id="updatePreview"></div></div></div>
+    <div class="actions" style="margin-top:12px"><button class="btn accent" onclick="demoSave()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
+  </div>
+  <div class="card">
+    <h3>Conversation history</h3>
+    <div class="timeline">
+      <div class="event"><div class="date">20 Sep</div><div><strong>Original LinkedIn post captured</strong><div class="muted">Voluntary redundancy; returning to contracting from November.</div></div></div>
+      <div class="event"><div class="date">20 Sep</div><div><strong>Profile snapshot captured</strong><div class="muted">Transformation / programme leadership; stakeholder and vendor management.</div></div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="view" id="followups">
+<div class="stack">
+  <div class="card due">
+    <div class="section-title"><div><h3>This week</h3><div class="muted">Your focused follow-up list</div></div><span class="pill">1 due</span></div>
+  </div>
+  <div class="card">
+    <div class="person"><div class="avatar">PD</div><div><h3>Philip Daley</h3><div class="meta">Next action: supportive comment + normal connection request</div></div><span class="status">DUE</span></div>
+    <p class="muted">Why: first contact has been prepared but not yet recorded as sent.</p>
+    <div class="actions"><button class="btn small" onclick="switchTo('pipeline')">Open Philip</button><button class="btn small secondary">Snooze</button></div>
+  </div>
+  <div class="card">
+    <h3>Default follow-up rhythm</h3>
+    <div class="timeline">
+      <div class="event"><div class="date">~1 week</div><div><strong>First sensible follow-up</strong><div class="muted">Human/contextual first.</div></div></div>
+      <div class="event"><div class="date">~3-4 weeks</div><div><strong>Second touch if genuinely relevant</strong><div class="muted">Do not chase a clear no.</div></div></div>
+      <div class="event"><div class="date">~3 months</div><div><strong>No-for-now reconnect</strong><div class="muted">Circumstances may have changed.</div></div></div>
+    </div>
+  </div>
+</div>
+</section>
+</main>
+<div class="footbar"><button class="btn secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/1nS-dlFnVq3lYb1mbEMD-HDOszRTnLbUkoWlUlsBwyAY/edit','_blank')">Open CRM</button><button class="btn accent" onclick="switchTo('new')">+ New prospect</button></div>
+</div>
+<script>
+function switchTo(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');const tab=document.querySelector('[data-view="'+id+'"]');if(tab)tab.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.view)));
+function preview(input, target){const box=document.getElementById(target);box.innerHTML='';[...input.files].forEach(f=>{const img=document.createElement('img');img.className='thumb';img.src=URL.createObjectURL(f);box.appendChild(img)})}
+document.getElementById('newFiles').addEventListener('change',e=>preview(e.target,'newPreview'));
+document.getElementById('updateFiles').addEventListener('change',e=>preview(e.target,'updatePreview'));
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
+function showDemo(){document.getElementById('demoOutput').style.display='block';document.getElementById('demoOutput').scrollIntoView({behavior:'smooth'})}
+function demoSave(){document.getElementById('saveNote').style.display='block';alert('Saved locally for this pilot view. Automatic Google Drive / Sheet writing is the next wiring step.')}
+</script>
+</body>
+</html>
