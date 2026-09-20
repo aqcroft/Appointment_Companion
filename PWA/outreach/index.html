@@ -103,7 +103,12 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
   <div class="card" id="analysisOutput" style="display:none">
     <div class="section-title"><h3 id="processedTitle">Handoff ready ✓</h3><span class="pill">ChatGPT handoff</span></div>
     <div class="output" id="processReport" style="margin:10px 0 14px"></div>
-    <div class="muted" style="margin-bottom:12px">Open a new chat in this Cold Outreach project, attach the .md file, then say <strong>Process this prospect.</strong> The handoff tells ChatGPT to use the saved screenshots as the evidence and not to research the LinkedIn URLs.</div>
+    <div class="muted" style="margin-bottom:8px">Open a new chat in this Cold Outreach project and paste this prompt:</div>
+    <div class="output" id="handoffPrompt" style="margin-bottom:10px"></div>
+    <div class="actions" style="margin-bottom:12px">
+      <button class="btn accent" onclick="copyText('handoffPrompt')">Copy prompt</button>
+    </div>
+    <div class="muted" style="margin-bottom:8px">Backup options:</div>
     <div class="actions">
       <button class="btn accent" id="downloadHandoffBtn" onclick="downloadHandoff()">Download handoff .md</button>
       <a class="btn secondary" id="openHandoffDriveBtn" href="#" target="_blank" style="text-decoration:none;display:none">Open Drive copy</a>
@@ -168,6 +173,9 @@ function renderHandoff(d){
   currentSavedProspect={name:d.prospect_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null,capture_id:d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||''};
   currentHandoff={content:d.handoff_markdown||'',filename:d.handoff_filename||'prospect-handoff.md',url:d.handoff_url||''};
 
+  const ref=(d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'').slice(0,8).toUpperCase();
+  const prompt='Process the Cold Outreach CRM handoff '+(ref?ref+': ':'')+currentHandoff.filename+'. Find that exact handoff in the connected Google Drive, follow its instructions, use the saved screenshots as the evidence, do not research the LinkedIn URLs, and write the completed analysis and drafts back to the CRM so the Companion can retrieve them.';
+
   const card=document.getElementById('analysisOutput');
   card.style.display='block';
   document.getElementById('processedTitle').textContent=(d.prospect_name||'Prospect')+' handoff ready ✓';
@@ -180,6 +188,7 @@ function renderHandoff(d){
     '🧠 Analysis + drafting will happen in this ChatGPT project'
   ];
   document.getElementById('processReport').textContent=report.join('\n');
+  document.getElementById('handoffPrompt').textContent=prompt;
 
   const driveBtn=document.getElementById('openHandoffDriveBtn');
   if(d.handoff_url){driveBtn.href=d.handoff_url;driveBtn.style.display='inline-flex'}else{driveBtn.style.display='none'}
