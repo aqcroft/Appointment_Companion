@@ -106,8 +106,9 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
     <div class="muted" style="margin-bottom:8px">Open a new chat in this Cold Outreach project and paste this prompt:</div>
     <div class="output" id="handoffPrompt" style="margin-bottom:10px"></div>
     <div class="actions" style="margin-bottom:12px">
-      <button class="btn accent" onclick="copyText('handoffPrompt')">Copy prompt</button>
+      <button class="btn accent" id="copyPromptBtn" onclick="copyHandoffPrompt()">Copy prompt</button>
     </div>
+    <div id="copyPromptStatus" class="muted" style="display:none;margin:-4px 0 12px">Prompt copied ✓</div>
     <div class="muted" style="margin-bottom:8px">Backup options:</div>
     <div class="actions">
       <button class="btn accent" id="downloadHandoffBtn" onclick="downloadHandoff()">Download handoff .md</button>
@@ -152,6 +153,17 @@ function preview(input, target){const box=document.getElementById(target);box.in
 document.getElementById('newFiles')?.addEventListener('change',e=>preview(e.target,'newPreview'));
 document.getElementById('updateFiles')?.addEventListener('change',e=>preview(e.target,'updatePreview'));
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
+async function copyHandoffPrompt(){
+  const btn=document.getElementById('copyPromptBtn');
+  const status=document.getElementById('copyPromptStatus');
+  try{
+    await navigator.clipboard.writeText(document.getElementById('handoffPrompt').innerText);
+    if(btn){btn.textContent='Copied ✓';btn.classList.remove('accent');btn.classList.add('good')}
+    if(status){status.style.display='block';status.textContent='Prompt copied ✓'}
+  }catch(e){
+    if(status){status.style.display='block';status.textContent='⚠️ Could not copy prompt - please select and copy it manually.'}
+  }
+}
 function showDemo(){document.getElementById('demoOutput').style.display='block';document.getElementById('demoOutput').scrollIntoView({behavior:'smooth'})}
 function backendConfig(){return{url:localStorage.getItem(BACKEND_URL_KEY)||'',key:localStorage.getItem(BACKEND_KEY_KEY)||''}}
 function loadBackendSettings(){try{const c=backendConfig();const u=document.getElementById('backendUrl'),k=document.getElementById('backendKey');if(u&&c.url)u.value=c.url;if(k&&c.key)k.value=c.key;const s=document.getElementById('backendState');if(s)s.textContent=c.url&&c.key?'CRM connection saved on this device.':'Not connected yet. Enter the Apps Script URL and workspace key, then tap Save connection.'}catch(e){const s=document.getElementById('backendState');if(s)s.textContent='⚠️ Connection settings error: '+e.message}}
@@ -189,6 +201,10 @@ function renderHandoff(d){
   ];
   document.getElementById('processReport').textContent=report.join('\n');
   document.getElementById('handoffPrompt').textContent=prompt;
+  const copyPromptBtn=document.getElementById('copyPromptBtn');
+  const copyPromptStatus=document.getElementById('copyPromptStatus');
+  if(copyPromptBtn){copyPromptBtn.textContent='Copy prompt';copyPromptBtn.classList.remove('good');copyPromptBtn.classList.add('accent')}
+  if(copyPromptStatus){copyPromptStatus.style.display='none';copyPromptStatus.textContent='Prompt copied ✓'}
 
   const driveBtn=document.getElementById('openHandoffDriveBtn');
   if(d.handoff_url){driveBtn.href=d.handoff_url;driveBtn.style.display='inline-flex'}else{driveBtn.style.display='none'}
@@ -212,17 +228,20 @@ async function retrieveChatGPTOutput(){
       box.innerHTML='<div class="output">ChatGPT output is not in the CRM yet. Finish processing the handoff in ChatGPT, then tap Retrieve ChatGPT output again.</div>';
       return;
     }
-    const section=(title,text,id)=>text?'<div style="margin-top:12px"><div class="section-title"><h3>'+title+'</h3><button class="btn small secondary" onclick="copyText(\''+id+'\')">Copy</button></div><div class="output" id="'+id+'">'+escapeHtml(text)+'</div></div>':'';
+    const section=(title,text,id,showCopy=true)=>text?'<div style="margin-top:12px"><div class="section-title"><h3>'+title+'</h3>'+(showCopy?'<button class="btn small secondary" onclick="copyText(\''+id+'\')">Copy</button>':'')+'</div><div class="output" id="'+id+'">'+escapeHtml(text)+'</div></div>':'';
+    const actionControls='<div class="actions" style="margin:10px 0 2px">'
+      +(!p.comment_sent?'<button class="btn small secondary" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_sent\')">☐ Comment sent</button>':'<span class="pill">✓ Comment sent</span>')
+      +(!p.connection_sent?'<button class="btn small secondary" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'connection_sent\')">☐ Connection request sent</button>':'<span class="pill">✓ Connection request sent</span>')
+      +'</div>';
     box.innerHTML='<div class="section-title"><h3>ChatGPT output ✓</h3><span class="pill">'+escapeHtml(p.draft_status||'Draft ready')+'</span></div>'
       +section('Public comment',p.public_comment,'retrievedComment')
-      +section('Connection request',p.connection_instruction,'retrievedConnection')
-      +section('First UW DM - ready for later',p.first_dm,'retrievedDm')
-      +'<div class="actions" style="margin-top:12px">'
+      +actionControls
+      +'<div class="actions" style="margin-top:8px">'
       +(p.source_post?'<a class="btn small secondary" href="'+escapeHtml(p.source_post)+'" target="_blank">Open post</a>':'')
       +(p.profile_url?'<a class="btn small secondary" href="'+escapeHtml(p.profile_url)+'" target="_blank">Open profile</a>':'')
-      +(!p.comment_sent?'<button class="btn small good" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_sent\')">✓ Comment sent</button>':'<span class="pill">✓ Comment sent</span>')
-      +(!p.connection_sent?'<button class="btn small good" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'connection_sent\')">✓ Connection request sent</button>':'<span class="pill">✓ Connection sent</span>')
-      +'</div>';
+      +'</div>'
+      +section('Connection request',p.connection_instruction,'retrievedConnection',false)
+      +section('First UW DM - ready for later',p.first_dm,'retrievedDm');
   }catch(e){
     box.style.display='block';box.innerHTML='<div class="output">⚠️ '+escapeHtml(e.message)+'</div>';
   }finally{
