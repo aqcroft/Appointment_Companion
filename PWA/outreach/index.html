@@ -103,11 +103,13 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
   <div class="card" id="analysisOutput" style="display:none">
     <div class="section-title"><h3 id="processedTitle">Handoff ready ✓</h3><span class="pill">ChatGPT handoff</span></div>
     <div class="output" id="processReport" style="margin:10px 0 14px"></div>
-    <div class="muted" style="margin-bottom:12px">Open a new chat in this Cold Outreach project, attach the .md file, then say <strong>Process this prospect.</strong> The handoff tells ChatGPT which Drive files and CRM record to use and what to update.</div>
+    <div class="muted" style="margin-bottom:12px">Open a new chat in this Cold Outreach project, attach the .md file, then say <strong>Process this prospect.</strong> The handoff tells ChatGPT to use the saved screenshots as the evidence and not to research the LinkedIn URLs.</div>
     <div class="actions">
       <button class="btn accent" id="downloadHandoffBtn" onclick="downloadHandoff()">Download handoff .md</button>
       <a class="btn secondary" id="openHandoffDriveBtn" href="#" target="_blank" style="text-decoration:none;display:none">Open Drive copy</a>
+      <button class="btn good" id="retrieveOutputBtn" onclick="retrieveChatGPTOutput()">Retrieve ChatGPT output</button>
     </div>
+    <div id="retrievedOutput" style="display:none;margin-top:14px"></div>
     <div id="clearReady" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
       <div class="muted" style="margin-bottom:8px">Keep this form until the handoff file is safely downloaded. Then clear it when you are ready for another prospect.</div>
       <button class="btn secondary" onclick="clearProspectForm()">Clear form / Next prospect</button>
@@ -163,7 +165,7 @@ let currentSavedProspect=null;
 let currentHandoff=null;
 
 function renderHandoff(d){
-  currentSavedProspect={name:d.prospect_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null};
+  currentSavedProspect={name:d.prospect_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null,capture_id:d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||''};
   currentHandoff={content:d.handoff_markdown||'',filename:d.handoff_filename||'prospect-handoff.md',url:d.handoff_url||''};
 
   const card=document.getElementById('analysisOutput');
@@ -182,6 +184,40 @@ function renderHandoff(d){
   const driveBtn=document.getElementById('openHandoffDriveBtn');
   if(d.handoff_url){driveBtn.href=d.handoff_url;driveBtn.style.display='inline-flex'}else{driveBtn.style.display='none'}
   card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function retrieveChatGPTOutput(){
+  const box=document.getElementById('retrievedOutput');
+  const btn=document.getElementById('retrieveOutputBtn');
+  if(!currentSavedProspect){alert('Save the prospect first.');return}
+  try{
+    btn.disabled=true;btn.textContent='Checking CRM…';
+    const d=await crmPost({action:'listProspects'});
+    const ps=d.prospects||[];
+    const capture=currentSavedProspect.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'';
+    const p=ps.find(x=>(capture&&x.capture_id===capture)||(currentSavedProspect.profile_url&&x.profile_url===currentSavedProspect.profile_url));
+    if(!p)throw new Error('This prospect could not be found in the CRM.');
+    const ready=!!(p.public_comment||p.connection_instruction||p.first_dm);
+    box.style.display='block';
+    if(!ready){
+      box.innerHTML='<div class="output">ChatGPT output is not in the CRM yet. Finish processing the handoff in ChatGPT, then tap Retrieve ChatGPT output again.</div>';
+      return;
+    }
+    const section=(title,text,id)=>text?'<div style="margin-top:12px"><div class="section-title"><h3>'+title+'</h3><button class="btn small secondary" onclick="copyText(\''+id+'\')">Copy</button></div><div class="output" id="'+id+'">'+escapeHtml(text)+'</div></div>':'';
+    box.innerHTML='<div class="section-title"><h3>ChatGPT output ✓</h3><span class="pill">'+escapeHtml(p.draft_status||'Draft ready')+'</span></div>'
+      +section('Public comment',p.public_comment,'retrievedComment')
+      +section('Connection request',p.connection_instruction,'retrievedConnection')
+      +section('First UW DM - ready for later',p.first_dm,'retrievedDm')
+      +'<div class="actions" style="margin-top:12px">'
+      +(p.source_post?'<a class="btn small secondary" href="'+escapeHtml(p.source_post)+'" target="_blank">Open post</a>':'')
+      +(p.profile_url?'<a class="btn small secondary" href="'+escapeHtml(p.profile_url)+'" target="_blank">Open profile</a>':'')
+      +(!p.connection_sent?'<button class="btn small good" onclick="markPipelineAction(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_connection_sent\');retrieveChatGPTOutput()">✓ Comment + connection sent</button>':'')
+      +'</div>';
+  }catch(e){
+    box.style.display='block';box.innerHTML='<div class="output">⚠️ '+escapeHtml(e.message)+'</div>';
+  }finally{
+    btn.disabled=false;btn.textContent='Retrieve ChatGPT output';
+  }
 }
 
 function downloadHandoff(){
