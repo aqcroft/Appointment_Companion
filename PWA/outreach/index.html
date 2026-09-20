@@ -97,11 +97,12 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
         <div class="upload"><strong>📸 Add everything useful in one go</strong><div class="muted" style="margin-top:6px">Profile, original post, Job preferences, messages or anything else relevant. The aim is for the tool to classify each screenshot by what it contains rather than making you sort them first.</div><input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
       </div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn accent" id="saveProspectBtn" onclick="saveProspect()">Save prospect</button></div>
+    <div class="actions" style="margin-top:12px"><button class="btn accent" id="saveProspectBtn" onclick="saveProspect()">Save & analyse</button></div>
     <p class="muted" id="saveNote" style="margin-bottom:0">Saving creates/updates the CRM record and uploads the selected screenshots. The outreach comment and DM drafting step will follow the analysis layer - it is not a separate required button.</p>
   </div>
   <div class="card" id="analysisOutput" style="display:none">
-    <div class="section-title"><h3>Suggested approach</h3><span class="pill" id="analysisRecommendation">Relationship first</span></div>
+    <div class="section-title"><h3 id="processedTitle">Processed ✓</h3><span class="pill" id="analysisRecommendation">Relationship first</span></div>
+    <div class="output" id="processReport" style="margin:10px 0 14px"></div>
     <p class="muted" id="analysisReason"></p>
     <div id="analysisFacts" class="muted" style="margin:10px 0 14px"></div>
 
@@ -115,12 +116,16 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
       <div class="output" id="connectionText"></div>
     </div>
 
-    <div id="dmBlock" style="display:none;margin-top:12px">
-      <div class="section-title"><h3>First DM</h3><button class="btn small secondary" onclick="copyText('dmTextGenerated')">Copy</button></div>
-      <div class="output" id="dmTextGenerated"></div>
+    <div id="storedDmNotice" class="muted" style="display:none;margin-top:12px">✉️ First DM drafted and stored in the CRM. It will be available from Pipeline if/when this person accepts the connection request.</div>
+
+    <div class="actions" id="initialActionButtons" style="margin-top:14px;display:none">
+      <button class="btn good" id="markInitialActionBtn" onclick="markInitialAction()">✓ Comment posted + connection request sent</button>
     </div>
 
-    <p class="muted" style="margin-bottom:0;margin-top:12px">Drafts are stored in Conversation History as AI drafts so they can be reviewed before anything is sent.</p>
+    <div id="clearReady" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="muted" style="margin-bottom:8px">This prospect is safely stored in the CRM. Their DM can be picked up later from Pipeline after they connect.</div>
+      <button class="btn secondary" onclick="clearProspectForm()">Clear form / Next prospect</button>
+    </div>
   </div>
 </div>
 </section>
@@ -128,74 +133,24 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 <section class="view" id="pipeline">
 <div class="stack">
   <div class="card">
-    <div class="person"><button class="avatar photoAvatar" onclick="openProfileModal()" aria-label="Open Philip profile snapshot"><img src="https://drive.google.com/thumbnail?id=1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx&sz=w200" alt="Philip Daley"></button><div><h3>Philip Daley</h3><div class="meta">LinkedIn · Redundancy / job seeker · Cold</div><div class="meta">2 mutual connections: Natalie and Neil</div></div><span class="status new">NEW</span></div>
-    <div class="actions" style="margin-top:12px">
-      <a class="btn small secondary" href="https://www.linkedin.com/in/philipdaley" target="_blank">Profile</a>
-      <a class="btn small secondary" href="https://lnkd.in/p/eZewaKwp" target="_blank">Original post</a>
-      <a class="btn small secondary" href="https://drive.google.com/drive/folders/1c287-GSRBzzmsDGLQeOn_WKRT2VbVxAu" target="_blank">Prospect files</a>
-    </div>
+    <div class="section-title"><div><h2>Pipeline</h2><div class="muted">Come back here when somebody accepts, replies or needs the next action.</div></div><button class="btn small secondary" onclick="loadPipeline()">Refresh</button></div>
   </div>
-  <div class="card"><div class="section-title"><h3>Relationship clues</h3><span class="pill">Profile screenshot</span></div><p class="muted">2 mutual connections detected: <strong>Natalie</strong> and <strong>Neil</strong>. The finished version can use a small number of identifiable mutual connections as optional personalisation context - only where it feels natural, never as a forced line.</p></div>
-  <div class="card">
-    <div class="section-title"><h3>DM after connection</h3><button class="btn small secondary" onclick="copyText('dmText')">Copy</button></div>
-    <div class="output" id="dmText">Hi Philip 👋
-
-Thanks for connecting. 😊
-
-Your post caught my eye, so I wanted to ask whether you’ve ever come across Utility Warehouse and its Authorised Partner opportunity before?
-
-I’ve been a Partner myself for about 15 years, and these days my focus is very much on helping people - either in work or looking for work - build an additional income stream alongside whatever else they’ve already got going on in life.
-
-I’m not suggesting it as an alternative to getting back into the right contracting role - hopefully that comes together quickly for November. It can simply sit alongside contracting or whatever you end up doing next.
-
-With your background in stakeholder management, delivery and working with people, I thought it was relevant enough to put on your radar.
-
-I simply wanted to ask if you’d be open to exploring whether it could be a good fit for you right now?
-
-If so, I’m very happy to send you a little info and you can decide for yourself whether it’s even remotely interesting. And if not, that’s really fine too. 👍</div>
-  </div>
-  <div class="card">
-    <h3>Add conversation update</h3>
-    <p class="muted">Use this when someone accepts, replies, or you have another interaction to record.</p>
-    <div class="field"><label>What happened?</label><textarea id="updateNote" placeholder="Optional note - a screenshot may be enough"></textarea></div>
-    <div class="field" style="margin-top:10px"><label>Screenshot(s)</label><div class="upload">Choose from phone gallery<input id="updateFiles" type="file" accept="image/*" multiple><div class="preview" id="updatePreview"></div><div class="muted" style="margin-top:8px">The finished version will analyse the screenshot for context and any follow-up date you agreed.</div></div></div>
-    <div class="field" style="margin-top:12px"><label>Next follow-up</label><div class="actions"><button class="btn small secondary" onclick="setFollowup(7)">+1 week</button><button class="btn small secondary" onclick="setFollowup(24)">+3-4 weeks</button><button class="btn small secondary" onclick="setFollowup(90)">+3 months</button></div><input id="customFollowup" type="date" style="margin-top:8px"><div class="muted" id="followupHint" style="margin-top:6px">Or choose a specific date. Later, screenshot analysis can suggest this automatically from phrases such as “speak at the end of October”.</div></div><div class="actions" style="margin-top:12px"><button class="btn accent" onclick="saveConversationUpdate()">Save & analyse update</button><button class="btn secondary">Mark connected</button><button class="btn secondary">Mark message sent</button></div>
-  </div>
-  <div class="card">
-    <h3>Conversation history</h3>
-    <div class="timeline">
-      <div class="event"><div class="date">20 Sep</div><div><strong>Original LinkedIn post captured</strong><div class="muted">Voluntary redundancy; returning to contracting from November.</div></div></div>
-      <div class="event"><div class="date">20 Sep</div><div><strong>Profile snapshot captured</strong><div class="muted">Transformation / programme leadership; stakeholder and vendor management.</div></div></div>
-    </div>
-  </div>
+  <div id="pipelineList" class="stack"><div class="card muted">Loading prospects…</div></div>
 </div>
 </section>
 
 <section class="view" id="followups">
 <div class="stack">
-  <div class="card due">
-    <div class="section-title"><div><h3>This week</h3><div class="muted">Your focused follow-up list</div></div><span class="pill">1 due</span></div>
-  </div>
   <div class="card">
-    <div class="person"><button class="avatar photoAvatar" onclick="openProfileModal()" aria-label="Open Philip profile snapshot"><img src="https://drive.google.com/thumbnail?id=1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx&sz=w200" alt="Philip Daley"></button><div><h3>Philip Daley</h3><div class="meta">Next action: supportive comment + normal connection request</div></div><span class="status">DUE</span></div>
-    <p class="muted">Why: first contact has been prepared but not yet recorded as sent.</p>
-    <div class="actions"><button class="btn small" onclick="switchTo('pipeline')">Open Philip</button><button class="btn small secondary">Snooze</button></div>
+    <div class="section-title"><div><h2>Follow-ups</h2><div class="muted">Focused next actions from the CRM.</div></div><button class="btn small secondary" onclick="loadFollowups()">Refresh</button></div>
   </div>
-  <div class="card">
-    <h3>Default follow-up rhythm</h3>
-    <div class="timeline">
-      <div class="event"><div class="date">~1 week</div><div><strong>First sensible follow-up</strong><div class="muted">Human/contextual first.</div></div></div>
-      <div class="event"><div class="date">~3-4 weeks</div><div><strong>Second touch if genuinely relevant</strong><div class="muted">Do not chase a clear no.</div></div></div>
-      <div class="event"><div class="date">~3 months</div><div><strong>No-for-now reconnect</strong><div class="muted">Circumstances may have changed.</div></div></div>
-    </div>
-  </div>
+  <div id="followupList" class="stack"><div class="card muted">Loading follow-ups…</div></div>
 </div>
 </section>
-</main><div class="modal" id="profileModal" onclick="if(event.target===this)closeProfileModal()"><div class="modalCard"><div class="modalHead"><strong>Philip Daley - profile snapshot</strong><button class="btn small secondary" onclick="closeProfileModal()">Close</button></div><div class="modalBody"><iframe src="https://drive.google.com/file/d/1dLhqPZWTsVVhYzqqnSeuFeNPpQtC8Vkx/preview" title="Philip Daley profile screenshot"></iframe></div><div class="modalFoot"><a class="btn accent" style="text-decoration:none;text-align:center;flex:1" href="https://www.linkedin.com/in/philipdaley" target="_blank">Open LinkedIn profile</a></div></div></div>
-<div class="footbar"><button class="btn secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/1nS-dlFnVq3lYb1mbEMD-HDOszRTnLbUkoWlUlsBwyAY/edit','_blank')">Open CRM</button><button class="btn accent" onclick="switchTo('new')">+ New prospect</button></div>
+</main><div class="footbar"><button class="btn secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/1nS-dlFnVq3lYb1mbEMD-HDOszRTnLbUkoWlUlsBwyAY/edit','_blank')">Open CRM</button><button class="btn accent" onclick="switchTo('new')">+ New prospect</button></div>
 </div>
 <script>
-function switchTo(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');const tab=document.querySelector('[data-view="'+id+'"]');if(tab)tab.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+function switchTo(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');const tab=document.querySelector('[data-view="'+id+'"]');if(tab)tab.classList.add('active');if(id==='pipeline')loadPipeline();if(id==='followups')loadFollowups();window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTo(t.dataset.view)));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',e=>{const b=e.target.closest('.choice-btn');if(!b)return;const id=group.dataset.choiceGroup;const input=document.getElementById(id);if(input)input.value=b.dataset.value;group.querySelectorAll('.choice-btn').forEach(x=>x.classList.toggle('active',x===b));}));
 function preview(input, target){const box=document.getElementById(target);box.innerHTML='';[...input.files].forEach(f=>{const img=document.createElement('img');img.className='thumb';img.src=URL.createObjectURL(f);box.appendChild(img)})}
@@ -217,14 +172,180 @@ async function sha256(text){const data=new TextEncoder().encode(text);const hash
 function setProspectSaveState(state,message=''){const b=document.getElementById('saveProspectBtn');const n=document.getElementById('saveNote');if(!b)return;if(state==='saving'){b.disabled=true;b.textContent='Analysing…'}else if(state==='saved'){b.disabled=true;b.textContent='Saved ✓'}else{b.disabled=false;b.textContent='Save prospect'}if(n&&message)n.textContent=message}
 function unlockProspectSave(){if(!prospectSaveInFlight){setProspectSaveState('ready','Ready to save. Any changed details or screenshots will create an updated capture.');document.getElementById('analysisOutput').style.display='none'}}
 function safeText(v){return String(v??'')}
-function renderAnalysis(a){if(!a)return;const card=document.getElementById('analysisOutput');card.style.display='block';document.getElementById('analysisRecommendation').textContent=(a.recommendation||'').replaceAll('_',' ');document.getElementById('analysisReason').textContent=a.recommendation_reason||'';const facts=[];if(a.extracted_name)facts.push('<strong>'+safeText(a.extracted_name)+'</strong>');if(a.target_role)facts.push('Target role: '+safeText(a.target_role));if((a.target_locations||[]).length)facts.push('Locations: '+a.target_locations.join(', '));if((a.work_preferences||[]).length)facts.push('Work preference: '+a.work_preferences.join(', '));if((a.employment_types||[]).length)facts.push('Employment: '+a.employment_types.join(', '));if(a.why_relevant)facts.push('Why relevant: '+safeText(a.why_relevant));document.getElementById('analysisFacts').innerHTML=facts.join('<br>');const comment=safeText(a.public_comment).trim();const conn=safeText(a.connection_request_instruction).trim();const dm=safeText(a.first_dm).trim();document.getElementById('commentBlock').style.display=comment?'block':'none';document.getElementById('commentText').textContent=comment;document.getElementById('connectionBlock').style.display=conn?'block':'none';document.getElementById('connectionText').textContent=conn;document.getElementById('dmBlock').style.display=dm?'block':'none';document.getElementById('dmTextGenerated').textContent=dm;card.scrollIntoView({behavior:'smooth',block:'start'})}
-async function saveProspect(){if(prospectSaveInFlight)return;try{prospectSaveInFlight=true;setProspectSaveState('saving','Analysing screenshots, preparing relationship-first outreach and saving the CRM record…');const capture_id=await sha256(saveSignature());const last=localStorage.getItem('acOutreachLastCaptureId')||'';if(last===capture_id){setProspectSaveState('saved','This exact capture has already been saved on this device - duplicate upload blocked.');return}const files=await collectFiles('newFiles','auto');const payload={action:'saveProspect',capture_id,prospect:{name:inferredName(),profile_url:document.getElementById('profileLink').value.trim(),source_url:document.getElementById('sourceLink').value.trim(),track:document.getElementById('track').value,source:document.getElementById('sourceType').value,relationship:document.getElementById('relationship').value,notes:document.getElementById('prospectNotes').value.trim()},files};const d=await crmPost(payload);localStorage.setItem('acOutreachLastCaptureId',capture_id);setProspectSaveState('saved',d.duplicate?'Duplicate capture blocked by CRM - nothing uploaded twice.':'Saved to CRM'+(d.prospect_name?' as '+d.prospect_name:'')+'. Analysis and drafts stored.');if(d.analysis)renderAnalysis(d.analysis)}catch(e){setProspectSaveState('ready','Save failed: '+e.message)}finally{prospectSaveInFlight=false}}
+let currentSavedProspect=null;
+
+function renderAnalysis(a,d){
+  if(!a)return;
+  currentSavedProspect={name:d.prospect_name||a.extracted_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null};
+  const card=document.getElementById('analysisOutput');
+  card.style.display='block';
+  document.getElementById('processedTitle').textContent=(d.prospect_name||a.extracted_name||'Prospect')+' processed ✓';
+  document.getElementById('analysisRecommendation').textContent=(a.recommendation||'').replaceAll('_',' ');
+  document.getElementById('analysisReason').textContent=a.recommendation_reason||'';
+
+  const facts=[];
+  if(a.target_role)facts.push('Target role: '+safeText(a.target_role));
+  if((a.target_locations||[]).length)facts.push('Locations: '+a.target_locations.join(', '));
+  if((a.work_preferences||[]).length)facts.push('Work preference: '+a.work_preferences.join(', '));
+  if((a.employment_types||[]).length)facts.push('Employment: '+a.employment_types.join(', '));
+  if(a.why_relevant)facts.push('Why relevant: '+safeText(a.why_relevant));
+  document.getElementById('analysisFacts').innerHTML=facts.join('<br>');
+
+  const report=[
+    '📁 '+((d.files||[]).length)+' screenshot'+(((d.files||[]).length)===1?'':'s')+' saved to Drive',
+    '📊 CRM record created / updated',
+    '🤖 '+((a.screenshot_types||[]).length||((d.files||[]).length))+' screenshot'+((((a.screenshot_types||[]).length||((d.files||[]).length))===1)?'':'s')+' analysed',
+    '🎯 Situation + relevance '+(a.situation_summary||a.why_relevant?'identified':'reviewed'),
+    a.public_comment?'💬 Public comment drafted + stored':'💬 No public comment recommended',
+    a.first_dm?'✉️ First DM drafted + stored for later':'✉️ No first DM recommended'
+  ];
+  document.getElementById('processReport').textContent=report.join('\n');
+
+  const comment=safeText(a.public_comment).trim();
+  const conn=safeText(a.connection_request_instruction).trim();
+  const dm=safeText(a.first_dm).trim();
+  document.getElementById('commentBlock').style.display=comment?'block':'none';
+  document.getElementById('commentText').textContent=comment;
+  document.getElementById('connectionBlock').style.display=conn?'block':'none';
+  document.getElementById('connectionText').textContent=conn;
+  document.getElementById('storedDmNotice').style.display=dm?'block':'none';
+
+  const canInitial = !!(comment || conn) && !['no_approach','supportive_comment_only'].includes(a.recommendation);
+  document.getElementById('initialActionButtons').style.display=canInitial?'flex':'none';
+  document.getElementById('clearReady').style.display=canInitial?'none':'block';
+
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function setProspectSaveState(state,message=''){
+  const b=document.getElementById('saveProspectBtn');
+  const n=document.getElementById('saveNote');
+  if(!b)return;
+  if(state==='saving'){b.disabled=true;b.textContent='Analysing…'}
+  else if(state==='saved'){b.disabled=true;b.textContent='Saved ✓'}
+  else{b.disabled=false;b.textContent='Save & analyse'}
+  if(n&&message)n.textContent=message;
+}
+function unlockProspectSave(){
+  if(!prospectSaveInFlight){
+    setProspectSaveState('ready','Ready to save. Nothing is cleared until you explicitly start the next prospect.');
+    document.getElementById('analysisOutput').style.display='none';
+    currentSavedProspect=null;
+  }
+}
+
+async function saveProspect(){
+  if(prospectSaveInFlight)return;
+  try{
+    prospectSaveInFlight=true;
+    setProspectSaveState('saving','Keeping this form intact whilst CRM, Drive and AI processing completes…');
+    const capture_id=await sha256(saveSignature());
+    const last=localStorage.getItem('acOutreachLastCaptureId')||'';
+    if(last===capture_id){
+      setProspectSaveState('saved','This exact capture has already been processed on this device - duplicate upload blocked.');
+      return;
+    }
+    const files=await collectFiles('newFiles','auto');
+    const payload={
+      action:'saveProspect',
+      capture_id,
+      prospect:{
+        name:inferredName(),
+        profile_url:document.getElementById('profileLink').value.trim(),
+        source_url:document.getElementById('sourceLink').value.trim(),
+        track:document.getElementById('track').value,
+        source:document.getElementById('sourceType').value,
+        relationship:document.getElementById('relationship').value,
+        notes:document.getElementById('prospectNotes').value.trim()
+      },
+      files
+    };
+    const d=await crmPost(payload);
+    localStorage.setItem('acOutreachLastCaptureId',capture_id);
+    setProspectSaveState('saved',d.duplicate?'Duplicate capture blocked by CRM - nothing uploaded twice.':'Processing complete. The form will remain here until you clear it.');
+    if(d.analysis)renderAnalysis(d.analysis,d);
+  }catch(e){
+    setProspectSaveState('ready','Processing failed: '+e.message+' Your links, notes and screenshots are still here - fix the issue and retry.');
+  }finally{
+    prospectSaveInFlight=false;
+  }
+}
+
+async function markInitialAction(){
+  if(!currentSavedProspect)return;
+  const btn=document.getElementById('markInitialActionBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    await crmPost({action:'markAction',profile_url:currentSavedProspect.profile_url,prospect_name:currentSavedProspect.name,action_name:'comment_connection_sent'});
+    btn.textContent='Recorded ✓';
+    document.getElementById('clearReady').style.display='block';
+    document.getElementById('saveNote').textContent='Comment + connection request recorded. You can now clear the form; the stored DM will be waiting in Pipeline if they connect.';
+  }catch(e){
+    btn.disabled=false;btn.textContent='✓ Comment posted + connection request sent';
+    alert(e.message);
+  }
+}
+
+function clearProspectForm(){
+  if(!confirm('Clear this prospect and start another? Everything processed has been saved to the CRM.'))return;
+  document.getElementById('sourceLink').value='';
+  document.getElementById('profileLink').value='';
+  document.getElementById('prospectNotes').value='';
+  document.getElementById('newFiles').value='';
+  document.getElementById('newPreview').innerHTML='';
+  document.getElementById('analysisOutput').style.display='none';
+  currentSavedProspect=null;
+  localStorage.removeItem('acOutreachLastCaptureId');
+  setProspectSaveState('ready','Ready for the next prospect.');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function escapeHtml(s){return safeText(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function statusLabel(p){
+  if(p.first_dm_sent)return 'DM sent';
+  if(p.connected)return 'Connected';
+  if(p.connection_sent)return 'Waiting for connection';
+  return p.status||'New';
+}
+async function loadPipeline(){
+  const box=document.getElementById('pipelineList');if(!box)return;
+  box.innerHTML='<div class="card muted">Loading prospects…</div>';
+  try{
+    const d=await crmPost({action:'listProspects'});
+    const ps=d.prospects||[];
+    if(!ps.length){box.innerHTML='<div class="card muted">No prospects yet.</div>';return}
+    box.innerHTML=ps.map((p,i)=>{
+      const connected=!!p.connected, sent=!!p.connection_sent, dmSent=!!p.first_dm_sent;
+      const next = dmSent ? (p.next_action||'Follow-up as appropriate') : connected ? 'First DM ready' : sent ? 'Waiting for connection acceptance' : (p.next_action||'Review first action');
+      const dm = connected && p.first_dm && !dmSent ? `<div style="margin-top:12px"><div class="section-title"><h3>First DM</h3><button class="btn small secondary" onclick="copyPipelineDm(${i})">Copy</button></div><div class="output" id="pipelineDm${i}">${escapeHtml(p.first_dm)}</div><div class="actions" style="margin-top:10px"><button class="btn small good" onclick="markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','dm_sent')">✓ DM sent</button></div></div>` : '';
+      const connectButton = sent && !connected ? `<button class="btn small good" onclick="markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','connected')">✓ They connected</button>` : '';
+      return `<div class="card"><div class="section-title"><div><h3>${escapeHtml(p.name)}</h3><div class="meta">${escapeHtml(p.source||'')} · ${escapeHtml(p.track||'')} · ${escapeHtml(p.relationship||'')}</div></div><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted" style="margin-top:8px"><strong>Next:</strong> ${escapeHtml(next)}</div><div class="actions" style="margin-top:10px">${p.profile_url?`<a class="btn small secondary" href="${escapeHtml(p.profile_url)}" target="_blank">Profile</a>`:''}${p.folder_url?`<a class="btn small secondary" href="${escapeHtml(p.folder_url)}" target="_blank">Files</a>`:''}${connectButton}</div>${dm}</div>`;
+    }).join('');
+    window.pipelineProspects=ps;
+  }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
+}
+function copyPipelineDm(i){navigator.clipboard.writeText((window.pipelineProspects||[])[i]?.first_dm||'')}
+async function markPipelineAction(profileEnc,nameEnc,actionName){
+  try{
+    await crmPost({action:'markAction',profile_url:decodeURIComponent(profileEnc),prospect_name:decodeURIComponent(nameEnc),action_name:actionName});
+    await loadPipeline();await loadFollowups();
+  }catch(e){alert(e.message)}
+}
+async function loadFollowups(){
+  const box=document.getElementById('followupList');if(!box)return;
+  try{
+    const d=await crmPost({action:'listProspects'});
+    const ps=(d.prospects||[]).filter(p=>p.next_action||p.connection_sent||p.connected);
+    if(!ps.length){box.innerHTML='<div class="card muted">Nothing needs attention yet.</div>';return}
+    box.innerHTML=ps.map(p=>`<div class="card"><div class="section-title"><h3>${escapeHtml(p.name)}</h3><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted"><strong>Next action:</strong> ${escapeHtml(p.first_dm_sent?(p.next_action||'Follow-up as appropriate'):p.connected?'Send first DM':p.connection_sent?'Waiting for connection acceptance':(p.next_action||'Review'))}</div></div>`).join('');
+  }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
+}
 async function saveConversationUpdate(){try{const next=document.getElementById('customFollowup')?.value||'';const payload={action:'addHistory',prospect_name:'Philip Daley',profile_url:'https://www.linkedin.com/in/philipdaley',note:document.getElementById('updateNote').value.trim(),followup_date:next,files:await collectFiles('updateFiles')};await crmPost(payload);alert('Conversation update saved to CRM.');}catch(e){alert(e.message)}}
 async function testBackend(){try{const d=await crmPost({action:'health'});document.getElementById('backendState').textContent=d.ai_configured?'✅ CRM + AI connection is working.':'⚠️ CRM works, but OPENAI_API_KEY is not configured in Apps Script.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
 ['profileLink','sourceLink','prospectNotes','newFiles'].forEach(id=>document.getElementById(id)?.addEventListener('change',unlockProspectSave));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',()=>unlockProspectSave()));
 window.addEventListener('DOMContentLoaded',loadBackendSettings);
-function openProfileModal(){document.getElementById('profileModal').classList.add('open')} function closeProfileModal(){document.getElementById('profileModal').classList.remove('open')} function setFollowup(days){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('customFollowup').value=d.toISOString().slice(0,10);document.getElementById('followupHint').textContent='Custom follow-up selected. You can overwrite it with any date.'}
+function setFollowup(days){const d=new Date();d.setDate(d.getDate()+days);document.getElementById('customFollowup').value=d.toISOString().slice(0,10);document.getElementById('followupHint').textContent='Custom follow-up selected. You can overwrite it with any date.'}
 </script>
 </body>
 </html>
