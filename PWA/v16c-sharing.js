@@ -61,6 +61,7 @@ function capture(name,basket){
   var service=activeButton('#serviceButtons button');
   var period=activeButton('#periodToggle button');
   var stress=activeButton('#stressButtons button');
+  var fixJan=activeButton('#fixJanButtons button');
   var e7Actual=!$('e7ActualWrap').hidden;
   var data={
     v:'16C',
@@ -84,7 +85,9 @@ function capture(name,basket){
     ke:numValue('knownEvKwh'),
     df:!!$('dualFuel').checked,
     pe:period?period.dataset.period:'month',
-    st:stress?parseInt(stress.dataset.stress,10)||0:0
+    st:stress?parseInt(stress.dataset.stress,10)||0:0,
+    hp:$('heatingProfile')?$('heatingProfile').value:'none',
+    fj:fixJan?parseFloat(fixJan.dataset.fixjan)||0:24.9
   };
   var safeBasket=safeHttps(basket);
   if(safeBasket)data.b=safeBasket;
@@ -141,6 +144,8 @@ function applyPayload(p){
   }
 
   if(p.st!==null&&p.st!==undefined)click('#stressButtons button[data-stress="'+p.st+'"]');
+  if(p.hp&&$('heatingProfile')){$('heatingProfile').value=p.hp;trigger('heatingProfile','change')}
+  if(p.fj!==null&&p.fj!==undefined)click('#fixJanButtons button[data-fixjan="'+p.fj+'"]');
   if(p.pe)click('#periodToggle button[data-period="'+p.pe+'"]');
 }
 
@@ -150,7 +155,7 @@ function startCompanion(payload){
   document.documentElement.classList.add('shared-started');
 
   loadScript('tariff-cache-v1.js?v=20260910-feedback1').then(function(){
-    return loadScript('v13-ev.js?v=20260910-feedback1');
+    return loadScript('v13-ev.js?v=20260921-e7fix1');
   }).then(function(){
     if(payload)applyPayload(payload);
     return loadScript('v16b-hero.js');
