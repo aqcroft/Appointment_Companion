@@ -16,7 +16,7 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
 </script>
 <link rel="stylesheet" href="v14-ev.css">
 <link rel="stylesheet" href="v15-ev.css">
-<link rel="stylesheet" href="v16c-ev.css">
+<link rel="stylesheet" href="v16c-ev.css?v=20260921-e7fix1">
 </head>
 <body>
 
@@ -146,12 +146,38 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
         <div class="timing-block-head"><strong>Economy 7</strong><span id="e7SplitLabelTop">15% off-peak</span></div>
         <div class="timing-values"><span>☀️ Peak<b id="e7DayDisplay">2,125 kWh</b><small>17 hrs · remaining hours</small></span><span>🌙 Off-peak<b id="e7NightDisplay">375 kWh</b><small>7 hrs · usually 00:00-07:00*</small></span></div>
         <input id="e7TimingSlider" type="range" min="0" max="70" step="1" value="15">
-        <div class="timing-actions"><button type="button" class="actual-toggle" id="e7ActualToggle">Use actual bill figures</button></div>
+        <div class="timing-actions"><button type="button" class="actual-toggle" id="e7ActualToggle">Use annual day/night figures</button><button type="button" class="actual-toggle secondary" id="billProfileToggle">Estimate from a recent bill</button></div>
         <div class="actual-top-row" id="e7ActualWrap" hidden>
-          <div><label for="e7DayActualInput">☀️ Peak kWh</label><input id="e7DayActualInput" type="number" min="0" step="1" inputmode="numeric" value="2125"></div>
-          <div><label for="e7NightActualInput">🌙 Off-peak kWh</label><input id="e7NightActualInput" type="number" min="0" step="1" inputmode="numeric" value="375"></div>
+          <div><label for="e7DayActualInput">☀️ Annual day kWh</label><input id="e7DayActualInput" type="number" min="0" step="1" inputmode="numeric" value="2125"></div>
+          <div><label for="e7NightActualInput">🌙 Annual night kWh</label><input id="e7NightActualInput" type="number" min="0" step="1" inputmode="numeric" value="375"></div>
         </div>
-        <div class="timing-hint" id="e7TimingHint">Defaults to 15% off-peak. *Economy 7 switching times can vary by meter and region, and some meters remain on GMT year-round. Use actual bill figures if known.</div>
+        <div class="bill-profiler" id="billProfiler" hidden>
+          <div class="bill-profiler-head"><strong>🧾 Turn one bill into an annual estimate</strong><span>for EV vs Economy 7</span></div>
+          <div class="bill-two">
+            <label>☀️ Peak kWh on bill<input id="billDayKwh" type="number" min="0" step="1" inputmode="decimal" placeholder="e.g. 320"></label>
+            <label>🌙 Off-peak kWh on bill<input id="billNightKwh" type="number" min="0" step="1" inputmode="decimal" placeholder="e.g. 180"></label>
+          </div>
+          <div class="bill-two">
+            <label>Bill period<select id="billPeriodMode"><option value="month">Whole calendar month</option><option value="dates">Exact bill dates</option></select></label>
+            <label id="billMonthWrap">Month<select id="billMonth">
+              <option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option>
+              <option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option>
+              <option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option>
+            </select></label>
+          </div>
+          <div class="bill-two bill-dates" id="billDatesWrap" hidden>
+            <label>From<input id="billStartDate" type="date"></label>
+            <label>To<input id="billEndDate" type="date"></label>
+          </div>
+          <div class="bill-two">
+            <label>Home heating<select id="heatingProfile"><option value="none">Not electrically heated</option><option value="heatpump">Heat pump</option><option value="direct">Direct electric</option><option value="storage">Storage heaters</option></select></label>
+            <label class="bill-check"><span>EV charging included in this bill?</span><input id="billEvIncluded" type="checkbox" checked></label>
+          </div>
+          <button type="button" class="bill-apply" id="applyBillProfile">Estimate annual profile</button>
+          <div class="bill-profile-result" id="billProfileResult" hidden></div>
+          <div class="timing-hint">The estimate separates the car where possible, annualises the household usage using a seasonal profile, then allows for Economy 7's longer cheap window. It is an estimate - the annual figures remain editable above.</div>
+        </div>
+        <div class="timing-hint" id="e7TimingHint">Defaults to 15% off-peak. *Economy 7 switching times can vary by meter and region, and some meters remain on GMT year-round. Use annual figures if known, or estimate them from a recent bill.</div>
       </div>
     </div>
   </div>
@@ -164,6 +190,19 @@ if (/^p=/.test(location.hash.slice(1))) document.documentElement.classList.add('
   <div class="stressnote" id="stressNote">Directional only. The uplift is applied to today's calculated variable electricity costs - it is not an Ofgem forecast or a prediction of how unit rates and standing charges will move.</div>
   <div class="tablewrap"><table><thead><tr><th class="rowh">Tariff</th><th class="numh" id="th0">1</th><th class="numh" id="th1">2</th><th class="numh sel" id="th2">3</th></tr></thead><tbody id="comparison"></tbody></table></div>
   <div class="foot">Totals include home electricity, standing charge and home EV charging. Public charging is separate. Variable tariffs can change. Stress scenarios are illustrative only.</div>
+</section>
+
+<section class="card fix-card" id="fixCard">
+  <div class="section-title">🔒 Should I fix? EV vs Economy 7</div>
+  <div class="section-copy" id="fixCompareCopy">Uses the selected UW service level above and compares its EV variable tariff with the matching fixed Economy 7 tariff.</div>
+  <div class="fix-headline"><strong id="fixHeadline">Loading tariff comparison…</strong><span id="fixHeadlineSub"></span></div>
+  <div class="fix-controls">
+    <div class="fix-assumption"><span>Oct EV assumption</span><strong>+4%</strong></div>
+    <div class="fix-jan"><span>Jan EV change - test a scenario</span><div class="fix-jan-buttons" id="fixJanButtons"><button data-fixjan="0">0%</button><button data-fixjan="10">10%</button><button data-fixjan="20">20%</button><button class="on" data-fixjan="24.9">24.9%</button><button data-fixjan="30">30%</button></div></div>
+  </div>
+  <div class="fix-chart-wrap"><div id="fixChart"></div></div>
+  <div class="fix-legend"><span><i class="fix-line variable"></i>EV variable</span><span><i class="fix-line fixed"></i>Fixed E7</span><span><i class="fix-area red"></i>Fixed cheaper</span><span><i class="fix-area green"></i>EV cheaper</span></div>
+  <div class="fix-note" id="fixNote">October +4% is an illustrative assumption, not a published UW EV tariff change. January applies the selected scenario on top of that assumption and then holds that level for the rest of the comparison.</div>
 </section>
 
 <details><summary>⚙️ Settings & assumptions</summary><div class="settings">
