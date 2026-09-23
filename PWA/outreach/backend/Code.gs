@@ -21,6 +21,7 @@ function doPost(e) {
     if (action === 'markAction') return json(markAction(body));
     if (action === 'listProspects') return json(listProspects());
     if (action === 'getProspectOutput') return json(getProspectOutput(body));
+    if (action === 'updateDraft') return json(updateDraft(body));
     return json({ok:false,error:'Unknown action'});
   } catch (err) {
     return json({ok:false,error:String(err && err.message || err)});
@@ -148,7 +149,7 @@ function buildHandoffMarkdown(x) {
     'Then:',
     '1. Assess what happened, what the person appears to want, the relationship context, and whether UW is genuinely relevant.',
     '2. Choose the appropriate route: approach, relationship-building first, supportive comment only, or no approach.',
-    '3. For LinkedIn outreach, draft the public comment first. Do not mention UW publicly unless the context specifically warrants it.',
+    '3. For LinkedIn outreach, draft the public comment first. Do not mention UW publicly unless the context specifically warrants it. If the prospect\'s name appears in the public comment, prefix it with @ so Adrian can tag them easily (for example, @Mark).',
     '4. Draft the connection-request instruction. Normally this is a standard connection request with no note.',
     '5. Draft the first UW DM only if appropriate. For job seekers, explicitly protect the role/career they actually want and position UW only alongside it.',
     '6. Present the copy-ready public comment and, separately, the stored first DM.',
@@ -286,6 +287,40 @@ function listProspects() {
     };
   }).filter(p=>p.name).reverse();
   return {ok:true,prospects:prospects};
+}
+
+function updateDraft(body) {
+  const allowed = {
+    'Suggested public comment - Draft': true,
+    'Suggested first DM - Draft': true,
+    'Connection request instruction - Draft': true
+  };
+  const type = String(body.draft_type || '').trim();
+  const content = String(body.content || '').trim();
+  if (!allowed[type]) throw new Error('Unsupported draft type.');
+  if (!content) throw new Error('Draft content cannot be blank.');
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const captureId = String(body.capture_id || '').trim();
+  const profileUrl = String(body.profile_url || '').trim();
+  const requestedName = String(body.prospect_name || '').trim();
+  const last = sheet.getLastRow();
+  let row = 0;
+  if (captureId && headers['Last capture ID'] && last >= 2) {
+    const hit = sheet.getRange(2, headers['Last capture ID'], last - 1, 1).createTextFinder(captureId).matchEntireCell(true).findNext();
+    if (hit) row = hit.getRow();
+  }
+  if (!row) row = findProspectRow(sheet, headers, profileUrl, requestedName);
+  if (!row) throw new Error('This prospect could not be found in the CRM.');
+  const actualName = String(sheet.getRange(row, headers['Name']).getDisplayValue() || requestedName);
+  const actualProfile = String(sheet.getRange(row, headers['LinkedIn profile']).getDisplayValue() || profileUrl);
+  const next = headers['Next action'] ? String(sheet.getRange(row,headers['Next action']).getDisplayValue() || '') : '';
+  const status = headers['Status'] ? String(sheet.getRange(row,headers['Status']).getDisplayValue() || 'New') : 'New';
+  const now = new Date();
+  appendHistory(ss,{prospect:actualName,date:now,direction:'Outgoing edit',type:type,summary:content,file:'',linkedin:actualProfile,next:next,status:status,notes:'Edited in Partner Companion.'});
+  writeByHeaders(sheet,headers,row,{'Draft status':'Edited in Companion'});
+  return {ok:true,prospect_name:actualName,draft_type:type,content:content};
 }
 
 function getProspectOutput(body) {
