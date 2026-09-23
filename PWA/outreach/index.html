@@ -103,6 +103,7 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
   <div class="card" id="analysisOutput" style="display:none">
     <div class="section-title"><h3 id="processedTitle">Handoff ready ✓</h3><span class="pill">ChatGPT handoff</span></div>
     <div class="output" id="processReport" style="margin:10px 0 14px"></div>
+    <div class="actions" id="savedProspectLinks" style="margin-bottom:14px;display:none"></div>
     <div class="muted" style="margin-bottom:8px">Open a new chat in this Cold Outreach project and paste this prompt:</div>
     <div class="output" id="handoffPrompt" style="margin-bottom:10px"></div>
     <div class="actions" style="margin-bottom:12px">
@@ -242,7 +243,13 @@ let currentSavedProspect=null;
 let currentHandoff=null;
 
 function renderHandoff(d){
-  currentSavedProspect={name:d.prospect_name||'',profile_url:document.getElementById('profileLink').value.trim(),row:d.row||null,capture_id:d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||''};
+  currentSavedProspect={
+    name:d.prospect_name||'',
+    profile_url:document.getElementById('profileLink').value.trim(),
+    source_url:document.getElementById('sourceLink').value.trim(),
+    row:d.row||null,
+    capture_id:d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||''
+  };
   currentHandoff={content:d.handoff_markdown||'',filename:d.handoff_filename||'prospect-handoff.md',url:d.handoff_url||''};
 
   const ref=(d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'').slice(0,8).toUpperCase();
@@ -260,6 +267,20 @@ function renderHandoff(d){
     '🧠 Analysis + drafting will happen in this ChatGPT project'
   ];
   document.getElementById('processReport').textContent=report.join('\n');
+
+  const savedLinks=document.getElementById('savedProspectLinks');
+  const linkButtons=[];
+  if(currentSavedProspect.source_url){
+    linkButtons.push('<a class="btn secondary" href="'+escapeHtml(currentSavedProspect.source_url)+'" target="_blank" rel="noopener" style="text-decoration:none">Open original post</a>');
+  }
+  if(currentSavedProspect.profile_url){
+    linkButtons.push('<a class="btn secondary" href="'+escapeHtml(currentSavedProspect.profile_url)+'" target="_blank" rel="noopener" style="text-decoration:none">Open profile</a>');
+  }
+  if(savedLinks){
+    savedLinks.innerHTML=linkButtons.join('');
+    savedLinks.style.display=linkButtons.length?'flex':'none';
+  }
+
   document.getElementById('handoffPrompt').textContent=prompt;
   const copyPromptBtn=document.getElementById('copyPromptBtn');
   const copyPromptStatus=document.getElementById('copyPromptStatus');
@@ -403,6 +424,8 @@ function clearProspectForm(){
   document.getElementById('analysisOutput').style.display='none';
   currentSavedProspect=null;
   currentHandoff=null;
+  const savedLinks=document.getElementById('savedProspectLinks');
+  if(savedLinks){savedLinks.innerHTML='';savedLinks.style.display='none'}
   localStorage.removeItem('acOutreachLastCaptureId');
   setProspectSaveState('ready','Ready for the next prospect.');
   window.scrollTo({top:0,behavior:'smooth'});
