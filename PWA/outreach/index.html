@@ -169,6 +169,20 @@ function backendConfig(){return{url:localStorage.getItem(BACKEND_URL_KEY)||'',ke
 function loadBackendSettings(){try{const c=backendConfig();const u=document.getElementById('backendUrl'),k=document.getElementById('backendKey');if(u&&c.url)u.value=c.url;if(k&&c.key)k.value=c.key;const s=document.getElementById('backendState');if(s)s.textContent=c.url&&c.key?'CRM connection saved on this device.':'Not connected yet. Enter the Apps Script URL and workspace key, then tap Save connection.'}catch(e){const s=document.getElementById('backendState');if(s)s.textContent='⚠️ Connection settings error: '+e.message}}
 function saveBackendSettings(){try{const url=document.getElementById('backendUrl').value.trim();const key=document.getElementById('backendKey').value;if(!url||!key){document.getElementById('backendState').textContent='⚠️ Enter both the Apps Script URL and workspace key.';return}localStorage.setItem(BACKEND_URL_KEY,url);localStorage.setItem(BACKEND_KEY_KEY,key);loadBackendSettings();document.getElementById('backendState').textContent='✅ CRM connection saved on this device.';}catch(e){document.getElementById('backendState').textContent='⚠️ Could not save connection: '+e.message}}
 async function crmPost(payload){const c=backendConfig();if(!c.url||!c.key)throw new Error('CRM connection is not configured yet.');const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,workspace_key:c.key}),redirect:'follow',cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch{throw new Error('CRM returned a non-JSON response.')}if(!d.ok)throw new Error(d.error||'CRM request failed.');return d}
+function retryableFetchError(err){const m=String(err&&err.message||err||'');return /failed to fetch|networkerror|network request failed|load failed/i.test(m)}
+function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function crmPostWithRetry(payload,retries=1){
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{return await crmPost(payload)}
+    catch(e){
+      lastError=e;
+      if(attempt>=retries||!retryableFetchError(e))throw e;
+      await delay(650);
+    }
+  }
+  throw lastError;
+}
 async function fileToDataUrl(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('Could not read '+(file?.name||'selected file')+'.'));fr.onabort=()=>reject(new Error('Reading '+(file?.name||'selected file')+' was cancelled.'));try{fr.readAsDataURL(file)}catch(err){reject(err instanceof Error?err:new Error(String(err||'Could not read selected file.')))}})}
 async function compressImageFile(file,maxDimension=1600,quality=.82){
   if(!file||!String(file.type||'').startsWith('image/'))return{data_url:await fileToDataUrl(file),type:file?.type||''};
@@ -263,10 +277,14 @@ async function retrieveChatGPTOutput(){
   if(!currentSavedProspect){alert('Save the prospect first.');return}
   try{
     btn.disabled=true;btn.textContent='Checking CRM…';
-    const d=await crmPost({action:'listProspects'});
-    const ps=d.prospects||[];
     const capture=currentSavedProspect.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'';
-    const p=ps.find(x=>(capture&&x.capture_id===capture)||(currentSavedProspect.profile_url&&x.profile_url===currentSavedProspect.profile_url));
+    const d=await crmPostWithRetry({
+      action:'getProspectOutput',
+      capture_id:capture,
+      profile_url:currentSavedProspect.profile_url||'',
+      prospect_name:currentSavedProspect.name||''
+    },1);
+    const p=d.prospect;
     if(!p)throw new Error('This prospect could not be found in the CRM.');
     const ready=!!(p.public_comment||p.connection_instruction||p.first_dm);
     box.style.display='block';
@@ -289,7 +307,9 @@ async function retrieveChatGPTOutput(){
       +section('Connection request',p.connection_instruction,'retrievedConnection',false)
       +section('First UW DM - ready for later',p.first_dm,'retrievedDm');
   }catch(e){
-    box.style.display='block';box.innerHTML='<div class="output">⚠️ '+escapeHtml(e.message)+'</div>';
+    const msg=String(e&&e.message||e||'Unknown CRM error');
+    box.style.display='block';
+    box.innerHTML='<div class="output">⚠️ '+escapeHtml(retryableFetchError(e)?'Could not reach the CRM after an automatic retry. Check your connection and tap Retrieve ChatGPT output again.':msg)+'</div>';
   }finally{
     btn.disabled=false;btn.textContent='Retrieve ChatGPT output';
   }
