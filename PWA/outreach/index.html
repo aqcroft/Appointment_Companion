@@ -94,7 +94,7 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
       <div class="field wide"><label>Anything else you know</label><textarea id="prospectNotes" placeholder="Optional context"></textarea></div>
       <div class="field wide">
         <label>Screenshots</label>
-        <div class="upload"><strong>📸 Add everything useful in one go</strong><div class="muted" style="margin-top:6px">Profile, original post, Job preferences, messages or anything else relevant. The aim is for the tool to classify each screenshot by what it contains rather than making you sort them first.</div><input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
+        <div class="upload"><strong>📸 Add everything useful in one go</strong><div class="muted" style="margin-top:6px">Profile, original post, Job preferences, messages or anything else relevant. The aim is for the tool to classify each screenshot by what it contains rather than making you sort them first.</div><div class="muted" style="margin-top:6px">Images are automatically resized and compressed before upload so larger batches are more reliable on mobile.</div><input id="newFiles" type="file" accept="image/*" multiple><div class="preview" id="newPreview"></div></div>
       </div>
     </div>
     <div class="actions" style="margin-top:12px"><button class="btn accent" id="saveProspectBtn" onclick="saveProspect()">Save & create handoff</button></div>
@@ -170,8 +170,54 @@ function loadBackendSettings(){try{const c=backendConfig();const u=document.getE
 function saveBackendSettings(){try{const url=document.getElementById('backendUrl').value.trim();const key=document.getElementById('backendKey').value;if(!url||!key){document.getElementById('backendState').textContent='⚠️ Enter both the Apps Script URL and workspace key.';return}localStorage.setItem(BACKEND_URL_KEY,url);localStorage.setItem(BACKEND_KEY_KEY,key);loadBackendSettings();document.getElementById('backendState').textContent='✅ CRM connection saved on this device.';}catch(e){document.getElementById('backendState').textContent='⚠️ Could not save connection: '+e.message}}
 async function crmPost(payload){const c=backendConfig();if(!c.url||!c.key)throw new Error('CRM connection is not configured yet.');const r=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...payload,workspace_key:c.key}),redirect:'follow',cache:'no-store'});const t=await r.text();let d;try{d=JSON.parse(t)}catch{throw new Error('CRM returned a non-JSON response.')}if(!d.ok)throw new Error(d.error||'CRM request failed.');return d}
 async function fileToDataUrl(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error||new Error('Could not read '+(file?.name||'selected file')+'.'));fr.onabort=()=>reject(new Error('Reading '+(file?.name||'selected file')+' was cancelled.'));try{fr.readAsDataURL(file)}catch(err){reject(err instanceof Error?err:new Error(String(err||'Could not read selected file.')))}})}
+async function compressImageFile(file,maxDimension=1600,quality=.82){
+  if(!file||!String(file.type||'').startsWith('image/'))return{data_url:await fileToDataUrl(file),type:file?.type||''};
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const el=new Image();
+      el.onload=()=>resolve(el);
+      el.onerror=()=>reject(new Error('The image could not be decoded.'));
+      el.src=url;
+    });
+    const width=img.naturalWidth||img.width;
+    const height=img.naturalHeight||img.height;
+    if(!width||!height)throw new Error('The image has no readable dimensions.');
+    const scale=Math.min(1,maxDimension/Math.max(width,height));
+    const targetWidth=Math.max(1,Math.round(width*scale));
+    const targetHeight=Math.max(1,Math.round(height*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=targetWidth;
+    canvas.height=targetHeight;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw new Error('Image compression is not supported by this browser.');
+    ctx.drawImage(img,0,0,targetWidth,targetHeight);
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('The browser could not compress the image.')),'image/jpeg',quality));
+    return{data_url:await fileToDataUrl(blob),type:'image/jpeg'};
+  }catch(err){
+    return{data_url:await fileToDataUrl(file),type:file.type||''};
+  }finally{
+    URL.revokeObjectURL(url);
+  }
+}
 function inferredName(){const url=document.getElementById('profileLink')?.value||'';try{const p=new URL(url);const slug=p.pathname.split('/').filter(Boolean).pop()||'';return slug.replace(/-\d{5,}$/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}catch{return''}}
-async function collectFiles(inputId,purpose='context'){const files=[...(document.getElementById(inputId)?.files||[])];const out=[];for(const f of files){try{out.push({name:f.name,type:f.type,purpose,data_url:await fileToDataUrl(f)})}catch(err){const msg=err?.message||String(err||'Unknown file-read error');throw new Error('Could not read screenshot "'+f.name+'": '+msg)}}return out}
+async function collectFiles(inputId,purpose='context'){
+  const files=[...(document.getElementById(inputId)?.files||[])];
+  const out=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    try{
+      const note=document.getElementById('saveNote');
+      if(note)note.textContent='Optimising screenshot '+(i+1)+' of '+files.length+' before upload…';
+      const processed=await compressImageFile(f,1600,.82);
+      out.push({name:f.name,type:processed.type,purpose,data_url:processed.data_url});
+    }catch(err){
+      const msg=err?.message||String(err||'Unknown file-read error');
+      throw new Error('Could not process screenshot "'+f.name+'": '+msg);
+    }
+  }
+  return out;
+}
 let prospectSaveInFlight=false;
 function saveSignature(){const inp=document.getElementById('newFiles');const files=[...(inp?.files||[])].map(f=>[f.name,f.size,f.lastModified].join(':')).join('|');return [document.getElementById('profileLink')?.value.trim()||'',document.getElementById('sourceLink')?.value.trim()||'',document.getElementById('track')?.value||'',document.getElementById('sourceType')?.value||'',document.getElementById('relationship')?.value||'',document.getElementById('prospectNotes')?.value.trim()||'',files].join('||')}
 async function sha256(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
