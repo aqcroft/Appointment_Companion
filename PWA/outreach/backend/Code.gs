@@ -22,6 +22,7 @@ function doPost(e) {
     if (action === 'listProspects') return json(listProspects());
     if (action === 'getProspectOutput') return json(getProspectOutput(body));
     if (action === 'updateDraft') return json(updateDraft(body));
+    if (action === 'addEvidence') return json(addEvidence(body));
     return json({ok:false,error:'Unknown action'});
   } catch (err) {
     return json({ok:false,error:String(err && err.message || err)});
@@ -44,21 +45,33 @@ function saveProspect(body) {
   const sourceUrl = String(p.source_url || '').trim();
   const fallbackName = String(p.name || '').trim() || nameFromProfile(profileUrl) || 'Unnamed prospect';
   const existingRow = findProspectRow(sheet, headers, profileUrl, fallbackName);
-  const captureHeader = headers['Last capture ID'];
+  const overwriteExisting = body.overwrite_existing === true;
 
-  if (existingRow && captureId && String(sheet.getRange(existingRow, captureHeader).getDisplayValue() || '') === captureId) {
+  // Existing people are never silently duplicated or overwritten.
+  // Return enough context for the Companion to ask Adrian explicitly.
+  if (existingRow && !overwriteExisting) {
+    const existingName = sheet.getRange(existingRow, headers['Name']).getDisplayValue() || fallbackName;
+    const existingCapture = headers['Last capture ID']
+      ? String(sheet.getRange(existingRow, headers['Last capture ID']).getDisplayValue() || '')
+      : '';
     return {
       ok:true,
-      duplicate:true,
-      prospect_name:sheet.getRange(existingRow,headers['Name']).getDisplayValue() || fallbackName,
+      requires_confirmation:true,
+      existing_prospect:true,
+      same_capture:!!(captureId && existingCapture === captureId),
+      prospect_name:existingName,
       row:existingRow,
-      files:[]
+      existing_capture_id:existingCapture,
+      message:'This prospect already exists in the CRM. Confirm overwrite to add the new evidence/details and create a revised ChatGPT handoff. Previous conversation history and action dates will be preserved.'
     };
   }
 
-  const name = cleanLinkedInName(fallbackName);
+  const name = cleanLinkedInName(
+    existingRow ? (sheet.getRange(existingRow, headers['Name']).getDisplayValue() || fallbackName) : fallbackName
+  );
   const folder = getOrCreateProspectFolder(name);
   const uploaded = saveFiles(folder, body.files || [], name);
+  const allEvidence = listImageFiles(folder);
   const now = new Date();
   const targetRow = existingRow || sheet.getLastRow() + 1;
 
@@ -66,31 +79,39 @@ function saveProspect(body) {
     'Name': name,
     'LinkedIn profile': profileUrl,
     'Source post': sourceUrl,
-    'Situation': '',
-    'Why relevant': '',
-    'Date identified': now,
-    'Status': 'New',
-    'Next action': 'Process ChatGPT handoff',
-    'Customer angle': 'Not raised',
     'Notes': String(p.notes || '').trim(),
     'Prospect folder': folder.getUrl(),
     'Track': String(p.track || ''),
     'Source': String(p.source || ''),
     'Relationship': String(p.relationship || ''),
-    'North Star': p.track === 'Redundancy / job seeker' ? 'Gold Standard 1' : '',
-    'Primary objective': p.track === 'Potential customer' ? 'Customer savings' : 'Partner opportunity',
     'Last capture ID': captureId,
-    'Draft status': 'Awaiting ChatGPT analysis'
+    'Draft status': existingRow ? 'Awaiting ChatGPT re-analysis' : 'Awaiting ChatGPT analysis'
   };
+
+  if (!existingRow) {
+    values['Situation'] = '';
+    values['Why relevant'] = '';
+    values['Date identified'] = now;
+    values['Status'] = 'New';
+    values['Next action'] = 'Process ChatGPT handoff';
+    values['Customer angle'] = 'Not raised';
+    values['North Star'] = p.track === 'Redundancy / job seeker' ? 'Gold Standard 1' : '';
+    values['Primary objective'] = p.track === 'Potential customer' ? 'Customer savings' : 'Partner opportunity';
+  } else {
+    const currentStatus = headers['Status'] ? String(sheet.getRange(existingRow, headers['Status']).getDisplayValue() || '') : '';
+    if (!currentStatus || currentStatus === 'New') values['Next action'] = 'Process revised ChatGPT handoff';
+  }
+
   writeByHeaders(sheet, headers, targetRow, values);
   setLinkedCell(sheet, targetRow, headers['LinkedIn profile'], profileUrl);
   setLinkedCell(sheet, targetRow, headers['Source post'], sourceUrl);
 
   uploaded.forEach(file => appendHistory(ss, {
     prospect:name,date:now,direction:'External',type:'Screenshot / source',
-    summary:'Captured with prospect handoff',
+    summary:existingRow ? 'Additional evidence captured for revised handoff' : 'Captured with prospect handoff',
     file:file.url,linkedin:sourceUrl || profileUrl,
-    next:'Process ChatGPT handoff',status:'Captured',notes:''
+    next:existingRow ? 'Process revised ChatGPT handoff' : 'Process ChatGPT handoff',
+    status:'Captured',notes:''
   }));
 
   const handoff = buildHandoffMarkdown({
@@ -104,31 +125,145 @@ function saveProspect(body) {
     relationship:String(p.relationship || ''),
     notes:String(p.notes || '').trim(),
     folderUrl:folder.getUrl(),
-    files:uploaded
+    files:allEvidence,
+    refinement:!!existingRow
   });
 
   const handoffFilename = 'ChatGPT Handoff - ' + cleanName(name) + ' - ' +
-    Utilities.formatDate(now, Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd_HHmm') + '.md';
+    Utilities.formatDate(now, Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd_HHmmss') + '.md';
   const handoffFile = folder.createFile(handoffFilename, handoff, MimeType.PLAIN_TEXT);
 
   appendHistory(ss,{
-    prospect:name,date:now,direction:'System',type:'ChatGPT handoff created',
-    summary:'Handoff file created for analysis and drafting in the Cold Outreach ChatGPT project.',
+    prospect:name,date:now,direction:'System',type:existingRow ? 'Revised ChatGPT handoff created' : 'ChatGPT handoff created',
+    summary:existingRow
+      ? 'Revised handoff created using all saved screenshot evidence for fresh analysis and drafting.'
+      : 'Handoff file created for analysis and drafting in the Cold Outreach ChatGPT project.',
     file:handoffFile.getUrl(),linkedin:profileUrl,
-    next:'Process ChatGPT handoff',status:'Captured',notes:''
+    next:existingRow ? 'Process revised ChatGPT handoff' : 'Process ChatGPT handoff',
+    status:'Captured',notes:''
   });
 
   return {
     ok:true,
+    overwritten:!!existingRow,
     prospect_name:name,
     row:targetRow,
     capture_id:captureId,
     folder_url:folder.getUrl(),
     files:uploaded,
+    evidence_files:allEvidence,
     handoff_url:handoffFile.getUrl(),
     handoff_filename:handoffFilename,
     handoff_markdown:handoff
   };
+}
+
+function addEvidence(body) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const captureId = String(body.capture_id || '').trim();
+  const profileUrl = String(body.profile_url || '').trim();
+  const requestedName = String(body.prospect_name || '').trim();
+  const last = sheet.getLastRow();
+  let row = 0;
+
+  if (captureId && headers['Last capture ID'] && last >= 2) {
+    const hit = sheet.getRange(2, headers['Last capture ID'], last - 1, 1)
+      .createTextFinder(captureId).matchEntireCell(true).findNext();
+    if (hit) row = hit.getRow();
+  }
+  if (!row) row = findProspectRow(sheet, headers, profileUrl, requestedName);
+  if (!row) throw new Error('This prospect could not be found in the CRM.');
+
+  const values = sheet.getRange(row,1,1,sheet.getLastColumn()).getDisplayValues()[0];
+  const get = h => headers[h] ? values[headers[h]-1] : '';
+  const name = String(get('Name') || requestedName || 'Unnamed prospect');
+  const actualProfile = String(get('LinkedIn profile') || profileUrl);
+  const sourceUrl = String(get('Source post') || '');
+  const extraNote = String(body.note || '').trim();
+  const newCaptureId = String(body.new_capture_id || Utilities.getUuid()).trim();
+  const folder = getOrCreateProspectFolder(name);
+  const uploaded = saveFiles(folder, body.files || [], name);
+  if (!uploaded.length && !extraNote) throw new Error('Add at least one screenshot or a refinement note.');
+
+  const now = new Date();
+  uploaded.forEach(file => appendHistory(ss, {
+    prospect:name,date:now,direction:'External',type:'Screenshot / source',
+    summary:'Additional evidence added for revised handoff',
+    file:file.url,linkedin:sourceUrl || actualProfile,
+    next:'Process revised ChatGPT handoff',status:'Captured',notes:extraNote
+  }));
+
+  const existingNotes = String(get('Notes') || '');
+  const mergedNotes = [existingNotes, extraNote].filter(Boolean).join('\n\nAdditional refinement context: ');
+  const allEvidence = listImageFiles(folder);
+  const handoff = buildHandoffMarkdown({
+    name:name,
+    row:row,
+    captureId:newCaptureId,
+    profileUrl:actualProfile,
+    sourceUrl:sourceUrl,
+    track:String(get('Track') || ''),
+    source:String(get('Source') || ''),
+    relationship:String(get('Relationship') || ''),
+    notes:mergedNotes,
+    folderUrl:folder.getUrl(),
+    files:allEvidence,
+    refinement:true
+  });
+
+  const handoffFilename = 'ChatGPT Handoff - ' + cleanName(name) + ' - ' +
+    Utilities.formatDate(now, Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd_HHmmss') + '.md';
+  const handoffFile = folder.createFile(handoffFilename, handoff, MimeType.PLAIN_TEXT);
+
+  const updates = {
+    'Last capture ID':newCaptureId,
+    'Draft status':'Awaiting ChatGPT re-analysis'
+  };
+  const currentStatus = String(get('Status') || '');
+  if (!currentStatus || currentStatus === 'New') updates['Next action'] = 'Process revised ChatGPT handoff';
+  if (extraNote) updates['Notes'] = mergedNotes;
+  writeByHeaders(sheet,headers,row,updates);
+
+  appendHistory(ss,{
+    prospect:name,date:now,direction:'System',type:'Revised ChatGPT handoff created',
+    summary:'Revised handoff created after additional evidence/context was added. It includes all screenshot evidence currently saved for this prospect.',
+    file:handoffFile.getUrl(),linkedin:actualProfile,
+    next:'Process revised ChatGPT handoff',status:'Captured',notes:extraNote
+  });
+
+  return {
+    ok:true,
+    overwritten:true,
+    prospect_name:name,
+    row:row,
+    capture_id:newCaptureId,
+    folder_url:folder.getUrl(),
+    files:uploaded,
+    evidence_files:allEvidence,
+    handoff_url:handoffFile.getUrl(),
+    handoff_filename:handoffFilename,
+    handoff_markdown:handoff
+  };
+}
+
+function listImageFiles(folder) {
+  const out = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) {
+    const file = it.next();
+    const mime = String(file.getMimeType() || '');
+    if (mime.indexOf('image/') !== 0) continue;
+    out.push({
+      id:file.getId(),
+      url:file.getUrl(),
+      name:file.getName(),
+      purpose:'context'
+    });
+  }
+  out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return out;
 }
 
 function buildHandoffMarkdown(x) {
@@ -139,6 +274,7 @@ function buildHandoffMarkdown(x) {
   return [
     '# Cold Outreach Prospect Handoff',
     '',
+    x.refinement ? '## Revised capture\nThis is a refreshed handoff for an existing CRM prospect. Use ALL screenshot evidence listed below, including earlier screenshots plus the newly added evidence/context. Reassess the prospect and write fresh analysis/drafts back to the same CRM row. The newest draft entries should supersede earlier suggested drafts without deleting the history.\n' : '',
     '## Instruction',
     'Process this prospect using the Cold Outreach relationship-first project instructions already available in this ChatGPT project.',
     '',
