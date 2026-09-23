@@ -20,6 +20,7 @@ function doPost(e) {
     if (action === 'addHistory') return json(addHistory(body));
     if (action === 'markAction') return json(markAction(body));
     if (action === 'listProspects') return json(listProspects());
+    if (action === 'getProspectOutput') return json(getProspectOutput(body));
     return json({ok:false,error:'Unknown action'});
   } catch (err) {
     return json({ok:false,error:String(err && err.message || err)});
@@ -283,6 +284,78 @@ function listProspects() {
     };
   }).filter(p=>p.name).reverse();
   return {ok:true,prospects:prospects};
+}
+
+function getProspectOutput(body) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const captureId = String(body.capture_id || '').trim();
+  const profileUrl = String(body.profile_url || '').trim();
+  const requestedName = String(body.prospect_name || '').trim();
+  const last = sheet.getLastRow();
+  let row = 0;
+
+  if (captureId && headers['Last capture ID'] && last >= 2) {
+    const hit = sheet.getRange(2, headers['Last capture ID'], last - 1, 1)
+      .createTextFinder(captureId).matchEntireCell(true).findNext();
+    if (hit) row = hit.getRow();
+  }
+  if (!row) row = findProspectRow(sheet, headers, profileUrl, requestedName);
+  if (!row) throw new Error('This prospect could not be found in the CRM.');
+
+  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const get = h => headers[h] ? values[headers[h] - 1] : '';
+  const name = String(get('Name') || requestedName || '');
+  const drafts = latestDraftsForProspect(ss, name);
+
+  return {
+    ok:true,
+    prospect:{
+      row:row,
+      name:name,
+      profile_url:String(get('LinkedIn profile') || ''),
+      source_post:String(get('Source post') || ''),
+      source:String(get('Source') || ''),
+      track:String(get('Track') || ''),
+      relationship:String(get('Relationship') || ''),
+      status:String(get('Status') || ''),
+      next_action:String(get('Next action') || ''),
+      followup_date:dateIso(get('Follow-up date')),
+      folder_url:String(get('Prospect folder') || ''),
+      comment_sent:!!get('Comment sent'),
+      connection_sent:!!get('Connection sent'),
+      connected:!!get('Connected'),
+      first_dm_sent:!!get('First UW DM sent'),
+      public_comment:drafts.public_comment || '',
+      connection_instruction:drafts.connection_instruction || '',
+      first_dm:drafts.first_dm || '',
+      draft_status:String(get('Draft status') || ''),
+      capture_id:String(get('Last capture ID') || '')
+    }
+  };
+}
+
+function latestDraftsForProspect(ss, name) {
+  const sheet = ss.getSheetByName(HISTORY_SHEET);
+  const last = sheet.getLastRow();
+  const out = {public_comment:'',connection_instruction:'',first_dm:''};
+  if (!name || last < 2) return out;
+
+  const hits = sheet.getRange(2, 1, last - 1, 1)
+    .createTextFinder(name).matchEntireCell(true).findAll();
+
+  for (let i = hits.length - 1; i >= 0; i--) {
+    const row = hits[i].getRow();
+    const vals = sheet.getRange(row, 4, 1, 2).getDisplayValues()[0];
+    const type = String(vals[0] || '').trim();
+    const content = vals[1] || '';
+    if (type === 'Suggested public comment - Draft' && !out.public_comment) out.public_comment = content;
+    if (type === 'Connection request instruction - Draft' && !out.connection_instruction) out.connection_instruction = content;
+    if (type === 'Suggested first DM - Draft' && !out.first_dm) out.first_dm = content;
+    if (out.public_comment && out.connection_instruction && out.first_dm) break;
+  }
+  return out;
 }
 
 function latestOutreachDrafts(ss) {
