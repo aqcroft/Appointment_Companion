@@ -278,13 +278,21 @@ async function retrieveChatGPTOutput(){
   try{
     btn.disabled=true;btn.textContent='Checking CRM…';
     const capture=currentSavedProspect.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'';
-    const d=await crmPostWithRetry({
-      action:'getProspectOutput',
-      capture_id:capture,
-      profile_url:currentSavedProspect.profile_url||'',
-      prospect_name:currentSavedProspect.name||''
-    },1);
-    const p=d.prospect;
+    let p;
+    try{
+      const d=await crmPostWithRetry({
+        action:'getProspectOutput',
+        capture_id:capture,
+        profile_url:currentSavedProspect.profile_url||'',
+        prospect_name:currentSavedProspect.name||''
+      },1);
+      p=d.prospect;
+    }catch(e){
+      if(!/unknown action/i.test(String(e&&e.message||e||'')))throw e;
+      const legacy=await crmPostWithRetry({action:'listProspects'},1);
+      const ps=legacy.prospects||[];
+      p=ps.find(x=>(capture&&x.capture_id===capture)||(currentSavedProspect.profile_url&&x.profile_url===currentSavedProspect.profile_url));
+    }
     if(!p)throw new Error('This prospect could not be found in the CRM.');
     const ready=!!(p.public_comment||p.connection_instruction||p.first_dm);
     box.style.display='block';
