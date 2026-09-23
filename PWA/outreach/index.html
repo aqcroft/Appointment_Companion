@@ -340,26 +340,105 @@ async function retrieveChatGPTOutput(){
       box.innerHTML='<div class="output">ChatGPT output is not in the CRM yet. Finish processing the handoff in ChatGPT, then tap Retrieve ChatGPT output again.</div>';
       return;
     }
-    const section=(title,text,id,showCopy=true)=>text?'<div style="margin-top:12px"><div class="section-title"><h3>'+title+'</h3>'+(showCopy?'<button class="btn small secondary" onclick="copyText(\''+id+'\')">Copy</button>':'')+'</div><div class="output" id="'+id+'">'+escapeHtml(text)+'</div></div>':'';
+    window.currentRetrievedProspect=p;
+    const editableSection=(title,text,id,type,noteId)=>text?'<div style="margin-top:12px"><div class="section-title"><h3>'+title+'</h3><button class="btn small secondary" onclick="copyDraftText(\''+id+'\')">Copy</button></div><textarea class="draft-edit" id="'+id+'">'+escapeHtml(text)+'</textarea><div class="actions" style="margin-top:8px"><button class="btn small good" onclick="saveRetrievedDraft(\''+type+'\',\''+id+'\',\''+noteId+'\')">Save changes to CRM</button></div><div class="draft-save-note" id="'+noteId+'">Edit here if you want to tweak the wording. Saving keeps the original history and adds your revised version.</div></div>':'';
+    const readOnlySection=(title,text,id)=>text?'<div style="margin-top:12px"><h3>'+title+'</h3><div class="output" id="'+id+'">'+escapeHtml(text)+'</div></div>':'';
     const actionControls='<div class="actions" style="margin:10px 0 2px">'
       +(!p.comment_sent?'<button class="btn small secondary" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'comment_sent\')">☐ Comment sent</button>':'<span class="pill">✓ Comment sent</span>')
       +(!p.connection_sent?'<button class="btn small secondary" onclick="markAndRefreshRetrieved(\''+encodeURIComponent(p.profile_url)+'\',\''+encodeURIComponent(p.name)+'\',\'connection_sent\')">☐ Connection request sent</button>':'<span class="pill">✓ Connection request sent</span>')
       +'</div>';
+    const taggedComment=tagProspectNameInComment(p.public_comment,p.name);
     box.innerHTML='<div class="section-title"><h3>ChatGPT output ✓</h3><span class="pill">'+escapeHtml(p.draft_status||'Draft ready')+'</span></div>'
-      +section('Public comment',p.public_comment,'retrievedComment')
+      +editableSection('Public comment',taggedComment,'retrievedComment','Suggested public comment - Draft','retrievedCommentNote')
       +actionControls
       +'<div class="actions" style="margin-top:8px">'
       +(p.source_post?'<a class="btn small secondary" href="'+escapeHtml(p.source_post)+'" target="_blank">Open post</a>':'')
       +(p.profile_url?'<a class="btn small secondary" href="'+escapeHtml(p.profile_url)+'" target="_blank">Open profile</a>':'')
       +'</div>'
-      +section('Connection request',p.connection_instruction,'retrievedConnection',false)
-      +section('First UW DM - ready for later',p.first_dm,'retrievedDm');
+      +readOnlySection('Connection request',p.connection_instruction,'retrievedConnection')
+      +editableSection('First UW DM - ready for later',p.first_dm,'retrievedDm','Suggested first DM - Draft','retrievedDmNote')
+      +'<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
+      +'<h3>Add more evidence / refine this prospect</h3>'
+      +'<div class="muted" style="margin:6px 0 10px">Forgot a screenshot or spotted something else useful? Add it here. The revised handoff will include all screenshots already saved for this prospect plus the new evidence.</div>'
+      +'<div class="upload"><strong>📸 Add more screenshots</strong><input id="retrievedEvidenceFiles" type="file" accept="image/*" multiple onchange="preview(this,\'retrievedEvidencePreview\')"><div class="preview" id="retrievedEvidencePreview"></div></div>'
+      +'<div class="field" style="margin-top:10px"><label>Anything else ChatGPT should reconsider?</label><textarea id="retrievedEvidenceNote" placeholder="Optional refinement note"></textarea></div>'
+      +'<div class="actions" style="margin-top:10px"><button class="btn accent" id="addEvidenceBtn" onclick="addEvidenceFromRetrieved()">Add evidence & create revised handoff</button></div>'
+      +'<div class="draft-save-note" id="addEvidenceNote">This updates the existing CRM prospect - it does not create a duplicate row.</div>'
+      +'</div>';
   }catch(e){
     const msg=String(e&&e.message||e||'Unknown CRM error');
     box.style.display='block';
     box.innerHTML='<div class="output">⚠️ '+escapeHtml(retryableFetchError(e)?'Could not reach the CRM after an automatic retry. Check your connection and tap Retrieve ChatGPT output again.':msg)+'</div>';
   }finally{
     btn.disabled=false;btn.textContent='Retrieve ChatGPT output';
+  }
+}
+
+async function saveRetrievedDraft(type,elementId,noteId){
+  const p=window.currentRetrievedProspect;
+  const el=document.getElementById(elementId);
+  const note=document.getElementById(noteId);
+  if(!p||!el)return;
+  const content=('value' in el?el.value:el.innerText).trim();
+  if(!content){alert('The draft cannot be blank.');return}
+  try{
+    if(note)note.textContent='Saving changes…';
+    await crmPostWithRetry({
+      action:'updateDraft',
+      capture_id:p.capture_id||'',
+      profile_url:p.profile_url||'',
+      prospect_name:p.name||'',
+      draft_type:type,
+      content:content
+    },1);
+    if(type==='Suggested public comment - Draft')p.public_comment=content;
+    if(type==='Suggested first DM - Draft')p.first_dm=content;
+    p.draft_status='Edited in Companion';
+    if(note)note.textContent='Saved to CRM ✓';
+  }catch(e){
+    if(note)note.textContent='⚠️ '+String(e&&e.message||e||'Could not save changes');
+  }
+}
+
+async function addEvidenceFromRetrieved(){
+  const p=window.currentRetrievedProspect;
+  const input=document.getElementById('retrievedEvidenceFiles');
+  const noteEl=document.getElementById('retrievedEvidenceNote');
+  const status=document.getElementById('addEvidenceNote');
+  const btn=document.getElementById('addEvidenceBtn');
+  if(!p){alert('Retrieve the prospect output first.');return}
+  const selected=[...(input?.files||[])];
+  const extraNote=(noteEl?.value||'').trim();
+  if(!selected.length&&!extraNote){alert('Add at least one screenshot or a refinement note.');return}
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Preparing revised handoff…'}
+    if(status)status.textContent='Optimising and uploading the new evidence…';
+    const files=[];
+    for(let i=0;i<selected.length;i++){
+      const f=selected[i];
+      const processed=await compressImageFile(f,1600,.82);
+      files.push({name:f.name,type:processed.type,purpose:'additional context',data_url:processed.data_url});
+      if(status)status.textContent='Prepared '+(i+1)+' of '+selected.length+' screenshot'+(selected.length===1?'':'s')+'…';
+    }
+    const sig=(p.capture_id||'')+'||'+extraNote+'||'+selected.map(f=>[f.name,f.size,f.lastModified].join(':')).join('|');
+    const newCaptureId=await sha256(sig);
+    const d=await crmPostWithRetry({
+      action:'addEvidence',
+      capture_id:p.capture_id||'',
+      new_capture_id:newCaptureId,
+      profile_url:p.profile_url||'',
+      prospect_name:p.name||'',
+      note:extraNote,
+      files:files
+    },1);
+    p.capture_id=d.capture_id||newCaptureId;
+    localStorage.setItem('acOutreachLastCaptureId',p.capture_id);
+    if(status)status.textContent='Additional evidence saved ✓ Revised handoff ready below.';
+    renderHandoff(d);
+  }catch(e){
+    if(status)status.textContent='⚠️ '+String(e&&e.message||e||'Could not add evidence');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Add evidence & create revised handoff'}
   }
 }
 
@@ -417,13 +496,20 @@ async function saveProspect(){
       },
       files
     };
-    const d=await crmPost(payload);
-    if(d.duplicate){
-      setProspectSaveState('saved','Duplicate capture blocked by CRM - nothing uploaded twice.');
-      return;
+    let d=await crmPost(payload);
+    if(d.requires_confirmation){
+      const label=d.prospect_name||'This prospect';
+      const same=d.same_capture?'The CRM recognises this as the same capture. ':'The CRM already has a record for this person. ';
+      const ok=confirm(same+'\n\n'+label+' already exists.\n\nOverwrite the existing prospect with the details/evidence on this form and create a fresh ChatGPT handoff?\n\nPrevious conversation history and sent-action dates will be preserved.');
+      if(!ok){
+        setProspectSaveState('ready','Existing prospect left unchanged. You can adjust the form and try again.');
+        return;
+      }
+      setProspectSaveState('saving','Updating the existing prospect and creating a revised handoff…');
+      d=await crmPost({...payload,overwrite_existing:true});
     }
-    localStorage.setItem('acOutreachLastCaptureId',capture_id);
-    setProspectSaveState('saved','Saved. Download the handoff file, then process it in a new chat in this project.');
+    localStorage.setItem('acOutreachLastCaptureId',d.capture_id||capture_id);
+    setProspectSaveState('saved',d.overwritten?'Existing prospect updated. Previous history preserved; revised handoff ready.':'Saved. Download the handoff file, then process it in a new chat in this project.');
     renderHandoff(d);
   }catch(e){
     const msg=e?.message||String(e||'Unknown error');
