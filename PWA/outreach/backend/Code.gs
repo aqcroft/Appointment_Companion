@@ -82,6 +82,8 @@ function saveProspect(body) {
     'Draft status': 'Awaiting ChatGPT analysis'
   };
   writeByHeaders(sheet, headers, targetRow, values);
+  setLinkedCell(sheet, targetRow, headers['LinkedIn profile'], profileUrl);
+  setLinkedCell(sheet, targetRow, headers['Source post'], sourceUrl);
 
   uploaded.forEach(file => appendHistory(ss, {
     prospect:name,date:now,direction:'External',type:'Screenshot / source',
@@ -472,6 +474,14 @@ function writeByHeaders(sheet,headers,row,values) {
     if (!headers[k]) return;
     sheet.getRange(row,headers[k]).setValue(values[k]);
   });
+}
+function setLinkedCell(sheet,row,col,url) {
+  const value=String(url||'').trim();
+  if(!col)return;
+  const cell=sheet.getRange(row,col);
+  if(!value){cell.clearContent();return}
+  const rich=SpreadsheetApp.newRichTextValue().setText(value).setLinkUrl(value).build();
+  cell.setRichTextValue(rich);
 }
 function findProspectRow(sheet, headers, profileUrl, name) {
   const last = sheet.getLastRow();
