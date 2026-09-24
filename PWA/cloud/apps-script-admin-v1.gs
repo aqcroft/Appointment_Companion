@@ -53,7 +53,12 @@ function handleCompanionAdminAction_(action, body) {
     mobile: mobile,
     email: email,
     status: 'active',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    notification_email: email,
+    tariff_email_opt_in: false,
+    tariff_push_opt_in: false,
+    notification_permission: 'default',
+    notification_updated_at: ''
   };
 
   appendAdminObject_(sheet, record);
@@ -80,7 +85,7 @@ function requireCompanionAdmin_(body) {
 function ensureAdminPartnersSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('Partners');
-  const required = ['partner_id','workspace_key','partner_name','name','mobile','email','status','created_at'];
+  const required = ['partner_id','workspace_key','partner_name','name','mobile','email','status','created_at','notification_email','tariff_email_opt_in','tariff_push_opt_in','notification_permission','notification_updated_at'];
 
   if (!sheet) {
     sheet = ss.insertSheet('Partners');

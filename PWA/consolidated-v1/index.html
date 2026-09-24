@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260924-v2.42-tariffhealth2';;
+      var version = '20260924-v2.42-notif1';;
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
@@ -46,6 +46,7 @@
         '<script src="../consolidated-v1/release-v2.41.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/tariff-health-v2.42.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/notification-preferences-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/earnings-shortcut-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/relationship-followup-link-v1.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');

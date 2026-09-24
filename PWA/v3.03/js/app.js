@@ -7,6 +7,7 @@ import { UW_RULES_2026_10_01 } from './rules/uw-rules-2026-10-01.js';
 import { createAppointment, createSim, clone, normaliseAppointment, normaliseName, REGIONS } from './state/canonical-state.js';
 import { customerStore } from './state/customer-store.js';
 import { getCloudAuth, setCloudAuth, syncAll, markDeleted, resolveConflict } from './state/cloud-sync.js';
+import { cloudClient } from './state/cloud-client.js';
 import { buildShareData, buildShareUrl, decodeShareData, figuresText } from './summary/share-data.js';
 import { createSummaryActivity, summaryHistory } from './summary/history.js';
 import { UnsavedWorkGuard } from './shell/unsaved-work-guard.js';
@@ -24,6 +25,7 @@ const peopleDialog = document.getElementById('peopleDialog');
 const shareDialog = document.getElementById('shareDialog');
 const historyDialog = document.getElementById('historyDialog');
 const tariffHealthDialog = document.getElementById('tariffHealthDialog');
+const notificationPrefsDialog = document.getElementById('notificationPrefsDialog');
 const tariffHealthButton = document.getElementById('tariffHealthButton');
 const toastElement = document.getElementById('toast');
 const CURRENT_KEY = 'apptCompanionV303Current';
@@ -124,6 +126,36 @@ function forceTariffRefresh() {
   const url = new URL(location.href);
   url.searchParams.set('refreshTariffs','1');
   location.assign(url.toString());
+}
+
+function notificationPermission() {
+  return 'Notification' in window ? Notification.permission : 'unsupported';
+}
+
+async function openNotificationPreferences() {
+  const auth = getCloudAuth();
+  if (!auth) {
+    toast('Connect Cloud first.');
+    return;
+  }
+  notificationPrefsDialog.innerHTML = '<div class="modal-card"><h2>Tariff notifications</h2><p class="lead">Loading your Partner preferences…</p></div>';
+  notificationPrefsDialog.showModal();
+  try {
+    const res = await cloudClient.getNotificationPreferences(auth);
+    const prefs = res.preferences || {};
+    notificationPrefsDialog.innerHTML = `<div class="modal-card">
+      <div class="section-title"><div><div class="eyebrow">Notifications</div><h2>Tariff notifications</h2></div><button class="quiet" type="button" data-close-dialog>Close</button></div>
+      <p class="lead">These settings are stored against your Partner profile.</p>
+      <label class="field"><span>Email for tariff alerts</span><input id="v3NotifyEmail" type="email" value="${escapeHtml(prefs.notification_email || '')}"></label>
+      <label class="person-row"><input id="v3NotifyEmailOpt" type="checkbox" ${prefs.tariff_email_opt_in ? 'checked' : ''}><span><strong>Email alerts</strong><small>Email me when verified tariff changes are published.</small></span></label>
+      <label class="person-row"><input id="v3NotifyPushOpt" type="checkbox" ${prefs.tariff_push_opt_in ? 'checked' : ''}><span><strong>Push alerts</strong><small>Prepare this device for tariff push notifications.</small></span></label>
+      <p class="hint">Browser/PWA permission: <strong id="v3NotifyPermission">${escapeHtml(notificationPermission())}</strong></p>
+      <div class="modal-actions"><button class="secondary" type="button" data-request-notification-permission>Allow device notifications</button><button class="primary" type="button" data-save-notification-preferences>Save preferences</button></div>
+      <p class="hint">Push delivery itself is not active yet. Saving permission now means the Partner profile is ready for it later.</p>
+    </div>`;
+  } catch (error) {
+    notificationPrefsDialog.innerHTML = `<div class="modal-card"><h2>Tariff notifications</h2><p class="lead">${escapeHtml(error?.message || 'Could not load notification preferences.')}</p><div class="modal-actions"><button class="quiet" type="button" data-close-dialog>Close</button></div></div>`;
+  }
 }
 
 function setSaveState(text, tone = '') {
@@ -936,7 +968,7 @@ function renderMore() {
   const conflicts = people.filter(person => person.conflict);
   app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">More</div><h1>Settings &amp; customer safety</h1><p class="lead">Local storage remains primary. Cloud adds backup, sync and cross-device support.</p></section>
     <section class="card"><div class="section-title"><div><div class="eyebrow">People</div><h2>${people.length} saved on this device</h2></div><button class="secondary" type="button" data-manage-people>Manage</button></div></section>
-    <section class="card cloud-card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected on this device' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save on this device &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key is retained on this device so Companion can reconnect after the PWA sleeps or closes. It is never included in a customer share.</p></section>
+    <section class="card cloud-card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected on this device' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save on this device &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key is retained on this device so Companion can reconnect after the PWA sleeps or closes. It is never included in a customer share.</p><div class="action-row"><button class="secondary" type="button" data-open-notification-preferences>🔔 Tariff notifications</button></div></section>
     ${conflicts.length ? `<section class="card"><div class="section-title"><div><div class="eyebrow">Cloud conflicts</div><h2>Inspect before choosing</h2></div></div><div class="conflict-list">${conflicts.map(row => `<details class="conflict-inspector"><summary><span>🔍</span><strong>${escapeHtml(row.customer_name)}</strong><small>${row.conflict.paths?.length || 1} difference${(row.conflict.paths?.length || 1)===1?'':'s'}</small></summary><div class="conflict-table"><div class="conflict-head"><b>Field</b><b>This device</b><b>Cloud</b></div>${(row.conflict.paths || []).map(item => `<div class="conflict-line"><strong>${escapeHtml(item.path || 'Record')}</strong><span>${escapeHtml(conflictValue(item.local))}</span><span>${escapeHtml(conflictValue(item.remote))}</span></div>`).join('') || '<p class="hint">The Cloud record changed in a way that needs a choice.</p>'}</div><div class="action-row"><button class="secondary" type="button" data-conflict="${row.local_id}" data-choice="local">Keep mine</button><button class="quiet" type="button" data-conflict="${row.local_id}" data-choice="cloud">Use Cloud</button></div></details>`).join('')}</div></section>` : ''}
     <section class="card"><div class="eyebrow">Partner identity</div><h2>Customer-facing shares</h2>${brand.name ? '' : '<p class="notice">Set this up once. The role defaults to Authorised Utility Warehouse Partner.</p>'}<form id="brandingForm" class="grid-2"><label class="field"><span>Name</span><input name="name" value="${escapeHtml(brand.name || '')}"></label><label class="field"><span>Role</span><input name="role" value="${escapeHtml(brand.role || 'Authorised Utility Warehouse Partner')}"></label><label class="field"><span>Short message</span><input name="strap" value="${escapeHtml(brand.strap || '')}"></label><label class="field"><span>Join link (https)</span><input name="joinUrl" type="url" value="${escapeHtml(brand.joinUrl || '')}"></label><button class="primary" type="submit">Save details</button></form></section>
     <section class="card flat"><p class="hint">Appointment Companion V${VERSION}. Local database: ${customerStore.database.name}. October 2026 rule boundary.</p></section></div>`;
@@ -1227,6 +1259,35 @@ document.addEventListener('click', async event => {
   const target = event.target.closest('button,a');
   if (!target) return;
   if (target.hasAttribute('data-tariff-health')) return openTariffHealth();
+  if (target.hasAttribute('data-open-notification-preferences')) return openNotificationPreferences();
+  if (target.hasAttribute('data-request-notification-permission')) {
+    if (!('Notification' in window)) {
+      document.getElementById('v3NotifyPermission').textContent = 'unsupported';
+      return;
+    }
+    try { await Notification.requestPermission(); } catch {}
+    document.getElementById('v3NotifyPermission').textContent = notificationPermission();
+    return;
+  }
+  if (target.hasAttribute('data-save-notification-preferences')) {
+    const auth = getCloudAuth();
+    if (!auth) return toast('Connect Cloud first.');
+    target.disabled = true;
+    try {
+      await cloudClient.setNotificationPreferences(auth, {
+        notification_email: document.getElementById('v3NotifyEmail').value,
+        tariff_email_opt_in: document.getElementById('v3NotifyEmailOpt').checked,
+        tariff_push_opt_in: document.getElementById('v3NotifyPushOpt').checked,
+        notification_permission: notificationPermission()
+      });
+      toast('Notification preferences saved.');
+      notificationPrefsDialog.close();
+    } catch (error) {
+      target.disabled = false;
+      toast(error?.message || 'Could not save notification preferences.');
+    }
+    return;
+  }
   if (target.hasAttribute('data-refresh-tariffs')) return forceTariffRefresh();
   if (target.dataset.go) return navigate(target.dataset.go, target.dataset.go === 'launchpad' ? 'save' : section);
   if (target.dataset.section) return navigate(currentRecord ? 'profile' : 'launchpad', target.dataset.section);

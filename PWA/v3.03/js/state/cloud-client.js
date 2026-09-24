@@ -30,6 +30,8 @@ export const cloudClient = {
   saveCustomer: (auth, customer) => post({ action: 'saveCustomer', customer: customer || {}, ...authPayload(auth) }),
   deleteCustomer: (auth, customerId) => post({ action: 'deleteCustomer', customer_id: String(customerId || '').trim(), ...authPayload(auth) }),
   createShare: (auth, payload) => post({ action: 'createShare', ...(payload || {}), ...authPayload(auth) }),
+  getNotificationPreferences: auth => post({ action: 'getNotificationPreferences', ...authPayload(auth) }),
+  setNotificationPreferences: (auth, preferences) => post({ action: 'setNotificationPreferences', preferences: preferences || {}, ...authPayload(auth) }),
   async getShare(token) {
     const response = await fetch(`${CLOUD_URL}?action=share&token=${encodeURIComponent(String(token || '').trim())}`, { cache: 'no-store', redirect: 'follow' });
     const data = await response.json();
