@@ -29,11 +29,18 @@
   }
 
   function install() {
-    var old = document.querySelector('#acSharedToolstrip .ac-toolbtn[aria-label="Cashback Card Companion"]');
-    if (!old) return false;
-    if (old.dataset.acEarningsShortcut === '1') return true;
+    var strip = document.getElementById('acSharedToolstrip');
+    if (!strip) return false;
 
-    var button = old.cloneNode(false);
+    var existing = strip.querySelector('.ac-toolbtn[aria-label="Partner Earnings - First 60 Days"]');
+    if (existing) return true;
+
+    var old = strip.querySelector('.ac-toolbtn[aria-label="Cashback Card Companion"]');
+    var ev = strip.querySelector('.ac-toolbtn[aria-label="EV Companion"]');
+    var source = old || ev;
+    if (!source) return false;
+
+    var button = source.cloneNode(false);
     button.dataset.acEarningsShortcut = '1';
     button.className = 'ac-toolbtn';
     button.textContent = '💵';
@@ -47,7 +54,11 @@
       window.location.assign(earningsUrl());
     }, true);
 
-    old.parentNode.replaceChild(button, old);
+    if (old) {
+      old.parentNode.replaceChild(button, old);
+    } else {
+      ev.parentNode.insertBefore(button, ev.nextSibling);
+    }
     return true;
   }
 
