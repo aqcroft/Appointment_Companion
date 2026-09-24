@@ -107,6 +107,14 @@
       return post(Object.assign({ action: 'createShare' }, payload || {}, authPayload(auth)));
     },
 
+    async getNotificationPreferences(auth) {
+      return post(Object.assign({ action: 'getNotificationPreferences' }, authPayload(auth)));
+    },
+
+    async setNotificationPreferences(auth, preferences) {
+      return post(Object.assign({ action: 'setNotificationPreferences', preferences: preferences || {} }, authPayload(auth)));
+    },
+
     async getShare(token) {
       return getShare(token);
     },
