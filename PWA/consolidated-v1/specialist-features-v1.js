@@ -121,9 +121,20 @@
       if (isEv) return;
       if (specialistMode) location.assign(new URL('./ev/', root).href); else clickMain('cloudCompanionEv');
     }, isEv ? 'active' : ''));
-    inner.appendChild(specialistButton('💳', 'Cashback Card Companion', function () {
-      if (specialistMode) alert('Cashback Card Companion is not available yet.'); else clickMain('cloudCompanionCard');
-    }, 'muted'));
+    inner.appendChild(specialistButton('💵', 'Partner Earnings - First 60 Days', function () {
+      var earningsUrl = new URL('https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html');
+      var name = '';
+      try {
+        var input = document.getElementById('customerName');
+        if (input && input.value) name = String(input.value).trim().replace(/\s+/g,' ').split(' ')[0].slice(0,40);
+        if (!name && global.AppointmentCompanionCanonical && typeof global.AppointmentCompanionCanonical.capture === 'function') {
+          var snap = global.AppointmentCompanionCanonical.capture();
+          name = String(snap && snap.canonical && snap.canonical.customerName || '').trim().replace(/\s+/g,' ').split(' ')[0].slice(0,40);
+        }
+      } catch (_) {}
+      if (name) earningsUrl.searchParams.set('pn', name);
+      location.assign(earningsUrl.href);
+    }));
 
     inner.appendChild(separator());
     inner.appendChild(specialistButton('🏆', 'Team Triumph Resources', function () { location.assign(TEAM); }));
