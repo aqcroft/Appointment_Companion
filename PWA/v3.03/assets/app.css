@@ -2319,3 +2319,13 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
     padding: 5px 4px;
   }
 }
+
+/* V3.03 tariff integrity indicator */
+.tariff-health-button{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:10px;font-weight:900;white-space:nowrap}
+.tariff-health-button i{width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px rgba(217,138,0,.13)}
+.tariff-health-button[data-state="green"] i{background:var(--good);box-shadow:0 0 0 2px rgba(29,155,80,.13)}
+.tariff-health-button[data-state="red"] i{background:var(--bad);box-shadow:0 0 0 2px rgba(196,59,59,.13)}
+.tariff-health-grid{display:grid;margin-top:12px;border-top:1px solid var(--line)}
+.tariff-health-grid>div{display:grid;grid-template-columns:100px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+.tariff-health-grid b{font-size:11px}
+@media(max-width:580px){.save-state{display:none}.tariff-health-button{margin-left:auto}.tariff-health-button span{font-size:9px}}
