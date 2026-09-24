@@ -3,22 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion PWA</title>
+  <title>Appointment Companion</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="app-icon.svg" type="image/svg+xml">
   <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}
-    .msg{padding:24px;text-align:center}
-    a{color:#7a42c8;font-weight:800}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fffbe3;color:#26164f;margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}
+    main{width:min(460px,100%);background:#fff;border:1px solid rgba(122,66,200,.18);border-radius:20px;padding:22px;box-shadow:0 16px 44px rgba(38,22,79,.12)}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.brand img{width:46px;height:46px}.brand h1{font-size:21px;margin:0}.brand p{margin:3px 0 0;color:#6b6b76;font-size:12px}
+    .choices{display:grid;gap:10px}.choice{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;width:100%;padding:14px;border:1px solid #e4deee;border-radius:14px;background:#fff;color:#26164f;text-decoration:none}
+    .choice:hover,.choice:focus-visible{border-color:#7a42c8;box-shadow:0 0 0 3px rgba(122,66,200,.10);outline:none}.choice .icon{font-size:25px}.choice strong{display:block;font-size:15px}.choice small{display:block;margin-top:2px;color:#6b6b76;font-size:11px}.choice .arrow{color:#7a42c8;font-weight:900}
+    .choice.v3{background:#f8f3ff;border-color:#d8c6ef}.tag{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#7a42c8;color:#fff;font-size:8px;vertical-align:2px}
+    .note{margin:14px 2px 0;color:#6b6b76;font-size:10px;line-height:1.4;text-align:center}
   </style>
-  <script>
-    location.replace('./consolidated-v1/');
-  </script>
 </head>
 <body>
-  <div class="msg">Opening <a href="./consolidated-v1/">Appointment Companion</a>...</div>
+  <main>
+    <div class="brand"><img src="app-icon.svg" alt=""><div><h1>Appointment Companion</h1><p>Which version would you like to use?</p></div></div>
+    <div class="choices">
+      <a class="choice" href="./consolidated-v1/"><span class="icon">🔢</span><span><strong>2.42</strong><small>Existing Companion</small></span><span class="arrow">›</span></a>
+      <a class="choice v3" href="./v3.03/"><span class="icon">A⁺</span><span><strong>V3.03 <span class="tag">NEW</span></strong><small>New Companion - work in progress</small></span><span class="arrow">›</span></a>
+    </div>
+    <p class="note">Both versions remain separate. Come back to this screen whenever you want to switch.</p>
+  </main>
   <script src="pwa-register.js"></script>
 </body>
 </html>

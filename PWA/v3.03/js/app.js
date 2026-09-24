@@ -48,6 +48,7 @@ let serviceSetupOpen = '';
 let energyTariffOpen = false;
 let splitEstimatorOpen = false;
 let summaryGateExpanded = false;
+let summaryCashbackActive = true;
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = value => Number(value || 0).toLocaleString('en-GB', { minimumFractionDigits: Number(value || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -382,18 +383,23 @@ function stickyBasketBar() {
     ['mobile','📱','Mobile'],
     ['boilerCover','🛠️','Boiler']
   ].filter(([key]) => key !== 'boilerCover' || appointment.person.homeStatus === 'homeowner');
+  const cashbackActive = appointment.cashback.enabled !== false;
+  const effectiveUw = Number(result.effectiveUwMonthly ?? result.uw.total ?? 0);
+  const cashbackEstimate = Number(result.cashback?.monthlyNet || 0);
   const home = appointment.person.homeStatus === 'homeowner' ? '🏠 Homeowner' : appointment.person.homeStatus === 'tenant' ? '🔑 Tenant' : 'Set home status';
   const route = appointment.benefits.referral ? ' · 🤝' : appointment.benefits.nationalLeague ? ' · ⚽' : '';
+  const serviceTiles = ordered.map(([key,icon,label]) => {
+    const active = Boolean(appointment.services[key]);
+    return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
+  }).join('');
+  const cashbackTile = `<button type="button" class="sticky-service service-cashback${cashbackActive ? ' on' : ''}" data-cashback-sticky-toggle aria-pressed="${cashbackActive ? 'true' : 'false'}" title="Cashback Card - tap to ${cashbackActive ? 'remove' : 'include'}"><span class="sticky-service-icon">💳</span><span class="sticky-service-copy"><strong>Cashback</strong><small>${cashbackActive ? `~£${wholeMoney(cashbackEstimate)}/m` : 'Off'}</small></span><b class="sticky-service-mark" aria-hidden="true">${cashbackActive ? '✓' : '+'}</b></button>`;
   return `<section class="sticky-basket" id="stickyBasket">
     <div class="sticky-status-row sticky-status-grid">
       <span class="sticky-total current-total"><small>Current</small><strong>£${wholeMoney(result.current.total)}/m</strong></span>
       <button class="sticky-home" type="button" data-edit-essentials>${home}${route}</button>
-      <span class="sticky-total uw-total"><small>UW</small><strong>£${wholeMoney(result.uw.total)}/m</strong></span>
+      <span class="sticky-total uw-total"><small>UW</small><strong>£${wholeMoney(effectiveUw)}/m</strong></span>
     </div>
-    <div class="sticky-services">${ordered.map(([key,icon,label]) => {
-      const active = Boolean(appointment.services[key]);
-      return `<button type="button" class="sticky-service service-${key}${active ? ' on' : ''}${serviceSetupOpen === key ? ' setup-open' : ''}" data-service-setup="${key}" aria-pressed="${active ? 'true' : 'false'}"><span class="sticky-service-icon">${icon}</span><span class="sticky-service-copy"><strong>${label}</strong><small>${active ? serviceSetupSummary(key) : 'Add'}</small></span><b class="sticky-service-mark" aria-hidden="true">${active ? '✓' : '+'}</b>${active ? serviceProgressDots(key) : ''}</button>`;
-    }).join('')}</div>
+    <div class="sticky-services" style="--sticky-columns:${ordered.length + 1}">${serviceTiles}${cashbackTile}</div>
     ${quickServiceSetup()}
     <div class="sticky-progress"><span><strong>Basket ${completion.percentage}%</strong><small>${completion.completed}/${completion.total || 0} required items</small></span><i><b style="width:${completion.percentage}%"></b></i></div>
   </section>`;
@@ -773,12 +779,17 @@ function summaryHero(result, name = '', preview = null, active = false, customer
   </section>`;
 }
 
-function basketStrip242(services = {}, count = 0, preview = null, active = false) {
+function basketStrip242(services = {}, count = 0, preview = null, active = false, cashbackActive = true, interactiveCashback = false) {
   const items = [];
   if (services.energy) items.push('<span class="basket-service energy-group" title="Energy"><i>⚡🔥</i><b>Energy</b></span>');
   if (services.broadband) items.push('<span class="basket-service" title="Broadband"><i>🛜</i><b>Broadband</b></span>');
   if (services.mobile) items.push(`<span class="basket-service${active ? ' meal-preview-service' : ''}" title="Mobile"><i>📱${active ? '<sup>🥪</sup>' : ''}</i><b>Mobile</b></span>`);
   if (services.boilerCover) items.push('<span class="basket-service" title="Boiler Cover"><i>🛠️</i><b>Boiler Cover</b></span>');
+  const cashbackTag = interactiveCashback ? 'button' : 'span';
+  const cashbackAttrs = interactiveCashback
+    ? ` type="button" data-cashback-summary-toggle aria-pressed="${cashbackActive ? 'true' : 'false'}" title="Tap to compare the basket ${cashbackActive ? 'without' : 'with'} Cashback Card"`
+    : ' title="Cashback Card"';
+  items.push(`<${cashbackTag} class="basket-service cashback-toggle${cashbackActive ? ' on' : ' off'}"${cashbackAttrs}><i>💳</i><b>Cashback</b><em>${cashbackActive ? 'ON' : 'OFF'}</em></${cashbackTag}>`);
   const originalCount = preview?.originalResult?.rules?.serviceCount ?? preview?.originalResult?.serviceCount;
   const countText = active && preview && Number.isFinite(Number(originalCount))
     ? `${originalCount} <span class="basket-arrow">→</span> ${count} services`
@@ -786,7 +797,7 @@ function basketStrip242(services = {}, count = 0, preview = null, active = false
   return `<section class="summary-basket-strip"><div class="summary-basket-services">${items.join('')}</div><strong>${countText}</strong></section>`;
 }
 
-function monthlySummary242(result) {
+function monthlySummary242(result, cashbackActive = true) {
   const effective = Number(result.effectiveUwMonthly ?? result.uw?.total ?? 0);
   const saving = Number(result.effectiveMonthlySaving ?? result.monthlyServiceSaving ?? 0);
   return `<section class="summary-monthly-card">
@@ -796,7 +807,7 @@ function monthlySummary242(result) {
       <div><small>UW*</small><strong>£${wholeMoney(effective)}</strong></div>
       <div><small>SAVING</small><strong class="money ${saving >= 0 ? 'good' : 'bad'}">${saving < 0 ? '−' : ''}£${wholeMoney(Math.abs(saving))}</strong></div>
     </div>
-    <p>* UW monthly position minus estimated Cashback Card contribution where selected.</p>
+    <p>${cashbackActive ? '* UW monthly position minus estimated Cashback Card contribution.' : '* Cashback Card and associated Welcome Bonus removed from this comparison.'}</p>
   </section>`;
 }
 
@@ -841,19 +852,22 @@ function basketOutcomeBlocks242(result, services = {}) {
 function renderSummary() {
   const completion = appointmentCompleteness(appointment);
   if (!completion.complete) { view = 'appointment'; renderAppointment(); return; }
-  const preview = buildMealDealPreview(appointment);
+  const summaryBase = clone(appointment);
+  summaryBase.cashback.enabled = summaryCashbackActive;
+  const preview = buildMealDealPreview(summaryBase);
   if (!preview) mealDealPreviewActive = false;
   const showingPreview = Boolean(mealDealPreviewActive && preview);
-  const result = showingPreview ? preview.previewResult : calculateAppointment(appointment);
-  const displayAppointment = showingPreview ? preview.appointment : appointment;
+  const result = showingPreview ? preview.previewResult : calculateAppointment(summaryBase);
+  const displayAppointment = showingPreview ? preview.appointment : summaryBase;
   const serviceCount = result.rules.serviceCount;
   window.scrollTo(0, 0);
   app.innerHTML = `<div class="summary-page partner-summary summary-242-experiment">
     <header class="summary-header"><button class="back-chip" type="button" data-go="appointment">‹</button><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>First 12 months summary</small></div><button class="icon-button" type="button" data-go="profile">•••</button></header>
     ${summaryHero(result,appointment.person.name,preview,showingPreview,false)}
-    ${basketStrip242(displayAppointment.services,serviceCount,preview,showingPreview)}
-    ${monthlySummary242(result)}
+    ${basketStrip242(displayAppointment.services,serviceCount,preview,showingPreview,summaryCashbackActive,true)}
+    ${monthlySummary242(result,summaryCashbackActive)}
     ${basketOutcomeBlocks242(result,displayAppointment.services)}
+    ${!summaryCashbackActive ? '<p class="summary-preview-note cashback-preview-note">💳 Cashback Card removed for comparison - the Welcome Bonus is removed too. The saved appointment has not changed.</p>' : ''}
     ${showingPreview ? '<p class="summary-preview-note">🥪 Preview only - the saved appointment has not changed.</p>' : ''}
     ${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${wholeMoney(result.e7StandardAnnualSaving)}/year.</p>` : ''}
     <section class="card basket-link-card"><label class="field"><span>Optional personalised basket link</span>${field('summary.basketUrl',appointment.summary.basketUrl,'type="url" placeholder="https://…"')}</label><div data-basket-action>${basketLinkAction(appointment.summary.basketUrl)}</div></section>
@@ -932,8 +946,8 @@ function renderCustomerView(data) {
   app.innerHTML = `<div class="summary-page customer-summary summary-242-experiment">
     <header class="summary-header"><span class="feature-icon appointment">📋</span><div><strong>Appointment Companion</strong><small>Your personalised summary</small></div></header>
     ${summaryHero(result,data.personName || 'you',null,false,true)}
-    ${basketStrip242(services,serviceCount,null,false)}
-    ${monthlySummary242(result)}
+    ${basketStrip242(services,serviceCount,null,false,Boolean(Number(source.cashbackMonthlyNet || 0) || Number(source.cashbackFeeWaiver || 0)),false)}
+    ${monthlySummary242(result,Boolean(Number(source.cashbackMonthlyNet || 0) || Number(source.cashbackFeeWaiver || 0)))}
     ${basketOutcomeBlocks242(result,services)}
     ${result.e7StandardAnnualSaving ? `<p class="notice">Is Economy 7 still right for you? A standard alternative could save about £${wholeMoney(result.e7StandardAnnualSaving)}/year.</p>` : ''}
     ${data.basketUrl ? `<section class="customer-cta"><span class="basket-glyph">▰</span><div><h2>Ready to get started?</h2><p>View your basket and take the next step.</p></div><a class="action primary wide" href="${escapeHtml(data.basketUrl)}" rel="noopener">View your basket →</a></section>` : ''}
@@ -957,6 +971,7 @@ function render() {
 
 async function navigate(nextView, nextSection = section) {
   if (nextView === 'summary' && !appointmentCompleteness(appointment).complete) return showSummaryBlocked();
+  if (nextView === 'summary' && view !== 'summary') summaryCashbackActive = appointment.cashback.enabled !== false;
   if ((nextView !== view || nextSection !== section) && !(await guard.confirmNavigation())) return;
   section = nextSection;
   if (nextView === 'launchpad' && currentRecord) return leavePerson();
@@ -1220,6 +1235,12 @@ document.addEventListener('click', async event => {
     if (name === 'energy') energyTariffOpen = false;
     markChanged(); render(); return;
   }
+  if (target.hasAttribute('data-cashback-sticky-toggle')) {
+    appointment.cashback.enabled = !appointment.cashback.enabled;
+    markChanged();
+    render();
+    return;
+  }
   if (target.dataset.quickEnergyFuel) {
     appointment.energy.fuel = target.dataset.quickEnergyFuel;
     serviceSetupOpen = '';
@@ -1399,6 +1420,11 @@ document.addEventListener('click', async event => {
   if (target.hasAttribute('data-save')) return persistActive(false);
   if (target.hasAttribute('data-use-indicative')) return applyIndicativeTariffs();
   if (target.hasAttribute('data-save-snapshot')) return saveSummarySnapshot('summary_saved');
+  if (target.hasAttribute('data-cashback-summary-toggle')) {
+    summaryCashbackActive = !summaryCashbackActive;
+    renderSummary();
+    return;
+  }
   if (target.hasAttribute('data-meal-preview')) {
     if (sharedSummaryData) { sharedMealDealActive = true; renderCustomerView(sharedSummaryData); }
     else { mealDealPreviewActive = true; renderSummary(); }

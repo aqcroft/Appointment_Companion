@@ -2,7 +2,7 @@
   "name": "Appointment Companion",
   "short_name": "Companion",
   "description": "Appointment Companion with local-first customer saving, Cloud sync and specialist tools.",
-  "start_url": "consolidated-v1/",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#fffbe3",
@@ -32,7 +32,7 @@
     {
       "name": "Appointment Companion",
       "short_name": "Companion",
-      "url": "consolidated-v1/",
+      "url": "./",
       "icons": [
         {
           "src": "app-icon.svg",

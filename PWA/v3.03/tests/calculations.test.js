@@ -5,6 +5,27 @@ import { calculateAppointment } from '../js/appointment/calculations.js';
 import { calculateIndicativeEnergyCost, buildTariffGrid } from '../js/energy/indicative-cost.js';
 import { buildMealDealPreview } from '../js/appointment/upgrade-preview.js';
 
+
+test('Welcome Bonus is only paid when Cashback Card is included', () => {
+  const appointment = createAppointment('Alex');
+  appointment.person.homeStatus = 'homeowner';
+  appointment.services.energy = true;
+  appointment.services.broadband = true;
+  appointment.energy.currentMonthly = 100;
+  appointment.energy.uwMonthly = 90;
+  appointment.broadband.currentMonthly = 35;
+  appointment.broadband.uwMonthly = 30;
+
+  const withCashback = calculateAppointment(appointment);
+  assert.ok(withCashback.welcomeBonus > 0);
+  assert.equal(withCashback.cashback.active, true);
+
+  appointment.cashback.enabled = false;
+  const withoutCashback = calculateAppointment(appointment);
+  assert.equal(withoutCashback.welcomeBonus, 0);
+  assert.equal(withoutCashback.cashback.active, false);
+});
+
 test('UW/database and bill usage remain separate while the selected source drives calculations', () => {
   const appointment = createAppointment('Alex');
   appointment.energy.electricityUwKwh = 2500;
