@@ -3,9 +3,74 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>EV Companion v2.42</title>
-  <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#7a42c8">
+  <title>UK EV Tariff Calculator | Compare Home Charging, Economy 7 & UW EV Tariffs</title>
+  <meta name="description" content="Independent UK EV tariff calculator by Adrian Croft, an Authorised Utility Warehouse Partner. Compare home EV charging costs, Economy 7, standard electricity and UW EV tariffs using mileage, vehicle efficiency, home usage and regional rates.">
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+  <link rel="canonical" href="https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:title" content="UK EV Tariff Calculator | Compare Home Charging, Economy 7 & UW EV Tariffs">
+  <meta property="og:description" content="Compare EV charging costs and electricity tariffs using your mileage, vehicle efficiency, home usage and UK region. Independent tool, not an official Utility Warehouse calculator.">
+  <meta property="og:url" content="https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="UK EV Tariff Calculator | Compare Home Charging, Economy 7 & UW EV Tariffs">
+  <meta name="twitter:description" content="Compare home EV charging, Economy 7, standard electricity and UW EV tariffs using personalised assumptions.">
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@graph":[
+      {
+        "@type":"WebApplication",
+        "@id":"https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev/#app",
+        "name":"UK EV Tariff Calculator",
+        "url":"https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev/",
+        "description":"An independent UK EV tariff comparison tool created by Adrian Croft, an Authorised Utility Warehouse Partner. It compares home EV charging costs across standard electricity, Economy 7 and Utility Warehouse EV tariffs using annual mileage, vehicle efficiency, household electricity use, time-of-day assumptions and regional tariff rates. It is not an official Utility Warehouse calculator.",
+        "applicationCategory":"UtilitiesApplication",
+        "operatingSystem":"Any",
+        "browserRequirements":"Requires a modern web browser with JavaScript enabled",
+        "inLanguage":"en-GB",
+        "isAccessibleForFree":true,
+        "dateModified":"2026-09-24",
+        "author":{"@type":"Person","name":"Adrian Croft","url":"https://aqcroft.com/"},
+        "provider":{"@type":"Person","name":"Adrian Croft","url":"https://aqcroft.com/"},
+        "audience":{"@type":"PeopleAudience","geographicArea":{"@type":"Country","name":"United Kingdom"}},
+        "offers":{"@type":"Offer","price":"0","priceCurrency":"GBP"}
+      },
+      {
+        "@type":"FAQPage",
+        "@id":"https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev/#faq",
+        "mainEntity":[
+          {
+            "@type":"Question",
+            "name":"Is an EV tariff worth it for home charging?",
+            "acceptedAnswer":{"@type":"Answer","text":"It depends on annual mileage, EV efficiency, how much charging can be moved into the cheap period, household electricity use, daytime rates and standing charges. This calculator compares those factors using personalised assumptions."}
+          },
+          {
+            "@type":"Question",
+            "name":"How much electricity does an EV use at home?",
+            "acceptedAnswer":{"@type":"Answer","text":"EV electricity use depends on mileage and vehicle efficiency in miles per kWh. The calculator converts annual mileage and the selected vehicle efficiency into estimated charging kWh."}
+          },
+          {
+            "@type":"Question",
+            "name":"Is Economy 7 better than an EV tariff?",
+            "acceptedAnswer":{"@type":"Answer","text":"That depends on the available off-peak window, the share of household and vehicle charging that can use it, and the corresponding peak rate. The calculator compares Economy 7 and EV tariff assumptions including both peak and off-peak household electricity use."}
+          },
+          {
+            "@type":"Question",
+            "name":"Does this EV calculator use live Utility Warehouse tariff data?",
+            "acceptedAnswer":{"@type":"Answer","text":"The tool is designed to load current Utility Warehouse tariff data from its live tariff feed and apply the selected UK electricity region. Availability and freshness are shown inside the tool."}
+          },
+          {
+            "@type":"Question",
+            "name":"Is this an official Utility Warehouse calculator?",
+            "acceptedAnswer":{"@type":"Answer","text":"No. It is an independent tool created by Adrian Croft, an Authorised Utility Warehouse Partner. It uses Utility Warehouse tariff information to illustrate comparisons but is not an official Utility Warehouse website or calculator."}
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+    <meta name="theme-color" content="#7a42c8">
   <link rel="manifest" href="../manifest.webmanifest">
   <link rel="icon" href="../../app-icon.svg" type="image/svg+xml">
   <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
@@ -15,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260917-v2.42-context4';
+      var version = '20260924-v2.42-ev-seo1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var legacyShared = /^p=/.test(location.hash.slice(1));
