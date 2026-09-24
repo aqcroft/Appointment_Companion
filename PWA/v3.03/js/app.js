@@ -11,7 +11,7 @@ import { buildShareData, buildShareUrl, decodeShareData, figuresText } from './s
 import { createSummaryActivity, summaryHistory } from './summary/history.js';
 import { UnsavedWorkGuard } from './shell/unsaved-work-guard.js';
 import { launchTool } from './specialists/launcher.js';
-import { loadTariffs, TARIFF_FEED_URL } from './data/tariff-client.js';
+import { loadTariffs, TARIFF_FEED_URL, clearTariffCache } from './data/tariff-client.js';
 import { buildIndicativeTiers, buildTariffGrid, calculateIndicativeEnergyCost } from './energy/indicative-cost.js';
 import { buildMealDealPreview } from './appointment/upgrade-preview.js';
 import { safeHttps } from './summary/share-policy.js';
@@ -23,6 +23,8 @@ const personChip = document.getElementById('activePersonChip');
 const peopleDialog = document.getElementById('peopleDialog');
 const shareDialog = document.getElementById('shareDialog');
 const historyDialog = document.getElementById('historyDialog');
+const tariffHealthDialog = document.getElementById('tariffHealthDialog');
+const tariffHealthButton = document.getElementById('tariffHealthButton');
 const toastElement = document.getElementById('toast');
 const CURRENT_KEY = 'apptCompanionV303Current';
 const BRAND_KEY = 'apptCompanionV303Partner';
@@ -40,6 +42,7 @@ let syncRetryMs = 2500;
 let selectedPeople = new Set();
 let tariffData = null;
 let tariffInfo = null;
+let tariffHealthState = 'amber';
 let mealDealPreviewActive = false;
 let sharedSummaryData = null;
 let sharedMealDealActive = false;
@@ -86,6 +89,41 @@ function toast(message) {
 function branding() {
   try { return { role: 'Authorised Utility Warehouse Partner', ...JSON.parse(localStorage.getItem(BRAND_KEY) || localStorage.getItem(LEGACY_BRAND_KEY) || '{}') }; }
   catch { return { role: 'Authorised Utility Warehouse Partner' }; }
+}
+
+function updateTariffHealth(state = tariffHealthState) {
+  tariffHealthState = state;
+  if (!tariffHealthButton) return;
+  tariffHealthButton.dataset.state = state;
+  const label = state === 'green' ? 'Tariff data verified' : state === 'red' ? 'Tariff data needs attention' : 'Tariff data checking or cached';
+  tariffHealthButton.setAttribute('aria-label', `${label}. Tap for details.`);
+  tariffHealthButton.title = label;
+}
+
+function tariffHealthSummary() {
+  return tariffInfo?.summary || { fixed:'Checking…', tracker:'Checking…', variable:'Checking…', ev:'Checking…' };
+}
+
+function openTariffHealth() {
+  if (!tariffHealthDialog) return;
+  const summary = tariffHealthSummary();
+  const checked = tariffInfo?.checked_at
+    ? new Date(tariffInfo.checked_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Not yet verified';
+  const source = tariffInfo?.source === 'live' ? 'Live Google Sheet feed verified' : tariffInfo?.verification_failed ? 'Live verification failed - cached data retained' : 'Cached data loaded - live verification in progress';
+  tariffHealthDialog.innerHTML = `<div class="modal-card"><div class="section-title"><div><div class="eyebrow">Tariff health</div><h2>${tariffHealthState === 'green' ? '🟢' : tariffHealthState === 'red' ? '🔴' : '🟠'} ${escapeHtml(source)}</h2></div><button class="quiet" type="button" data-close-dialog>Close</button></div>
+    <p class="lead">No tariff polling runs in the background. Companion verifies the live feed during its normal tariff load, or when you manually refresh below.</p>
+    <div class="tariff-health-grid"><div><b>Fixed</b><span>${escapeHtml(summary.fixed || 'Not supplied')}</span></div><div><b>Tracker</b><span>${escapeHtml(summary.tracker || 'Not supplied')}</span></div><div><b>Variable</b><span>${escapeHtml(summary.variable || 'Not supplied')}</span></div><div><b>EV</b><span>${escapeHtml(summary.ev || 'Not supplied')}</span></div></div>
+    <p class="hint">Last live verification: ${escapeHtml(checked)}</p>
+    <div class="modal-actions"><button class="primary" type="button" data-refresh-tariffs>↻ Refresh tariff data</button></div></div>`;
+  tariffHealthDialog.showModal();
+}
+
+function forceTariffRefresh() {
+  clearTariffCache();
+  const url = new URL(location.href);
+  url.searchParams.set('refreshTariffs','1');
+  location.assign(url.toString());
 }
 
 function setSaveState(text, tone = '') {
@@ -898,7 +936,7 @@ function renderMore() {
   const conflicts = people.filter(person => person.conflict);
   app.innerHTML = `<div class="stack"><section class="card hero"><div class="eyebrow">More</div><h1>Settings &amp; customer safety</h1><p class="lead">Local storage remains primary. Cloud adds backup, sync and cross-device support.</p></section>
     <section class="card"><div class="section-title"><div><div class="eyebrow">People</div><h2>${people.length} saved on this device</h2></div><button class="secondary" type="button" data-manage-people>Manage</button></div></section>
-    <section class="card cloud-card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected for this session' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save for session &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key stays in session storage and is never included in a customer share.</p></section>
+    <section class="card cloud-card"><div class="section-title"><div><div class="eyebrow">Cloud</div><h2>${auth ? 'Connected on this device' : 'Optional connection'}</h2></div><span>${auth ? '☁️' : '📵'}</span></div><form id="cloudForm" class="grid-2"><label class="field"><span>Partner ID</span><input name="partner_id" autocomplete="username" value="${escapeHtml(auth?.partner_id || '')}"></label><label class="field"><span>Workspace key</span><input name="workspace_key" type="password" autocomplete="current-password" value="${escapeHtml(auth?.workspace_key || '')}"></label><div class="action-row"><button class="primary" type="submit">Save on this device &amp; sync</button>${auth ? '<button class="quiet" type="button" data-cloud-disconnect>Disconnect</button>' : ''}</div></form><p class="hint">The workspace key is retained on this device so Companion can reconnect after the PWA sleeps or closes. It is never included in a customer share.</p></section>
     ${conflicts.length ? `<section class="card"><div class="section-title"><div><div class="eyebrow">Cloud conflicts</div><h2>Inspect before choosing</h2></div></div><div class="conflict-list">${conflicts.map(row => `<details class="conflict-inspector"><summary><span>🔍</span><strong>${escapeHtml(row.customer_name)}</strong><small>${row.conflict.paths?.length || 1} difference${(row.conflict.paths?.length || 1)===1?'':'s'}</small></summary><div class="conflict-table"><div class="conflict-head"><b>Field</b><b>This device</b><b>Cloud</b></div>${(row.conflict.paths || []).map(item => `<div class="conflict-line"><strong>${escapeHtml(item.path || 'Record')}</strong><span>${escapeHtml(conflictValue(item.local))}</span><span>${escapeHtml(conflictValue(item.remote))}</span></div>`).join('') || '<p class="hint">The Cloud record changed in a way that needs a choice.</p>'}</div><div class="action-row"><button class="secondary" type="button" data-conflict="${row.local_id}" data-choice="local">Keep mine</button><button class="quiet" type="button" data-conflict="${row.local_id}" data-choice="cloud">Use Cloud</button></div></details>`).join('')}</div></section>` : ''}
     <section class="card"><div class="eyebrow">Partner identity</div><h2>Customer-facing shares</h2>${brand.name ? '' : '<p class="notice">Set this up once. The role defaults to Authorised Utility Warehouse Partner.</p>'}<form id="brandingForm" class="grid-2"><label class="field"><span>Name</span><input name="name" value="${escapeHtml(brand.name || '')}"></label><label class="field"><span>Role</span><input name="role" value="${escapeHtml(brand.role || 'Authorised Utility Warehouse Partner')}"></label><label class="field"><span>Short message</span><input name="strap" value="${escapeHtml(brand.strap || '')}"></label><label class="field"><span>Join link (https)</span><input name="joinUrl" type="url" value="${escapeHtml(brand.joinUrl || '')}"></label><button class="primary" type="submit">Save details</button></form></section>
     <section class="card flat"><p class="hint">Appointment Companion V${VERSION}. Local database: ${customerStore.database.name}. October 2026 rule boundary.</p></section></div>`;
@@ -1174,7 +1212,7 @@ document.addEventListener('submit', async event => {
   if (event.target.id === 'cloudForm') {
     const data = Object.fromEntries(new FormData(event.target));
     setCloudAuth(data);
-    toast('Cloud credentials saved for this session. Syncing…');
+    toast('Cloud credentials saved on this device. Syncing…');
     try { await syncAll(); people = await customerStore.list(); setSaveState('Saved · Cloud synced','good'); }
     catch { setSaveState('Saved locally · Cloud unavailable', 'bad'); toast('Cloud is unavailable. Local work remains safe.'); }
     render();
@@ -1188,6 +1226,8 @@ document.addEventListener('submit', async event => {
 document.addEventListener('click', async event => {
   const target = event.target.closest('button,a');
   if (!target) return;
+  if (target.hasAttribute('data-tariff-health')) return openTariffHealth();
+  if (target.hasAttribute('data-refresh-tariffs')) return forceTariffRefresh();
   if (target.dataset.go) return navigate(target.dataset.go, target.dataset.go === 'launchpad' ? 'save' : section);
   if (target.dataset.section) return navigate(currentRecord ? 'profile' : 'launchpad', target.dataset.section);
   if (target.dataset.openPerson) return loadPerson(target.dataset.openPerson);
@@ -1490,15 +1530,29 @@ async function boot() {
   }
   guard.initialise(appointment);
   render();
+  const forceTariffs = new URL(location.href).searchParams.get('refreshTariffs') === '1';
+  if (forceTariffs) clearTariffCache();
+  updateTariffHealth('amber');
   loadTariffs(TARIFF_FEED_URL, {
+    force: forceTariffs,
     onData: (data, info) => {
       tariffData = data;
       tariffInfo = info;
+      updateTariffHealth(info.source === 'live' ? 'green' : 'amber');
       if (appointment.services.energy) syncSelectedTariffTiers();
       if (view === 'appointment' && appointment.services.energy) render();
+      if (info.source === 'live' && forceTariffs) {
+        const clean = new URL(location.href);
+        clean.searchParams.delete('refreshTariffs');
+        history.replaceState(null,'',clean.pathname + clean.search + clean.hash);
+        toast('Latest tariff data loaded and verified.');
+      }
     },
-    onError: (_error, info) => { tariffInfo = info; }
-  }).catch(() => {});
+    onError: (_error, info) => {
+      tariffInfo = info;
+      updateTariffHealth(info.source === 'none' ? 'red' : 'amber');
+    }
+  }).catch(() => updateTariffHealth('red'));
   if (migration.imported) toast(`${migration.imported} existing ${migration.imported === 1 ? 'profile' : 'profiles'} copied safely into V3.03.`);
   scheduleSync(500);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('./sw.js').catch(() => setSaveState('Saved locally · PWA update pending'));

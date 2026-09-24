@@ -10,7 +10,7 @@
   <title>Appointment Companion V3.03 Preview</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/icons/app-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/app.css?v=3.03-ui.10">
+  <link rel="stylesheet" href="./assets/app.css?v=3.03-ui.11">
 </head>
 <body>
   <header class="topbar" id="topbar">
@@ -19,6 +19,7 @@
     </button>
     <button class="person-chip" id="activePersonChip" type="button" data-go="profile" hidden></button>
     <div class="save-state" id="saveState" aria-live="polite">Local first</div>
+    <button class="tariff-health-button" id="tariffHealthButton" type="button" data-tariff-health aria-label="Tariff data checking. Tap for details."><span>V3.03</span><i aria-hidden="true"></i></button>
   </header>
 
   <main id="app" tabindex="-1"></main>
@@ -45,7 +46,8 @@
   <dialog id="peopleDialog" class="modal"></dialog>
   <dialog id="shareDialog" class="modal"></dialog>
   <dialog id="historyDialog" class="modal"></dialog>
+  <dialog id="tariffHealthDialog" class="modal"></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./js/app.js?v=3.03-ui.10"></script>
+  <script type="module" src="./js/app.js?v=3.03-ui.11"></script>
 </body>
 </html>

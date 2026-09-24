@@ -6,6 +6,7 @@
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
   var AUTH_KEY = 'apptCloudPilotAuthSession';
+  var DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
 
   function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
   function escapeHtml(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -15,7 +16,17 @@
     if (typeof v === 'object') { try { return JSON.stringify(v); } catch (_) { return String(v); } }
     return String(v);
   }
-  function auth() { try { var a = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); return a && a.partner_id && a.workspace_key ? a : null; } catch (_) { return null; } }
+  function auth() {
+    try {
+      var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null');
+      if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
+      if (row && row.partner_id && row.workspace_key) {
+        try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {}
+        return row;
+      }
+      return null;
+    } catch (_) { return null; }
+  }
 
   function addStyles() {
     if (document.getElementById('acV242Style')) return;

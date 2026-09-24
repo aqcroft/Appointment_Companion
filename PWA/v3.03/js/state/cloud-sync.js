@@ -5,17 +5,29 @@ import { migrateAppointment, toLegacyCompatibleAppointment } from './migrations.
 import { reconcileSnapshots, remoteVersion } from './reconciliation.js';
 
 export const AUTH_KEY = 'apptCompanionV303CloudAuthSession';
+export const DEVICE_AUTH_KEY = 'apptCompanionV303CloudAuthDeviceV1';
 
 export function getCloudAuth() {
   try {
-    const auth = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null');
-    return auth?.partner_id && auth?.workspace_key ? auth : null;
+    let auth = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null');
+    if (!auth?.partner_id || !auth?.workspace_key) auth = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
+    if (auth?.partner_id && auth?.workspace_key) {
+      try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {}
+      return auth;
+    }
+    return null;
   } catch { return null; }
 }
 
 export function setCloudAuth(auth) {
-  if (!auth?.partner_id || !auth?.workspace_key) sessionStorage.removeItem(AUTH_KEY);
-  else sessionStorage.setItem(AUTH_KEY, JSON.stringify({ partner_id: String(auth.partner_id).trim(), workspace_key: String(auth.workspace_key) }));
+  if (!auth?.partner_id || !auth?.workspace_key) {
+    sessionStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(DEVICE_AUTH_KEY);
+  } else {
+    const clean = { partner_id: String(auth.partner_id).trim(), workspace_key: String(auth.workspace_key) };
+    sessionStorage.setItem(AUTH_KEY, JSON.stringify(clean));
+    localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(clean));
+  }
 }
 
 function remoteAppointment(remote) {

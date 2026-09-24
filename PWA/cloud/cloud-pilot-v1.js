@@ -16,6 +16,7 @@
   const $c = id => document.getElementById(id);
   const PARTNER_ID_KEY = 'apptCloudPilotPartnerId';
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
+  const DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
   const RECENT_CUSTOMERS_KEY = 'apptCompanionRecentCustomersV1';
@@ -59,10 +60,19 @@
       .replace(/"/g, '&quot;');
   }
 
+  function validAuth(auth) {
+    return !!(auth && auth.partner_id && auth.workspace_key);
+  }
+
   function getAuth() {
     try {
-      const auth = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
-      if (auth && auth.partner_id && auth.workspace_key) return auth;
+      let auth = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
+      if (!validAuth(auth)) auth = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
+      if (validAuth(auth)) {
+        /* Re-hydrate the short session copy after browser/PWA suspension. */
+        try { sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(auth)); } catch (_) {}
+        return auth;
+      }
     } catch (_) {}
     return null;
   }
@@ -73,14 +83,21 @@
       workspace_key: String(workspaceKey || '')
     };
     sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(auth));
+    localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(auth));
     localStorage.setItem(PARTNER_ID_KEY, auth.partner_id);
     return auth;
   }
 
   function clearAuth() {
     sessionStorage.removeItem(SESSION_AUTH_KEY);
+    localStorage.removeItem(DEVICE_AUTH_KEY);
     sessionStorage.removeItem(CURRENT_CUSTOMER_KEY);
     currentCloudCustomerId = '';
+  }
+
+  function isDefiniteAuthFailure(err) {
+    const message = String(err && err.message || err || '').toLowerCase();
+    return /bad write token|bad workspace|invalid (?:workspace|password|login|credential)|unauthori[sz]ed|forbidden|access denied|partner authentication|login failed/.test(message);
   }
 
   function fmtDate(iso) {
@@ -700,7 +717,7 @@
       renderCloudList();
       return true;
     } catch (err) {
-      if (canReuseSession) clearAuth();
+      if (canReuseSession && isDefiniteAuthFailure(err)) clearAuth();
       if (!getAuth()) showConnected(false);
       const message = 'Login failed - please check your Companion Login ID and Password and try again.';
       setInlineConnectError(errorId, message);
@@ -888,7 +905,7 @@
     const key = $c('cloudPilotWorkspaceKey');
     if (key) {
       key.value = '';
-      key.placeholder = auth ? '•••••••• (available this session)' : 'Password';
+      key.placeholder = auth ? '•••••••• (saved on this device)' : 'Password';
     }
     setInlineConnectError('cloudConnectError', '');
     $c('cloudConnectModal').classList.add('open');
@@ -1334,7 +1351,7 @@
       body.innerHTML = `
         <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft.</p>
         <div class="field"><label for="onboardLoginId">Companion Login ID</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
-        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (available this session)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
+        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (saved on this device)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password is saved on this device. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
         <p class="sub hidden" id="cloudOnboardingError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
         <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
       `;
@@ -1798,12 +1815,44 @@
       syncNotesVisibility();
       setStatus('Cloud connected ✓ ' + cloudCustomers.length + ' customer' + (cloudCustomers.length === 1 ? '' : 's') + '.', 'good');
     } catch (err) {
-      clearAuth();
-      showConnected(false);
-      setCurrent(null);
-      setStatus('Cloud session needs reconnecting: ' + ((err && err.message) || String(err)), 'bad');
+      if (isDefiniteAuthFailure(err)) {
+        clearAuth();
+        showConnected(false);
+        setCurrent(null);
+        setStatus('Cloud login needs checking: ' + ((err && err.message) || String(err)), 'bad');
+      } else {
+        /* A sleeping PWA, weak signal or Apps Script timeout must not forget a
+           previously verified Workspace Key. Keep the trusted-device auth and
+           reconnect on the next online/resume event. */
+        showConnected(true);
+        setStatus('Cloud temporarily unavailable - saved login retained. Reconnecting automatically.', 'bad');
+      }
     }
   }
+
+  let resumeReconnectTimer = null;
+  function reconnectAfterResume() {
+    if (!getAuth() || !navigator.onLine) return;
+    clearTimeout(resumeReconnectTimer);
+    resumeReconnectTimer = setTimeout(async () => {
+      try {
+        await refreshCustomers();
+        showConnected(true);
+        setStatus('Cloud connected ✓ ' + cloudCustomers.length + ' customer' + (cloudCustomers.length === 1 ? '' : 's') + '.', 'good');
+      } catch (err) {
+        if (isDefiniteAuthFailure(err)) {
+          clearAuth();
+          showConnected(false);
+          setStatus('Cloud login needs checking.', 'bad');
+        } else {
+          showConnected(true);
+          setStatus('Cloud temporarily unavailable - saved login retained.', 'bad');
+        }
+      }
+    }, 180);
+  }
+  global.addEventListener('online', reconnectAfterResume);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectAfterResume(); });
 
   boot();
 })();

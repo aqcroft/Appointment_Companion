@@ -6,6 +6,7 @@
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
   var AUTH_KEY = 'apptCloudPilotAuthSession';
+  var DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
   var CLOUD_PROMPT_HIDE_KEY = 'apptCompanionCloudPromptHiddenV22';
 
   function isSharedView() {
@@ -71,7 +72,12 @@
   function auth() {
     try {
       var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null');
-      return row && row.partner_id && row.workspace_key ? row : null;
+      if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
+      if (row && row.partner_id && row.workspace_key) {
+        try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {}
+        return row;
+      }
+      return null;
     } catch (_) { return null; }
   }
 
