@@ -69,8 +69,10 @@
       let auth = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
       if (!validAuth(auth)) auth = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
       if (validAuth(auth)) {
-        /* Re-hydrate the short session copy after browser/PWA suspension. */
+        /* Migrate an existing session-only login, then re-hydrate both stores
+           after browser/PWA suspension. */
         try { sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(auth)); } catch (_) {}
+        try { localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(auth)); } catch (_) {}
         return auth;
       }
     } catch (_) {}
