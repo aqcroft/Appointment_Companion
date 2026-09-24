@@ -13,6 +13,7 @@ export function getCloudAuth() {
     if (!auth?.partner_id || !auth?.workspace_key) auth = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
     if (auth?.partner_id && auth?.workspace_key) {
       try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {}
+      try { localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(auth)); } catch {}
       return auth;
     }
     return null;
