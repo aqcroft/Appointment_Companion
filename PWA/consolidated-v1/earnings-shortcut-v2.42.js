@@ -29,20 +29,22 @@
   }
 
   function install() {
-    var strip = document.getElementById('acSharedToolstrip');
+    var strip = document.getElementById('acSharedToolstrip') || document.querySelector('#cloudPilotCard .cloudicons');
     if (!strip) return false;
 
-    var existing = strip.querySelector('.ac-toolbtn[aria-label="Partner Earnings - First 60 Days"]');
+    var existing = strip.querySelector('[aria-label="Partner Earnings - First 60 Days"]');
     if (existing) return true;
 
-    var old = strip.querySelector('.ac-toolbtn[aria-label="Cashback Card Companion"]');
-    var ev = strip.querySelector('.ac-toolbtn[aria-label="EV Companion"]');
+    var old = strip.querySelector('#cloudCompanionCard, [aria-label="Cashback Card Companion"]');
+    var ev = strip.querySelector('#cloudCompanionEv, [aria-label="EV Companion"]');
     var source = old || ev;
     if (!source) return false;
 
     var button = source.cloneNode(false);
     button.dataset.acEarningsShortcut = '1';
-    button.className = 'ac-toolbtn';
+    button.id = 'cloudCompanionEarnings';
+    button.removeAttribute('data-cloud-action');
+    button.className = source.className || 'cloudicon cloud-top-shortcut';
     button.textContent = '💵';
     button.title = 'Partner Earnings - First 60 Days';
     button.setAttribute('aria-label', 'Partner Earnings - First 60 Days');
