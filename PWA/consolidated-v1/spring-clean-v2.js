@@ -251,9 +251,10 @@
           }
 
           if (snap.state === 'amber') {
-            // Pending work is already visible in the Status menu. Only surface
-            // a modal after it has survived two sync attempts and a grace period.
-            showCloudAttention_(snap, engine);
+            // Routine pending sync is non-blocking. Keep the amber state in
+            // Status and allow background retries to continue without covering
+            // the appointment with an attention modal.
+            setTimeout(maybePromptCloud, 10000);
             return;
           }
 
