@@ -848,7 +848,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <div class="sc-line" id="scNatLeagueRow"><span class="k">⚽ National League voucher</span><span class="v good" id="scNatLeague">£0</span></div>
           <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 6m free Full Fibre (6m @ £0)</span><span class="v good" id="scBbFree">£0</span></div>
           <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 3m free Go Unlimited SIM (3m @ £13)</span><span class="v good" id="scMobileFree">£0</span></div>
-          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
+          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Welcome Bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
           <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
           <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
           <div class="sc-line" id="scOneOffRow"><span class="k" id="scOneOffLabel">💷 One-off</span><span class="v good" id="scOneOff">£0</span></div>
@@ -1316,15 +1316,14 @@ $('includeCashback').addEventListener('change', e => {
   calc();
 });
 
-/* ---------- core numbers (v1 logic preserved) ---------- */
+/* ---------- core numbers ---------- */
 function serviceCounts() {
   let count = 0;
   if (state.services.energy) count++;
   if (state.services.broadband) count++;
-  // Mobile only qualifies when bundled with energy or broadband
-  if (state.services.mobile && (state.services.energy || state.services.broadband)) {
+  if (state.services.mobile) {
     const included = Object.values(state.sims).filter(s => s.include);
-    count += Math.max(mobileQualificationUnits(included), included.length ? 0 : 1);
+    count += mobileServiceContribution(included);
   }
   return count;
 }
@@ -1859,12 +1858,12 @@ function renderCard(r) {
   $('scBbFree').textContent = '£' + Math.round(r.bbFree);
   $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + ')';
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
-  $('scWelcomeLabel').textContent = '💷 Cashback bonus (' + (r.welcome / 50) + 'm @ £50)';
+  $('scWelcomeLabel').textContent = '💷 Welcome Bonus (' + (r.welcome / 50) + 'm @ £50)';
   deltaOld($('scWelcome'), real.welcome, r.welcome);
   $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
   $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
   { const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
-    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
+    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Go Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
   $('scReferralRow').classList.toggle('hidden', r.referral === 0);
   $('scReferral').textContent = '£' + r.referral;
   $('scNatLeagueRow').classList.toggle('hidden', r.natLeague === 0);
@@ -2053,9 +2052,9 @@ $('copyBtn').addEventListener('click', () => {
   if (r.bbFree) lines.push('  ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
   if (r.mobileFreeMonths) {
     const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
-    lines.push('  ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
+    lines.push('  ' + simMo + 'm free Go Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
   }
-  if (r.welcome) lines.push('  Cashback bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
+  if (r.welcome) lines.push('  Welcome Bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
   if (r.cbOn) lines.push('  ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
   if (r.boilerCoverFree) lines.push('  ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
   if (r.exitFees) {
@@ -2169,7 +2168,7 @@ function buildShareData() {
   // zero-dropped) so it overrides the base cleanly when merged on toggle.
   if (eligible) {
     data.up = packFigures(compute(1));
-    data.usc = CONFIG.mobile.plans.essentialMax.extra; // £/m SIM cost, for the toggle label
+    data.usc = CONFIG.mobile.plans.essentialMax.monthly; // £/m SIM cost, for the toggle label
   }
 
   return { data };
@@ -2973,9 +2972,9 @@ function renderShared(d) {
   $('scMobileFreeRow').classList.toggle('hidden', mf === 0);
   $('scMobileFree').textContent = '\u00a3' + money(mf);
   { const simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
-    $('scMobileFreeLabel').textContent = '\ud83d\udcf1 ' + simMo + 'm free Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' \u00d7 ' : '') + simMo + 'm @ \u00a3' + simRt + ')'; }
+    $('scMobileFreeLabel').textContent = '\ud83d\udcf1 ' + simMo + 'm free Go Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' \u00d7 ' : '') + simMo + 'm @ \u00a3' + simRt + ')'; }
   $('scWelcomeRow').classList.toggle('hidden', w === 0);
-  $('scWelcomeLabel').textContent = '\ud83d\udcb7 Cashback bonus (' + (w / 50) + 'm @ \u00a350)';
+  $('scWelcomeLabel').textContent = '\ud83d\udcb7 Welcome Bonus (' + (w / 50) + 'm @ \u00a350)';
   $('scWelcome').textContent = '\u00a3' + money(w);
   $('scCardFeeRow').classList.toggle('hidden', !cbOn);
   $('scCardFee').textContent = '+\u00a3' + money(fm);
