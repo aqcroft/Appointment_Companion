@@ -12,7 +12,7 @@
   var RELOAD_KEY = 'apptCompanionTariffReloadV242';
   var nativeFetch = global.fetch.bind(global);
   var forceRefresh = new URL(global.location.href).searchParams.get('refreshTariffs') === '1';
-  var state = { status:'checking', deliveredSignature:'', liveSignature:'', checkedAt:'', error:'', summary:null };
+  var state = { status:'checking', deliveredSignature:'', liveSignature:'', checkedAt:'', error:'', summary:null, refreshRequested:forceRefresh };
 
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
   function valid(data) { return !!(data && Array.isArray(data.tariffLive) && data.tariffLive.length); }
@@ -106,6 +106,7 @@
       state.checkedAt = saved && saved.checked_at || new Date().toISOString();
       state.summary = familySummary(data);
       state.error = '';
+      state.refreshRequested = !!forceRefresh;
       sessionStorage.removeItem(RELOAD_KEY);
       cleanForceFlag();
       emit('verified', state);
