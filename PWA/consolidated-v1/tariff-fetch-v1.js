@@ -37,21 +37,35 @@
     }).sort();
     return parts.join('~');
   }
+  function tariffFamily(r) {
+    var type=String(pick(r,['tariff_type','tariffType'])||'').toLowerCase();
+    var name=String(pick(r,['tariff_name','tariffName'])||'').trim();
+    if (type.indexOf('fixed')===0 || /^Fixed(?:\s|$)/i.test(name)) return 'fixed';
+    if (type.indexOf('tracker')>=0 || /^Tracker(?:\s|$)/i.test(name)) return 'tracker';
+    if (type.indexOf('variable_ev')>=0 || /^EV(?:\s|$)/i.test(name)) return 'ev';
+    if (type.indexOf('variable')>=0 || /^(?:Value|Gold|Double Gold)$/i.test(name)) return 'variable';
+    return '';
+  }
   function familySummary(data) {
-    var rs = rows(data);
-    var fixed = unique(rs.filter(function(r){ return String(pick(r,['tariff_type','tariffType'])).toLowerCase()==='fixed'; })
-      .map(function(r){ return String(pick(r,['fixed_series','fixedSeries']) || '').replace(/\D/g,''); }));
-    var tracker = unique(rs.filter(function(r){ return String(pick(r,['tariff_type','tariffType'])).toLowerCase()==='tracker'; })
-      .map(function(r){ return String(pick(r,['tracker_series','trackerSeries']) || '').replace(/\D/g,''); }));
-    function refs(type) {
-      return unique(rs.filter(function(r){ return String(pick(r,['tariff_type','tariffType'])).toLowerCase()===type; })
-        .map(function(r){ return String(pick(r,['source_ref','sourceRef']) || ''); })).sort();
+    var rs=rows(data);
+    function detail(family) {
+      var selected=rs.filter(function(r){return tariffFamily(r)===family;});
+      if(!selected.length) return {name:'Not supplied',code:''};
+      var names=unique(selected.map(function(r){return String(pick(r,['tariff_name','tariffName'])||'').trim();}));
+      var preferred='';
+      if(family==='fixed') preferred=names.filter(function(n){return /^Fixed Saver\b/i.test(n);})[0]||names[0]||'Fixed';
+      else if(family==='tracker') preferred=names[0]||'Tracker';
+      else if(family==='ev') preferred=names.filter(function(n){return /^EV Value\b/i.test(n);})[0]||names[0]||'EV';
+      else preferred=names.filter(function(n){return /^Value\b/i.test(n);})[0]||names[0]||'Variable';
+      var codes=unique(selected.map(function(r){return String(pick(r,['source_ref','sourceRef'])||'').trim();})).sort();
+      return {name:preferred||'Not supplied',code:codes.join(', ')};
     }
+    var fixed=detail('fixed'),tracker=detail('tracker'),variable=detail('variable'),ev=detail('ev');
     return {
-      fixed: fixed.length ? 'Fixed ' + fixed.sort(function(a,b){return (+b)-(+a);})[0] : 'Not supplied',
-      tracker: tracker.length ? 'Tracker ' + tracker.sort(function(a,b){return (+b)-(+a);})[0] : 'Not supplied',
-      variable: refs('variable').join(', ') || 'Not supplied',
-      ev: refs('variable_ev').join(', ') || 'Not supplied'
+      fixed:fixed.name,fixedCode:fixed.code,
+      tracker:tracker.name,trackerCode:tracker.code,
+      variable:variable.name,variableCode:variable.code,
+      ev:ev.name,evCode:ev.code
     };
   }
   function read() {
