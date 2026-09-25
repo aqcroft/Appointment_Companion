@@ -218,22 +218,67 @@
   async function maybePromptCloud() {
     if (!isMain || sessionStorage.getItem(CLOUD_PROMPT_HIDE_KEY)) return;
     var engine = global.AppointmentCompanionConsolidated;
+
+    // Give normal background sync time to settle before calling for attention.
+    // A freshly opened/force-refreshed Companion can briefly have one local
+    // revision pending even though the device login is healthy.
     if (engine && engine.sync) { try { await engine.sync(); } catch (_) {} }
-    setTimeout(async function () {
+
+    setTimeout(async function firstCheck() {
       if (sessionStorage.getItem(CLOUD_PROMPT_HIDE_KEY)) return;
-      var snap = await cloudSnapshot();
-      if (snap.state === 'green') return;
-      var body = snap.state === 'amber'
-        ? '<p>Your work is safe on this device, but Cloud has not caught up yet.</p><div class="ac-status-modal-detail">🟠 ' + snap.text + '</div><p>Companion will keep trying automatically in the background.</p>'
-        : '<p>Your work is safe locally, but Cloud needs attention before this device can fully synchronise.</p><div class="ac-status-modal-detail">🔴 ' + snap.text + '</div>';
-      var actions = [];
-      if (snap.conflicts) actions.push({ label:'Review local / Cloud conflicts', primary:true, action:function () { var open = document.getElementById('cloudCustomerShortcut'); if (open) open.click(); } });
-      else if (readAuth()) actions.push({ label:'Sync now', primary:true, action:function () { if (engine && engine.scheduleSync) engine.scheduleSync(0); setTimeout(renderStatusMenu, 900); } });
-      else actions.push({ label:'Connect Cloud', primary:true, action:openCloudCredentials });
-      actions.push({ label:'Work locally this session', action:function () { sessionStorage.setItem(CLOUD_PROMPT_HIDE_KEY, '1'); } });
-      body += '<p><strong>Work locally this session</strong> hides this warning until you close the session. Local saves continue, and automatic Cloud sync can still resume if the connection becomes available.</p>';
-      showStatusModal('☁️ Cloud sync needs attention', body, actions);
-    }, 1400);
+
+      var first = await cloudSnapshot();
+      if (first.state === 'green') return;
+
+      // Red states and conflicts are genuine attention items. Amber with a
+      // valid device login is usually just an in-flight save, so retry once.
+      if (first.state === 'amber' && readAuth() && !first.conflicts) {
+        if (engine && engine.sync) { try { await engine.sync(); } catch (_) {} }
+
+        setTimeout(async function secondCheck() {
+          if (sessionStorage.getItem(CLOUD_PROMPT_HIDE_KEY)) return;
+
+          var snap = await cloudSnapshot();
+          if (snap.state === 'green') return;
+
+          // Do not cover the tariff refresh confirmation with a routine amber
+          // sync message. Keep the amber state visible in the Status menu and
+          // let background sync continue.
+          var tariffModal = document.getElementById('acTariffHealth242Modal');
+          if (snap.state === 'amber' && tariffModal && tariffModal.classList.contains('open')) {
+            setTimeout(maybePromptCloud, 5000);
+            return;
+          }
+
+          if (snap.state === 'amber') {
+            // Pending work is already visible in the Status menu. Only surface
+            // a modal after it has survived two sync attempts and a grace period.
+            showCloudAttention_(snap, engine);
+            return;
+          }
+
+          showCloudAttention_(snap, engine);
+        }, 2200);
+        return;
+      }
+
+      showCloudAttention_(first, engine);
+    }, 3500);
+  }
+
+  function showCloudAttention_(snap, engine) {
+    var body = snap.state === 'amber'
+      ? '<p>Your work is safe on this device, but Cloud has not caught up yet.</p><div class="ac-status-modal-detail">🟠 ' + snap.text + '</div><p>Companion has already retried automatically.</p>'
+      : '<p>Your work is safe locally, but Cloud needs attention before this device can fully synchronise.</p><div class="ac-status-modal-detail">🔴 ' + snap.text + '</div>';
+
+    var actions = [];
+    if (snap.conflicts) actions.push({ label:'Review local / Cloud conflicts', primary:true, action:function () { var open = document.getElementById('cloudCustomerShortcut'); if (open) open.click(); } });
+    else if (readAuth()) actions.push({ label:'Sync now', primary:true, action:function () { if (engine && engine.scheduleSync) engine.scheduleSync(0); setTimeout(renderStatusMenu, 900); } });
+    else actions.push({ label:'Connect Cloud', primary:true, action:openCloudCredentials });
+
+    actions.push({ label:'Work locally this session', action:function () { sessionStorage.setItem(CLOUD_PROMPT_HIDE_KEY, '1'); } });
+    body += '<p><strong>Work locally this session</strong> hides this warning until you close the session. Local saves continue, and automatic Cloud sync can still resume if the connection becomes available.</p>';
+    showStatusModal('☁️ Cloud sync needs attention', body, actions);
   }
 
   function specialistCleanup() {
