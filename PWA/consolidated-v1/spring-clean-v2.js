@@ -89,8 +89,15 @@
   }
 
   function readAuth() {
-    try { var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); return a && a.partner_id && a.workspace_key ? a : null; }
-    catch (_) { return null; }
+    try {
+      var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null');
+      if (!(a && a.partner_id && a.workspace_key)) a = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null');
+      if (a && a.partner_id && a.workspace_key) {
+        try { sessionStorage.setItem('apptCloudPilotAuthSession', JSON.stringify(a)); } catch (_) {}
+        return a;
+      }
+      return null;
+    } catch (_) { return null; }
   }
 
   function openCloudCredentials() {
