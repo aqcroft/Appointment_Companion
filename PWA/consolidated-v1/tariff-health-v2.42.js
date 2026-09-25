@@ -21,7 +21,7 @@
       '.ac-tariff-health-modal{display:none;position:fixed;inset:0;z-index:16050;background:rgba(38,22,79,.48);padding:16px;align-items:center;justify-content:center}',
       '.ac-tariff-health-modal.open{display:flex}.ac-tariff-health-card{width:min(430px,100%);background:#fff;color:#26164f;border-radius:16px;padding:17px;box-shadow:0 20px 60px rgba(38,22,79,.28)}',
       '.ac-tariff-health-card h3{margin:0 0 5px}.ac-tariff-health-card p{margin:.3rem 0;color:#6b6b76;font-size:12px;line-height:1.4}',
-      '.ac-tariff-health-row{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid rgba(122,66,200,.1);font-size:12px}.ac-tariff-health-row b{font-size:11px}',
+      '.ac-tariff-health-row{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid rgba(122,66,200,.1);font-size:12px}.ac-tariff-health-row b{font-size:11px}.ac-tariff-health-value small{display:block;margin-top:1px;color:#8a8292;font-size:9px;line-height:1.25}',
       '.ac-tariff-health-actions{display:grid;gap:7px;margin-top:12px}.ac-tariff-health-actions button{min-height:40px;border-radius:10px;border:1px solid rgba(122,66,200,.18);background:#fff;color:#26164f;font-weight:800}.ac-tariff-health-actions .primary{background:#7a42c8;color:#fff;border-color:#7a42c8}'
     ].join('');
     document.head.appendChild(st);
@@ -39,10 +39,10 @@
     m.innerHTML='<div class="ac-tariff-health-card" role="dialog" aria-modal="true" aria-labelledby="acTariffHealthTitle">'+
       '<h3 id="acTariffHealthTitle"><span style="color:'+colour(s.status)+'">●</span> Tariff health</h3>'+
       '<p><strong>'+esc(label(s.status))+'</strong><br>Companion does not poll for tariff changes. The live feed is checked during its normal tariff load and by the manual refresh below.</p>'+
-      '<div class="ac-tariff-health-row"><b>Fixed</b><span>'+esc(sum.fixed||'Checking…')+'</span></div>'+
-      '<div class="ac-tariff-health-row"><b>Tracker</b><span>'+esc(sum.tracker||'Checking…')+'</span></div>'+
-      '<div class="ac-tariff-health-row"><b>Variable</b><span>'+esc(sum.variable||'Checking…')+'</span></div>'+
-      '<div class="ac-tariff-health-row"><b>EV</b><span>'+esc(sum.ev||'Checking…')+'</span></div>'+
+      (function(){
+        function row(label,name,code){return '<div class="ac-tariff-health-row"><b>'+label+'</b><span class="ac-tariff-health-value">'+esc(name||'Checking…')+(code?'<small>('+esc(code)+')</small>':'')+'</span></div>';}
+        return row('Fixed',sum.fixed,sum.fixedCode)+row('Tracker',sum.tracker,sum.trackerCode)+row('Variable',sum.variable,sum.variableCode)+row('EV',sum.ev,sum.evCode);
+      })()+
       '<p>Last live verification: '+esc(checked)+(s.error?'<br><span style="color:#c43b3b">'+esc(s.error)+'</span>':'')+'</p>'+
       '<div class="ac-tariff-health-actions"><button type="button" class="primary" data-tariff-refresh>↻ Refresh tariff data</button><button type="button" data-tariff-health-close>Close</button></div></div>';
     m.querySelector('[data-tariff-refresh]').addEventListener('click',function(){api.refresh();});
