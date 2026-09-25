@@ -3,11 +3,11 @@
   'use strict';
   if (document.documentElement.classList.contains('view-mode')) return;
   var store = global.AppointmentCompanionLocalStore, canonical = global.AppointmentCompanionCanonical, api = global.AppointmentCompanionCloud, LOCAL_ONLY = !!global.__AC_LOCAL_ONLY;
-  var CURRENT_KEY = 'apptCompanionConsolidatedCurrentV1', CLOUD_KEY = 'apptCloudPilotCurrentCustomer', AUTH_KEY = 'apptCloudPilotAuthSession';
+  var CURRENT_KEY = 'apptCompanionConsolidatedCurrentV1', CLOUD_KEY = 'apptCloudPilotCurrentCustomer', AUTH_KEY = 'apptCloudPilotAuthSession', DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
   var currentId = sessionStorage.getItem(CURRENT_KEY) || '', current = null, saveTimer = null, syncTimer = null, syncing = false, retryMs = 2500;
   var $ = function (id) { return document.getElementById(id); };
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
-  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); return row && row.partner_id && row.workspace_key ? row : null; } catch (_) { return null; } }
+  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null'); if (row && row.partner_id && row.workspace_key) { try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {} return row; } return null; } catch (_) { return null; } }
   function remoteVersion(row) { return String(row && (row.cloud_revision || row.sync_revision || row.updated_at) || ''); }
   function appointment(remote) { var value = remote && (remote.appointment_state || remote.appointment_state_json || remote.appointment_snapshot); if (!value) return null; if (typeof value === 'string') { try { value = JSON.parse(value); } catch (_) { return null; } } return canonical.normaliseAppointment(value); }
   function escapeHtml(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
