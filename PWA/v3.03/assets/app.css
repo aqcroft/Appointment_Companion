@@ -2331,3 +2331,5 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
 @media(max-width:580px){.save-state{display:none}.tariff-health-button{margin-left:auto}.tariff-health-button span{font-size:9px}}
 
 .tariff-health-grid span small{display:block;margin-top:1px;color:var(--muted);font-size:9px;line-height:1.25}
+
+.tariff-refresh-success{margin:8px 0 10px;padding:9px 10px;border:1px solid rgba(29,155,80,.22);border-radius:10px;background:rgba(29,155,80,.07);color:#16783f;font-size:12px;font-weight:800}
