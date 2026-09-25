@@ -45,6 +45,7 @@ let selectedPeople = new Set();
 let tariffData = null;
 let tariffInfo = null;
 let tariffHealthState = 'amber';
+let tariffRefreshConfirmation = '';
 let mealDealPreviewActive = false;
 let sharedSummaryData = null;
 let sharedMealDealActive = false;
@@ -114,6 +115,7 @@ function openTariffHealth() {
     : 'Not yet verified';
   const source = tariffInfo?.source === 'live' ? 'Live Google Sheet feed verified' : tariffInfo?.verification_failed ? 'Live verification failed - cached data retained' : 'Cached data loaded - live verification in progress';
   tariffHealthDialog.innerHTML = `<div class="modal-card"><div class="section-title"><div><div class="eyebrow">Tariff health</div><h2>${tariffHealthState === 'green' ? '🟢' : tariffHealthState === 'red' ? '🔴' : '🟠'} ${escapeHtml(source)}</h2></div><button class="quiet" type="button" data-close-dialog>Close</button></div>
+    ${tariffRefreshConfirmation ? `<div class="tariff-refresh-success">✅ ${escapeHtml(tariffRefreshConfirmation)}</div>` : ''}
     <p class="lead">No tariff polling runs in the background. Companion verifies the live feed during its normal tariff load, or when you manually refresh below.</p>
     <div class="tariff-health-grid">
       <div><b>Fixed</b><span>${escapeHtml(summary.fixed || 'Not supplied')}${summary.fixedCode ? `<small>(${escapeHtml(summary.fixedCode)})</small>` : ''}</span></div>
@@ -124,6 +126,7 @@ function openTariffHealth() {
     <p class="hint">Last live verification: ${escapeHtml(checked)}</p>
     <div class="modal-actions"><button class="primary" type="button" data-refresh-tariffs>↻ Refresh tariff data</button></div></div>`;
   tariffHealthDialog.showModal();
+  tariffRefreshConfirmation = '';
 }
 
 function forceTariffRefresh() {
@@ -1611,7 +1614,8 @@ async function boot() {
         const clean = new URL(location.href);
         clean.searchParams.delete('refreshTariffs');
         history.replaceState(null,'',clean.pathname + clean.search + clean.hash);
-        toast('Latest tariff data loaded and verified.');
+        tariffRefreshConfirmation = 'Tariff data successfully updated';
+        setTimeout(() => openTariffHealth(), 80);
       }
     },
     onError: (_error, info) => {
