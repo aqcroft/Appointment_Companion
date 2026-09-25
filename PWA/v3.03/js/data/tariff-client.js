@@ -25,18 +25,36 @@ export function tariffSignature(data) {
   ].join('|')).sort().join('~');
 }
 
+function tariffFamily(row) {
+  const type = String(pick(row,['tariff_type','tariffType']) || '').toLowerCase();
+  const name = String(pick(row,['tariff_name','tariffName']) || '').trim();
+  if (type.startsWith('fixed') || /^Fixed(?:\s|$)/i.test(name)) return 'fixed';
+  if (type.includes('tracker') || /^Tracker(?:\s|$)/i.test(name)) return 'tracker';
+  if (type.includes('variable_ev') || /^EV(?:\s|$)/i.test(name)) return 'ev';
+  if (type.includes('variable') || /^(?:Value|Gold|Double Gold)$/i.test(name)) return 'variable';
+  return '';
+}
+
 export function tariffSummary(data) {
   const rows = valid(data) ? data.tariffLive : [];
   const unique = list => [...new Set(list.filter(Boolean))];
-  const byType = type => rows.filter(row => String(pick(row,['tariff_type','tariffType'])).toLowerCase() === type);
-  const fixed = unique(byType('fixed').map(row => String(pick(row,['fixed_series','fixedSeries']) || '').replace(/\D/g,''))).sort((a,b)=>Number(b)-Number(a));
-  const tracker = unique(byType('tracker').map(row => String(pick(row,['tracker_series','trackerSeries']) || '').replace(/\D/g,''))).sort((a,b)=>Number(b)-Number(a));
-  const refs = type => unique(byType(type).map(row => String(pick(row,['source_ref','sourceRef']) || ''))).sort();
+  const detail = family => {
+    const selected = rows.filter(row => tariffFamily(row) === family);
+    if (!selected.length) return { name:'Not supplied', code:'' };
+    const names = unique(selected.map(row => String(pick(row,['tariff_name','tariffName']) || '').trim()));
+    let name = names[0] || 'Not supplied';
+    if (family === 'fixed') name = names.find(value => /^Fixed Saver\b/i.test(value)) || name;
+    if (family === 'ev') name = names.find(value => /^EV Value\b/i.test(value)) || name;
+    if (family === 'variable') name = names.find(value => /^Value\b/i.test(value)) || name;
+    const code = unique(selected.map(row => String(pick(row,['source_ref','sourceRef']) || '').trim())).sort().join(', ');
+    return { name, code };
+  };
+  const fixed=detail('fixed'), tracker=detail('tracker'), variable=detail('variable'), ev=detail('ev');
   return {
-    fixed: fixed[0] ? `Fixed ${fixed[0]}` : 'Not supplied',
-    tracker: tracker[0] ? `Tracker ${tracker[0]}` : 'Not supplied',
-    variable: refs('variable').join(', ') || 'Not supplied',
-    ev: refs('variable_ev').join(', ') || 'Not supplied'
+    fixed:fixed.name, fixedCode:fixed.code,
+    tracker:tracker.name, trackerCode:tracker.code,
+    variable:variable.name, variableCode:variable.code,
+    ev:ev.name, evCode:ev.code
   };
 }
 

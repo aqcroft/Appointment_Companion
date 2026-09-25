@@ -115,7 +115,12 @@ function openTariffHealth() {
   const source = tariffInfo?.source === 'live' ? 'Live Google Sheet feed verified' : tariffInfo?.verification_failed ? 'Live verification failed - cached data retained' : 'Cached data loaded - live verification in progress';
   tariffHealthDialog.innerHTML = `<div class="modal-card"><div class="section-title"><div><div class="eyebrow">Tariff health</div><h2>${tariffHealthState === 'green' ? '🟢' : tariffHealthState === 'red' ? '🔴' : '🟠'} ${escapeHtml(source)}</h2></div><button class="quiet" type="button" data-close-dialog>Close</button></div>
     <p class="lead">No tariff polling runs in the background. Companion verifies the live feed during its normal tariff load, or when you manually refresh below.</p>
-    <div class="tariff-health-grid"><div><b>Fixed</b><span>${escapeHtml(summary.fixed || 'Not supplied')}</span></div><div><b>Tracker</b><span>${escapeHtml(summary.tracker || 'Not supplied')}</span></div><div><b>Variable</b><span>${escapeHtml(summary.variable || 'Not supplied')}</span></div><div><b>EV</b><span>${escapeHtml(summary.ev || 'Not supplied')}</span></div></div>
+    <div class="tariff-health-grid">
+      <div><b>Fixed</b><span>${escapeHtml(summary.fixed || 'Not supplied')}${summary.fixedCode ? `<small>(${escapeHtml(summary.fixedCode)})</small>` : ''}</span></div>
+      <div><b>Tracker</b><span>${escapeHtml(summary.tracker || 'Not supplied')}${summary.trackerCode ? `<small>(${escapeHtml(summary.trackerCode)})</small>` : ''}</span></div>
+      <div><b>Variable</b><span>${escapeHtml(summary.variable || 'Not supplied')}${summary.variableCode ? `<small>(${escapeHtml(summary.variableCode)})</small>` : ''}</span></div>
+      <div><b>EV</b><span>${escapeHtml(summary.ev || 'Not supplied')}${summary.evCode ? `<small>(${escapeHtml(summary.evCode)})</small>` : ''}</span></div>
+    </div>
     <p class="hint">Last live verification: ${escapeHtml(checked)}</p>
     <div class="modal-actions"><button class="primary" type="button" data-refresh-tariffs>↻ Refresh tariff data</button></div></div>`;
   tariffHealthDialog.showModal();

@@ -847,8 +847,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <div class="sc-line" id="scReferralRow"><span class="k">🤝 Referral bonus</span><span class="v good" id="scReferral">£0</span></div>
           <div class="sc-line" id="scNatLeagueRow"><span class="k">⚽ National League voucher</span><span class="v good" id="scNatLeague">£0</span></div>
           <div class="sc-line" id="scBbFreeRow"><span class="k" id="scBbFreeLabel">🛜 6m free Full Fibre (6m @ £0)</span><span class="v good" id="scBbFree">£0</span></div>
-          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 6m free Unlimited SIM (6m @ £10)</span><span class="v good" id="scMobileFree">£0</span></div>
-          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Cashback bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
+          <div class="sc-line" id="scMobileFreeRow"><span class="k" id="scMobileFreeLabel">📱 3m free Go Unlimited SIM (3m @ £13)</span><span class="v good" id="scMobileFree">£0</span></div>
+          <div class="sc-line" id="scWelcomeRow"><span class="k" id="scWelcomeLabel">💷 Welcome Bonus (0m @ £50)</span><span class="v good" id="scWelcome">£0</span></div>
           <div class="sc-line" id="scCardFeeRow"><span class="k" id="scCardFeeLabel">💳 3m free card fee (3m @ £3)</span><span class="v good" id="scCardFee">£9</span></div>
           <div class="sc-line" id="scBoilerFreeRow"><span class="k" id="scBoilerFreeLabel">🛡️ 3m free Boiler Cover (3m @ £25)</span><span class="v good" id="scBoilerFree">£0</span></div>
           <div class="sc-line" id="scOneOffRow"><span class="k" id="scOneOffLabel">💷 One-off</span><span class="v good" id="scOneOff">£0</span></div>
@@ -903,9 +903,11 @@ const CONFIG = {
   // name + sign-up link via ⚙️ Partner settings (stored per device,
   // carried inside every shared link). No hardcoded personal fallback.
 
-  // Welcome bonus by total qualifying service count (energy 1, broadband 1, mobile up to 2).
-  // Mobile SIMs only qualify when bundled with energy or broadband — mobile-only = 0 services.
-  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 100, 4: 150, 5: 150 },
+  // Current welcome bonus is based on qualifying SERVICE TYPES, not the raw
+  // energy-tariff/service count. Mobile contributes one welcome-bonus service
+  // type only when at least one included SIM is Go Unlimited. Go Essentials
+  // can still improve energy/service qualification without increasing this bonus.
+  welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 150, 4: 250 },
 
   // £50 referral credit: requires 2+ services AND homeowner AND referred.
   // Tenants CAN be referred (toggle stays usable) — they just don't get the £50.
@@ -954,20 +956,16 @@ const CONFIG = {
     slider: { min: 500, max: 2500, step: 50, default: 1000 }
   },
 
-  // UW mobile monthly prices. Position = order among INCLUDED SIMs (1st, 2nd…)
+  // Current UW mobile structure, aligned with Appointment Companion v3.03.
   mobile: {
     maxSims: 5,
-    servicesCountedMax: 2,   // mobile contributes at most 2 to the service count
+    servicesCountedMax: 2,
     qualification: {
-      // Current confirmed behaviour. Update product units here after UW publishes
-      // the new rule; calculation code must not infer qualification from SIM count.
       previewPlan: 'essentialMax'
     },
     plans: {
-      unlimitedMax: { label: "Unlimited", qualifyingUnits: 1, first: 23, extraM1to6: 0, extraM7to12: 10, freeMonths: 6, note: "First Unlimited SIM £23/m. Additional Unlimited SIMs: £10/m ongoing, free for the first 6 months (shown as a year-one benefit)" },
-      essentialMax: { label: "Essentials", qualifyingUnits: 1, first: 5,  extra: 5,  note: "£5/m all year" }
-      // bestOfBoth parked: avg £2.50/m relied on the customer downgrading after the free months — reinstate here if needed
-
+      unlimitedMax: { label: "Go Unlimited", qualifyingUnits: 1, monthly: 13, freeMonths: 3, note: "Go Unlimited £13/m. Additional Unlimited SIMs are free for the first 3 months (shown as a year-one benefit)." },
+      essentialMax: { label: "Go Essentials", qualifyingUnits: 1, monthly: 6, note: "Go Essentials £6/m." }
     }
   }
 };
@@ -1291,29 +1289,23 @@ function monthsUntilApril() {
   return m < 3 ? 3 - m : (12 - m) + 3;
 }
 
-/* UW mobile pricing: the discounted Unlimited rate only exists as an
-   additional SIM behind a full-price £23 Unlimited lead. The FIRST
-   Unlimited SIM among those included is always £23, wherever it sits
-   in the list; further Unlimiteds are £10/m ongoing (steady state) —
-   their free first-6-months is shown separately as a year-one benefit.
-   Essentials is £5 regardless. */
+/* Current mobile pricing/rules, aligned with v3.03. */
 function priceSims(includedSims) {
-  let unlimitedLeadTaken = false;
-  return includedSims.map(s => {
-    if (s.uwPlan === 'unlimitedMax') {
-      if (!unlimitedLeadTaken) { unlimitedLeadTaken = true; return CONFIG.mobile.plans.unlimitedMax.first; }
-      return CONFIG.mobile.plans.unlimitedMax.extraM7to12;
-    }
-    return CONFIG.mobile.plans.essentialMax.extra;
+  return (includedSims || []).map(s => {
+    const plan = CONFIG.mobile.plans[s && s.uwPlan] || CONFIG.mobile.plans.essentialMax;
+    return Number(plan.monthly) || 0;
   });
 }
 
-function mobileQualificationUnits(includedSims) {
-  const units = (includedSims || []).reduce((total, sim) => {
-    const product = CONFIG.mobile.plans[sim && sim.uwPlan];
-    return total + Math.max(0, Number(product && product.qualifyingUnits) || 0);
-  }, 0);
-  return Math.min(units, CONFIG.mobile.servicesCountedMax);
+function mobileServiceContribution(includedSims) {
+  const sims = includedSims || [];
+  if (!sims.length) return 0;
+  const unlimited = sims.filter(s => s && s.uwPlan === 'unlimitedMax').length;
+  return unlimited >= 2 ? 2 : 1;
+}
+
+function mobileWelcomeBonusEligible(includedSims) {
+  return (includedSims || []).some(s => s && s.uwPlan === 'unlimitedMax');
 }
 
 /* ---------- cashback ---------- */
@@ -1324,15 +1316,14 @@ $('includeCashback').addEventListener('change', e => {
   calc();
 });
 
-/* ---------- core numbers (v1 logic preserved) ---------- */
+/* ---------- core numbers ---------- */
 function serviceCounts() {
   let count = 0;
   if (state.services.energy) count++;
   if (state.services.broadband) count++;
-  // Mobile only qualifies when bundled with energy or broadband
-  if (state.services.mobile && (state.services.energy || state.services.broadband)) {
+  if (state.services.mobile) {
     const included = Object.values(state.sims).filter(s => s.include);
-    count += Math.max(mobileQualificationUnits(included), included.length ? 0 : 1);
+    count += mobileServiceContribution(included);
   }
   return count;
 }
@@ -1351,33 +1342,46 @@ function compute(previewSims = 0) {
   const insuranceTotal = incomeProtectorCost + boilerCoverCost;
   const insuranceCount = (incomeProtectorCost > 0 || boilerCoverCost > 0) ? 1 : 0;
 
-  // Service count, including any card-preview meal deal SIMs (slots beyond real SIMs, capped at 2 total mobile)
-  const energyOrBb = state.services.energy || state.services.broadband;
+  // Mobile now has separate effects for energy tier, service count and welcome bonus.
   const includedSims = state.services.mobile ? Object.values(state.sims).filter(s => s.include) : [];
   const includedSimsCount = includedSims.length;
-  // Selecting Mobile counts as 1 service straight away (same as broadband);
-  // a 2nd included SIM lifts it to 2 (the cap). Validation still requires
-  // SIM details before the card can open or be shared.
-  const realMobileContribution = (energyOrBb && state.services.mobile)
-    ? Math.max(mobileQualificationUnits(includedSims), includedSimsCount ? 0 : 1)
-    : 0;
-  const availableSlots = energyOrBb ? CONFIG.mobile.servicesCountedMax - realMobileContribution : 0;
-  // Capped at 4: welcomeBonus/lowMonthlyCaps are only defined up to 5 (and cap out at 4
-  // anyway), and the energy tiers only go up to "2+ services beyond energy" — so once
-  // baseCount hits 4, extra qualifying items (e.g. both insurance products plus 2 SIMs)
-  // can't add anything further.
-  const baseCount = Math.min((state.services.energy ? 1 : 0) + (state.services.broadband ? 1 : 0) + realMobileContribution + insuranceCount, 4);
-  // The energy bundle only has tiers for "energy only / +1 service / +2 services" — once
-  // count-1 (services alongside energy) reaches 2, adding more sims doesn't reduce energy
-  // further. Cap the preview at however many sims are needed to reach that tier, so we don't
-  // offer a 2nd "free" SIM preview that wouldn't actually make energy any cheaper.
+  const realMobileContribution = mobileServiceContribution(includedSims);
+
+  // Meal-deal preview uses Essentials SIMs. Up to two SIMs can improve the energy
+  // tier, but adding a second Essentials SIM does not create a second Mobile
+  // service for welcome-bonus/service-count purposes.
+  const availableSlots = Math.max(0, CONFIG.mobile.servicesCountedMax - Math.min(CONFIG.mobile.servicesCountedMax, includedSimsCount));
   const maxPreview = state.services.energy
-    ? Math.min(availableSlots, Math.max(0, 2 - (baseCount - 1)))
+    ? Math.min(availableSlots, Math.max(0, 2 - ((state.services.broadband ? 1 : 0) + Math.min(2, includedSimsCount) + insuranceCount)))
     : availableSlots;
-  const previewProduct = CONFIG.mobile.plans[CONFIG.mobile.qualification.previewPlan] || {};
-  const previewApplied = Math.min(previewSims * Math.max(0, Number(previewProduct.qualifyingUnits) || 0), availableSlots, maxPreview);
-  const mobilePresent = state.services.mobile || previewApplied > 0;
-  const count = baseCount + previewApplied;
+  const previewApplied = Math.min(Math.max(0, Number(previewSims) || 0), availableSlots, maxPreview);
+  const previewSimsList = Array.from({ length: previewApplied }, () => ({ uwPlan: CONFIG.mobile.qualification.previewPlan }));
+  const mobileContribution = mobileServiceContribution(includedSims.concat(previewSimsList));
+
+  const count = Math.min(
+    (state.services.energy ? 1 : 0) +
+    (state.services.broadband ? 1 : 0) +
+    mobileContribution +
+    insuranceCount,
+    4
+  );
+
+  const energyQualifiers =
+    (state.services.broadband ? 1 : 0) +
+    Math.min(2, includedSimsCount + previewApplied) +
+    insuranceCount;
+
+  const mobilePresent = includedSimsCount + previewApplied > 0;
+
+  // Welcome bonus follows SERVICE TYPES. Essentials SIMs can improve the
+  // energy tariff but do not add a Mobile welcome-bonus service type.
+  const welcomeServiceTypes = Math.min(
+    (state.services.energy ? 1 : 0) +
+    (state.services.broadband ? 1 : 0) +
+    (mobileWelcomeBonusEligible(includedSims) ? 1 : 0) +
+    insuranceCount,
+    4
+  );
 
   // --- current energy ---
   let currentEnergy = 0;
@@ -1396,7 +1400,7 @@ function compute(previewSims = 0) {
     const bundleOn = $('bundleRatePanel') && !$('bundleRatePanel').classList.contains('hidden');
     if (bundleOn) {
       const t1 = num('uwEnergyTier1'), t2 = num('uwEnergyTier2'), t3 = num('uwEnergyTier3');
-      const nonE = count - 1; // services beyond energy
+      const nonE = energyQualifiers;
       if (nonE >= 2 && t3 > 0) uwEnergy = t3;
       else if (nonE >= 1 && t2 > 0) uwEnergy = t2;
       else if (t1 > 0) uwEnergy = t1;
@@ -1446,7 +1450,7 @@ function compute(previewSims = 0) {
     });
   }
   // Card-preview meal deal SIMs: £0 current, Essentials rate UW
-  uwMob += previewApplied * CONFIG.mobile.plans.essentialMax.extra;
+  uwMob += previewApplied * CONFIG.mobile.plans.essentialMax.monthly;
 
   // --- manual adjustment (general, with reasons for reference) ---
   const manualAdjustOn = $('manualAdjustToggle').checked;
@@ -1501,16 +1505,13 @@ function compute(previewSims = 0) {
       : mba * uwBbRaw + (fm - mba) * (uwBbRaw + uwInc));
   }
 
-  // --- free first-6-months on additional Unlimited SIMs ---
-  // uwMob/uwTotalBase already use the steady-state £10/m (priceSims), so the
-  // value of the free period is shown here as a one-off year-one benefit —
-  // same treatment as bbFree above.
+  // --- introductory free months on additional Go Unlimited SIMs ---
   const um = CONFIG.mobile.plans.unlimitedMax;
   const additionalUnlimited = Math.max(0, realSims.filter(s => s.uwPlan === 'unlimitedMax').length - 1);
-  const mobileFreeMonths = additionalUnlimited * um.extraM7to12 * um.freeMonths;
+  const mobileFreeMonths = additionalUnlimited * um.monthly * um.freeMonths;
 
   // --- bonuses ---
-  const welcome = CONFIG.welcomeBonus[count] || 0;
+  const welcome = CONFIG.welcomeBonus[welcomeServiceTypes] || 0;
   const referral = (count >= CONFIG.referral.minServices &&
                     state.homeowner === 'homeowner' &&
                     $('referralToggle').checked) ? CONFIG.referral.amount : 0;
@@ -1545,7 +1546,7 @@ function compute(previewSims = 0) {
   return { currentEnergy, uwEnergy, currentBb, uwBb, uwBbRaw, currentMob, uwMob,
            currentTotal, uwTotalBase, monthlySaving,
            spend, cbLow, cbMed, cbHigh, cbMonthly, freeMonthsValue,
-           count, welcome, referral, natLeague, bbFree, mobileFreeMonths, additionalUnlimited,
+           count, welcomeServiceTypes, welcome, referral, natLeague, bbFree, mobileFreeMonths, additionalUnlimited,
            exitFees, refunded, exitDeduction, year1, cbOn,
            mba, availableSlots, previewApplied, includedSimsCount, cashbackNet, maxPreview,
            incomeProtectorCost, boilerCoverCost, boilerCoverFree, insuranceTotal,
@@ -1667,8 +1668,8 @@ function calc() {
   if (r.incomeProtectorCost > 0) insuranceIcons.push('🛡️ Income Protector');
   if (r.boilerCoverCost > 0) insuranceIcons.push('🛡️ Boiler Cover');
   if (insuranceIcons.length) svcTxt += ' (incl. ' + insuranceIcons.join(', ') + ')';
-  if (state.services.mobile && !state.services.energy && !state.services.broadband) {
-    svcTxt += ' — SIMs qualify once bundled with energy or broadband';
+  if (state.services.mobile && r.includedSimsCount === 0) {
+    svcTxt += ' — add SIM details to confirm Mobile qualification';
   }
   $('svcCounter').textContent = svcTxt;
 
@@ -1857,12 +1858,12 @@ function renderCard(r) {
   $('scBbFree').textContent = '£' + Math.round(r.bbFree);
   $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + ')';
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
-  $('scWelcomeLabel').textContent = '💷 Cashback bonus (' + (r.welcome / 50) + 'm @ £50)';
+  $('scWelcomeLabel').textContent = '💷 Welcome Bonus (' + (r.welcome / 50) + 'm @ £50)';
   deltaOld($('scWelcome'), real.welcome, r.welcome);
   $('scMobileFreeRow').classList.toggle('hidden', r.mobileFreeMonths === 0);
   $('scMobileFree').textContent = '£' + Math.round(r.mobileFreeMonths);
-  { const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
-    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
+  { const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
+    $('scMobileFreeLabel').textContent = '📱 ' + simMo + 'm free Go Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' × ' : '') + simMo + 'm @ £' + simRt + ')'; }
   $('scReferralRow').classList.toggle('hidden', r.referral === 0);
   $('scReferral').textContent = '£' + r.referral;
   $('scNatLeagueRow').classList.toggle('hidden', r.natLeague === 0);
@@ -2050,10 +2051,10 @@ $('copyBtn').addEventListener('click', () => {
   if (r.natLeague) lines.push('  National League voucher: £' + r.natLeague);
   if (r.bbFree) lines.push('  ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
   if (r.mobileFreeMonths) {
-    const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
-    lines.push('  ' + simMo + 'm free Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
+    const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
+    lines.push('  ' + simMo + 'm free Go Unlimited SIM' + (simN > 1 ? 's' : '') + ' (' + (simN > 1 ? simN + ' x ' : '') + simMo + 'm @ £' + simRt + '): £' + money(r.mobileFreeMonths));
   }
-  if (r.welcome) lines.push('  Cashback bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
+  if (r.welcome) lines.push('  Welcome Bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
   if (r.cbOn) lines.push('  ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
   if (r.boilerCoverFree) lines.push('  ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
   if (r.exitFees) {
@@ -2167,7 +2168,7 @@ function buildShareData() {
   // zero-dropped) so it overrides the base cleanly when merged on toggle.
   if (eligible) {
     data.up = packFigures(compute(1));
-    data.usc = CONFIG.mobile.plans.essentialMax.extra; // £/m SIM cost, for the toggle label
+    data.usc = CONFIG.mobile.plans.essentialMax.monthly; // £/m SIM cost, for the toggle label
   }
 
   return { data };
@@ -2970,10 +2971,10 @@ function renderShared(d) {
   $('scBbFreeLabel').textContent = '\ud83d\udedc ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ \u00a3' + Math.round(g('uBr')) + ')';
   $('scMobileFreeRow').classList.toggle('hidden', mf === 0);
   $('scMobileFree').textContent = '\u00a3' + money(mf);
-  { const simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.extraM7to12;
-    $('scMobileFreeLabel').textContent = '\ud83d\udcf1 ' + simMo + 'm free Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' \u00d7 ' : '') + simMo + 'm @ \u00a3' + simRt + ')'; }
+  { const simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
+    $('scMobileFreeLabel').textContent = '\ud83d\udcf1 ' + simMo + 'm free Go Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' \u00d7 ' : '') + simMo + 'm @ \u00a3' + simRt + ')'; }
   $('scWelcomeRow').classList.toggle('hidden', w === 0);
-  $('scWelcomeLabel').textContent = '\ud83d\udcb7 Cashback bonus (' + (w / 50) + 'm @ \u00a350)';
+  $('scWelcomeLabel').textContent = '\ud83d\udcb7 Welcome Bonus (' + (w / 50) + 'm @ \u00a350)';
   $('scWelcome').textContent = '\u00a3' + money(w);
   $('scCardFeeRow').classList.toggle('hidden', !cbOn);
   $('scCardFee').textContent = '+\u00a3' + money(fm);
