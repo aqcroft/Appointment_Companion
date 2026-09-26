@@ -17,12 +17,6 @@ export const TOOLS = Object.freeze({
     url: 'https://aqcroft.github.io/ShouldIFix/Oct2026.html',
     context: true
   },
-  money: {
-    id: 'money',
-    label: 'How the Money Works',
-    url: 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html',
-    context: false
-  },
   team: {
     id: 'team',
     label: 'Team Triumph Resources',

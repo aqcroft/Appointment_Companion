@@ -77,7 +77,7 @@
     function byLabel(label) { return buttons.find(function (b) { return b.getAttribute('aria-label') === label; }); }
     var main = byLabel('Main Companion') || makeMainButton();
     var open = byLabel('Open customers'), save = byLabel('Save customer'), share = byLabel('Share');
-    var fix = byLabel('Should I Fix?'), ev = byLabel('EV Companion'), money = byLabel('How the Money Works');
+    var fix = byLabel('Should I Fix?'), ev = byLabel('EV Companion');
     var earnings = byLabel('Partner Earnings - First 60 Days') || byLabel('Partner Earnings Tool');
     var team = byLabel('Team Triumph Resources'), menu = byLabel('Companion menu');
     main.classList.toggle('active', isMain); if (fix) fix.classList.toggle('active', isFix); if (ev) ev.classList.toggle('active', isEv);
@@ -92,7 +92,7 @@
     inner.appendChild(separator());
     if (share) inner.appendChild(share);
     inner.appendChild(separator());
-    [main,fix,ev,money,earnings,team].filter(Boolean).forEach(function (b) { inner.appendChild(b); });
+    [main,fix,ev,earnings,team].filter(Boolean).forEach(function (b) { inner.appendChild(b); });
     inner.appendChild(separator()); if (menu) inner.appendChild(menu);
     inner.dataset.acV22Order = '1'; return true;
   }

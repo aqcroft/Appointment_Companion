@@ -5,7 +5,6 @@
 
   var VERSION = 'v2.42';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
-  var HOW_MONEY = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html';
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
   var isEv = /\/consolidated-v1\/ev\//.test(path);
@@ -127,7 +126,6 @@
       if (isEv) return;
       if (specialistMode) location.assign(new URL('./ev/', root).href); else clickMain('cloudCompanionEv');
     }, isEv ? 'active' : ''));
-    inner.appendChild(specialistButton('💰', 'How the Money Works', function () { location.assign(HOW_MONEY); }));
     inner.appendChild(specialistButton('💷', 'Partner Earnings - First 60 Days', function () {
       var earningsUrl = new URL('https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html');
       var name = '';
