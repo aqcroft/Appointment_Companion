@@ -13,7 +13,7 @@
   <script>
   (async function () {
     try {
-      var version = '20260923-v2.42-chartspace3';
+      var version = '20260926-v2.42-fix-universal-menu1';
       var response = await fetch('../../cloud-test/should-i-fix-pilot-v2.html?v=' + version);
       if (!response.ok) throw new Error('Should I Fix donor returned HTTP ' + response.status);
       var html = await response.text();
