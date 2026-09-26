@@ -14,7 +14,8 @@
     if(document.getElementById('acTariffHealth242Style'))return;
     var st=document.createElement('style');st.id='acTariffHealth242Style';
     st.textContent=[
-      '.ac-tariff-health242{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;margin-left:4px;border:0;background:transparent;cursor:pointer;vertical-align:middle}',
+      '.ac-tariff-health242{display:inline-flex;align-items:center;justify-content:center;width:18px;height:11px;padding:0;margin:0;border:0;background:transparent;cursor:pointer;vertical-align:middle}',
+      '.ac-version-stack .ac-tariff-health242{margin:0}',
       '.ac-tariff-health242 i{display:block;width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px rgba(217,138,0,.13)}',
       '.ac-tariff-health242[data-state="green"] i{background:#1d9b50;box-shadow:0 0 0 2px rgba(29,155,80,.13)}',
       '.ac-tariff-health242[data-state="red"] i{background:#c43b3b;box-shadow:0 0 0 2px rgba(196,59,59,.13)}',
@@ -57,7 +58,10 @@
     var version=document.querySelector('.ac-version-mini');if(!version)return false;
     if(document.getElementById('acTariffHealth242'))return update();
     var b=document.createElement('button');b.type='button';b.id='acTariffHealth242';b.className='ac-tariff-health242';b.innerHTML='<i aria-hidden="true"></i>';
-    b.addEventListener('click',function(){renderModal(false);});version.insertAdjacentElement('afterend',b);update();return true;
+    b.addEventListener('click',function(){renderModal(false);});
+    var stack=version.closest('.ac-version-stack');
+    if(!stack){stack=document.createElement('span');stack.className='ac-version-stack';version.parentNode.insertBefore(stack,version);stack.appendChild(version);}
+    stack.appendChild(b);update();return true;
   }
   styles();
   ['checking','changed','error'].forEach(function(n){global.addEventListener('ac:tariffs:'+n,function(){update();});});
