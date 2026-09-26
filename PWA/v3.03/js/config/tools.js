@@ -20,7 +20,7 @@ export const TOOLS = Object.freeze({
   money: {
     id: 'money',
     label: 'How the Money Works',
-    url: 'https://earnuw.co.uk/?video=how_you_earn',
+    url: 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html',
     context: false
   },
   team: {
