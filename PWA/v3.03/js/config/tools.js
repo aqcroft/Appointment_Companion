@@ -16,6 +16,18 @@ export const TOOLS = Object.freeze({
     label: 'Should I Fix?',
     url: 'https://aqcroft.github.io/ShouldIFix/Oct2026.html',
     context: true
+  },
+  money: {
+    id: 'money',
+    label: 'How the Money Works',
+    url: 'https://earnuw.co.uk/?video=how_you_earn',
+    context: false
+  },
+  team: {
+    id: 'team',
+    label: 'Team Triumph Resources',
+    url: 'https://aqcroft.github.io/TeamTriumph/',
+    context: false
   }
 });
 

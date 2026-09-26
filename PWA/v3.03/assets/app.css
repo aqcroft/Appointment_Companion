@@ -2321,8 +2321,8 @@ html[data-cloud-state="problem"] .topbar { border-bottom-color:#ecc0c7; }
 }
 
 /* V3.03 tariff integrity indicator */
-.tariff-health-button{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:10px;font-weight:900;white-space:nowrap}
-.tariff-health-button i{width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px rgba(217,138,0,.13)}
+.tariff-health-button{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:42px;min-height:38px;padding:4px 7px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--muted);font-size:10px;font-weight:900;white-space:nowrap}
+.tariff-health-button i{display:block;width:8px;height:8px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px rgba(217,138,0,.13)}
 .tariff-health-button[data-state="green"] i{background:var(--good);box-shadow:0 0 0 2px rgba(29,155,80,.13)}
 .tariff-health-button[data-state="red"] i{background:var(--bad);box-shadow:0 0 0 2px rgba(196,59,59,.13)}
 .tariff-health-grid{display:grid;margin-top:12px;border-top:1px solid var(--line)}

@@ -3,8 +3,9 @@
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
 
-  var VERSION = 'v2.1';
+  var VERSION = 'v2.42';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
+  var HOW_MONEY = 'https://earnuw.co.uk/?video=how_you_earn';
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
   var isEv = /\/consolidated-v1\/ev\//.test(path);
@@ -36,6 +37,7 @@
       '.ac-toolbtn.active{border-color:#7a42c8;background:rgba(122,66,200,.10);box-shadow:inset 0 -2px 0 rgba(122,66,200,.45)}',
       '.ac-toolbtn.muted{opacity:.28;filter:grayscale(1)}',
       '.ac-sep{width:1px;height:23px;background:rgba(38,22,79,.18);margin:0 2px;flex:0 0 1px}',
+      '.ac-version-stack{display:inline-flex;flex:0 0 auto;min-width:34px;flex-direction:column;align-items:center;justify-content:center;gap:1px}',
       '.ac-version-mini{border:1px solid rgba(122,66,200,.14);border-radius:999px;background:#fff;color:#6b6b76;font:700 9px/1 system-ui;padding:5px 6px;cursor:pointer;white-space:nowrap}',
       '.ac-about{display:none;position:fixed;inset:0;z-index:10050;background:rgba(38,22,79,.38);padding:18px;align-items:center;justify-content:center}',
       '.ac-about.open{display:flex}',
@@ -101,6 +103,7 @@
     inner.appendChild(specialistButton('💾', 'Save customer', function () {
       if (specialistMode) location.assign(new URL('./?open=save', root).href); else clickMain('cloudSaveShortcut');
     }));
+    inner.appendChild(separator());
     inner.appendChild(specialistButton('📤', 'Share', function () {
       if (specialistMode) {
         var share = document.getElementById('createShareBtn') || document.getElementById('shareBtn');
@@ -121,6 +124,7 @@
       if (isEv) return;
       if (specialistMode) location.assign(new URL('./ev/', root).href); else clickMain('cloudCompanionEv');
     }, isEv ? 'active' : ''));
+    inner.appendChild(specialistButton('💰', 'How the Money Works', function () { location.assign(HOW_MONEY); }));
     inner.appendChild(specialistButton('💵', 'Partner Earnings - First 60 Days', function () {
       var earningsUrl = new URL('https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html');
       var name = '';
