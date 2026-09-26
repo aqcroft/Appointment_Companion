@@ -34,6 +34,7 @@
       '.ac-toolstrip.ac-main{position:static;background:transparent;backdrop-filter:none;border-bottom:1px solid rgba(122,66,200,.12);padding:0 0 6px;margin-bottom:4px}',
       '.ac-toolstrip-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:4px;justify-content:flex-start}',
       '.ac-toolbtn{width:34px;height:34px;min-width:34px;border:1px solid rgba(122,66,200,.22);border-radius:9px;background:white;color:#26164f;display:inline-flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;padding:0}',
+      '.ac-toolbtn .ac-share-icon{width:17px;height:17px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '.ac-toolbtn.active{border-color:#7a42c8;background:rgba(122,66,200,.10);box-shadow:inset 0 -2px 0 rgba(122,66,200,.45)}',
       '.ac-toolbtn.muted{opacity:.28;filter:grayscale(1)}',
       '.ac-sep{width:1px;height:23px;background:rgba(38,22,79,.18);margin:0 2px;flex:0 0 1px}',
@@ -104,12 +105,14 @@
       if (specialistMode) location.assign(new URL('./?open=save', root).href); else clickMain('cloudSaveShortcut');
     }));
     inner.appendChild(separator());
-    inner.appendChild(specialistButton('📤', 'Share', function () {
+    var shareButton = specialistButton('', 'Share', function () {
       if (specialistMode) {
         var share = document.getElementById('createShareBtn') || document.getElementById('shareBtn');
         if (share) share.click(); else location.assign(new URL('./?open=share', root).href);
       } else clickMain('cloudShareShortcut');
-    }));
+    });
+    shareButton.innerHTML = '<svg class="ac-share-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="M8.2 10.9l7.5-4.4M8.2 13.1l7.5 4.4"></path></svg>';
+    inner.appendChild(shareButton);
 
     inner.appendChild(separator());
     inner.appendChild(specialistButton('🔢', 'Main Companion', function () {
