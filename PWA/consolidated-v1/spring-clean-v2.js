@@ -77,14 +77,23 @@
     function byLabel(label) { return buttons.find(function (b) { return b.getAttribute('aria-label') === label; }); }
     var main = byLabel('Main Companion') || makeMainButton();
     var open = byLabel('Open customers'), save = byLabel('Save customer'), share = byLabel('Share');
-    var fix = byLabel('Should I Fix?'), ev = byLabel('EV Companion'), card = byLabel('Cashback Card Companion');
+    var fix = byLabel('Should I Fix?'), ev = byLabel('EV Companion'), money = byLabel('How the Money Works');
+    var earnings = byLabel('Partner Earnings - First 60 Days') || byLabel('Partner Earnings Tool');
     var team = byLabel('Team Triumph Resources'), menu = byLabel('Companion menu');
     main.classList.toggle('active', isMain); if (fix) fix.classList.toggle('active', isFix); if (ev) ev.classList.toggle('active', isEv);
     while (inner.firstChild) inner.removeChild(inner.firstChild);
-    if (version) inner.appendChild(version); inner.appendChild(separator());
-    [open,save,share].filter(Boolean).forEach(function (b) { inner.appendChild(b); }); inner.appendChild(separator());
-    [main,fix,ev,card].filter(Boolean).forEach(function (b) { inner.appendChild(b); }); inner.appendChild(separator());
-    if (team) inner.appendChild(team); inner.appendChild(separator()); if (menu) inner.appendChild(menu);
+    var health = document.getElementById('acTariffHealth242');
+    if (version) {
+      var versionStack = document.createElement('span'); versionStack.className = 'ac-version-stack';
+      versionStack.appendChild(version); if (health) versionStack.appendChild(health); inner.appendChild(versionStack);
+    }
+    inner.appendChild(separator());
+    [open,save].filter(Boolean).forEach(function (b) { inner.appendChild(b); });
+    inner.appendChild(separator());
+    if (share) inner.appendChild(share);
+    inner.appendChild(separator());
+    [main,fix,ev,money,earnings,team].filter(Boolean).forEach(function (b) { inner.appendChild(b); });
+    inner.appendChild(separator()); if (menu) inner.appendChild(menu);
     inner.dataset.acV22Order = '1'; return true;
   }
 
