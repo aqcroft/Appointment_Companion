@@ -125,7 +125,7 @@
       if (specialistMode) location.assign(new URL('./ev/', root).href); else clickMain('cloudCompanionEv');
     }, isEv ? 'active' : ''));
     inner.appendChild(specialistButton('💰', 'How the Money Works', function () { location.assign(HOW_MONEY); }));
-    inner.appendChild(specialistButton('💵', 'Partner Earnings - First 60 Days', function () {
+    inner.appendChild(specialistButton('💷', 'Partner Earnings - First 60 Days', function () {
       var earningsUrl = new URL('https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html');
       var name = '';
       try {
@@ -141,7 +141,7 @@
     }));
 
     inner.appendChild(separator());
-    inner.appendChild(specialistButton('🏆', 'Team Triumph Resources', function () { location.assign(TEAM); }));
+    inner.appendChild(specialistButton('📚', 'Team Triumph Resources', function () { location.assign(TEAM); }));
     inner.appendChild(separator());
     inner.appendChild(specialistButton('☰', 'Companion menu', function () {
       if (specialistMode) location.assign(new URL('./?open=menu', root).href); else clickMain('cloudActionMenu');
