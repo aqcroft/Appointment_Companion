@@ -5,7 +5,7 @@
 
   var VERSION = 'v2.42';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
-  var HOW_MONEY = 'https://earnuw.co.uk/?video=how_you_earn';
+  var HOW_MONEY = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html';
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
   var isEv = /\/consolidated-v1\/ev\//.test(path);
