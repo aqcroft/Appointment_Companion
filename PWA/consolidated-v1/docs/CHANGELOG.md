@@ -1,5 +1,11 @@
 # Appointment Companion changelog
 
+## v2.45.4 - 4th October 2026
+
+- Added a 🔐 Admin shortcut to the shared Companion menu.
+- The Admin shortcut is reachable from Main Companion and via the existing Companion menu route from EV and Should I Fix.
+- Admin access remains protected by the separate Companion Admin password.
+
 ## v2.45.3 - 4th October 2026
 
 - Fixed Companion Admin loading the stale root-level Cloud client instead of the current PWA Cloud client.
