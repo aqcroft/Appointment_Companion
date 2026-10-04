@@ -253,8 +253,11 @@
     var handsetPersist = persistedCost(n, 'Handset');
     if (!monthly || !airtimePersist || !handsetPersist) return;
     var total = numberValue(airtimePersist) + numberValue(handsetPersist);
-    monthly.value = total ? String(total) : '';
-    monthly.dispatchEvent(new Event('input', { bubbles:true }));
+    var nextValue = total ? String(total) : '';
+    if (String(monthly.value || '') !== nextValue) {
+      monthly.value = nextValue;
+      monthly.dispatchEvent(new Event('input', { bubbles:true }));
+    }
   }
 
   function ensureSplitFields(sim, n, initialise) {
@@ -303,12 +306,13 @@
 
     if ($('mobileSplitCostToggle') && $('mobileSplitCostToggle').checked) {
       updateCombinedFromSplit(sim, n);
-    } else if (monthly) {
+    } else if (monthly && monthly.dataset.acSplitSyncBound !== '1') {
+      monthly.dataset.acSplitSyncBound = '1';
       monthly.addEventListener('input', function syncCombinedToDefaultSplit() {
         if ($('mobileSplitCostToggle') && $('mobileSplitCostToggle').checked) return;
         if (airtimePersist) airtimePersist.value = monthly.value;
         if (handsetPersist) handsetPersist.value = '';
-      }, { once:false });
+      });
     }
   }
 
@@ -404,7 +408,9 @@
         syncMobileModes();
         decorateSims(true);
       });
-      simObserver.observe(simList, { childList:true, subtree:true });
+      // Observe only direct SIM-card rebuilds. Watching the whole subtree made
+      // our own decoration mutations re-trigger the observer repeatedly.
+      simObserver.observe(simList, { childList:true });
     }
 
     var services = $('servicesCard');
@@ -427,15 +433,6 @@
         if (split) split.checked = false;
         syncMobileModes();
         decorateSims();
-        exposeCashbackControls();
-        syncManualExtrasVisibility();
-      }, 0);
-    });
-
-    global.addEventListener('ac:working-record', function () {
-      setTimeout(function () {
-        syncMobileModes();
-        decorateSims(true);
         exposeCashbackControls();
         syncManualExtrasVisibility();
       }, 0);
