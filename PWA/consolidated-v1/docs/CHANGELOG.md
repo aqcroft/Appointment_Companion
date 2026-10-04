@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.46.3 - 4th October 2026
+
+- Corrected the Should I Fix Tracker comparison for the 1st October cap and tariff change.
+- October to December now uses the current live UW Tracker rates rather than a percentage relationship derived from the previous July to September cap.
+- Future Tracker estimates now apply each Tracker 6 tier's contractual Direct Debit pence discounts to the modelled price-cap rates on an ex-VAT basis, then apply the correct VAT for that month.
+- Corrected VAT display and calculations so electricity is 0% from 1st October 2026 to 31st March 2027 and returns to 5% from 1st April 2027; gas remains at 5%.
+- Updated the Should I Fix cache token so installed copies load the corrected calculator immediately.
+- Applied master v2.46.3 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.46.2 - 4th October 2026
 
 - Saving an existing Partner profile now collapses the edit form automatically.
