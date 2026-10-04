@@ -62,7 +62,8 @@ function handleCompanionAdminAction_(action, body) {
     'adminProvisionPartner',
     'adminListPartners',
     'adminUpdatePartner',
-    'adminResetPartnerPassword'
+    'adminResetPartnerPassword',
+    'adminUploadPartnerPhoto'
   ];
   if (adminActions.indexOf(action) < 0) return null;
 
@@ -73,6 +74,7 @@ function handleCompanionAdminAction_(action, body) {
   if (action === 'adminListPartners') return adminListPartners_();
   if (action === 'adminUpdatePartner') return adminUpdatePartner_(body);
   if (action === 'adminResetPartnerPassword') return adminResetPartnerPassword_(body);
+  if (action === 'adminUploadPartnerPhoto') return adminUploadPartnerPhoto_(body);
   return null;
 }
 
@@ -215,6 +217,67 @@ function adminResetPartnerPassword_(body) {
       password: password
     })
   };
+}
+
+
+function adminUploadPartnerPhoto_(body) {
+  const input = body && body.photo && typeof body.photo === 'object' ? body.photo : {};
+  const dataUrl = String(input.data_url || '');
+  const nameHint = cleanAdminText_(input.name || input.partner_name || input.companion_login_id || 'partner', 80);
+  const match = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$/i);
+  if (!match) throw new Error('Please choose a JPEG, PNG or WebP image.');
+
+  const bytes = Utilities.base64Decode(match[2]);
+  if (!bytes || !bytes.length) throw new Error('The selected photo was empty.');
+  if (bytes.length > 1500000) throw new Error('The resized photo is still too large. Please choose a smaller image.');
+
+  const folder = ensureCompanionPartnerPhotoFolder_();
+  const filename = makePartnerPhotoFilename_(nameHint);
+  const blob = Utilities.newBlob(bytes, 'image/jpeg', filename);
+  const file = folder.createFile(blob);
+
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (err) {
+    try { file.setTrashed(true); } catch (_) {}
+    throw new Error('Google Drive would not allow the Partner photo to be shared publicly. Check the Drive sharing policy and try again.');
+  }
+
+  const id = file.getId();
+  const photoUrl = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w800';
+  return {
+    ok: true,
+    photo: {
+      file_id: id,
+      photo_url: photoUrl,
+      drive_url: file.getUrl(),
+      name: filename
+    }
+  };
+}
+
+function ensureCompanionPartnerPhotoFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const savedId = String(props.getProperty('COMPANION_PARTNER_PHOTO_FOLDER_ID') || '').trim();
+  if (savedId) {
+    try { return DriveApp.getFolderById(savedId); } catch (_) {}
+  }
+
+  const folderName = 'Appointment Companion Partner Photos';
+  const existing = DriveApp.getFoldersByName(folderName);
+  const folder = existing.hasNext() ? existing.next() : DriveApp.createFolder(folderName);
+  props.setProperty('COMPANION_PARTNER_PHOTO_FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function makePartnerPhotoFilename_(value) {
+  const base = String(value || 'partner')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50) || 'partner';
+  return base + '-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/London', 'yyyyMMdd-HHmmss') + '.jpg';
 }
 
 function cleanPartnerProfileInput_(input) {
