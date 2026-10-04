@@ -1005,9 +1005,11 @@ const CONFIG = {
   // Exit fees refunded by UW up to £400 when taking 3+ services
   exitFeeRefund: { minServices: 3, maxRefund: 400 },
 
-  // Boiler Cover — fixed monthly rate (update here when UW changes pricing)
+  // Boiler Cover — current live rate. freeMonthsLegacy is retained only so
+  // already-sent historical links from the retired offer can still render.
   insurance: {
-    boilerCover: 25
+    boilerCover: 25,
+    freeMonthsLegacy: 3
   },
 
   // Cashback card
@@ -1952,9 +1954,8 @@ function renderCard(r) {
   $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
   $('scCardFee').textContent = '+£' + r.freeMonthsValue;
   $('scCardFeeLabel').textContent = '💳 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + ')';
-  $('scBoilerFreeRow').classList.toggle('hidden', r.boilerCoverFree === 0);
-  $('scBoilerFree').textContent = '£' + Math.round(r.boilerCoverFree);
-  $('scBoilerFreeLabel').textContent = '🛡️ ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + ')';
+  // Retired Boiler Cover free-period offer: hidden for all new live calculations.
+  $('scBoilerFreeRow').classList.add('hidden');
   // One-off line — refund (green +) or charge (red −), year one only
   $('scOneOffRow').classList.toggle('hidden', r.oneOff === 0);
   if (r.oneOff !== 0) {
@@ -1987,11 +1988,11 @@ function renderCard(r) {
   // Year-one Savings on Services + this Total = the hero figure, exactly.
   $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
   $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
-  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.mobileFreeMonths + r.boilerCoverFree
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.mobileFreeMonths
     + (r.cbOn ? r.freeMonthsValue : 0)
     + r.oneOff
     - r.exitDeduction;
-  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.natLeague + real.mobileFreeMonths + real.boilerCoverFree
+  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.natLeague + real.mobileFreeMonths
     + (real.cbOn ? real.freeMonthsValue : 0)
     + real.oneOff
     - real.exitDeduction;
@@ -3068,7 +3069,7 @@ function renderShared(d) {
   $('scCardFeeLabel').textContent = '\ud83d\udcb3 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ \u00a3' + CONFIG.cashback.cardFeeMonthly + ')';
   $('scBoilerFreeRow').classList.toggle('hidden', bcf === 0);
   $('scBoilerFree').textContent = '\u00a3' + money(bcf);
-  $('scBoilerFreeLabel').textContent = '\ud83d\udee1\ufe0f ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ \u00a3' + bc + ')';
+  $('scBoilerFreeLabel').textContent = '\ud83d\udee1\ufe0f ' + CONFIG.insurance.freeMonthsLegacy + 'm free Boiler Cover (' + CONFIG.insurance.freeMonthsLegacy + 'm @ \u00a3' + bc + ')';
   const oo = g('oo');
   $('scOneOffRow').classList.toggle('hidden', oo === 0);
   if (oo !== 0) {
