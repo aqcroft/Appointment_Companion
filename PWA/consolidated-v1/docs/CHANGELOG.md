@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.45 - 4th October 2026
+
+- Added Drive-backed Partner profile photo upload to Companion Admin.
+- Admin can choose a JPEG, PNG or WebP from phone/computer instead of finding a hosted image URL manually.
+- Photos are resized client-side before upload and stored as JPEGs in a dedicated `Appointment Companion Partner Photos` Google Drive folder.
+- The backend returns a public Drive thumbnail URL which is stored in the Partner profile.
+- The Drive folder ID is retained in Apps Script Properties for reuse.
+- Existing URL-based profile photos remain supported as a fallback.
+- Bumped the PWA cache/version metadata in line with the universal release rule.
+
 ## v2.44 - 4th October 2026
 
 - Added Cloud-backed Partner profiles as the reusable identity layer for multiple Companion users.
