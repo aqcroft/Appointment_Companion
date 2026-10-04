@@ -1,5 +1,11 @@
 # Appointment Companion changelog
 
+## v2.45.5 - 4th October 2026
+
+- Added 📲 Send fresh login to each Partner row in Companion Admin.
+- The action reuses the existing password reset flow, then presents the same copy / WhatsApp-ready credentials card used after Partner creation.
+- Updated Admin page/version metadata and PWA cache metadata to v2.45.5.
+
 ## v2.45.4 - 4th October 2026
 
 - Added a 🔐 Admin shortcut to the shared Companion menu.
