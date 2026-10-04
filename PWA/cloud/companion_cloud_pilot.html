@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appointment Companion v2.45.13 — UW Savings</title>
+<title>Appointment Companion v2.46.0 — UW Savings</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -802,8 +802,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <input type="text" id="ppName" autocomplete="name" placeholder="First Last">
     </div>
     <div class="field">
-      <label>Your UW sign-up link * <span class="sub">just the first.last part, from Portal Quicklinks</span></label>
-      <input type="text" id="ppJoin" inputmode="url" autocomplete="off" placeholder="first.last">
+      <label>Your UW Partner slug * <span class="sub">usually first.last</span></label>
+      <input type="text" id="ppJoin" autocomplete="off" placeholder="first.last">
       <p class="sub" id="ppJoinPreview" style="margin-top:0.35rem; word-break:break-all;"></p>
     </div>
     <div class="field">
@@ -2887,19 +2887,29 @@ function joinSlug(v) {
   const m = (v || '').match(/uw\.partners\/([a-z0-9][a-z0-9._-]*)/i);
   return m ? m[1] : '';
 }
-function normaliseJoin(raw) {
-  const s = (raw || '').trim();
+function normalisePartnerSlug(raw) {
+  let s = (raw || '').trim();
   if (!s) return '';
+  const email = s.match(/^([^@\s]+)@uw\.partners$/i);
+  if (email) s = email[1];
   const m = s.match(/uw\.partners\/([a-z0-9][a-z0-9._-]*)/i);
-  const slug = m ? m[1]
-    : s.replace(/^https?:\/\//i, '').replace(/\/?join\/?$/i, '').replace(/^\/+|\/+$/g, '');
+  return (m ? m[1] : s)
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/(?:partner\/)?join\/?$/i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\s+/g, '');
+}
+function normaliseJoin(raw) {
+  const slug = normalisePartnerSlug(raw);
   return slug ? 'https://uw.partners/' + slug + '/join' : '';
 }
 function updateJoinPreview() {
-  const url = normaliseJoin($('ppJoin').value);
-  $('ppJoinPreview').textContent = url
-    ? '\u2192 ' + url
-    : '\u2192 https://uw.partners/first.last/join';
+  const slug = normalisePartnerSlug($('ppJoin').value);
+  const shown = slug || 'first.last';
+  $('ppJoinPreview').innerHTML =
+    '\u2192 Customer: https://uw.partners/' + shown + '/join' +
+    '<br>\u2192 Partner: https://uw.partners/' + shown + '/partner/join' +
+    '<br>\u2192 Email: ' + shown + '@uw.partners';
 }
 
 function rawPartner() {
@@ -2926,7 +2936,7 @@ function setPartner(p) {
 function openPartnerPrompt(msg) {
   const p = rawPartner();
   $('ppName').value = p.name || '';
-  $('ppJoin').value = joinSlug(p.join) || p.join || '';
+  $('ppJoin').value = p.partner_slug || normalisePartnerSlug(p.join || p.email || '');
   $('ppTown').value = p.town || '';
   $('ppStrap').value = (p.strap !== undefined && p.strap !== '') ? p.strap : DEFAULT_PARTNER_STRAP;
   updateJoinPreview();
@@ -2951,7 +2961,7 @@ function requirePartnerSetup() {
 function requireShareCta() {
   const partner = getPartner() || {};
   if (basketLink() || partner.join) return true;
-  $('shareGateMsg').textContent = 'Add a personalised basket link, or add your UW sign-up link in ☰ → My profile, before sharing.';
+  $('shareGateMsg').textContent = 'Add a personalised basket link, or add your UW Partner slug in ☰ → My profile, before sharing.';
   $('shareGateMsg').classList.remove('hidden');
   return false;
 }
@@ -2960,22 +2970,16 @@ $('ppSaveBtn').addEventListener('click', () => {
   const err = $('ppErr');
   const showErr = t => { err.textContent = t; err.classList.remove('hidden'); };
   const name = $('ppName').value.trim();
-  let join = normaliseJoin($('ppJoin').value);
+  const slug = normalisePartnerSlug($('ppJoin').value);
+  const join = slug ? 'https://uw.partners/' + slug + '/join' : '';
   if (!name) return showErr('Please enter your name.');
-  if (!join) return showErr('Please enter the first.last part of your UW sign-up link.');
-  if (!JOIN_URL_RE.test(join)) {
-    // Escape hatch: if it's at least a uw.partners link, warn but allow —
-    // covers minor format changes without locking anyone out.
-    if (/^https:\/\/(www\.)?uw\.partners\/.+/i.test(join)) {
-      const ok = confirm("That link doesn't quite match the usual format:\nhttps://uw.partners/first.last/join\n\nUse it anyway?");
-      if (!ok) return showErr('Double-check your sign-up link and try again.');
-    } else {
-      return showErr('That doesn\u2019t look like a UW sign-up link. Expected format: https://uw.partners/first.last/join');
-    }
-  }
+  if (!slug) return showErr('Please enter your UW Partner slug, usually first.last.');
   setPartner({
     name: name,
+    partner_slug: slug,
     join: join,
+    partner_join: 'https://uw.partners/' + slug + '/partner/join',
+    email: (rawPartner().email || (slug + '@uw.partners')),
     town: $('ppTown').value.trim(),
     strap: $('ppStrap').value.trim()
   });
