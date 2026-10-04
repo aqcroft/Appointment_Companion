@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appointment Companion v2.45.10 — UW Savings</title>
+<title>Appointment Companion v2.45.11 — UW Savings</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -383,17 +383,17 @@ label.active-tier { color:var(--purple); font-weight:700; }
     <div class="field">
       <input type="text" id="customerName" placeholder="Customer name (e.g. Mitch or Julietta & Andy)" autocomplete="off">
     </div>
-    <div class="pills" style="margin-bottom: 0.6rem;">
-      <button class="pill" id="pillHomeowner" type="button">🏠 Homeowner</button>
-      <button class="pill" id="pillTenant" type="button">🏘️ Tenant</button>
-    </div>
     <div class="switchrow">
       <span class="lbl">Referred by an existing customer</span>
       <span class="switch"><input type="checkbox" id="referralToggle"><span class="track"></span></span>
     </div>
-    <div class="switchrow">
+    <div class="switchrow" style="margin-bottom:0.45rem;">
       <span class="lbl">⚽ National League referral <span class="sub">homeowner or tenant</span></span>
       <span class="switch"><input type="checkbox" id="natLeagueToggle"><span class="track"></span></span>
+    </div>
+    <div class="pills" style="margin-bottom: 0.6rem;">
+      <button class="pill" id="pillHomeowner" type="button">🏠 Homeowner</button>
+      <button class="pill" id="pillTenant" type="button">🏘️ Tenant</button>
     </div>
   </div>
 
@@ -403,6 +403,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <button class="pill" type="button" data-service="energy">⚡🔥 Energy</button>
       <button class="pill" type="button" data-service="broadband">🛜 Broadband</button>
       <button class="pill" type="button" data-service="mobile">📱 Mobile Sim(s)</button>
+      <button class="pill hidden" type="button" data-service="boiler" id="boilerServicePill">🛡️ Boiler Cover</button>
     </div>
     <p class="sub" id="svcCounter" style="margin-top: 0.6rem; font-weight: 600;">Qualifying UW services: 0</p>
   </div>
@@ -411,7 +412,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <div class="card hidden" id="energyCard">
     <div class="section-heading">
       <h2>Energy</h2>
-      <button type="button" class="icon-toggle" id="energyAdvancedToggle" title="Energy details" aria-label="Show energy details" aria-expanded="false">⚙️</button>
+      <button type="button" class="icon-toggle" id="energyAdvancedToggle" title="Energy usage" aria-label="Show energy usage" aria-expanded="false">⚙️</button>
     </div>
     <div class="hidden" id="energyAdvancedDetails">
       <div class="progressive-body">
@@ -640,11 +641,9 @@ label.active-tier { color:var(--purple); font-weight:700; }
 
   <!-- BOILER COVER -->
   <div class="card hidden" id="insuranceCard">
-    <div class="switchrow" style="padding:0;">
-      <h2 style="margin-bottom:0;">🛡️ Boiler Cover</h2>
-      <span class="switch"><input type="checkbox" id="boilerCoverToggle"><span class="track"></span></span>
-    </div>
-    <div id="boilerCoverCompare" class="hidden" style="margin-top:0.7rem;">
+    <input type="checkbox" id="boilerCoverToggle" class="hidden" tabindex="-1" aria-hidden="true">
+    <h2>🛡️ Boiler Cover</h2>
+    <div id="boilerCoverCompare">
       <div class="nowuw">
         <div class="side">
           <span class="tag">Current</span>
@@ -1072,6 +1071,16 @@ function currentPreviewCount() {
 document.querySelectorAll('[data-service]').forEach(btn => {
   btn.addEventListener('click', () => {
     const s = btn.dataset.service;
+    if (s === 'boiler') {
+      if (state.homeowner !== 'homeowner') return;
+      const on = !$('boilerCoverToggle').checked;
+      $('boilerCoverToggle').checked = on;
+      btn.classList.toggle('on', on);
+      $('insuranceCard').classList.toggle('hidden', !on);
+      $('boilerCoverCompare').classList.toggle('hidden', !on);
+      calc();
+      return;
+    }
     state.services[s] = !state.services[s];
     btn.classList.toggle('on', state.services[s]);
     $(s + 'Card').classList.toggle('hidden', !state.services[s]);
@@ -1086,12 +1095,20 @@ function setHome(which) {
   $('pillTenant').classList.toggle('on', which === 'tenant');
   $('bbFreeMonthsRow').classList.toggle('hidden', which !== 'homeowner');
   if (which !== 'homeowner') $('bbFreeMonthsToggle').checked = false;
+  const boilerPill = $('boilerServicePill');
+  if (boilerPill) boilerPill.classList.toggle('hidden', which !== 'homeowner');
   if (which !== 'homeowner') {
     $('boilerCoverToggle').checked = false;
     $('boilerCoverCompare').classList.add('hidden');
+    $('insuranceCard').classList.add('hidden');
+    if (boilerPill) boilerPill.classList.remove('on');
+  } else {
+    const boilerOn = $('boilerCoverToggle').checked;
+    $('insuranceCard').classList.toggle('hidden', !boilerOn);
+    $('boilerCoverCompare').classList.toggle('hidden', !boilerOn);
+    if (boilerPill) boilerPill.classList.toggle('on', boilerOn);
   }
   ['servicesCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));
-  $('insuranceCard').classList.toggle('hidden', which !== 'homeowner');
   calc();
 }
 $('pillHomeowner').addEventListener('click', () => setHome('homeowner'));
@@ -1244,9 +1261,13 @@ document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(btn => {
   });
 });
 
-// Boiler Cover
+// Boiler Cover state is driven by the top service selector.
 $('boilerCoverToggle').addEventListener('change', e => {
-  $('boilerCoverCompare').classList.toggle('hidden', !e.target.checked);
+  const on = !!e.target.checked && state.homeowner === 'homeowner';
+  const pill = $('boilerServicePill');
+  if (pill) pill.classList.toggle('on', on);
+  $('insuranceCard').classList.toggle('hidden', !on);
+  $('boilerCoverCompare').classList.toggle('hidden', !on);
   calc();
 });
 
@@ -2389,6 +2410,7 @@ function resetForm() {
   state.sims = {};
   state.includeCashback = true;
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  if ($('boilerServicePill')) $('boilerServicePill').classList.add('hidden');
   ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.add('hidden'));
   ['energyCard','broadbandCard','mobileCard','billCosts','energySplitNow'].forEach(id => $(id).classList.add('hidden'));
   state.splitGas = true; state.splitElec = true;
@@ -2529,7 +2551,16 @@ function restoreForm(saved) {
   $('oneOffFields').classList.toggle('hidden', !$('oneOffToggle').checked);
   $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
   $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
-  $('boilerCoverCompare').classList.toggle('hidden', !$('boilerCoverToggle').checked);
+  {
+    const boilerOn = $('boilerCoverToggle').checked && state.homeowner === 'homeowner';
+    const boilerPill = $('boilerServicePill');
+    if (boilerPill) {
+      boilerPill.classList.toggle('hidden', state.homeowner !== 'homeowner');
+      boilerPill.classList.toggle('on', boilerOn);
+    }
+    $('insuranceCard').classList.toggle('hidden', !boilerOn);
+    $('boilerCoverCompare').classList.toggle('hidden', !boilerOn);
+  }
   if ($('electricityUsageSection')) $('electricityUsageSection').classList.toggle('hidden', $('energyHasElectricity') && !$('energyHasElectricity').checked);
   if ($('gasUsageSection')) $('gasUsageSection').classList.toggle('hidden', $('energyHasGas') && !$('energyHasGas').checked);
 
