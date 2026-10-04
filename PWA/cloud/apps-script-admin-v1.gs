@@ -32,6 +32,7 @@ const COMPANION_PARTNER_HEADERS_ = [
   'name',
   'mobile',
   'email',
+  'partner_slug',
   'join',
   'town',
   'strap',
@@ -107,12 +108,13 @@ function handleCompanionPartnerProfileAction_(action, body) {
   }
 
   const input = body && body.partner && typeof body.partner === 'object' ? body.partner : {};
-  const updated = Object.assign({}, row, cleanPartnerProfileInput_(input), {
+  const clean = completePartnerIdentity_(cleanPartnerProfileInput_(input), row);
+  const updated = Object.assign({}, row, clean, {
     partner_id: partnerId,
     updated_at: new Date().toISOString()
   });
   if (!updated.name) throw new Error('Partner name is required.');
-  if (!updated.join) throw new Error('UW sign-up link is required.');
+  if (!updated.partner_slug) throw new Error('UW Partner slug is required.');
   updated.partner_name = updated.name;
 
   updateAdminObjectRow_(sheet, row.__row, updated);
@@ -121,12 +123,13 @@ function handleCompanionPartnerProfileAction_(action, body) {
 
 function adminProvisionPartner_(body) {
   const input = body && body.partner && typeof body.partner === 'object' ? body.partner : {};
-  const clean = cleanPartnerProfileInput_(input);
+  const clean = completePartnerIdentity_(cleanPartnerProfileInput_(input), {});
   const name = clean.name || cleanAdminText_(input.partner_name, 120);
-  let loginId = cleanAdminLogin_(input.companion_login_id || input.partner_id);
+  const loginId = cleanAdminLogin_(input.companion_login_id || input.partner_id);
 
   if (!name) throw new Error('Partner name is required.');
-  if (!loginId) loginId = makeAdminLogin_(name);
+  if (!loginId) throw new Error('Companion Login ID (UW Partner ID) is required.');
+  if (!clean.partner_slug) throw new Error('UW Partner slug is required.');
 
   const password = makeAdminPassword_();
   const sheet = ensureAdminPartnersSheet_();
@@ -180,7 +183,7 @@ function adminUpdatePartner_(body) {
   const row = findAdminPartner_(sheet, partnerId);
   if (!row) throw new Error('Partner could not be found.');
 
-  const clean = cleanPartnerProfileInput_(input);
+  const clean = completePartnerIdentity_(cleanPartnerProfileInput_(input), row);
   const updated = Object.assign({}, row, clean, {
     partner_id: String(row.partner_id),
     workspace_key: String(row.workspace_key || ''),
@@ -286,7 +289,7 @@ function cleanPartnerProfileInput_(input) {
     name: cleanAdminText_(input.name || input.partner_name, 120),
     mobile: cleanAdminText_(input.mobile, 40),
     email: cleanAdminText_(input.email, 160),
-    join: cleanAdminHttpsOrUwJoin_(input.join || input.join_url || input.uw_link),
+    partner_slug: cleanPartnerSlug_(input.partner_slug || input.slug || input.join || input.join_url || input.uw_link || input.email),
     town: cleanAdminText_(input.town, 120),
     strap: cleanAdminText_(input.strap, 220),
     photo_url: cleanAdminHttps_(input.photo_url || input.photo, 600),
@@ -295,13 +298,60 @@ function cleanPartnerProfileInput_(input) {
   };
 }
 
+function cleanPartnerSlug_(value) {
+  let raw = String(value == null ? '' : value).trim();
+  const emailMatch = raw.match(/^([^@\s]+)@uw\.partners$/i);
+  if (emailMatch) raw = emailMatch[1];
+  return raw
+    .replace(/^https?:\/\/(?:www\.)?uw\.partners\//i, '')
+    .replace(/\/(?:partner\/)?join\/?$/i, '')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\s+/g, '')
+    .replace(/[^A-Za-z0-9._-]+/g, '')
+    .slice(0, 120);
+}
+
+function partnerSlugFromRow_(row) {
+  row = row && typeof row === 'object' ? row : {};
+  return cleanPartnerSlug_(row.partner_slug || row.join || row.join_url || row.email || '');
+}
+
+function customerJoinFromPartnerSlug_(slug) {
+  slug = cleanPartnerSlug_(slug);
+  return slug ? 'https://uw.partners/' + slug + '/join' : '';
+}
+
+function partnerJoinFromPartnerSlug_(slug) {
+  slug = cleanPartnerSlug_(slug);
+  return slug ? 'https://uw.partners/' + slug + '/partner/join' : '';
+}
+
+function defaultPartnerEmailFromSlug_(slug) {
+  slug = cleanPartnerSlug_(slug);
+  return slug ? slug + '@uw.partners' : '';
+}
+
+function completePartnerIdentity_(clean, fallback) {
+  clean = clean && typeof clean === 'object' ? clean : {};
+  fallback = fallback && typeof fallback === 'object' ? fallback : {};
+  const slug = clean.partner_slug || partnerSlugFromRow_(fallback);
+  return Object.assign({}, clean, {
+    partner_slug: slug,
+    email: clean.email || String(fallback.email || '') || defaultPartnerEmailFromSlug_(slug),
+    join: customerJoinFromPartnerSlug_(slug)
+  });
+}
+
 function partnerPublicProfile_(row) {
+  const slug = partnerSlugFromRow_(row);
   return {
     partner_id: String(row.partner_id || ''),
     name: String(row.name || row.partner_name || ''),
     mobile: String(row.mobile || ''),
-    email: String(row.email || ''),
-    join: String(row.join || ''),
+    partner_slug: slug,
+    email: String(row.email || defaultPartnerEmailFromSlug_(slug) || ''),
+    join: customerJoinFromPartnerSlug_(slug) || String(row.join || ''),
+    partner_join: partnerJoinFromPartnerSlug_(slug),
     town: String(row.town || ''),
     strap: String(row.strap || ''),
     photo_url: String(row.photo_url || ''),
