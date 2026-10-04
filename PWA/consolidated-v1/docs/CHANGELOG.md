@@ -1,5 +1,18 @@
 # Appointment Companion changelog
 
+## v2.45.14 - 4th October 2026
+
+- Simplified Companion Admin so the existing Partner list is visible immediately after unlock.
+- Collapsed the full Partner creation/edit form until Create Partner or Edit is selected.
+- Reused the same form for new Partner creation and existing Partner editing.
+- Split Admin name entry into First name and Surname while continuing to save a normal combined Partner name to Cloud.
+- Automatically suggests a UW join slug in first.surname format as the name is entered.
+- Keeps the join slug directly editable for variations such as first.surname1.
+- Shows the full https://uw.partners/<slug>/join URL beneath the slug and saves that full URL to Cloud.
+- Existing full UW join URLs are converted back to the editable slug when a Partner is opened for editing.
+- Updated the password-reset confirmation to reflect the already-live backend.
+- Applied master v2.45.14 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.13 - 4th October 2026
 
 - Made the authenticated Cloud Partner profile the source of truth for Partner identity and shared-card branding.
