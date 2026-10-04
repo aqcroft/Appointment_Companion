@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appointment Companion v2.45.11 — UW Savings</title>
+<title>Appointment Companion v2.45.12 — UW Savings</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -347,7 +347,16 @@ label.active-tier { color:var(--purple); font-weight:700; }
    savings-card.html), purple = partner editor — the deliberate visual cue. */
 .view-mode body { padding-bottom: 2.5rem; background: var(--bg); }
 .view-mode .wrap, .view-mode .resultbar { display: none !important; }
-.view-mode #cardModal { display: block; position: static; background: transparent; padding: 1.2rem 0.75rem 2.5rem; overflow: visible; }
+.view-mode #cardModal { display: block; position: static; z-index:auto; background: transparent; padding: 1.2rem 0.75rem 2.5rem; overflow: visible; pointer-events:auto!important; }
+.view-mode #cardModal .sheet,
+.view-mode #shareCard,
+.view-mode #shareCard details,
+.view-mode #shareCard summary,
+.view-mode #shareCard a,
+.view-mode #shareCard button { pointer-events:auto!important; }
+.view-mode #shareCard { position:relative; z-index:1; }
+.view-mode body > .basket-prompt,
+.view-mode body > .modal:not(#cardModal) { pointer-events:none!important; }
 .view-mode #cardModal .closebar, .view-mode #cardModal .modal-actions,
 .view-mode #shareGateMsg { display: none !important; }
 .view-mode #biSimAdd { display: none !important; }
@@ -3185,6 +3194,13 @@ function initMealDealToggle(d) {
       const d = JSON.parse(b64urlDecode(encoded));
       renderShared(d);
       initMealDealToggle(d);
+      document.querySelectorAll('body > .basket-prompt, body > .modal').forEach(el => {
+        if (el.id === 'cardModal') return;
+        el.classList.remove('open');
+        el.style.pointerEvents = 'none';
+      });
+      $('cardModal').style.pointerEvents = 'auto';
+      $('shareCard').style.pointerEvents = 'auto';
     } catch (e) {
       $('cardModal').classList.add('hidden');
       $('notFound').classList.remove('hidden');
