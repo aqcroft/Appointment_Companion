@@ -1,4 +1,4 @@
-/* Appointment Companion Partner Profile v2.44
+/* Appointment Companion Partner Profile v2.45.13
    Cloud is the source of truth for Partner identity. The local Partner record
    remains an offline cache so appointments and sharing continue to work when
    Cloud is temporarily unavailable.
@@ -139,6 +139,10 @@
     if (!ensureExtraFields()) return;
     var p = normalise(profile || Object.assign({}, cachedCloudPartner(), localPartner()));
     var map = {
+      ppName: p.name,
+      ppJoin: p.join,
+      ppTown: p.town,
+      ppStrap: p.strap,
       ppPartnerId: p.partner_id,
       ppMobile: p.mobile,
       ppEmail: p.email,
@@ -150,6 +154,8 @@
       var el = document.getElementById(id);
       if (el && document.activeElement !== el) el.value = map[id] || '';
     });
+    var join = document.getElementById('ppJoin');
+    if (join && document.activeElement !== join) join.dispatchEvent(new Event('input', { bubbles: true }));
     updatePhotoPreview();
   }
 
