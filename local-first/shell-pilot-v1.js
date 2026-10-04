@@ -1,6 +1,6 @@
 /* Appointment Companion Cloud pilot v1
    Adds Cloud connect, save and load to the isolated cloud pilot.
-   Companion Login ID is remembered locally; the Password is session-only.
+   Trusted-device authentication persists across normal browser/PWA restarts.
 */
 (function () {
   'use strict';
@@ -16,6 +16,7 @@
   const $c = id => document.getElementById(id);
   const PARTNER_ID_KEY = 'apptCloudPilotPartnerId';
   const SESSION_AUTH_KEY = 'apptCloudPilotAuthSession';
+  const DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
   const CURRENT_CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
   const LOCAL_BACKUP_KEY = 'apptCompanionSaves_v2';
   const RECENT_CUSTOMERS_KEY = 'apptCompanionRecentCustomersV1';
@@ -59,10 +60,22 @@
       .replace(/"/g, '&quot;');
   }
 
+  function validAuth(auth) {
+    return !!(auth && auth.partner_id && auth.workspace_key);
+  }
+
   function getAuth() {
     try {
-      const auth = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
-      if (auth && auth.partner_id && auth.workspace_key) return auth;
+      let auth = JSON.parse(sessionStorage.getItem(SESSION_AUTH_KEY) || 'null');
+      if (!validAuth(auth)) auth = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null');
+      if (validAuth(auth)) {
+        /* A verified login belongs to this trusted device, not merely this
+           browser process. Re-hydrate sessionStorage after PWA suspension,
+           phone restart or the browser process being reclaimed. */
+        try { sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(auth)); } catch (_) {}
+        try { localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(auth)); } catch (_) {}
+        return auth;
+      }
     } catch (_) {}
     return null;
   }
@@ -73,6 +86,7 @@
       workspace_key: String(workspaceKey || '')
     };
     sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(auth));
+    localStorage.setItem(DEVICE_AUTH_KEY, JSON.stringify(auth));
     localStorage.setItem(PARTNER_ID_KEY, auth.partner_id);
     window.dispatchEvent(new CustomEvent('ac:cloud-authenticated', { detail: { partner_id: auth.partner_id } }));
     return auth;
@@ -80,9 +94,15 @@
 
   function clearAuth() {
     sessionStorage.removeItem(SESSION_AUTH_KEY);
+    localStorage.removeItem(DEVICE_AUTH_KEY);
     sessionStorage.removeItem(CURRENT_CUSTOMER_KEY);
     currentCloudCustomerId = '';
     window.dispatchEvent(new CustomEvent('ac:cloud-disconnected'));
+  }
+
+  function isDefiniteAuthFailure(err) {
+    const message = String(err && err.message || err || '').toLowerCase();
+    return /bad write token|bad workspace|invalid (?:workspace|password|login|credential)|unauthori[sz]ed|forbidden|access denied|partner authentication|login failed/.test(message);
   }
 
   function fmtDate(iso) {
@@ -702,9 +722,11 @@
       renderCloudList();
       return true;
     } catch (err) {
-      if (canReuseSession) clearAuth();
+      if (canReuseSession && isDefiniteAuthFailure(err)) clearAuth();
       if (!getAuth()) showConnected(false);
-      const message = 'Login failed - please check your Companion Login ID and Password and try again.';
+      const message = isDefiniteAuthFailure(err)
+        ? 'Login failed - please check your Companion Login ID and Password and try again.'
+        : 'Cloud is temporarily unavailable - your saved login has been kept. Please try again.';
       setInlineConnectError(errorId, message);
       setStatus(message, 'bad');
       return false;
@@ -862,7 +884,7 @@
           <div class="field">
             <label for="cloudPilotWorkspaceKey">Password</label>
             <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Password">
-            <p class="sub hidden" id="cloudSessionPasswordNote" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>
+            <p class="sub hidden" id="cloudSessionPasswordNote" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password is saved on this device. Leave this blank to reuse it, or type a replacement.</p>
           </div>
           <p class="sub hidden" id="cloudConnectError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
           <button class="pill" type="button" id="cloudPilotConnect" style="width:100%;">Connect Cloud</button>
@@ -894,7 +916,7 @@
     const key = $c('cloudPilotWorkspaceKey');
     if (key) {
       key.value = '';
-      key.placeholder = auth ? '•••••••• (available this session)' : 'Password';
+      key.placeholder = auth ? '•••••••• (saved on this device)' : 'Password';
     }
     setInlineConnectError('cloudConnectError', '');
     $c('cloudConnectModal').classList.add('open');
@@ -1340,7 +1362,7 @@
       body.innerHTML = `
         <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft.</p>
         <div class="field"><label for="onboardLoginId">Companion Login ID</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
-        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (available this session)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
+        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (saved on this device)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password is saved on this device. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
         <p class="sub hidden" id="cloudOnboardingError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
         <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
       `;
