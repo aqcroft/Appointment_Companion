@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#7a42c8">
-  <title>Appointment Companion Admin v2.45.14</title>
+  <title>Appointment Companion Admin v2.45.15</title>
   <style>
     :root{--purple:#7a42c8;--deep:#26164f;--cream:#fffbe3;--line:#e7e0ef;--muted:#6f6878;--good:#1d7f45;--bad:#b33a3a;--card:#fff}
     *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--cream);color:var(--deep)}
@@ -30,7 +30,7 @@
   </section>
 
   <main id="adminApp" class="hidden">
-    <header><div><h1>Appointment Companion Admin</h1><div class="sub">Partner provisioning for Appointment Companion v2.45.14 and later.</div></div><button class="btn" id="lockAdmin" type="button">🔒 Lock</button></header>
+    <header><div><h1>Appointment Companion Admin</h1><div class="sub">Partner provisioning for Appointment Companion v2.45.15 and later.</div></div><button class="btn" id="lockAdmin" type="button">🔒 Lock</button></header>
 
     <section class="card hidden" id="profileFormCard">
       <div class="toolbar"><h2 id="formTitle">➕ Create Partner</h2><button class="btn" id="closeProfileForm" type="button">✕ Close</button></div>
@@ -38,7 +38,7 @@
       <div class="grid">
         <div class="field"><label for="partnerFirstName">First name *</label><input id="partnerFirstName" autocomplete="given-name"></div>
         <div class="field"><label for="partnerSurname">Surname *</label><input id="partnerSurname" autocomplete="family-name"></div>
-        <div class="field"><label for="partnerLogin">Companion Login ID <span class="sub">optional - auto-generated if blank</span></label><input id="partnerLogin" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label for="partnerLogin">Companion Login ID (UW Partner ID) *</label><input id="partnerLogin" autocomplete="off" spellcheck="false" inputmode="numeric" required><div class="sub" style="margin-top:5px">Use the Partner's UW Partner ID.</div></div>
         <div class="field"><label for="partnerMobile">Mobile</label><input id="partnerMobile" autocomplete="tel" inputmode="tel"></div>
         <div class="field"><label for="partnerEmail">Email</label><input id="partnerEmail" autocomplete="email" inputmode="email"></div>
         <div class="field"><label for="partnerTown">Town / city</label><input id="partnerTown"></div>
@@ -73,7 +73,7 @@
     </section>
   </main>
 </div>
-<script src="../cloud-client-v1.js?v=20261004-v2.45.14-admin-collapse1"></script>
+<script src="../cloud-client-v1.js?v=20261004-v2.45.15-admin-collapse1"></script>
 <script>
 (function(){
   'use strict';
@@ -109,7 +109,7 @@
   function renderPartners(){var host=$('partnerList');host.innerHTML='';partners.forEach(function(p){var el=document.createElement('div');el.className='partner';el.innerHTML='<div><div class="partner-name">'+esc(p.name||p.companion_login_id)+'<span class="tag">'+esc(p.status||'active')+'</span></div><div class="partner-meta">'+esc(p.companion_login_id||'')+(p.town?' · '+esc(p.town):'')+(p.mobile?' · '+esc(p.mobile):'')+'</div><div class="partner-meta">'+esc(p.email||'')+(p.join?' · '+esc(p.join):'')+'</div></div><div class="partner-actions"><button type="button" class="btn" data-edit="'+esc(p.companion_login_id)+'">Edit</button><button type="button" class="btn whatsapp" data-send="'+esc(p.companion_login_id)+'">📲 Send fresh login</button><button type="button" class="btn" data-reset="'+esc(p.companion_login_id)+'">Reset password</button></div>';host.appendChild(el);});host.querySelectorAll('[data-edit]').forEach(function(btn){btn.addEventListener('click',function(){startEdit(this.dataset.edit);});});host.querySelectorAll('[data-send]').forEach(function(btn){btn.addEventListener('click',function(){resetPassword(this.dataset.send,this);});});host.querySelectorAll('[data-reset]').forEach(function(btn){btn.addEventListener('click',function(){resetPassword(this.dataset.reset,this);});});}
   function startEdit(id){var p=partners.find(function(x){return x.companion_login_id===id;});if(!p)return;editingId=id;fill(p);$('partnerLogin').disabled=true;$('formTitle').textContent='✏️ Edit '+p.name;$('formIntro').textContent='Update this Partner profile. Changes are available to the Partner through Cloud.';$('savePartner').textContent='Save changes';$('credentialBox').classList.add('hidden');status('formStatus','');$('profileFormCard').classList.remove('hidden');$('partnerFirstName').focus();$('profileFormCard').scrollIntoView({behavior:'smooth',block:'start'});}
   async function resetPassword(id,btn){var p=partners.find(function(x){return x.companion_login_id===id;})||{};if(!confirm('Generate a new password for '+(p.name||id)+'? Their current password will stop working.'))return;var old=btn.textContent;setBusy(btn,true,'Resetting...');try{var res=await api.adminResetPartnerPassword(adminPassword,id);showCredentials(res.partner,'Password reset ✅');window.scrollTo({top:0,behavior:'smooth'});}catch(err){status('listStatus',(err&&err.message)||String(err),'bad');}finally{setBusy(btn,false,old);}}
-  async function savePartner(){var data=payload();if(!value('partnerFirstName')){status('formStatus','First name is required.','bad');$('partnerFirstName').focus();return;}if(!value('partnerSurname')){status('formStatus','Surname is required.','bad');$('partnerSurname').focus();return;}if(!data.join){status('formStatus','UW sign-up slug or link is required so shared cards always have a Partner CTA.','bad');$('partnerJoin').focus();return;}var btn=$('savePartner'),old=btn.textContent;setBusy(btn,true,editingId?'Saving...':'Creating...');status('formStatus','');try{if(editingId){data.companion_login_id=editingId;var res=await api.adminUpdatePartner(adminPassword,data);status('formStatus','Partner details updated ✓','good');await loadPartners();startEdit(editingId);}else{var created=await api.adminProvisionPartner(adminPassword,data);showCredentials(created.partner,'Partner created ✅');status('formStatus','Login created. Send the credentials to the Partner, then keep this page open only as long as needed.','good');await loadPartners();}}catch(err){status('formStatus',(err&&err.message)||String(err),'bad');}finally{setBusy(btn,false,old);}}
+  async function savePartner(){var data=payload();if(!value('partnerFirstName')){status('formStatus','First name is required.','bad');$('partnerFirstName').focus();return;}if(!value('partnerSurname')){status('formStatus','Surname is required.','bad');$('partnerSurname').focus();return;}if(!data.companion_login_id){status('formStatus','Companion Login ID (UW Partner ID) is required.','bad');$('partnerLogin').focus();return;}if(!data.join){status('formStatus','UW sign-up slug or link is required so shared cards always have a Partner CTA.','bad');$('partnerJoin').focus();return;}var btn=$('savePartner'),old=btn.textContent;setBusy(btn,true,editingId?'Saving...':'Creating...');status('formStatus','');try{if(editingId){data.companion_login_id=editingId;var res=await api.adminUpdatePartner(adminPassword,data);status('formStatus','Partner details updated ✓','good');await loadPartners();startEdit(editingId);}else{var created=await api.adminProvisionPartner(adminPassword,data);showCredentials(created.partner,'Partner created ✅');status('formStatus','Login created. Send the credentials to the Partner, then keep this page open only as long as needed.','good');await loadPartners();}}catch(err){status('formStatus',(err&&err.message)||String(err),'bad');}finally{setBusy(btn,false,old);}}
   async function login(){var pw=value('adminPassword'),btn=$('adminLogin');if(!pw){status('loginStatus','Enter the admin password.','bad');return;}setBusy(btn,true,'Checking...');status('loginStatus','');try{await api.adminPing(pw);adminPassword=pw;$('adminPassword').value='';$('loginCard').classList.add('hidden');$('adminApp').classList.remove('hidden');hideProfileForm();await loadPartners();}catch(err){status('loginStatus',(err&&err.message)||String(err),'bad');}finally{setBusy(btn,false,'Unlock admin');}}
   $('choosePartnerPhoto').addEventListener('click',function(){$('partnerPhotoFile').click();});
   $('partnerPhotoFile').addEventListener('change',function(){if(this.files&&this.files[0])uploadPhoto(this.files[0]);});
