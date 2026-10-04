@@ -866,7 +866,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
             <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
             <span class="basket-icon" id="biSim1" title="Mobile SIM">📱</span>
             <span class="basket-icon" id="biSim2" title="Mobile SIM">📱</span>
-            <span class="basket-icon could" id="biInsurance" title="Insurance">🛡️</span>
+            <span class="basket-icon could" id="biInsurance" title="Home Cover">🛡️</span>
           </div>
           <div class="basket-count" id="basketCount">0 services</div>
           <button type="button" id="biSimAdd" class="hidden basket-add-btn" title="Preview adding mobile SIM(s)">
@@ -3004,11 +3004,12 @@ function renderShared(d) {
     if (mobNeutral) $('scMobSave').classList.remove('bad');
     $('scMobRow').querySelector('td').textContent = '\ud83d\udcf1 Mobile' + (md > 0 ? ' ' + '\ud83e\udd6a'.repeat(md) : '');
   }
-  const it = g('it');
+  const it = g('it'), ci = g('ci');
   $('scInsuranceRow').classList.toggle('hidden', it === 0);
   if (it > 0) {
+    $('scInsuranceNow').textContent = fmtV(ci);
     $('scInsuranceUw').textContent = fmtV(it);
-    saveLine($('scInsuranceSave'), -it);
+    saveLine($('scInsuranceSave'), ci - it);
   }
   const mac = g('mac'), mau = g('mau');
   const adjustOn = mac !== 0 || mau !== 0;
