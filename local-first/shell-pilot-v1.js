@@ -194,7 +194,6 @@
     }
     renderCloudCurrent();
     renderRecentCustomers();
-    renderRecentStrip();
     const deleteAction = $c('cloudDeleteCurrent');
     if (deleteAction) deleteAction.disabled = !currentCloudCustomerId;
   }
@@ -231,6 +230,7 @@
     const specialists = appointmentSpecialists(data);
     const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
     const fixUsed = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix'] || companionHasState('fix'));
+    const cardUsed = !!(specialists.card || specialists.cashback_card || companionHasState('card') || companionHasState('cashback_card'));
     const nameEl = $c('customerName');
     // The editable name is the source of truth: never leave a loaded name in
     // the shell after the form has deliberately become a new blank draft.
@@ -239,7 +239,7 @@
       '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
         '<span class="cloud-companion-mini' + (fixUsed ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-        '<span class="cloud-companion-mini" title="Cashback Challenge (not yet available)">💳</span>' +
+        '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Companion">💳</span>' +
       '</span>';
   }
 
@@ -258,12 +258,6 @@
         #cloudPilotCard .cloud-current-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-top:.42rem;padding-top:.42rem;border-top:1px solid rgba(122,66,200,.12)}
         #cloudPilotCard .cloud-current-name{border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:750;color:var(--ink);cursor:pointer}
         #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;gap:6px}
-        #cloudPilotCard .cloud-recent-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:.45rem}
-        #cloudPilotCard .cloud-recent-chip{min-width:0;padding:6px 5px;border:1px solid rgba(122,66,200,.14);border-radius:9px;background:#fff;color:var(--ink);cursor:pointer;text-align:left}
-        #cloudPilotCard .cloud-recent-chip-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:800}
-        #cloudPilotCard .cloud-recent-chip-icons{display:flex;align-items:center;gap:3px;margin-top:3px;font-size:9.5px;white-space:nowrap}
-        #cloudPilotCard .cloud-recent-chip-icons .off{opacity:.22;filter:grayscale(1)}
-        #cloudPilotCard .cloud-recent-strip.hidden{display:none}
         #cloudPilotCard .cloud-mini-icon{font-size:13px}
         #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
@@ -361,7 +355,6 @@
       </div>
       <div class="cloud-health-row"><span class="cloud-status-label cloud-status-primary">Status</span><div class="cloud-health-right"><div class="cloud-health-tariffs"><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div></div><div class="cloud-health-backup"><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div></div></div>
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
-      <div id="cloudRecentStrip" class="cloud-recent-strip hidden" aria-label="Recent profiles"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudDeleteCurrent" data-cloud-action="delete-current" disabled><span class="menu-ico">🗑️</span><span>Delete current customer</span></button>
@@ -388,7 +381,6 @@
     ensureSettingsModal();
     enhancePartnerPrompt();
     observeConnectedWidgets();
-    renderRecentStrip();
 
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
 
@@ -617,7 +609,8 @@
       updated_at: customer.updated_at || new Date().toISOString(),
       summary: appointmentSummary(appt),
       has_ev: !!(customer.ev_state || customer.ev_state_json || specialists.ev),
-      has_fix: !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix'])
+      has_fix: !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix']),
+      has_card: !!(specialists.card || specialists.cashback_card)
     };
     const rows = readRecentCustomers().filter(item => item.customer_id !== row.customer_id);
     rows.unshift(row);
@@ -641,7 +634,8 @@
       button.type = 'button'; button.className = 'cloud-recent-load';
       const icons = summaryIconHtml(row.summary || {}, true) +
         '<span class="cloud-companion-mini' + (row.has_fix ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
-        '<span class="cloud-companion-mini' + (row.has_ev ? ' on' : '') + '" title="EV Companion">🚙</span>';
+        '<span class="cloud-companion-mini' + (row.has_ev ? ' on' : '') + '" title="EV Companion">🚙</span>' +
+        '<span class="cloud-companion-mini' + (row.has_card ? ' on' : '') + '" title="Cashback Companion">💳</span>';
       button.innerHTML = '<span><span class="cloud-recent-name">' + esc(row.customer_name || 'Unnamed') + '</span><span class="cloud-recent-meta">Updated ' + esc(fmtDate(row.updated_at)) + '</span></span><span class="cloud-current-icons">' + icons + '</span>';
       button.addEventListener('click', () => { closeRecentCustomers(); if (!getAuth()) { openConnectModal(); setStatus('Connect Cloud to load this recent customer.'); return; } loadCustomer(row.customer_id); });
       const remove = document.createElement('button');
@@ -652,38 +646,6 @@
       item.appendChild(button);
       item.appendChild(remove);
       wrap.appendChild(item);
-    });
-  }
-
-  function recentJourneyIcons(row) {
-    const sum = row && row.summary || {};
-    const mini = (emoji, on, title) => '<span class="' + (on ? '' : 'off') + '" title="' + title + '">' + emoji + '</span>';
-    return mini('⚡', !!sum.energy, 'Energy') +
-      mini('🛜', !!sum.broadband, 'Broadband') +
-      mini('📱', (sum.sims || 0) > 0, 'Mobile') +
-      mini('🛡️', !!sum.insurance, 'Boiler Cover') +
-      mini('📌', !!(row && row.has_fix), 'Should I Fix?') +
-      mini('🚙', !!(row && row.has_ev), 'EV Companion');
-  }
-
-  function renderRecentStrip() {
-    const wrap = $c('cloudRecentStrip');
-    if (!wrap) return;
-    const rows = readRecentCustomers().slice(0, 3);
-    wrap.innerHTML = '';
-    wrap.classList.toggle('hidden', !rows.length);
-    rows.forEach(row => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'cloud-recent-chip';
-      button.title = 'Open ' + (row.customer_name || 'recent profile');
-      button.innerHTML = '<span class="cloud-recent-chip-name">' + esc(row.customer_name || 'Unnamed') + '</span>' +
-        '<span class="cloud-recent-chip-icons">' + recentJourneyIcons(row) + '</span>';
-      button.addEventListener('click', () => {
-        if (!getAuth()) { openConnectModal(); setStatus('Connect Cloud to load this recent customer.'); return; }
-        loadCustomer(row.customer_id);
-      });
-      wrap.appendChild(button);
     });
   }
 
@@ -800,7 +762,6 @@
     const res = await api.listCustomers(auth);
     cloudCustomers = Array.isArray(res.customers) ? res.customers : [];
     rememberCustomerList(cloudCustomers);
-    renderRecentStrip();
     renderCloudList();
     return cloudCustomers;
   }
