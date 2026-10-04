@@ -164,6 +164,10 @@
 
     async adminResetPartnerPassword(adminPassword, partnerId) {
       return post({ action: 'adminResetPartnerPassword', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
+    },
+
+    async adminUploadPartnerPhoto(adminPassword, photo) {
+      return post({ action: 'adminUploadPartnerPhoto', admin_password: String(adminPassword || ''), photo: photo || {} });
     }
   };
 
