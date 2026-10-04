@@ -1,5 +1,20 @@
 # Appointment Companion changelog
 
+## v2.46.0 - 4th October 2026
+
+- Introduced UW Partner slug as the canonical Partner identity field.
+- Admin suggests the slug automatically from First name + Surname, while allowing manual variations such as tyler.smith1.
+- Customer join URL is derived as https://uw.partners/<slug>/join.
+- Partner registration URL is derived as https://uw.partners/<slug>/partner/join.
+- UW email defaults to <slug>@uw.partners and remains editable for exceptional cases.
+- Admin previews both derived UW URLs beneath the single slug field.
+- Renamed Website to Personal/business website (optional) to distinguish it from UW links.
+- My profile now edits the UW Partner slug rather than a duplicate full join URL and shows the derived customer URL, Partner URL and email pattern.
+- Cloud profile schema adds partner_slug and public profiles now return partner_slug plus partner_join.
+- Existing profiles remain backward compatible: their slug can be derived from an existing customer join URL or UW email.
+- Partner Earnings now prefers the canonical partner_join returned by Cloud.
+- Applied master v2.46.0 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.16 - 4th October 2026
 
 - Connected Partner Earnings to the shared Appointment Companion Partner-profile architecture.
