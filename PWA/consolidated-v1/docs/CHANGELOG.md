@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.45.8 - 4th October 2026
+
+- Applied the improved side-by-side two-column principle to Main Appointment Companion.
+- Energy and Broadband now keep Current and UW side by side on phone-sized screens instead of stacking vertically.
+- Within narrow Current/UW columns, secondary fields such as exit fees stack vertically to preserve usable input sizes.
+- Each Mobile SIM now uses a Current / UW mini-comparison, keeping present cost and UW plan visually aligned.
+- Manual adjustments now use matching Current / UW columns.
+- Non-comparison inputs such as customer details, energy usage and notes remain full width.
+- Applied master v2.45.8 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.7 - 4th October 2026
 
 - Parked automatic onboarding so it no longer opens on normal Companion startup or returns after profile editing.
