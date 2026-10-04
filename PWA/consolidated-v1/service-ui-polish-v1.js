@@ -45,9 +45,11 @@
       #servicesCard [data-service="energy"] { border-color:var(--ac-energy-base)!important; }
       #servicesCard [data-service="broadband"] { border-color:var(--ac-broadband-base)!important; }
       #servicesCard [data-service="mobile"] { border-color:var(--ac-mobile-base)!important; }
+      #servicesCard [data-service="boiler"] { border-color:var(--ac-insurance-base)!important; }
       #servicesCard [data-service="energy"].on { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
       #servicesCard [data-service="broadband"].on { background:var(--ac-broadband-strong)!important; border-color:var(--ac-broadband-strong)!important; color:#fff!important; }
       #servicesCard [data-service="mobile"].on { background:var(--ac-mobile-strong)!important; border-color:var(--ac-mobile-strong)!important; color:#fff!important; }
+      #servicesCard [data-service="boiler"].on { background:var(--ac-insurance-strong)!important; border-color:var(--ac-insurance-strong)!important; color:#fff!important; }
 
       #servicesCard .ac-inline-subchoice[data-kind="energy"] { background:var(--ac-energy-soft); border-radius:9px; padding:3px; }
       #servicesCard .ac-inline-subchoice[data-kind="mobile"] { background:var(--ac-mobile-soft); border-radius:9px; padding:3px; }
@@ -98,6 +100,7 @@
         #servicesCard > .pills { gap:6px; }
         #servicesCard .ac-service-stack { gap:4px; }
         #servicesCard .ac-service-stack > [data-service] { padding-left:5px; padding-right:5px; font-size:12px; }
+        #servicesCard [data-service="boiler"] { padding-left:5px; padding-right:5px; font-size:12px; }
         #servicesCard .ac-inline-subchoice button { min-height:29px; font-size:11px; padding:3px 1px; }
         #servicesCard .ac-inline-subchoice[data-kind="energy"] button { font-size:15px; }
       }
