@@ -1,4 +1,4 @@
-/* Appointment Companion v2.42 - replace redundant Cashback Card toolbar shortcut with Partner Earnings. */
+/* Appointment Companion v2.45.16 - Partner Earnings shortcut with Partner identity handoff. */
 (function () {
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
@@ -21,10 +21,20 @@
     return '';
   }
 
+  function currentPartnerId() {
+    try {
+      var bridge = window.AppointmentCompanionPartnerProfile;
+      var profile = bridge && typeof bridge.getCached === 'function' ? bridge.getCached() : null;
+      return String(profile && (profile.partner_id || profile.companion_login_id) || '').trim();
+    } catch (_) { return ''; }
+  }
+
   function earningsUrl() {
     var url = new URL(EARNINGS_URL);
     var name = currentCustomerName();
+    var partnerId = currentPartnerId();
     if (name) url.searchParams.set('pn', name);
+    if (partnerId) url.searchParams.set('pid', partnerId);
     return url.href;
   }
 
