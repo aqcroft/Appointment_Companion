@@ -63,6 +63,7 @@ function handleCompanionAdminAction_(action, body) {
     'adminProvisionPartner',
     'adminListPartners',
     'adminUpdatePartner',
+    'adminGetPartnerLoginDetails',
     'adminResetPartnerPassword',
     'adminUploadPartnerPhoto'
   ];
@@ -74,6 +75,7 @@ function handleCompanionAdminAction_(action, body) {
   if (action === 'adminProvisionPartner') return adminProvisionPartner_(body);
   if (action === 'adminListPartners') return adminListPartners_();
   if (action === 'adminUpdatePartner') return adminUpdatePartner_(body);
+  if (action === 'adminGetPartnerLoginDetails') return adminGetPartnerLoginDetails_(body);
   if (action === 'adminResetPartnerPassword') return adminResetPartnerPassword_(body);
   if (action === 'adminUploadPartnerPhoto') return adminUploadPartnerPhoto_(body);
   return null;
@@ -197,6 +199,27 @@ function adminUpdatePartner_(body) {
   updateAdminObjectRow_(sheet, row.__row, updated);
   return { ok: true, partner: partnerAdminSafeRecord_(updated) };
 }
+
+function adminGetPartnerLoginDetails_(body) {
+  const partnerId = cleanAdminLogin_(body && (body.partner_id || body.companion_login_id));
+  if (!partnerId) throw new Error('Companion Login ID is required.');
+
+  const sheet = ensureAdminPartnersSheet_();
+  const row = findAdminPartner_(sheet, partnerId);
+  if (!row) throw new Error('Partner could not be found.');
+
+  const password = String(row.workspace_key || '');
+  if (!password) throw new Error('This Partner does not currently have a password.');
+
+  return {
+    ok: true,
+    partner: Object.assign(partnerAdminSafeRecord_(row), {
+      companion_login_id: String(row.partner_id || ''),
+      password: password
+    })
+  };
+}
+
 
 function adminResetPartnerPassword_(body) {
   const partnerId = cleanAdminLogin_(body && (body.partner_id || body.companion_login_id));
