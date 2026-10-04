@@ -1,8 +1,8 @@
 /* Authenticated immutable specialist shares, sanitised before Cloud transmission. */
 (function (global) {
   'use strict';
-  var api = global.AppointmentCompanionCloud, policy = global.AppointmentCompanionSharePolicy, bridge = global.AppointmentCompanionBridge, AUTH_KEY = 'apptCloudPilotAuthSession', CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
-  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); return row && row.partner_id && row.workspace_key ? row : null; } catch (_) { return null; } }
+  var api = global.AppointmentCompanionCloud, policy = global.AppointmentCompanionSharePolicy, bridge = global.AppointmentCompanionBridge, AUTH_KEY = 'apptCloudPilotAuthSession', DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1', CUSTOMER_KEY = 'apptCloudPilotCurrentCustomer';
+  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null'); if (row && row.partner_id && row.workspace_key) { try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {} return row; } return null; } catch (_) { return null; } }
   function launchedCustomerId() { try { var launch = bridge && bridge.receive ? bridge.receive() : null; return String((launch && launch.customer_id) || (launch && launch.extra && launch.extra.customer && launch.extra.customer.customer_id) || ''); } catch (_) { return ''; } }
   function customerId() { return sessionStorage.getItem(CUSTOMER_KEY) || launchedCustomerId() || ''; }
   async function getCurrentCustomer() { var credentials = auth(), id = customerId(); if (!credentials || !id || !api) throw new Error('Connect Cloud and save this customer before creating a short share link.'); var result = await api.getCustomer(credentials, id); if (!result || !result.customer) throw new Error('Customer could not be loaded for sharing.'); return result.customer; }
