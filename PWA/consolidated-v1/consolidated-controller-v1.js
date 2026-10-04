@@ -60,7 +60,7 @@
       mini('🛜', broadband, 'Broadband') +
       mini('📱', simCount >= 1, 'Mobile SIM 1') +
       mini('📱', simCount >= 2, 'Mobile SIM 2') +
-      mini('🛡️', cover, 'Boiler Cover') +
+      mini('🛠️', cover, 'Boiler Cover') +
       mini('🔗', basket, 'UW basket linked') +
       mini('✉️', shared, 'Summary shared') +
       mini('📌', fix, 'Should I Fix?') +
