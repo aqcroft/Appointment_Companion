@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.45.12 - 4th October 2026
+
+- Isolated customer summary/share cards from the Partner/editor application stack.
+- A #d= customer share now skips Cloud, Partner profile, local persistence, specialist navigation and release scripts that are unnecessary for the customer-facing card.
+- Added shared-view interaction hardening so the Breakdown accordions, CTA link and any customer-side meal-deal control retain pointer interaction.
+- Any non-card modal overlays are explicitly neutralised when a shared customer card boots.
+- Kept the existing share-card design and payload format unchanged.
+- Applied master v2.45.12 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.11 - 4th October 2026
 
 - Moved Boiler Cover selection into the main service selector and removed the redundant visible toggle from the Boiler Cover card.
