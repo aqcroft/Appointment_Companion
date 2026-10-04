@@ -1,5 +1,12 @@
 # Appointment Companion changelog
 
+## v2.46.2 - 4th October 2026
+
+- Saving an existing Partner profile now collapses the edit form automatically.
+- After a successful save, Admin returns to the Partner list and shows a clear "<Partner> saved ✓" confirmation.
+- New Partner creation still leaves the generated credential card visible so login details can be copied or sent before closing the form.
+- Applied master v2.46.2 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.46.1 - 4th October 2026
 
 - Partner photo selection now automatically centre-crops the selected image to a square before upload.
