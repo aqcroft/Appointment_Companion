@@ -1,5 +1,12 @@
 # Appointment Companion changelog
 
+## v2.45.15 - 4th October 2026
+
+- Renamed the Admin login field to Companion Login ID (UW Partner ID).
+- New Partner creation now requires the UW Partner ID instead of silently auto-generating a generic Companion login.
+- Added clear helper text instructing Admin to use the Partner's UW Partner ID.
+- Applied master v2.45.15 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.14 - 4th October 2026
 
 - Simplified Companion Admin so the existing Partner list is visible immediately after unlock.
