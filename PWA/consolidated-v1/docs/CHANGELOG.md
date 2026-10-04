@@ -1,5 +1,12 @@
 # Appointment Companion changelog
 
+## v2.45.6 - 4th October 2026
+
+- Established the displayed version as the master Appointment Companion suite version.
+- Main Companion, EV Companion, Should I Fix and Companion Admin now all identify as v2.45.6.
+- Updated specialist wrapper cache tokens and shared toolbar version so navigating between tools no longer appears to move between different releases.
+- Future current-suite releases should advance the same master version across all current Appointment Companion tools.
+
 ## v2.45.5 - 4th October 2026
 
 - Added 📲 Send fresh login to each Partner row in Companion Admin.
