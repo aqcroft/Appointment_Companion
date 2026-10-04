@@ -360,6 +360,7 @@
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="settings"><span class="menu-ico">⚙️</span><span>Settings</span></button>
+        <button class="pill cloud-menu-item" type="button" data-cloud-action="admin"><span class="menu-ico">🔐</span><span>Admin</span></button>
       </div>
 
       <div id="cloudPilotConnected" class="hidden">
@@ -392,6 +393,7 @@
       if (action.dataset.cloudAction === 'delete-current') requestDeleteCustomer(currentCloudCustomerId, currentCloudCustomer && currentCloudCustomer.customer_name);
       if (action.dataset.cloudAction === 'partner') openPartnerProfile();
       if (action.dataset.cloudAction === 'settings') openSettingsModal();
+      if (action.dataset.cloudAction === 'admin') window.location.assign('https://aqcroft.github.io/Appointment_Companion/PWA/admin/');
       if (action.dataset.cloudAction === 'customer-name') editCustomerName();
       if (action.dataset.cloudAction === 'basket') focusBasketLink();
       if (action.dataset.cloudAction === 'share') openShareSummary();
