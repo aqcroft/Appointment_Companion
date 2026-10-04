@@ -1,5 +1,11 @@
 # Appointment Companion changelog
 
+## v2.45.3 - 4th October 2026
+
+- Fixed Companion Admin loading the stale root-level Cloud client instead of the current PWA Cloud client.
+- Partner list and Drive-backed photo upload now use the correct API implementation.
+- Existing Partner records, generated passwords and Apps Script data are unchanged.
+
 ## v2.45.2 - 4th October 2026
 
 - Fixed stale browser caching on Companion Admin by versioning the shared Cloud client asset.
