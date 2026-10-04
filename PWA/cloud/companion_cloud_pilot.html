@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appointment Companion v2.45.12 — UW Savings</title>
+<title>Appointment Companion v2.45.13 — UW Savings</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2365,15 +2365,17 @@ function continueCopyShareLink() {
 }
 $('shareBtn').addEventListener('click', () => {
   if (!requireCustomerNameForShare()) return;
-  if (!requirePartnerSetup()) return;   // no sharing until name + link are set
+  if (!requirePartnerSetup()) return;
   if (!basketLink()) return openBasketPrompt('whatsapp');
+  if (!requireShareCta()) return;
   continueShareViaWhatsApp();
 });
 
 $('copyLinkBtn').addEventListener('click', () => {
   if (!requireCustomerNameForShare()) return;
-  if (!requirePartnerSetup()) return;   // no sharing until name + link are set
+  if (!requirePartnerSetup()) return;
   if (!basketLink()) return openBasketPrompt('copy');
+  if (!requireShareCta()) return;
   continueCopyShareLink();
 });
 $('addBasketLinkBtn').addEventListener('click', () => {
@@ -2386,6 +2388,7 @@ $('addBasketLinkBtn').addEventListener('click', () => {
 $('shareWithoutBasketBtn').addEventListener('click', () => {
   const action = pendingBasketAction;
   closeBasketPrompt();
+  if (!requireShareCta()) return;
   if (action === 'copy') continueCopyShareLink();
   else continueShareViaWhatsApp();
 });
@@ -2899,37 +2902,57 @@ function updateJoinPreview() {
     : '\u2192 https://uw.partners/first.last/join';
 }
 
-function getPartner() {
+function rawPartner() {
+  let local = {}, cached = {}, bridged = {};
+  try { local = JSON.parse(localStorage.getItem(PARTNER_KEY) || '{}') || {}; } catch (e) {}
+  try { cached = JSON.parse(localStorage.getItem('apptCompanionPartnerCloudProfileV1') || '{}') || {}; } catch (e) {}
   try {
-    const p = JSON.parse(localStorage.getItem(PARTNER_KEY));
-    return (p && p.name && p.join) ? p : null;
-  } catch (e) { return null; }
+    const bridge = window.AppointmentCompanionPartnerProfile;
+    bridged = bridge && typeof bridge.getCached === 'function' ? (bridge.getCached() || {}) : {};
+  } catch (e) {}
+  return Object.assign({}, local, cached, bridged);
+}
+function getPartner() {
+  const p = rawPartner();
+  return (p && p.name) ? p : null;
 }
 function setPartner(p) {
-  try { localStorage.setItem(PARTNER_KEY, JSON.stringify(p)); } catch (e) {}
+  try {
+    const current = rawPartner();
+    localStorage.setItem(PARTNER_KEY, JSON.stringify(Object.assign({}, current, p || {})));
+  } catch (e) {}
 }
 
 function openPartnerPrompt(msg) {
-  const p = getPartner() || {};
+  const p = rawPartner();
   $('ppName').value = p.name || '';
   $('ppJoin').value = joinSlug(p.join) || p.join || '';
   $('ppTown').value = p.town || '';
-  $('ppStrap').value = (p.strap !== undefined) ? p.strap : DEFAULT_PARTNER_STRAP;
+  $('ppStrap').value = (p.strap !== undefined && p.strap !== '') ? p.strap : DEFAULT_PARTNER_STRAP;
   updateJoinPreview();
   $('partnerPromptMsg').textContent = msg ||
-    'These appear on every card you share, with your sign-up link as the call to action. Saved on this device only.';
+    'Your Cloud Partner profile is used across Appointment Companion and shared cards. Changes here sync back to your profile.';
   $('ppErr').classList.add('hidden');
   $('partnerPrompt').classList.add('open');
 }
 function closePartnerPrompt() { $('partnerPrompt').classList.remove('open'); }
 
-// Building a quote is always allowed; SHARING is blocked until the
-// partner has set a name + sign-up link (so no card ever goes out
-// unbranded or wrongly branded).
+// Building a quote is always allowed. Sharing uses the authenticated Cloud
+// Partner profile. Missing profile details are reported precisely - never by
+// launching first-run Partner setup/onboarding.
 function requirePartnerSetup() {
-  if (getPartner()) return true;
-  $('cardModal').classList.remove('open');
-  openPartnerPrompt('Before you share: add your name and sign-up link so the card carries YOUR details. Then reopen the summary and share.');
+  const partner = getPartner();
+  if (partner && partner.name) return true;
+  $('shareGateMsg').textContent = 'Your Partner profile has not finished loading. Close this summary, check ☰ → My profile, then try again.';
+  $('shareGateMsg').classList.remove('hidden');
+  return false;
+}
+
+function requireShareCta() {
+  const partner = getPartner() || {};
+  if (basketLink() || partner.join) return true;
+  $('shareGateMsg').textContent = 'Add a personalised basket link, or add your UW sign-up link in ☰ → My profile, before sharing.';
+  $('shareGateMsg').classList.remove('hidden');
   return false;
 }
 
