@@ -359,6 +359,7 @@
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
+        <button class="pill cloud-menu-item" type="button" data-cloud-action="partner"><span class="menu-ico">👤</span><span>My profile</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="settings"><span class="menu-ico">⚙️</span><span>Settings</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="admin"><span class="menu-ico">🔐</span><span>Admin</span></button>
       </div>
@@ -444,7 +445,6 @@
       syncEnergyUsageSections();
     }, 0));
     syncEnergyUsageSections();
-    maybeStartOnboarding();
   }
 
   function usageSourceLabel(source) {
@@ -1454,18 +1454,10 @@
   }
 
   function openPartnerProfile() {
-    const onboarding = $c('cloudOnboardingModal');
-    if (onboarding && onboarding.classList.contains('open')) {
-      const state = readOnboardingState();
-      state.step = 'partner';
-      state.suspended = 'partner';
-      writeOnboardingState(state);
-      onboardingPartnerSuspended = true;
-      onboarding.classList.remove('open');
-    }
     closeSettingsModal();
+    const onboarding = $c('cloudOnboardingModal');
+    if (onboarding) onboarding.classList.remove('open');
     if ($c('partnerSettingsBtn')) $c('partnerSettingsBtn').click();
-    enhancePartnerPrompt();
   }
 
   function openSettingsModal(section) {
@@ -1515,7 +1507,6 @@
             <button class="pill cloud-menu-item" type="button" data-settings-section="local"><span class="menu-ico">💻</span><span>Local backup</span></button>
             <button class="pill cloud-menu-item" type="button" data-settings-section="contact"><span class="menu-ico">📞</span><span>Contact</span></button>
             <button class="pill cloud-menu-item" type="button" data-settings-section="about"><span class="menu-ico">ℹ️</span><span>About</span></button>
-            <button class="pill cloud-menu-item" type="button" id="cloudSettingsOnboarding"><span class="menu-ico">✅</span><span>Setup / onboarding</span></button>
           </div>
         </div>
         <div class="cloud-settings-pane" data-settings-pane="cloud">
@@ -1566,15 +1557,6 @@
       closeSettingsModal();
       openPartnerProfile();
     });
-    $c('cloudSettingsOnboarding').addEventListener('click', () => {
-      closeSettingsModal();
-      onboardingExplicit = true;
-      const state = readOnboardingState();
-      state.step = 'connect';
-      state.suspended = '';
-      writeOnboardingState(state);
-      openOnboarding();
-    });
     $c('cloudSettingsConnect').addEventListener('click', () => {
       closeSettingsModal();
       openConnectModal();
@@ -1603,23 +1585,6 @@
   function enhancePartnerPrompt() {
     const existing = $c('partnerLocalBackupTools');
     if (existing) existing.remove();
-    const prompt = $c('partnerPrompt');
-    if (!prompt || prompt.dataset.onboardingWatched) return;
-    prompt.dataset.onboardingWatched = '1';
-    let wasOpen = prompt.classList.contains('open');
-    new MutationObserver(() => {
-      const isOpen = prompt.classList.contains('open');
-      if (wasOpen && !isOpen && onboardingPartnerSuspended) {
-        onboardingPartnerSuspended = false;
-        const state = readOnboardingState();
-        state.suspended = '';
-        state.step = getPartnerProfile() ? 'ready' : 'partner';
-        writeOnboardingState(state);
-        renderOnboardingStep(state.step);
-        $c('cloudOnboardingModal').classList.add('open');
-      }
-      wasOpen = isOpen;
-    }).observe(prompt, { attributes: true, attributeFilter: ['class'] });
   }
 
   function relocateConnectedWidgets() {
