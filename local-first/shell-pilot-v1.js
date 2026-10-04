@@ -207,7 +207,7 @@
       icon('🛜', !!sum.broadband, false) +
       icon('📱', (sum.sims || 0) >= 1, false) +
       icon('📱', (sum.sims || 0) >= 2, false) +
-      icon('🛡️', !!sum.insurance, false) +
+      icon('🛠️', !!sum.insurance, false) +
       '<span class="basket-icon' + cls + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
       icon('✉️', !!sum.quoteShared, false);
   }
@@ -809,7 +809,7 @@
           icon('🛜', !!sum.broadband, false) +
           icon('📱', (sum.sims || 0) >= 1, false) +
           icon('📱', (sum.sims || 0) >= 2, false) +
-          icon('🛡️', !!sum.insurance, false) +
+          icon('🛠️', !!sum.insurance, false) +
           '<span class="basket-icon' + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
           icon('✉️', !!sum.quoteShared, false) +
           '<span class="cloud-companion-mini' + (fixUsed ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
@@ -967,7 +967,7 @@
         <div class="cloud-table-head">
           <button class="cloud-sort" type="button" id="cloudSortName">Name</button>
           <span>Saving</span>
-          <span class="cloud-service-head" aria-label="Services and tools"><span title="Energy">⚡🔥</span><span title="Broadband">🛜</span><span title="Mobile">📱</span><span title="Boiler Cover">🛡️</span><span title="Basket link">🛒</span><span title="Summary generated">✉️</span><span title="Should I Fix?">📌</span><span title="EV Companion">🚙</span></span>
+          <span class="cloud-service-head" aria-label="Services and tools"><span title="Energy">⚡🔥</span><span title="Broadband">🛜</span><span title="Mobile">📱</span><span title="Boiler Cover">🛠️</span><span title="Basket link">🛒</span><span title="Summary generated">✉️</span><span title="Should I Fix?">📌</span><span title="EV Companion">🚙</span></span>
           <button class="cloud-sort" type="button" id="cloudSortDate">Recent</button>
           <span></span>
         </div>
