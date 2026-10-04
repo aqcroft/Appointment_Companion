@@ -130,15 +130,44 @@
 
   function currentBasketUrl() {
     const el = document.getElementById('basketLink');
-    return el ? String(el.value || '').trim() : '';
+    const direct = el ? String(el.value || '').trim() : '';
+    if (direct) return direct;
+
+    const working = getWorkingRecord();
+    const saved = String(working && working.basket_url || '').trim();
+    if (saved) return saved;
+
+    const launchId = sessionStorage.getItem(ACTIVE_LAUNCH_KEY) || '';
+    const envelope = launchId ? readJson(LAUNCH_PREFIX + launchId, null) : null;
+    return String(envelope && envelope.basket_url || '').trim();
   }
 
   function setBasketUrl(url) {
+    if (url == null) return '';
+    const value = String(url || '').trim();
     const el = document.getElementById('basketLink');
-    if (!el || url == null) return;
-    el.value = String(url || '');
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
+    if (el && String(el.value || '').trim() !== value) {
+      el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    updateWorkingRecord({ basket_url: value });
+
+    const launchId = sessionStorage.getItem(ACTIVE_LAUNCH_KEY) || '';
+    if (launchId) {
+      const envelope = readJson(LAUNCH_PREFIX + launchId, null);
+      if (envelope) {
+        envelope.basket_url = value;
+        if (envelope.extra && envelope.extra.customer && typeof envelope.extra.customer === 'object') {
+          envelope.extra.customer.basket_url = value;
+        }
+        writeJson(LAUNCH_PREFIX + launchId, envelope);
+      }
+    }
+
+    global.dispatchEvent(new CustomEvent('ac:basket-url', { detail: { basket_url: value } }));
+    return value;
   }
 
   function cleanUrl(raw) {
@@ -369,6 +398,7 @@
     consumePendingCustomerPatch: consumePendingCustomerPatch,
     currentCustomerId: currentCustomerId,
     currentBasketUrl: currentBasketUrl,
+    setBasketUrl: setBasketUrl,
     captureAppointmentState: captureAppointmentState,
     getWorkingRecord: function () { return clone(getWorkingRecord()); },
     updateWorkingRecord: updateWorkingRecord,
