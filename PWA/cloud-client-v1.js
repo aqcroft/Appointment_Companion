@@ -162,6 +162,10 @@
       return post({ action: 'adminUpdatePartner', admin_password: String(adminPassword || ''), partner: payload || {} });
     },
 
+    async adminGetPartnerLoginDetails(adminPassword, partnerId) {
+      return post({ action: 'adminGetPartnerLoginDetails', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
+    },
+
     async adminResetPartnerPassword(adminPassword, partnerId) {
       return post({ action: 'adminResetPartnerPassword', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
     },
