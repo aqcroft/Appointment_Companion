@@ -9,6 +9,7 @@
     try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; }
     catch (_) { return ''; }
   }
+  function creatorPartnerId() { try { var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); if (a && a.partner_id) return String(a.partner_id).trim(); } catch (_) {} try { var a2 = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null'); if (a2 && a2.partner_id) return String(a2.partner_id).trim(); } catch (_) {} try { var p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null'); if (p && p.partner_id) return String(p.partner_id).trim(); } catch (_) {} return ''; }
   function envelope() { try { return bridge && bridge.receive ? bridge.receive() : null; } catch (_) { return null; } }
   function savedBasket() {
     var e = envelope(), c = e && e.extra && e.extra.customer;
@@ -39,9 +40,15 @@
     return out;
   }
 
-  function buildUrl(doc, win, basketUrl) {
+  function basePublicUrl() {
     var u = new URL(location.origin + location.pathname);
     u.searchParams.set('public', '1');
+    var pid = creatorPartnerId(); if (pid) u.searchParams.set('pid', pid);
+    return u;
+  }
+
+  function buildUrl(doc, win, basketUrl) {
+    var u = basePublicUrl();
     var s = scenario(doc, win);
     Object.keys(s).forEach(function (key) {
       if ((key === 'e' && s.f === 'gas') || (key === 'g' && s.f === 'elec') || (key === 'eh' && s.eh === '0') || (key === 't' && s.t === 'saver')) return;
