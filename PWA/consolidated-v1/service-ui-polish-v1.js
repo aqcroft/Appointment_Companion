@@ -423,9 +423,11 @@
 
     sync();
 
-    var observer = new MutationObserver(sync);
-    var services = $('servicesCard');
-    if (services) observer.observe(services, { attributes:true, subtree:true, attributeFilter:['class'] });
+    var observer = new MutationObserver(function () { sync(); });
+    ['energy','broadband','mobile','boiler'].forEach(function (service) {
+      var button = document.querySelector('#servicesCard [data-service="' + service + '"]');
+      if (button) observer.observe(button, { attributes:true, attributeFilter:['class'] });
+    });
 
     ['canonicalFuelSelection','canonicalSimCount','includeCashback'].forEach(function (id) {
       var el = $(id);
