@@ -1,5 +1,17 @@
 # Appointment Companion changelog
 
+## v2.45.13 - 4th October 2026
+
+- Made the authenticated Cloud Partner profile the source of truth for Partner identity and shared-card branding.
+- Fixed the legacy getPartner() behaviour that treated a partial profile as no profile at all and could make My profile appear completely blank.
+- My profile now merges local and Cloud profile data, with Cloud winning over stale local cache values.
+- Async Partner-profile hydration now populates the core name, UW sign-up link, town and strapline fields as well as mobile/email/photo/booking/website fields.
+- Sharing no longer opens a first-run Partner setup/onboarding screen.
+- A missing Partner name now gives a precise profile-loading message instead of opening setup.
+- A missing CTA now asks for either a personalised basket link or a UW sign-up link, without pretending the Partner profile is missing.
+- New Partner creation in Admin now requires a UW sign-up slug/link so newly-issued accounts are share-ready immediately.
+- Applied master v2.45.13 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.12 - 4th October 2026
 
 - Isolated customer summary/share cards from the Partner/editor application stack.
