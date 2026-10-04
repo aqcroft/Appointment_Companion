@@ -25,7 +25,24 @@
   function queuePersist(event) { if (event && event.target && event.target.closest && event.target.closest('#cloudPilotCard,#localFirstCustomers,#cloudConnectModal,#cloudSettingsModal,#cloudOnboardingModal')) return; paint(current, true); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(false).catch(function () { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Local save needs attention. Keep this page open and try again.', 'bad'); }); }, 180); }
   async function loadRecord(row, quiet) {
     if (!row || row.deleted) return; currentId = row.local_id; current = clone(row); sessionStorage.setItem(CURRENT_KEY, currentId); if (row.cloud_id) sessionStorage.setItem(CLOUD_KEY, row.cloud_id); else sessionStorage.removeItem(CLOUD_KEY);
-    canonical.restore(row.appointment_state); var bridge = global.AppointmentCompanionBridge; if (bridge && bridge.updateWorkingRecord) { bridge.updateWorkingRecord({ customer_id: row.cloud_id || '', customer_name: row.customer_name || '', appointment_state: canonical.toLegacySnapshot(row.appointment_state), specialists: clone(row.specialist_state || {}), basket_url: row.basket_url || '' }); if (bridge.setToolState) Object.keys(row.specialist_state || {}).forEach(function (tool) { bridge.setToolState(tool, clone(row.specialist_state[tool])); }); }
+    var bridge = global.AppointmentCompanionBridge;
+    if (bridge && bridge.getWorkingRecord && row.appointment_state && row.appointment_state.canonical) {
+      try {
+        var working = bridge.getWorkingRecord() || {};
+        var workingBasket = String(working.basket_url || '').trim();
+        var sameCustomer = workingBasket && (
+          (row.cloud_id && working.customer_id && String(row.cloud_id) === String(working.customer_id)) ||
+          (!row.cloud_id && !working.customer_id && row.customer_name && working.customer_name && String(row.customer_name).trim() === String(working.customer_name).trim())
+        );
+        if (sameCustomer && String(row.appointment_state.canonical.basketUrl || '').trim() !== workingBasket) {
+          var mergedAppointment = clone(row.appointment_state);
+          mergedAppointment.canonical.basketUrl = workingBasket;
+          row = await store.put(Object.assign({}, row, { appointment_state: mergedAppointment, basket_url: workingBasket }));
+          current = clone(row);
+        }
+      } catch (_) {}
+    }
+    canonical.restore(row.appointment_state); if (bridge && bridge.updateWorkingRecord) { bridge.updateWorkingRecord({ customer_id: row.cloud_id || '', customer_name: row.customer_name || '', appointment_state: canonical.toLegacySnapshot(row.appointment_state), specialists: clone(row.specialist_state || {}), basket_url: row.basket_url || row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl || '' }); if (bridge.setToolState) Object.keys(row.specialist_state || {}).forEach(function (tool) { bridge.setToolState(tool, clone(row.specialist_state[tool])); }); }
     paint(row, false); if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
   }
   function recentRows(rows) { try { localStorage.setItem('apptCompanionRecentCustomersV1', JSON.stringify(rows.filter(function (row) { return !row.deleted; }).slice(0, 20).map(function (row) { var c = row.appointment_state && row.appointment_state.canonical || {}; return { customer_id: row.local_id, customer_name: row.customer_name || 'Unnamed', updated_at: row.updated_at, summary: row.appointment_state && row.appointment_state.ui_state && row.appointment_state.ui_state.summary || {}, has_ev: !!(row.specialist_state && row.specialist_state.ev), locally_available: true, services: c.selectedServices || {} }; }))); } catch (_) {} }
