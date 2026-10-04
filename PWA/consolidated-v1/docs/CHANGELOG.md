@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.45.7 - 4th October 2026
+
+- Parked automatic onboarding so it no longer opens on normal Companion startup or returns after profile editing.
+- Removed the Setup / onboarding action from Settings.
+- Added direct 👤 My profile access to the main Companion menu for every Partner.
+- Partner profiles remain Cloud-backed and editable by the logged-in Partner.
+- Updated the Admin login message to reflect the simpler login-and-use flow.
+- Kept the separate 🔐 Admin area for Adrian's central Partner management.
+- Applied the v2.45.7 master release across Main Companion, EV, Should I Fix and Admin.
+
 ## v2.45.6 - 4th October 2026
 
 - Established the displayed version as the master Appointment Companion suite version.
