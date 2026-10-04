@@ -1,5 +1,11 @@
 # Appointment Companion changelog
 
+## v2.45.2 - 4th October 2026
+
+- Fixed stale browser caching on Companion Admin by versioning the shared Cloud client asset.
+- This resolves `api.adminListPartners is not a function` and `api.adminUploadPartnerPhoto is not a function` when an older Cloud client was cached.
+- Existing Partner rows and generated passwords are unaffected.
+
 ## v2.45 - 4th October 2026
 
 - Added Drive-backed Partner profile photo upload to Companion Admin.
