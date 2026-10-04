@@ -13,7 +13,12 @@
   function envelope() { try { return bridge && bridge.receive ? bridge.receive() : null; } catch (_) { return null; } }
   function savedBasket() {
     var e = envelope(), c = e && e.extra && e.extra.customer;
-    return safeHttps((e && e.basket_url) || (c && c.basket_url) || '');
+    return safeHttps(
+      (bridge && typeof bridge.currentBasketUrl === 'function' && bridge.currentBasketUrl()) ||
+      (e && e.basket_url) ||
+      (c && c.basket_url) ||
+      ''
+    );
   }
   function cleanName(value) { return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 80); }
   function num(el) { var n = el && el.value !== '' ? Number(el.value) : NaN; return Number.isFinite(n) ? n : 0; }
@@ -108,6 +113,7 @@
         var raw = overlay.querySelector('#acFixBasketGate').value.trim();
         var safe = safeHttps(raw);
         if (!safe) { overlay.querySelector('#acFixGateError').textContent = raw ? 'Please use a valid https:// basket link.' : 'Add a basket link, or choose Share without basket.'; return; }
+        if (bridge && typeof bridge.setBasketUrl === 'function') bridge.setBasketUrl(safe);
         done({ cancelled: false, basket: safe });
       });
       document.body.appendChild(overlay);
