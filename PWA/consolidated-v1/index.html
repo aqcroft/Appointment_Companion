@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion v2.46.3</title>
+  <title>Appointment Companion v2.46.4</title>
   <meta name="description" content="Appointment Companion local-first PWA">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261004-v2.46.3-tracker-vat1';
+      var version = '20261004-v2.46.4-partner-modal1';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var sharedView = /^d=/.test(location.hash.slice(1));
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
@@ -70,6 +70,7 @@
         '<script src="../consolidated-v1/release-v2.46.1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.46.2.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.46.3.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/release-v2.46.4.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/tariff-health-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/notification-preferences-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/earnings-shortcut-v2.42.js?v=' + version + '"><\/script>' +
