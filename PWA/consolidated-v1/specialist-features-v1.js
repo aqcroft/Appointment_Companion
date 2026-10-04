@@ -3,7 +3,7 @@
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
 
-  var VERSION = 'v2.45.15';
+  var VERSION = 'v2.45.16';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
   var path = location.pathname;
   var isMain = /\/consolidated-v1\/?(?:index\.html)?$/.test(path);
