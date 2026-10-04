@@ -1,5 +1,16 @@
 # Appointment Companion changelog
 
+## v2.45.10 - 4th October 2026
+
+- Hid the entire advanced Energy area from the normal appointment flow. A discreet cog now reveals it only when deliberately needed.
+- Moved annual energy usage inside the hidden Energy details area so no usage prompt appears during a standard appointment.
+- Kept complex billing/tariff options and manual E7/EV/solar adjustment behind further progressive controls inside Energy details.
+- Moved the Broadband 6 months free option into the UW column, immediately below the UW monthly cost and above Whole Home Wi-Fi.
+- Renamed Home Cover to Boiler Cover throughout the active appointment experience.
+- Retired the 3 months free Boiler Cover offer from all new appointments and new shares.
+- Retained legacy shared-link understanding so previously-sent links from the old Boiler Cover offer still render safely.
+- Applied master v2.45.10 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.9 - 4th October 2026
 
 - Simplified the Main Companion around progressive disclosure so the normal appointment only shows essential inputs.
