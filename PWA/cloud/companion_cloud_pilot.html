@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appointment Companion v2.45.9 — UW Savings</title>
+<title>Appointment Companion v2.45.10 — UW Savings</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -66,6 +66,10 @@ header p { font-size: 12.5px; color: var(--muted); }
   font-size: 13px; font-weight: 700; letter-spacing: 0.4px;
   text-transform: uppercase; color: var(--purple); margin-bottom: 0.75rem;
 }
+.section-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:0.75rem; }
+.section-heading h2 { margin-bottom:0; }
+.icon-toggle { border:1px solid var(--line); background:white; border-radius:9px; min-width:36px; min-height:34px; padding:4px 8px; font-size:16px; cursor:pointer; }
+.icon-toggle.on { background:#f6f0ff; border-color:#cdb8ef; }
 .sub { font-size: 12px; color: var(--muted); }
 
 /* ===== Inputs ===== */
@@ -405,9 +409,11 @@ label.active-tier { color:var(--purple); font-weight:700; }
 
   <!-- ENERGY -->
   <div class="card hidden" id="energyCard">
-    <h2>Energy</h2>
-    <details class="progressive-details" id="energyAdvancedDetails">
-      <summary>⚙️ Energy details <span class="sub">usage & complex cases</span></summary>
+    <div class="section-heading">
+      <h2>Energy</h2>
+      <button type="button" class="icon-toggle" id="energyAdvancedToggle" title="Energy details" aria-label="Show energy details" aria-expanded="false">⚙️</button>
+    </div>
+    <div class="hidden" id="energyAdvancedDetails">
       <div class="progressive-body">
         <details class="progressive-details" id="energyComplexityDetails">
           <summary>Complex billing / tariff options</summary>
@@ -431,10 +437,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
           </div>
         </details>
 
-        <details class="progressive-details" id="energyUsageCaptureDetails">
-          <summary>📊 Annual usage <span class="sub">optional</span></summary>
-          <div class="progressive-body">
-    <div class="usage-capture">
+        <div class="usage-capture" id="energyUsageCaptureDetails">
+      <label>📊 Annual usage <span class="sub">optional</span></label>
       <label>Energy services</label>
       <div class="row2">
         <div class="switchrow"><span class="lbl">⚡ Electricity</span><span class="switch"><input type="checkbox" id="energyHasElectricity" checked><span class="track"></span></span></div>
@@ -494,8 +498,6 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <input type="hidden" id="gasUsageCapturedAt">
       </div>
     </div>
-          </div>
-        </details>
 
         <details class="progressive-details" id="energyAdjustmentDetails">
           <summary>Manual energy adjustment <span class="sub">E7 / EV / solar</span></summary>
@@ -527,7 +529,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
           </div>
         </details>
       </div>
-    </details>
+    </div>
 
     <div class="nowuw">
       <div class="side">
@@ -579,10 +581,6 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- BROADBAND -->
   <div class="card hidden" id="broadbandCard">
     <h2>🛜 Broadband</h2>
-    <div id="bbFreeMonthsRow" class="switchrow hidden" style="margin-bottom: 0.8rem;">
-      <span class="lbl">6 months free</span>
-      <span class="switch"><input type="checkbox" id="bbFreeMonthsToggle"><span class="track"></span></span>
-    </div>
 
     <div class="nowuw">
       <div class="side">
@@ -598,6 +596,10 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <div class="pills" id="bbPkgPills" style="flex-wrap: wrap; gap: 6px;"></div>
         </div>
         <div class="field money"><label>Monthly cost (auto-fills on selection)</label><input type="number" id="uwBroadbandMonthly" inputmode="decimal" placeholder="0" step="0.01" style="background: #f5f0ff;"></div>
+        <div id="bbFreeMonthsRow" class="switchrow hidden" style="margin-top:0.25rem;">
+          <span class="lbl">🎁 6 months free</span>
+          <span class="switch"><input type="checkbox" id="bbFreeMonthsToggle"><span class="track"></span></span>
+        </div>
         <div class="switchrow" style="margin-top:0.75rem;">
           <span class="lbl">📶 Whole Home Wi-Fi</span>
           <span class="switch"><input type="checkbox" id="wholeHomeWifiToggle"><span class="track"></span></span>
@@ -636,10 +638,10 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
   </div>
 
-  <!-- HOME COVER -->
+  <!-- BOILER COVER -->
   <div class="card hidden" id="insuranceCard">
     <div class="switchrow" style="padding:0;">
-      <h2 style="margin-bottom:0;">🛡️ Home Cover</h2>
+      <h2 style="margin-bottom:0;">🛡️ Boiler Cover</h2>
       <span class="switch"><input type="checkbox" id="boilerCoverToggle"><span class="track"></span></span>
     </div>
     <div id="boilerCoverCompare" class="hidden" style="margin-top:0.7rem;">
@@ -651,10 +653,6 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <div class="side uw">
           <span class="tag">UW</span>
           <div style="font-size:22px;font-weight:850;margin:.1rem 0 .35rem;">£<span id="uwBoilerCoverMonthly">25</span>/m</div>
-          <div id="boilerCoverFreeRow" class="switchrow hidden" style="padding:0.25rem 0 0;">
-            <span class="lbl" style="font-size:12px;">3 months free</span>
-            <span class="switch"><input type="checkbox" id="boilerCoverFreeToggle"><span class="track"></span></span>
-          </div>
         </div>
       </div>
     </div>
@@ -866,7 +864,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
             <span class="basket-icon" id="biBroadband" title="Broadband">🛜</span>
             <span class="basket-icon" id="biSim1" title="Mobile SIM">📱</span>
             <span class="basket-icon" id="biSim2" title="Mobile SIM">📱</span>
-            <span class="basket-icon could" id="biInsurance" title="Home Cover">🛡️</span>
+            <span class="basket-icon could" id="biInsurance" title="Boiler Cover">🛡️</span>
           </div>
           <div class="basket-count" id="basketCount">0 services</div>
           <button type="button" id="biSimAdd" class="hidden basket-add-btn" title="Preview adding mobile SIM(s)">
@@ -899,7 +897,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
               <tr id="scEnergyRow"><td>⚡🔥 Energy</td><td id="scEnergyNow"></td><td id="scEnergyUw"></td><td id="scEnergySave"></td></tr>
               <tr id="scBbRow"><td>🛜 Broadband</td><td id="scBbNow"></td><td id="scBbUw"></td><td id="scBbSave"></td></tr>
               <tr id="scMobRow"><td>📱 Mobile</td><td id="scMobNow"></td><td id="scMobUw"></td><td id="scMobSave"></td></tr>
-              <tr id="scInsuranceRow" class="hidden"><td>🛡️ Home Cover</td><td id="scInsuranceNow"></td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>
+              <tr id="scInsuranceRow" class="hidden"><td>🛡️ Boiler Cover</td><td id="scInsuranceNow"></td><td id="scInsuranceUw"></td><td id="scInsuranceSave"></td></tr>
               <tr id="scAdjustRow" class="hidden"><td>✏️ Adjustment</td><td id="scAdjustNow"></td><td id="scAdjustUw"></td><td id="scAdjustSave"></td></tr>
               <tr id="scAdjustNoteRow" class="hidden"><td colspan="4" style="font-size:11px; color:var(--muted); font-weight:600; padding-top:0; padding-bottom:8px; border-bottom:1px solid #f0edf7;"></td></tr>
               <tr class="tot"><td>Subtotal</td><td id="scSubtotNow"></td><td id="scSubtotUw"></td><td id="scSubtotSave"></td></tr>
@@ -1007,10 +1005,9 @@ const CONFIG = {
   // Exit fees refunded by UW up to £400 when taking 3+ services
   exitFeeRefund: { minServices: 3, maxRefund: 400 },
 
-  // Home Cover — fixed monthly rate (update here when UW changes pricing)
+  // Boiler Cover — fixed monthly rate (update here when UW changes pricing)
   insurance: {
-    boilerCover: 25,
-    boilerCoverFreeMonths: 3
+    boilerCover: 25
   },
 
   // Cashback card
@@ -1089,9 +1086,7 @@ function setHome(which) {
   if (which !== 'homeowner') $('bbFreeMonthsToggle').checked = false;
   if (which !== 'homeowner') {
     $('boilerCoverToggle').checked = false;
-    $('boilerCoverFreeToggle').checked = false;
     $('boilerCoverCompare').classList.add('hidden');
-    $('boilerCoverFreeRow').classList.add('hidden');
   }
   ['servicesCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.remove('hidden'));
   $('insuranceCard').classList.toggle('hidden', which !== 'homeowner');
@@ -1111,6 +1106,16 @@ $('natLeagueToggle').addEventListener('change', () => {
   calc();
 });
 $('bbFreeMonthsToggle').addEventListener('change', calc);
+
+// Advanced Energy details - deliberately hidden until requested.
+$('energyAdvancedToggle').addEventListener('click', () => {
+  const panel = $('energyAdvancedDetails');
+  const btn = $('energyAdvancedToggle');
+  const opening = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !opening);
+  btn.classList.toggle('on', opening);
+  btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+});
 
 // Bundle rates toggle (🥪 on UW energy field)
 $('bundleRatesBtn').addEventListener('click', () => {
@@ -1237,14 +1242,11 @@ document.querySelectorAll('#energyAdjustPeriodPills .pill').forEach(btn => {
   });
 });
 
-// Home Cover
+// Boiler Cover
 $('boilerCoverToggle').addEventListener('change', e => {
   $('boilerCoverCompare').classList.toggle('hidden', !e.target.checked);
-  $('boilerCoverFreeRow').classList.toggle('hidden', !e.target.checked);
-  if (!e.target.checked) $('boilerCoverFreeToggle').checked = false;
   calc();
 });
-$('boilerCoverFreeToggle').addEventListener('change', calc);
 
 // Manual adjustment (general, between Mobile and Cashback)
 $('manualAdjustToggle').addEventListener('change', e => {
@@ -1409,10 +1411,10 @@ function serviceCounts() {
 function compute(previewSims = 0) {
   const cb = CONFIG.cashback;
 
-  // --- Home Cover ---
+  // --- Boiler Cover ---
   const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
   const currentBoilerCover = $('boilerCoverToggle').checked ? numF('currentBoilerCoverMonthly') : 0;
-  const boilerCoverFree = (boilerCoverCost > 0 && $('boilerCoverFreeToggle').checked) ? boilerCoverCost * CONFIG.insurance.boilerCoverFreeMonths : 0;
+  const boilerCoverFree = 0;
   const insuranceTotal = boilerCoverCost;
   const insuranceCount = boilerCoverCost > 0 ? 1 : 0;
 
@@ -1744,7 +1746,7 @@ function calc() {
   // service counter
   let svcTxt = 'Qualifying UW services: ' + r.count;
   const insuranceIcons = [];
-  if (r.boilerCoverCost > 0) insuranceIcons.push('🛡️ Home Cover');
+  if (r.boilerCoverCost > 0) insuranceIcons.push('🛡️ Boiler Cover');
   if (insuranceIcons.length) svcTxt += ' (incl. ' + insuranceIcons.join(', ') + ')';
   if (state.services.mobile && r.includedSimsCount === 0) {
     svcTxt += ' — add SIM details to confirm Mobile qualification';
@@ -1886,7 +1888,7 @@ function renderCard(r) {
   const mobLabelEl = $('scMobRow') && $('scMobRow').querySelector('td');
   if (mobLabelEl) mobLabelEl.textContent = '📱 Mobile' + mdEmoji;
 
-  // Home Cover comparison
+  // Boiler Cover comparison
   $('scInsuranceRow').classList.toggle('hidden', r.insuranceTotal === 0);
   if (r.insuranceTotal > 0) {
     $('scInsuranceNow').textContent = fmt(r.currentBoilerCover);
@@ -2114,7 +2116,7 @@ $('copyBtn').addEventListener('click', () => {
   if (state.services.energy) lines.push('  Energy: £' + money(r.currentEnergy - r.uwEnergy) + '/m');
   if (state.services.broadband) lines.push('  Broadband: £' + money(r.currentBb - r.uwBb) + '/m');
   if (state.services.mobile) lines.push('  Mobile: £' + money(r.currentMob - r.uwMob) + '/m');
-  if (r.insuranceTotal) lines.push('  Home Cover: £' + money(r.currentBoilerCover) + ' → £' + money(r.insuranceTotal) + '/m');
+  if (r.insuranceTotal) lines.push('  Boiler Cover: £' + money(r.currentBoilerCover) + ' → £' + money(r.insuranceTotal) + '/m');
   if (r.manualAdjustCurrent || r.manualAdjustUw) {
     lines.push('  Adjustment: £' + money(r.manualAdjustCurrent - r.manualAdjustUw) + '/m');
     if (state.manualAdjustPeriod === 'annual') lines.push('    (entered annually, shown ÷ 12)');
@@ -2135,7 +2137,6 @@ $('copyBtn').addEventListener('click', () => {
   }
   if (r.welcome) lines.push('  Welcome Bonus (' + (r.welcome / 50) + 'm @ £50): £' + r.welcome);
   if (r.cbOn) lines.push('  ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + '): +£' + r.freeMonthsValue);
-  if (r.boilerCoverFree) lines.push('  ' + CONFIG.insurance.boilerCoverFreeMonths + 'm free Boiler Cover (' + CONFIG.insurance.boilerCoverFreeMonths + 'm @ £' + CONFIG.insurance.boilerCover + '): £' + money(r.boilerCoverFree));
   if (r.exitFees) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     if (r.refunded && r.exitDeduction === 0)
@@ -2214,7 +2215,7 @@ function buildShareData() {
       mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
       ef: r.exitFees, ed: r.exitDeduction,
       cn: r.cashbackNet, fm: r.freeMonthsValue, cs: r.spend, cbt: state.cbTier,
-      bc: r.boilerCoverCost, bcf: Math.round(r.boilerCoverFree),
+      bc: r.boilerCoverCost,
       ci: r.currentBoilerCover, it: r.insuranceTotal,
       mac: r.manualAdjustCurrent, mau: r.manualAdjustUw,
       map: (state.manualAdjustPeriod === 'annual' && (r.manualAdjustCurrent !== 0 || r.manualAdjustUw !== 0)) ? 1 : 0,
@@ -2408,9 +2409,12 @@ function resetForm() {
   $('cashbackInner').classList.remove('hidden');
   if ($('electricityUsageSection')) $('electricityUsageSection').classList.remove('hidden');
   if ($('gasUsageSection')) $('gasUsageSection').classList.remove('hidden');
-  if ($('energyAdvancedDetails')) $('energyAdvancedDetails').open = false;
+  if ($('energyAdvancedDetails')) $('energyAdvancedDetails').classList.add('hidden');
+  if ($('energyAdvancedToggle')) {
+    $('energyAdvancedToggle').classList.remove('on');
+    $('energyAdvancedToggle').setAttribute('aria-expanded','false');
+  }
   if ($('energyComplexityDetails')) $('energyComplexityDetails').open = false;
-  if ($('energyUsageCaptureDetails')) $('energyUsageCaptureDetails').open = false;
   if ($('energyAdjustmentDetails')) $('energyAdjustmentDetails').open = false;
   if ($('cashbackAssumptionsDetails')) $('cashbackAssumptionsDetails').open = false;
   $('basketLinkDetails').open = false;
@@ -2419,7 +2423,6 @@ function resetForm() {
   $('mobileTotalsRow').style.display = 'none';
   // New toggles/panels (Whole Home Wi-Fi, manual adjustments, insurance)
   ['energyAdjustFields','manualAdjustFields','oneOffFields'].forEach(id => $(id).classList.add('hidden'));
-  $('boilerCoverFreeRow').classList.add('hidden');
   state.energyAdjustTarget = 'current';
   state.energyAdjustPeriod = 'monthly';
   state.manualAdjustPeriod = 'monthly';
@@ -2526,7 +2529,6 @@ function restoreForm(saved) {
   $('dhpPlans').classList.toggle('hidden', !$('dhpToggle').checked);
   $('cashbackInner').classList.toggle('hidden', !$('includeCashback').checked);
   $('boilerCoverCompare').classList.toggle('hidden', !$('boilerCoverToggle').checked);
-  $('boilerCoverFreeRow').classList.toggle('hidden', !$('boilerCoverToggle').checked);
   if ($('electricityUsageSection')) $('electricityUsageSection').classList.toggle('hidden', $('energyHasElectricity') && !$('energyHasElectricity').checked);
   if ($('gasUsageSection')) $('gasUsageSection').classList.toggle('hidden', $('energyHasGas') && !$('energyHasGas').checked);
 
