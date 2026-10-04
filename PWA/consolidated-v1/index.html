@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion v2.45.6</title>
+  <title>Appointment Companion v2.45.7</title>
   <meta name="description" content="Appointment Companion local-first PWA">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261004-v2.45.6-suite-version1';
+      var version = '20261004-v2.45.7-onboarding-park1';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
       if (!response.ok) throw new Error('Cloud UI donor returned HTTP ' + response.status);
@@ -54,6 +54,7 @@
         '<script src="../consolidated-v1/release-v2.45.4.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.45.5.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.45.6.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/release-v2.45.7.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/tariff-health-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/notification-preferences-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/earnings-shortcut-v2.42.js?v=' + version + '"><\/script>' +
