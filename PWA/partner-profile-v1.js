@@ -1,4 +1,4 @@
-/* Appointment Companion Partner Profile v2.45.13
+/* Appointment Companion Partner Profile v2.46.0
    Cloud is the source of truth for Partner identity. The local Partner record
    remains an offline cache so appointments and sharing continue to work when
    Cloud is temporarily unavailable.
@@ -45,6 +45,18 @@
   }
 
   function clean(v) { return String(v == null ? '' : v).trim(); }
+  function cleanSlug(value) {
+    var raw = clean(value);
+    var email = raw.match(/^([^@\s]+)@uw\.partners$/i);
+    if (email) raw = email[1];
+    return raw.replace(/^https?:\/\/(?:www\.)?uw\.partners\//i, '')
+      .replace(/\/(?:partner\/)?join\/?$/i, '')
+      .replace(/^\/+|\/+$/g, '')
+      .replace(/\s+/g, '');
+  }
+  function customerJoin(slug) { slug = cleanSlug(slug); return slug ? 'https://uw.partners/' + slug + '/join' : ''; }
+  function partnerJoin(slug) { slug = cleanSlug(slug); return slug ? 'https://uw.partners/' + slug + '/partner/join' : ''; }
+  function defaultEmail(slug) { slug = cleanSlug(slug); return slug ? slug + '@uw.partners' : ''; }
 
   function normalise(profile) {
     profile = profile && typeof profile === 'object' ? profile : {};
@@ -52,8 +64,10 @@
       partner_id: clean(profile.partner_id || profile.companion_login_id),
       name: clean(profile.name || profile.partner_name),
       mobile: clean(profile.mobile),
-      email: clean(profile.email),
-      join: clean(profile.join || profile.join_url || profile.uw_link),
+      partner_slug: cleanSlug(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
+      email: clean(profile.email) || defaultEmail(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link),
+      join: customerJoin(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
+      partner_join: partnerJoin(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
       town: clean(profile.town),
       strap: clean(profile.strap),
       photo_url: clean(profile.photo_url || profile.photo),
@@ -65,7 +79,7 @@
   }
 
   function hasExistingIdentity(profile) {
-    return !!(clean(profile && profile.name) && clean(profile && profile.join));
+    return !!(clean(profile && profile.name) && cleanSlug(profile && (profile.partner_slug || profile.join || profile.email)));
   }
 
   function writeLocal(profile) {
@@ -90,7 +104,8 @@
     var cloud = cachedCloudPartner();
     return normalise(Object.assign({}, cloud, local, {
       name: local.name || cloud.name,
-      join: local.join || cloud.join
+      partner_slug: local.partner_slug || cloud.partner_slug || cleanSlug(local.join || cloud.join),
+      email: local.email || cloud.email
     }));
   }
 
@@ -98,10 +113,10 @@
     return [
       '<div class="field ac-partner-cloud-field"><label>Companion Login ID</label><input type="text" id="ppPartnerId" readonly autocomplete="off"><p class="sub" style="margin-top:.3rem">Your UW Partner ID is used as your Companion login.</p></div>',
       '<div class="field ac-partner-cloud-field"><label>Mobile</label><input type="tel" id="ppMobile" autocomplete="tel" inputmode="tel"></div>',
-      '<div class="field ac-partner-cloud-field"><label>Email</label><input type="email" id="ppEmail" autocomplete="email" inputmode="email"></div>',
+      '<div class="field ac-partner-cloud-field"><label>UW email</label><input type="email" id="ppEmail" autocomplete="email" inputmode="email"><p class="sub" style="margin-top:.3rem">Normally derived from your UW Partner slug. Edit only if different.</p></div>',
       '<div class="field ac-partner-cloud-field"><label>Profile photo URL <span class="sub">https://...</span></label><input type="url" id="ppPhoto" autocomplete="url" inputmode="url" placeholder="https://..."><div id="ppPhotoPreview" style="margin-top:.45rem"></div></div>',
       '<div class="field ac-partner-cloud-field"><label>Booking link <span class="sub">optional</span></label><input type="url" id="ppBooking" autocomplete="url" inputmode="url" placeholder="https://..."></div>',
-      '<div class="field ac-partner-cloud-field"><label>Website <span class="sub">optional</span></label><input type="url" id="ppWebsite" autocomplete="url" inputmode="url" placeholder="https://..."></div>'
+      '<div class="field ac-partner-cloud-field"><label>Personal/business website <span class="sub">optional</span></label><input type="url" id="ppWebsite" autocomplete="url" inputmode="url" placeholder="https://..."></div>'
     ].join('');
   }
 
@@ -140,7 +155,7 @@
     var p = normalise(profile || Object.assign({}, cachedCloudPartner(), localPartner()));
     var map = {
       ppName: p.name,
-      ppJoin: p.join,
+      ppJoin: p.partner_slug || cleanSlug(p.join),
       ppTown: p.town,
       ppStrap: p.strap,
       ppPartnerId: p.partner_id,
@@ -163,10 +178,14 @@
     ensureExtraFields();
     var current = localPartner();
     var auth = getAuth();
+    var slug = cleanSlug((document.getElementById('ppJoin') || {}).value || current.partner_slug || current.join);
     var next = Object.assign({}, current, {
       partner_id: auth && auth.partner_id || current.partner_id || '',
+      partner_slug: slug,
+      join: customerJoin(slug),
+      partner_join: partnerJoin(slug),
       mobile: clean((document.getElementById('ppMobile') || {}).value),
-      email: clean((document.getElementById('ppEmail') || {}).value),
+      email: clean((document.getElementById('ppEmail') || {}).value) || defaultEmail(slug),
       photo_url: clean((document.getElementById('ppPhoto') || {}).value),
       booking_url: clean((document.getElementById('ppBooking') || {}).value),
       website_url: clean((document.getElementById('ppWebsite') || {}).value)
@@ -208,7 +227,7 @@
     captureExtraFields();
     var profile = composeForSave();
     profile.partner_id = auth.partner_id;
-    if (!profile.name || !profile.join) return null;
+    if (!profile.name || !profile.partner_slug) return null;
     syncing = true;
     try {
       var response = await api.savePartnerProfile(auth, profile);
