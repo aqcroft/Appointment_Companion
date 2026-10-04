@@ -1,5 +1,16 @@
 # Appointment Companion changelog
 
+## v2.45.16 - 4th October 2026
+
+- Connected Partner Earnings to the shared Appointment Companion Partner-profile architecture.
+- Appointment Companion now passes the logged-in Partner ID into the Partner Earnings Tool.
+- Partner Earnings uses that Partner ID to load the Partner's public Cloud profile instead of relying on Adrian-specific hard-coded defaults.
+- Partner Earnings now uses the logged-in Partner's name, photo, mobile/WhatsApp, email and booking link where available.
+- The PET registration CTA is derived from the Partner's UW join slug as https://uw.partners/<slug>/partner/join.
+- If a Partner profile cannot be loaded, PET no longer falls back to another Partner's personal details.
+- Partner Earnings shared links retain the originating Partner ID so recipient copies remain branded to the correct Partner.
+- Applied master v2.45.16 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.15 - 4th October 2026
 
 - Renamed the Admin login field to Companion Login ID (UW Partner ID).
