@@ -120,13 +120,28 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .switch input:checked + .track { background: var(--purple); }
 .switch input:checked + .track::after { left: 23px; }
 
-/* ===== Now / UW split ===== */
-.nowuw { display: grid; grid-template-columns: 1fr; gap: 0.8rem; }
-@media (min-width: 640px) { .nowuw { grid-template-columns: 1fr 1fr; } }
-.side { border: 1px dashed var(--line); border-radius: 10px; padding: 0.75rem; }
+/* ===== Current / UW split =====
+   Master layout principle: comparisons stay side by side, including on phones. */
+.nowuw { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0.55rem; align-items: start; }
+.side { min-width: 0; border: 1px dashed var(--line); border-radius: 10px; padding: 0.7rem; }
 .side.uw { border-style: solid; border-color: #ded0f5; background: #faf7ff; }
 .side .tag { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 0.6rem; display: block; }
 .side.uw .tag { color: var(--purple); }
+
+@media (max-width: 520px) {
+  .nowuw { gap: 0.4rem; }
+  .nowuw > .side { padding: 0.55rem; }
+  .nowuw > .side .tag { font-size: 9.5px; margin-bottom: 0.45rem; letter-spacing: 0.35px; }
+  .nowuw > .side .row2 { grid-template-columns: 1fr; gap: 0; }
+  .nowuw > .side label { font-size: 11px; line-height: 1.2; }
+  .nowuw > .side input[type="text"],
+  .nowuw > .side input[type="number"],
+  .nowuw > .side select { padding: 10px 8px; font-size: 16px; }
+  .nowuw > .side .money::before { left: 8px; }
+  .nowuw > .side .money input { padding-left: 20px; }
+  .nowuw > .side .pills { gap: 4px; }
+  .nowuw > .side .pill { min-height: 38px; padding: 6px; font-size: 11px; }
+}
 
 /* ===== SIM cards ===== */
 .sim {
@@ -135,7 +150,23 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .sim.off { opacity: 0.45; }
 .sim-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
 .sim-head input[type="text"] { flex: 1; padding: 8px 10px; font-size: 14px; }
+.sim-compare { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0.55rem; align-items:start; }
+.sim-compare .side { padding:0.6rem; height:100%; }
+.sim-compare .field:last-child { margin-bottom:0; }
+.sim-compare .tag { font-size:10px; margin-bottom:0.45rem; }
 .planpills { display: flex; gap: 6px; }
+@media (max-width:520px) {
+  .sim { padding:0.6rem; }
+  .sim-compare { gap:0.4rem; }
+  .sim-compare .side { padding:0.5rem; }
+  .sim-compare label { font-size:11px; line-height:1.2; }
+  .sim-compare input[type="number"] { padding:10px 8px; font-size:16px; }
+  .sim-compare .money::before { left:8px; }
+  .sim-compare .money input { padding-left:20px; }
+  .sim-compare .planpills { display:grid; grid-template-columns:1fr; gap:4px; }
+  .sim-compare .planpills .pill { min-height:36px; padding:5px 4px; font-size:10.5px; }
+}
+
 .planpills .pill { min-height: 40px; font-size: 12.5px; padding: 6px 8px; }
 .plannote { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
@@ -609,13 +640,17 @@ label.active-tier { color:var(--purple); font-weight:700; }
           <button class="pill" type="button" data-maperiod="annual">Annual</button>
         </div>
       </div>
-      <div class="row2">
-        <div class="field money"><label>Add to Current £ (+/−)</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
-        <div class="field"><label>Reason</label><input type="text" id="manualAdjustCurrentReason" placeholder="optional"></div>
-      </div>
-      <div class="row2">
-        <div class="field money"><label>Add to UW £ (+/−)</label><input type="number" id="manualAdjustUw" inputmode="decimal" placeholder="0" step="0.01"></div>
-        <div class="field"><label>Reason</label><input type="text" id="manualAdjustUwReason" placeholder="optional"></div>
+      <div class="nowuw">
+        <div class="side">
+          <span class="tag">Current</span>
+          <div class="field money"><label>Adjustment £ (+/−)</label><input type="number" id="manualAdjustCurrent" inputmode="decimal" placeholder="0" step="0.01"></div>
+          <div class="field"><label>Reason</label><input type="text" id="manualAdjustCurrentReason" placeholder="optional"></div>
+        </div>
+        <div class="side uw">
+          <span class="tag">UW</span>
+          <div class="field money"><label>Adjustment £ (+/−)</label><input type="number" id="manualAdjustUw" inputmode="decimal" placeholder="0" step="0.01"></div>
+          <div class="field"><label>Reason</label><input type="text" id="manualAdjustUwReason" placeholder="optional"></div>
+        </div>
       </div>
     </div>
 
@@ -1231,16 +1266,21 @@ function buildSims() {
         '<span class="switch"><input type="checkbox" data-field="include" data-sim="' + key + '"' + (sim.include ? ' checked' : '') + '><span class="track"></span></span>' +
         '<input type="text" data-field="name" data-sim="' + key + '" value="' + sim.name.replace(/"/g, '&quot;') + '" placeholder="Name">' +
       '</div>' +
-      '<div class="row2">' +
-        '<div class="field money"><label>Current /m</label><input type="number" inputmode="numeric" data-field="monthlyCost" data-sim="' + key + '" placeholder="0"' + (sim.monthlyCost ? ' value="' + sim.monthlyCost + '"' : '') + '></div>' +
-        '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
-      '</div>' +
-      '<label style="margin-bottom:4px;">UW plan — £<span id="uwCost_' + key + '">0</span>/m</label>' +
-      '<div class="planpills" data-sim="' + key + '">' +
-        '<button class="pill" type="button" data-plan="unlimitedMax">' + CONFIG.mobile.plans.unlimitedMax.label + '</button>' +
-        '<button class="pill" type="button" data-plan="essentialMax">' + CONFIG.mobile.plans.essentialMax.label + '</button>' +
-      '</div>' +
-      '<p class="plannote" id="plannote_' + key + '"></p>';
+      '<div class="sim-compare">' +
+        '<div class="side">' +
+          '<span class="tag">Current</span>' +
+          '<div class="field money"><label>Monthly cost</label><input type="number" inputmode="numeric" data-field="monthlyCost" data-sim="' + key + '" placeholder="0"' + (sim.monthlyCost ? ' value="' + sim.monthlyCost + '"' : '') + '></div>' +
+          '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
+        '</div>' +
+        '<div class="side uw">' +
+          '<span class="tag">UW - £<span id="uwCost_' + key + '">0</span>/m</span>' +
+          '<div class="planpills" data-sim="' + key + '">' +
+            '<button class="pill" type="button" data-plan="unlimitedMax">' + CONFIG.mobile.plans.unlimitedMax.label + '</button>' +
+            '<button class="pill" type="button" data-plan="essentialMax">' + CONFIG.mobile.plans.essentialMax.label + '</button>' +
+          '</div>' +
+          '<p class="plannote" id="plannote_' + key + '"></p>' +
+        '</div>' +
+      '</div>';
     list.appendChild(div);
   }
   // plan pill listeners + initial highlight
