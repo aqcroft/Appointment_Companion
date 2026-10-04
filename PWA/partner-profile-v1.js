@@ -1,4 +1,4 @@
-/* Appointment Companion Partner Profile v2.46.0
+/* Appointment Companion Partner Profile v2.46.4
    Cloud is the source of truth for Partner identity. The local Partner record
    remains an offline cache so appointments and sharing continue to work when
    Cloud is temporarily unavailable.
@@ -107,6 +107,19 @@
       partner_slug: local.partner_slug || cloud.partner_slug || cleanSlug(local.join || cloud.join),
       email: local.email || cloud.email
     }));
+  }
+
+  function ensurePartnerPromptLayout() {
+    if (document.getElementById('acPartnerPromptLayoutV2464')) return;
+    var style = document.createElement('style');
+    style.id = 'acPartnerPromptLayoutV2464';
+    style.textContent = [
+      '#partnerPrompt{overscroll-behavior:contain;}',
+      '#partnerPrompt .basket-prompt-card{box-sizing:border-box;max-height:calc(100vh - 2rem);max-height:calc(100dvh - 2rem);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}',
+      '#partnerPrompt input[type="text"],#partnerPrompt input[type="tel"],#partnerPrompt input[type="email"],#partnerPrompt input[type="url"]{width:100%;box-sizing:border-box;}',
+      '#partnerPrompt .modal-actions{position:sticky;bottom:-1rem;z-index:2;background:#fff;padding:.75rem 0 calc(.25rem + env(safe-area-inset-bottom));margin-top:.8rem;}'
+    ].join('');
+    document.head.appendChild(style);
   }
 
   function extraFieldHtml() {
@@ -277,6 +290,7 @@
   };
 
   function boot() {
+    ensurePartnerPromptLayout();
     wireExistingSettings();
     hydrate();
     var tries = 0;
