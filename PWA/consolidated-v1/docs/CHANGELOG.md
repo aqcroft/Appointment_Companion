@@ -1,5 +1,19 @@
 # Appointment Companion changelog
 
+## v2.45.11 - 4th October 2026
+
+- Moved Boiler Cover selection into the main service selector and removed the redundant visible toggle from the Boiler Cover card.
+- Kept Boiler Cover homeowner-only and preserved save/restore compatibility through its existing hidden state field.
+- Moved the full canonical Energy usage experience behind the Energy cog, including annual electricity usage, annual gas usage, Low / Medium / High estimates, electricity profile and peak/off-peak controls.
+- Renamed the cog purpose and canonical section to Energy usage.
+- Moved Existing Customer Referral and National League Referral toggles directly below the customer name and above Homeowner / Tenant.
+- Restored the customer journey overview at the top with a compact row of the three most recent profiles.
+- Recent profile chips show shadowed/active service and specialist-tool indicators.
+- Updated the Cloud customer list to understand both legacy summaries and newer canonical ui_state summaries, restoring service icons that could previously appear lost.
+- Added Should I Fix (📌) alongside EV (🚙) as a visible specialist-tool usage indicator in the current profile, recent profiles and Cloud customer list.
+- Expanded the recent-profile view to retain up to 12 recent profiles before the existing View all Cloud customers option.
+- Applied master v2.45.11 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.10 - 4th October 2026
 
 - Hid the entire advanced Energy area from the normal appointment flow. A discreet cog now reveals it only when deliberately needed.
