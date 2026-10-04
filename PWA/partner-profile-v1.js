@@ -254,7 +254,7 @@
   global.AppointmentCompanionPartnerProfile = {
     hydrate: hydrate,
     saveCurrent: saveCurrent,
-    getCached: function () { return normalise(Object.assign({}, cachedCloudPartner(), localPartner())); }
+    getCached: function () { return normalise(Object.assign({}, localPartner(), cachedCloudPartner())); }
   };
 
   function boot() {
