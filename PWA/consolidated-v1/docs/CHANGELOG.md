@@ -1,5 +1,16 @@
 # Appointment Companion changelog
 
+## v2.45.9 - 4th October 2026
+
+- Simplified the Main Companion around progressive disclosure so the normal appointment only shows essential inputs.
+- Energy now leads with the Current / UW comparison, while usage, split billing, annual-bill mode and manual energy adjustments live inside collapsed Energy details.
+- Energy usage is hidden by default in its own optional accordion.
+- Cashback keeps the Average assumption by default while Low / Average / High choices and spending assumptions remain hidden until opened.
+- Removed Income Protector from the appointment flow.
+- Reworked Home Cover into a Current / UW comparison, with the UW monthly price shown automatically and the current monthly cost entered only when Home Cover is included.
+- Home Cover remains homeowner-only and existing shared links remain compatible.
+- Applied master v2.45.9 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.45.8 - 4th October 2026
 
 - Applied the improved side-by-side two-column principle to Main Appointment Companion.
