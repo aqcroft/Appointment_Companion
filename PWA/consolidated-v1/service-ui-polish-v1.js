@@ -1,8 +1,8 @@
-/* Service-level UI polish for consolidated Appointment Companion.
-   - Keeps the four top service selectors in one compact row.
-   - Energy: first tap selects dual fuel; later taps cycle Dual fuel -> Electricity -> Gas.
-   - Mobile: first tap selects one SIM; +/- stepper adjusts 1-5 SIMs without adding a second row.
-   - Uses the current UW service colour families with darker matching controls.
+/* Compact service selector for Appointment Companion.
+   - Five icon-first service tiles in one row.
+   - Energy cycles: Off -> Dual fuel -> Electricity -> Gas -> Off.
+   - Mobile defaults to one SIM and uses an inline - / count / + stepper.
+   - Cashback Card is a pseudo-service: selected by default but never counted as a qualifying service.
 */
 (function (global) {
   'use strict';
@@ -16,68 +16,133 @@
     style.id = 'acServicePolishStyle';
     style.textContent = `
       :root {
-        --ac-energy-base:#BDDEE4; --ac-energy-soft:#F1F9FA; --ac-energy-strong:#4A92A0;
-        --ac-broadband-base:#A2E2C3; --ac-broadband-soft:#F0FAF5; --ac-broadband-strong:#3C966B;
-        --ac-mobile-base:#FAD0E9; --ac-mobile-soft:#FFF2F9; --ac-mobile-strong:#BE568E;
-        --ac-insurance-base:#FFAB70; --ac-insurance-soft:#FFF3EA; --ac-insurance-strong:#D86A2B;
-        --ac-cashback-base:#C6B5E2; --ac-cashback-soft:#F6F1FB; --ac-cashback-strong:#7654A8;
+        --ac-energy-base:#75C8D4; --ac-energy-soft:#DFF3F6; --ac-energy-strong:#197F90;
+        --ac-broadband-base:#69CE9D; --ac-broadband-soft:#DDF5E9; --ac-broadband-strong:#257F59;
+        --ac-mobile-base:#F08CC2; --ac-mobile-soft:#F9DDEA; --ac-mobile-strong:#AD3E78;
+        --ac-insurance-base:#FF9654; --ac-insurance-soft:#FFE2CE; --ac-insurance-strong:#C95A17;
+        --ac-cashback-base:#A78DDF; --ac-cashback-soft:#E8DFF8; --ac-cashback-strong:#6748A8;
       }
 
-      /* One compact row - secondary choices live inside the Energy/Mobile cells. */
       #servicesCard > .pills {
         display:grid!important;
-        grid-template-columns:repeat(4,minmax(0,1fr));
-        gap:7px!important;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:6px!important;
         align-items:stretch!important;
       }
+      #servicesCard > .pills.ac-four-visible { grid-template-columns:repeat(4,minmax(0,1fr)); }
+
       #servicesCard > .pills > [data-service],
+      #servicesCard > .pills > [data-pseudo-service],
       #servicesCard > .pills > .ac-mobile-cell {
         min-width:0;
       }
+
       #servicesCard > .pills > [data-service],
+      #servicesCard > .pills > [data-pseudo-service],
       #servicesCard .ac-mobile-cell > [data-service="mobile"] {
+        position:relative;
+        overflow:hidden;
         width:100%;
         min-width:0;
-        min-height:82px;
-        padding:8px 5px!important;
+        min-height:76px;
+        padding:6px 3px!important;
         display:flex;
         flex-direction:column;
         align-items:center;
         justify-content:center;
-        gap:5px;
+        gap:3px;
         text-align:center;
-        line-height:1.05;
+        line-height:1;
+        isolation:isolate;
       }
-      #servicesCard .ac-service-main {
+
+      #servicesCard .ac-service-ghost {
+        position:absolute;
+        inset:0;
         display:flex;
         align-items:center;
         justify-content:center;
-        gap:4px;
-        min-width:0;
-        font-weight:800;
-      }
-      #servicesCard .ac-service-main .ac-service-word {
-        min-width:0;
-      }
-      #servicesCard .ac-energy-state {
-        display:none;
-        max-width:100%;
-        padding:4px 7px;
-        border:1px solid rgba(74,146,160,.32);
-        border-radius:999px;
-        background:rgba(255,255,255,.88);
-        color:#2f6f7b;
-        font-size:10.5px;
-        font-weight:850;
+        font-size:39px;
         line-height:1;
-        white-space:nowrap;
+        opacity:.18;
+        filter:saturate(.7);
+        transform:scale(1.04);
+        pointer-events:none;
+        z-index:-1;
       }
-      #servicesCard [data-service="energy"].on .ac-energy-state { display:inline-flex; }
+      #servicesCard .on .ac-service-ghost,
+      #servicesCard [data-pseudo-service="cashback"].on .ac-service-ghost {
+        opacity:.52;
+        filter:none;
+      }
+
+      #servicesCard .ac-energy-state {
+        position:absolute;
+        left:4px;
+        right:4px;
+        bottom:5px;
+        min-width:0;
+        padding:3px 3px;
+        border-radius:999px;
+        background:rgba(255,255,255,.86);
+        color:#266A75;
+        font-size:9px;
+        font-weight:900;
+        letter-spacing:.15px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      #servicesCard [data-service="energy"] {
+        border-color:var(--ac-energy-base)!important;
+        background:rgba(223,243,246,.45)!important;
+      }
       #servicesCard [data-service="energy"].on {
         background:var(--ac-energy-soft)!important;
         border-color:var(--ac-energy-strong)!important;
-        color:#26164f!important;
-        box-shadow:inset 0 -2px 0 rgba(74,146,160,.22);
+        color:#163C43!important;
+        box-shadow:inset 0 0 0 1px rgba(25,127,144,.16);
+      }
+      #servicesCard [data-service="broadband"] {
+        border-color:var(--ac-broadband-base)!important;
+        background:rgba(221,245,233,.48)!important;
+      }
+      #servicesCard [data-service="broadband"].on {
+        background:var(--ac-broadband-soft)!important;
+        border-color:var(--ac-broadband-strong)!important;
+        color:#174C37!important;
+        box-shadow:inset 0 0 0 1px rgba(37,127,89,.14);
+      }
+      #servicesCard [data-service="mobile"] {
+        border-color:var(--ac-mobile-base)!important;
+        background:rgba(249,221,234,.5)!important;
+      }
+      #servicesCard [data-service="mobile"].on {
+        background:var(--ac-mobile-soft)!important;
+        border-color:var(--ac-mobile-strong)!important;
+        color:#642343!important;
+        box-shadow:inset 0 0 0 1px rgba(173,62,120,.14);
+      }
+      #servicesCard [data-service="boiler"] {
+        border-color:var(--ac-insurance-base)!important;
+        background:rgba(255,226,206,.52)!important;
+      }
+      #servicesCard [data-service="boiler"].on {
+        background:var(--ac-insurance-soft)!important;
+        border-color:var(--ac-insurance-strong)!important;
+        color:#74320C!important;
+        box-shadow:inset 0 0 0 1px rgba(201,90,23,.14);
+      }
+      #servicesCard [data-pseudo-service="cashback"] {
+        border-color:var(--ac-cashback-base)!important;
+        background:rgba(232,223,248,.55)!important;
+      }
+      #servicesCard [data-pseudo-service="cashback"].on {
+        background:var(--ac-cashback-soft)!important;
+        border-color:var(--ac-cashback-strong)!important;
+        color:#402D6A!important;
+        box-shadow:inset 0 0 0 1px rgba(103,72,168,.15);
       }
 
       #servicesCard .ac-mobile-cell {
@@ -85,64 +150,47 @@
         display:flex;
         min-width:0;
       }
-      #servicesCard .ac-mobile-cell > [data-service="mobile"] {
-        padding-bottom:34px!important;
-      }
+      #servicesCard .ac-mobile-cell > [data-service="mobile"] { padding-bottom:31px!important; }
       #servicesCard .ac-mobile-stepper {
         position:absolute;
-        left:6px;
-        right:6px;
-        bottom:6px;
+        left:4px;
+        right:4px;
+        bottom:5px;
         display:none;
-        grid-template-columns:30px minmax(24px,1fr) 30px;
-        height:27px;
-        border:1px solid rgba(190,86,142,.32);
-        border-radius:10px;
+        grid-template-columns:23px minmax(18px,1fr) 23px;
+        height:24px;
+        border:1px solid rgba(173,62,120,.35);
+        border-radius:8px;
         overflow:hidden;
-        background:rgba(255,255,255,.92);
-        z-index:2;
+        background:rgba(255,255,255,.9);
+        z-index:3;
       }
       #servicesCard .ac-mobile-cell.ac-on .ac-mobile-stepper { display:grid; }
       #servicesCard .ac-mobile-stepper button {
         border:0;
         background:transparent;
-        color:#9b3f70;
-        font:900 18px/1 system-ui;
-        cursor:pointer;
+        color:#8B2E61;
+        font:900 15px/1 system-ui;
         padding:0;
+        cursor:pointer;
         touch-action:manipulation;
       }
       #servicesCard .ac-mobile-count {
         display:flex;
         align-items:center;
         justify-content:center;
-        border-left:1px solid rgba(190,86,142,.18);
-        border-right:1px solid rgba(190,86,142,.18);
-        color:#6f2850;
-        font:850 12px/1 system-ui;
-        white-space:nowrap;
-      }
-      #servicesCard [data-service="mobile"].on {
-        background:var(--ac-mobile-soft)!important;
-        border-color:var(--ac-mobile-strong)!important;
-        color:#26164f!important;
-        box-shadow:inset 0 -2px 0 rgba(190,86,142,.22);
+        border-left:1px solid rgba(173,62,120,.18);
+        border-right:1px solid rgba(173,62,120,.18);
+        color:#6F234B;
+        font:900 10px/1 system-ui;
       }
 
-      /* UW service identities. */
-      #servicesCard [data-service="energy"] { border-color:var(--ac-energy-base)!important; }
-      #servicesCard [data-service="broadband"] { border-color:var(--ac-broadband-base)!important; }
-      #servicesCard [data-service="mobile"] { border-color:var(--ac-mobile-base)!important; }
-      #servicesCard [data-service="boiler"] { border-color:var(--ac-insurance-base)!important; }
-      #servicesCard [data-service="broadband"].on { background:var(--ac-broadband-strong)!important; border-color:var(--ac-broadband-strong)!important; color:#fff!important; }
-      #servicesCard [data-service="boiler"].on { background:var(--ac-insurance-strong)!important; border-color:var(--ac-insurance-strong)!important; color:#fff!important; }
-
-      /* Main service section shading. */
-      #energyCard { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 74%)!important; border-color:var(--ac-energy-base)!important; }
-      #broadbandCard { background:linear-gradient(135deg,var(--ac-broadband-soft),#fff 74%)!important; border-color:var(--ac-broadband-base)!important; }
-      #mobileCard { background:linear-gradient(135deg,var(--ac-mobile-soft),#fff 74%)!important; border-color:var(--ac-mobile-base)!important; }
-      #insuranceCard { background:linear-gradient(135deg,var(--ac-insurance-soft),#fff 74%)!important; border-color:var(--ac-insurance-base)!important; }
-      #cashbackCard { background:linear-gradient(135deg,var(--ac-cashback-soft),#fff 74%)!important; border-color:var(--ac-cashback-base)!important; }
+      /* Stronger, more distinct service section identities. */
+      #energyCard { background:linear-gradient(135deg,#DDF3F6,#fff 74%)!important; border:1.5px solid var(--ac-energy-base)!important; }
+      #broadbandCard { background:linear-gradient(135deg,#DDF5E9,#fff 74%)!important; border:1.5px solid var(--ac-broadband-base)!important; }
+      #mobileCard { background:linear-gradient(135deg,#F9DDEA,#fff 74%)!important; border:1.5px solid var(--ac-mobile-base)!important; }
+      #insuranceCard { background:linear-gradient(135deg,#FFE2CE,#fff 74%)!important; border:1.5px solid var(--ac-insurance-base)!important; }
+      #cashbackCard { background:linear-gradient(135deg,#E8DFF8,#fff 74%)!important; border:1.5px solid var(--ac-cashback-base)!important; }
 
       #energyCard h2 { color:var(--ac-energy-strong)!important; }
       #broadbandCard h2 { color:var(--ac-broadband-strong)!important; }
@@ -166,29 +214,21 @@
       #cashbackCard .pill.on, #cashbackCard button.on, #cashbackCard .btn-primary { background:var(--ac-cashback-strong)!important; border-color:var(--ac-cashback-strong)!important; color:#fff!important; }
       #cashbackCard .switch input:checked + .track { background:var(--ac-cashback-strong)!important; }
 
-      /* Canonical detail controls still own the data, but their duplicate selectors stay hidden. */
-      #canonicalEnergyPanel { background:linear-gradient(135deg,var(--ac-energy-soft),#fff 84%)!important; border-color:var(--ac-energy-base)!important; }
+      #canonicalEnergyPanel { background:linear-gradient(135deg,#DDF3F6,#fff 84%)!important; border-color:var(--ac-energy-base)!important; }
       #canonicalEnergyPanel .canonical-title, #canonicalEnergyPanel .canonical-helper summary, #canonicalEnergyPanel .canonical-helper-output { color:var(--ac-energy-strong)!important; }
       #canonicalEnergyPanel .canonical-choice button { border-color:var(--ac-energy-base)!important; }
       #canonicalEnergyPanel .canonical-choice button.on, #canonicalEnergyPanel #useSplitEstimate:not(:disabled) { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
       #canonicalEnergyPanel > .canonical-choice[aria-label="Energy fuel"] { display:none!important; }
       #canonicalMobilePanel { display:none!important; }
 
-      @media(max-width:520px) {
-        #servicesCard > .pills { gap:5px!important; }
+      @media(max-width:420px) {
+        #servicesCard > .pills { gap:4px!important; }
         #servicesCard > .pills > [data-service],
-        #servicesCard .ac-mobile-cell > [data-service="mobile"] {
-          min-height:78px;
-          padding-left:3px!important;
-          padding-right:3px!important;
-          font-size:11.5px!important;
-        }
-        #servicesCard .ac-service-main { gap:2px; }
-        #servicesCard .ac-energy-state { font-size:9.5px; padding:4px 5px; }
-        #servicesCard .ac-mobile-cell > [data-service="mobile"] { padding-bottom:32px!important; }
-        #servicesCard .ac-mobile-stepper { left:4px; right:4px; bottom:5px; grid-template-columns:25px minmax(20px,1fr) 25px; height:26px; }
-        #servicesCard .ac-mobile-stepper button { font-size:16px; }
-        #servicesCard .ac-mobile-count { font-size:11px; }
+        #servicesCard > .pills > [data-pseudo-service],
+        #servicesCard .ac-mobile-cell > [data-service="mobile"] { min-height:72px; }
+        #servicesCard .ac-service-ghost { font-size:34px; }
+        #servicesCard .ac-energy-state { font-size:8.3px; left:3px; right:3px; }
+        #servicesCard .ac-mobile-stepper { left:3px; right:3px; grid-template-columns:20px minmax(16px,1fr) 20px; }
       }
     `;
     document.head.appendChild(style);
@@ -216,27 +256,46 @@
     sync();
   }
 
+  function iconMarkup(icon) {
+    return '<span class="ac-service-ghost" aria-hidden="true">' + icon + '</span>';
+  }
+
   function enhanceEnergy() {
     var button = document.querySelector('#servicesCard [data-service="energy"]');
     if (!button || button.dataset.acCompactEnergy === '1') return;
     button.dataset.acCompactEnergy = '1';
-    button.innerHTML = '<span class="ac-service-main"><span aria-hidden="true">⚡🔥</span><span class="ac-service-word">Energy</span></span><span class="ac-energy-state" data-ac-energy-state>Dual fuel</span>';
-    button.title = 'Tap to select Energy. Once selected, tap again to cycle Dual fuel, Electricity and Gas.';
+    button.innerHTML = iconMarkup('⚡🔥') + '<span class="ac-energy-state" data-ac-energy-state>Dual</span>';
+    button.title = 'Energy: tap through Dual fuel, Electricity, Gas and Off.';
     button.setAttribute('aria-label', 'Energy');
 
     button.addEventListener('click', function (event) {
       var alreadyOn = button.classList.contains('on');
+
       if (!alreadyOn) {
-        setTimeout(function () { setFuel('both'); }, 0);
+        setTimeout(function () { setFuel('both'); sync(); }, 0);
+        return;
+      }
+
+      var current = canonicalFuel();
+      if (current === 'gas') {
+        /* Let the original Appointment Companion click handler switch Energy off. */
+        setTimeout(sync, 0);
         return;
       }
 
       event.preventDefault();
       event.stopImmediatePropagation();
-      var current = canonicalFuel();
-      var next = current === 'both' ? 'electricity' : current === 'electricity' ? 'gas' : 'both';
-      setFuel(next);
+      setFuel(current === 'both' ? 'electricity' : 'gas');
     }, true);
+  }
+
+  function enhanceSimple(service, icon, label) {
+    var button = document.querySelector('#servicesCard [data-service="' + service + '"]');
+    if (!button || button.dataset.acIconOnly === '1') return;
+    button.dataset.acIconOnly = '1';
+    button.innerHTML = iconMarkup(icon);
+    button.title = label;
+    button.setAttribute('aria-label', label);
   }
 
   function enhanceMobile() {
@@ -250,8 +309,8 @@
     parent.insertBefore(cell, button);
     cell.appendChild(button);
 
-    button.innerHTML = '<span class="ac-service-main"><span aria-hidden="true">📱</span><span class="ac-service-word">Mobile<br>Sim(s)</span></span>';
-    button.title = 'Tap to add or remove Mobile. When selected, use minus and plus to change the SIM count.';
+    button.innerHTML = iconMarkup('📱');
+    button.title = 'Mobile SIMs';
     button.setAttribute('aria-label', 'Mobile SIMs');
 
     var stepper = document.createElement('div');
@@ -271,26 +330,63 @@
     }, true);
 
     button.addEventListener('click', function () {
-      if (!button.classList.contains('on')) {
-        setTimeout(function () { setSims(1); }, 0);
-      }
+      var wasOff = !button.classList.contains('on');
+      if (wasOff) setTimeout(function () { setSims(1); sync(); }, 0);
+      else setTimeout(sync, 0);
     }, true);
   }
 
+  function enhanceCashback() {
+    var pills = document.querySelector('#servicesCard > .pills');
+    if (!pills || pills.querySelector('[data-pseudo-service="cashback"]')) return;
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'pill';
+    button.dataset.pseudoService = 'cashback';
+    button.innerHTML = iconMarkup('💳');
+    button.title = 'Cashback Card';
+    button.setAttribute('aria-label', 'Cashback Card');
+    pills.appendChild(button);
+
+    button.addEventListener('click', function () {
+      var cb = $('includeCashback');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles:true }));
+      sync();
+    });
+  }
+
   function sync() {
+    var servicesCard = $('servicesCard');
+    var pills = servicesCard && servicesCard.querySelector(':scope > .pills');
     var energy = document.querySelector('#servicesCard [data-service="energy"]');
+    var broadband = document.querySelector('#servicesCard [data-service="broadband"]');
     var mobile = document.querySelector('#servicesCard [data-service="mobile"]');
+    var boiler = document.querySelector('#servicesCard [data-service="boiler"]');
+    var cashback = document.querySelector('#servicesCard [data-pseudo-service="cashback"]');
     var mobileCell = mobile && mobile.closest('.ac-mobile-cell');
 
+    if (pills) pills.classList.toggle('ac-four-visible', !!(boiler && boiler.classList.contains('hidden')));
+
     var fuel = canonicalFuel();
-    var label = fuel === 'electricity' ? 'Electricity' : fuel === 'gas' ? 'Gas' : 'Dual fuel';
-    var state = energy && energy.querySelector('[data-ac-energy-state]');
-    if (state) state.textContent = label;
+    var energyIcon = fuel === 'electricity' ? '⚡' : fuel === 'gas' ? '🔥' : '⚡🔥';
+    var energyLabel = fuel === 'electricity' ? 'Elec' : fuel === 'gas' ? 'Gas' : 'Dual';
+    var energyGhost = energy && energy.querySelector('.ac-service-ghost');
+    var energyState = energy && energy.querySelector('[data-ac-energy-state]');
+    if (energyGhost) energyGhost.textContent = energyIcon;
+    if (energyState) energyState.textContent = energyLabel;
     if (energy) {
-      var on = energy.classList.contains('on');
-      energy.setAttribute('aria-pressed', on ? 'true' : 'false');
-      energy.setAttribute('aria-label', on ? 'Energy - ' + label + '. Tap to cycle fuel.' : 'Energy - not selected');
+      var energyOn = energy.classList.contains('on');
+      energyState && energyState.classList.toggle('hidden', !energyOn);
+      energy.setAttribute('aria-pressed', energyOn ? 'true' : 'false');
+      energy.setAttribute('aria-label', energyOn ? 'Energy - ' + energyLabel : 'Energy - off');
     }
+
+    [broadband, boiler].forEach(function (button) {
+      if (button) button.setAttribute('aria-pressed', button.classList.contains('on') ? 'true' : 'false');
+    });
 
     var sims = canonicalSims();
     var count = mobileCell && mobileCell.querySelector('[data-ac-mobile-count]');
@@ -299,22 +395,39 @@
     if (mobile) {
       var mobileOn = mobile.classList.contains('on');
       mobile.setAttribute('aria-pressed', mobileOn ? 'true' : 'false');
-      mobile.setAttribute('aria-label', mobileOn ? 'Mobile SIMs - ' + sims + ' selected' : 'Mobile SIMs - not selected');
+      mobile.setAttribute('aria-label', mobileOn ? 'Mobile SIMs - ' + sims + ' selected' : 'Mobile SIMs - off');
     }
+
+    var cb = $('includeCashback');
+    var cbOn = !!(cb && cb.checked);
+    if (cashback) {
+      cashback.classList.toggle('on', cbOn);
+      cashback.setAttribute('aria-pressed', cbOn ? 'true' : 'false');
+    }
+    var cashbackCard = $('cashbackCard');
+    var servicesVisible = !!(servicesCard && !servicesCard.classList.contains('hidden'));
+    if (cashbackCard) cashbackCard.classList.toggle('hidden', !(servicesVisible && cbOn));
   }
 
   function install() {
     if (!document.querySelector('#servicesCard [data-service="energy"]') || !$('canonicalEnergyPanel') || !$('canonicalMobilePanel')) return false;
     installStyles();
     enhanceEnergy();
+    enhanceSimple('broadband', '🛜', 'Broadband');
     enhanceMobile();
+    enhanceSimple('boiler', '🛠️', 'Boiler Cover');
+    enhanceCashback();
+
+    var insuranceHeading = document.querySelector('#insuranceCard h2');
+    if (insuranceHeading) insuranceHeading.textContent = '🛠️ Boiler Cover';
+
     sync();
 
-    var observer = new MutationObserver(function () { sync(); });
+    var observer = new MutationObserver(sync);
     var services = $('servicesCard');
     if (services) observer.observe(services, { attributes:true, subtree:true, attributeFilter:['class'] });
 
-    ['canonicalFuelSelection','canonicalSimCount'].forEach(function (id) {
+    ['canonicalFuelSelection','canonicalSimCount','includeCashback'].forEach(function (id) {
       var el = $(id);
       if (!el) return;
       el.addEventListener('change', sync);
@@ -322,6 +435,7 @@
     });
 
     global.addEventListener('ac:main-reset', function () { setTimeout(sync, 0); });
+    global.addEventListener('ac:working-record', function () { setTimeout(sync, 0); });
     global.AppointmentCompanionServicePolish = { sync:sync, setFuel:setFuel, setSims:setSims };
     return true;
   }
