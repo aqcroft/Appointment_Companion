@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.46.1 - 4th October 2026
+
+- Partner photo selection now automatically centre-crops the selected image to a square before upload.
+- The square image is resized to a sensible profile-photo size and converted to JPEG in the browser before being sent to Cloud.
+- Added clear photo-upload stages in Admin: selected/cropping, uploading to Drive, success, or a precise failure message.
+- Successful upload now explicitly tells Admin to tap Save changes so the returned Drive photo URL is persisted to the Partner profile.
+- The Admin preview is now square so it better reflects the stored profile image.
+- Applied master v2.46.1 across Main Companion, EV, Should I Fix, Admin and the shared toolbar.
+
 ## v2.46.0 - 4th October 2026
 
 - Introduced UW Partner slug as the canonical Partner identity field.
