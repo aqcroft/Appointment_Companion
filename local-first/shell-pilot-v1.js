@@ -1275,13 +1275,69 @@
     document.body.appendChild(overlay);
   }
 
+  function partnerProfileMatchesAuth(profile) {
+    const p = profile && typeof profile === 'object' ? profile : null;
+    if (!p) return null;
+    const auth = getAuth();
+    if (!auth) return p;
+
+    const activeId = String(auth.partner_id || '').trim().toLowerCase();
+    const profileId = String(p.partner_id || p.companion_login_id || '').trim().toLowerCase();
+    if (profileId) return profileId === activeId ? p : null;
+
+    const ownerId = String(localStorage.getItem('apptCompanionPartnerCloudOwnerV1') || '').trim().toLowerCase();
+    return ownerId && ownerId === activeId ? p : null;
+  }
+
+  function profileIsComplete(profile) {
+    const p = partnerProfileMatchesAuth(profile);
+    return !!(p && String(p.name || '').trim() &&
+      String(p.partner_slug || p.join || '').trim());
+  }
+
   function getPartnerProfile() {
     try {
-      const p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null');
-      return p && p.name && p.join ? p : null;
+      const bridge = window.AppointmentCompanionPartnerProfile;
+      if (bridge && typeof bridge.getCached === 'function') {
+        const bridged = partnerProfileMatchesAuth(bridge.getCached());
+        if (profileIsComplete(bridged)) return bridged;
+      }
+
+      const cloud = partnerProfileMatchesAuth(JSON.parse(localStorage.getItem('apptCompanionPartnerCloudProfileV1') || 'null'));
+      if (profileIsComplete(cloud)) return cloud;
+
+      const local = partnerProfileMatchesAuth(JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null'));
+      return profileIsComplete(local) ? local : null;
     } catch (_) {
       return null;
     }
+  }
+
+  async function hydratePartnerProfileForOnboarding() {
+    const existing = getPartnerProfile();
+    if (existing) return existing;
+
+    const bridge = window.AppointmentCompanionPartnerProfile;
+    if (bridge && typeof bridge.hydrate === 'function') {
+      try {
+        const hydrated = await bridge.hydrate();
+        if (profileIsComplete(hydrated)) return hydrated;
+      } catch (_) {}
+    }
+
+    /* The profile bridge is injected after this shell. A very fast first-run
+       tap can therefore beat it. Fall back to the same authenticated Cloud API
+       rather than forcing the Partner to re-enter details that Admin already
+       provisioned. */
+    const auth = getAuth();
+    if (auth && api && typeof api.getPartnerProfile === 'function') {
+      try {
+        const result = await api.getPartnerProfile(auth);
+        const profile = result && result.partner;
+        if (profileIsComplete(profile)) return profile;
+      } catch (_) {}
+    }
+    return getPartnerProfile();
   }
 
   function defaultOnboardingState() {
@@ -1443,15 +1499,21 @@
         if (window.AppointmentCompanionDevice && window.AppointmentCompanionDevice.rename) {
           window.AppointmentCompanionDevice.rename(name && name.value);
         }
-        setOnboardingStep('partner');
-        openPartnerProfile();
+        const profile = await hydratePartnerProfileForOnboarding();
+        if (profile) {
+          setOnboardingStep('ready');
+        } else {
+          setOnboardingStep('partner');
+          openPartnerProfile();
+        }
       } catch (_) {
         if (name) name.focus();
       }
       return;
     }
     if (step === 'partner') {
-      if (!getPartnerProfile()) {
+      const profile = await hydratePartnerProfileForOnboarding();
+      if (!profile) {
         openPartnerProfile();
         return;
       }

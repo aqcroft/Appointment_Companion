@@ -2912,13 +2912,35 @@ function updateJoinPreview() {
     '<br>\u2192 Email: ' + shown + '@uw.partners';
 }
 
+function activePartnerAuthId() {
+  const valid = row => row && row.partner_id && row.workspace_key ? String(row.partner_id).trim().toLowerCase() : '';
+  try {
+    const session = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null');
+    const id = valid(session);
+    if (id) return id;
+  } catch (e) {}
+  try {
+    const device = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null');
+    return valid(device);
+  } catch (e) {}
+  return '';
+}
+function partnerForActiveAuth(profile) {
+  const p = profile && typeof profile === 'object' ? profile : {};
+  const activeId = activePartnerAuthId();
+  if (!activeId) return p;
+  const profileId = String(p.partner_id || p.companion_login_id || '').trim().toLowerCase();
+  if (profileId) return profileId === activeId ? p : {};
+  const ownerId = String(localStorage.getItem('apptCompanionPartnerCloudOwnerV1') || '').trim().toLowerCase();
+  return ownerId && ownerId === activeId ? p : {};
+}
 function rawPartner() {
   let local = {}, cached = {}, bridged = {};
-  try { local = JSON.parse(localStorage.getItem(PARTNER_KEY) || '{}') || {}; } catch (e) {}
-  try { cached = JSON.parse(localStorage.getItem('apptCompanionPartnerCloudProfileV1') || '{}') || {}; } catch (e) {}
+  try { local = partnerForActiveAuth(JSON.parse(localStorage.getItem(PARTNER_KEY) || '{}') || {}); } catch (e) {}
+  try { cached = partnerForActiveAuth(JSON.parse(localStorage.getItem('apptCompanionPartnerCloudProfileV1') || '{}') || {}); } catch (e) {}
   try {
     const bridge = window.AppointmentCompanionPartnerProfile;
-    bridged = bridge && typeof bridge.getCached === 'function' ? (bridge.getCached() || {}) : {};
+    bridged = bridge && typeof bridge.getCached === 'function' ? partnerForActiveAuth(bridge.getCached() || {}) : {};
   } catch (e) {}
   return Object.assign({}, local, cached, bridged);
 }

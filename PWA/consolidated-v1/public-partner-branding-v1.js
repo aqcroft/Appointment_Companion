@@ -15,8 +15,13 @@
   }
   function clean(value) { return String(value == null ? '' : value).trim(); }
   function authPartnerId() {
-    try { var auth = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); return auth && auth.partner_id ? clean(auth.partner_id) : ''; }
-    catch (_) { return ''; }
+    try {
+      var auth = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null');
+      if (!(auth && auth.partner_id && auth.workspace_key)) {
+        auth = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null');
+      }
+      return auth && auth.partner_id && auth.workspace_key ? clean(auth.partner_id) : '';
+    } catch (_) { return ''; }
   }
   function safeHttps(value) {
     try { var u = new URL(clean(value)); return u.protocol === 'https:' ? u.href : ''; }

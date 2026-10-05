@@ -1,4 +1,4 @@
-/* Appointment Companion v2.45.16 - Partner Earnings shortcut with Partner identity handoff. */
+/* Appointment Companion v2.46.14 - Partner Earnings shortcut with authenticated Partner identity handoff. */
 (function () {
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
@@ -21,7 +21,22 @@
     return '';
   }
 
+  function readAuth(storage, key) {
+    try {
+      var row = JSON.parse(storage.getItem(key) || 'null');
+      return row && row.partner_id && row.workspace_key ? row : null;
+    } catch (_) { return null; }
+  }
+
+  function authenticatedPartnerId() {
+    var auth = readAuth(sessionStorage, 'apptCloudPilotAuthSession') ||
+      readAuth(localStorage, 'apptCloudPilotAuthDeviceV1');
+    return String(auth && auth.partner_id || '').trim();
+  }
+
   function currentPartnerId() {
+    var authId = authenticatedPartnerId();
+    if (authId) return authId;
     try {
       var bridge = window.AppointmentCompanionPartnerProfile;
       var profile = bridge && typeof bridge.getCached === 'function' ? bridge.getCached() : null;
@@ -29,13 +44,31 @@
     } catch (_) { return ''; }
   }
 
-  function earningsUrl() {
+  function earningsUrl(partnerId) {
+    if (!partnerId) return '';
     var url = new URL(EARNINGS_URL);
     var name = currentCustomerName();
-    var partnerId = currentPartnerId();
     if (name) url.searchParams.set('pn', name);
-    if (partnerId) url.searchParams.set('pid', partnerId);
+    url.searchParams.set('pid', partnerId);
+    url.searchParams.set('src', 'companion');
     return url.href;
+  }
+
+  async function openEarnings() {
+    var partnerId = currentPartnerId();
+    if (!partnerId) {
+      try {
+        var bridge = window.AppointmentCompanionPartnerProfile;
+        if (bridge && typeof bridge.hydrate === 'function') await bridge.hydrate();
+      } catch (_) {}
+      partnerId = currentPartnerId();
+    }
+    var url = earningsUrl(partnerId);
+    if (!url) {
+      alert('Your Partner identity is still loading. Please reconnect Companion or open ☰ → My profile, then try Partner Earnings again.');
+      return;
+    }
+    window.location.assign(url);
   }
 
   function install() {
@@ -63,7 +96,7 @@
     button.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      window.location.assign(earningsUrl());
+      openEarnings();
     }, true);
 
     if (old) {
