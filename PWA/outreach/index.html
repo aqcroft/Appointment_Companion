@@ -272,7 +272,8 @@ function renderHandoff(d){
   currentHandoff={content:d.handoff_markdown||'',filename:d.handoff_filename||'prospect-handoff.md',url:d.handoff_url||''};
 
   const ref=(d.capture_id||localStorage.getItem('acOutreachLastCaptureId')||'').slice(0,8).toUpperCase();
-  const prompt='Process the Cold Outreach CRM handoff '+(ref?ref+': ':'')+currentHandoff.filename+'. Find that exact handoff in the connected Google Drive, follow its instructions, use the saved screenshots as the evidence, do not research the LinkedIn URLs, and write the completed analysis and drafts back to the CRM so the Companion can retrieve them.';
+  const prospectName=String(d.prospect_name||currentSavedProspect?.name||'').trim();
+  const prompt=(prospectName?prospectName+' - ':'')+'Process the Cold Outreach CRM handoff '+(ref?ref+': ':'')+currentHandoff.filename+'. Find that exact handoff in the connected Google Drive, follow its instructions, use the saved screenshots as the evidence, do not research the LinkedIn URLs, and write the completed analysis and drafts back to the CRM so the Companion can retrieve them.';
 
   const card=document.getElementById('analysisOutput');
   card.style.display='block';
