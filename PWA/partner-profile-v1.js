@@ -1,4 +1,4 @@
-/* Appointment Companion Partner Profile v2.46.4
+/* Appointment Companion Partner Profile v2.46.14
    Cloud is the source of truth for Partner identity. The local Partner record
    remains an offline cache so appointments and sharing continue to work when
    Cloud is temporarily unavailable.
@@ -13,6 +13,7 @@
   var DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
   var LOCAL_KEY = 'apptCompanionPartner';
   var CLOUD_CACHE_KEY = 'apptCompanionPartnerCloudProfileV1';
+  var PROFILE_OWNER_KEY = 'apptCompanionPartnerCloudOwnerV1';
   var syncing = false;
 
   function readJson(storage, key) {
@@ -34,17 +35,32 @@
     return null;
   }
 
+  function clean(v) { return String(v == null ? '' : v).trim(); }
+
+  function profileForActiveAuth(profile) {
+    var p = profile && typeof profile === 'object' ? profile : {};
+    var auth = getAuth();
+    if (!auth) return p;
+
+    var activeId = clean(auth.partner_id).toLowerCase();
+    var profileId = clean(p.partner_id || p.companion_login_id).toLowerCase();
+    if (profileId) return profileId === activeId ? p : {};
+
+    /* Older local caches did not carry partner_id. Only trust one if a
+       successful Cloud hydration has explicitly marked it as belonging to the
+       currently authenticated Partner. This prevents Partner A's cached
+       identity appearing briefly for Partner B on a shared device. */
+    var ownerId = clean(localStorage.getItem(PROFILE_OWNER_KEY)).toLowerCase();
+    return ownerId && ownerId === activeId ? p : {};
+  }
+
   function localPartner() {
-    var p = readJson(localStorage, LOCAL_KEY);
-    return p && typeof p === 'object' ? p : {};
+    return profileForActiveAuth(readJson(localStorage, LOCAL_KEY));
   }
 
   function cachedCloudPartner() {
-    var p = readJson(localStorage, CLOUD_CACHE_KEY);
-    return p && typeof p === 'object' ? p : {};
+    return profileForActiveAuth(readJson(localStorage, CLOUD_CACHE_KEY));
   }
-
-  function clean(v) { return String(v == null ? '' : v).trim(); }
   function cleanSlug(value) {
     var raw = clean(value);
     var email = raw.match(/^([^@\s]+)@uw\.partners$/i);
@@ -92,7 +108,12 @@
 
   function cacheProfile(profile) {
     var cloud = normalise(profile);
-    try { localStorage.setItem(CLOUD_CACHE_KEY, JSON.stringify(cloud)); } catch (_) {}
+    var auth = getAuth();
+    if (auth && !cloud.partner_id) cloud.partner_id = clean(auth.partner_id);
+    try {
+      localStorage.setItem(CLOUD_CACHE_KEY, JSON.stringify(cloud));
+      if (cloud.partner_id) localStorage.setItem(PROFILE_OWNER_KEY, cloud.partner_id);
+    } catch (_) {}
     writeLocal(cloud);
     populateExtraFields(cloud);
     global.dispatchEvent(new CustomEvent('ac:partner-profile-ready', { detail: cloud }));
