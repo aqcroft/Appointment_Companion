@@ -86,4 +86,14 @@ function load(file, sandbox) {
   assert.equal('privateNotes' in ev, false);
 }
 
+
+{
+  const donor = fs.readFileSync(path.resolve(root, '..', 'cloud', 'companion_cloud_pilot.html'), 'utf8');
+  assert.match(donor, /async function ensurePartnerProfileFromCloud\(\)/);
+  assert.match(donor, /await bridge\.hydrate\(\)/);
+  assert.match(donor, /api\.getPartnerProfile\(auth\)/);
+  assert.match(donor, /if \(!await requirePartnerSetup\(\)\) return;/);
+  assert.match(donor, /Loading your Cloud Partner profile/);
+}
+
 console.log('consolidated-v1 contract tests passed');
