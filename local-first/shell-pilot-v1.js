@@ -489,6 +489,10 @@
       renderCloudCurrent();
       renderRecentCustomers();
       toggleQuickProfiles(false);
+      const controller = window.AppointmentCompanionConsolidated;
+      const record = controller && typeof controller.currentRecord === 'function' ? controller.currentRecord() : null;
+      const deleteAction = $c('cloudDeleteCurrent');
+      if (deleteAction) deleteAction.disabled = !(record && (record.customer_name || record.cloud_id));
     }, 0));
     ['electricityUsageKwh', 'electricityUsageDayKwh', 'electricityUsageNightKwh'].forEach(id => {
       const el = $c(id);
