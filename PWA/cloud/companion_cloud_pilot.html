@@ -420,7 +420,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- ENERGY -->
   <div class="card hidden" id="energyCard">
     <div class="section-heading">
-      <h2>Energy</h2>
+      <h2>⚡🔥 Energy</h2>
       <button type="button" class="icon-toggle" id="energyAdvancedToggle" title="Energy usage" aria-label="Show energy usage" aria-expanded="false">⚙️</button>
     </div>
     <div class="hidden" id="energyAdvancedDetails">
@@ -651,7 +651,15 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- BOILER COVER -->
   <div class="card hidden" id="insuranceCard">
     <input type="checkbox" id="boilerCoverToggle" class="hidden" tabindex="-1" aria-hidden="true">
-    <h2>🛡️ Boiler Cover</h2>
+    <h2>🛠️ Boiler Cover</h2>
+    <div class="field" id="boilerModeGate">
+      <label>How should Boiler Cover be compared?</label>
+      <div class="pills" id="boilerModePills">
+        <button class="pill" type="button" data-boiler-mode="existing">Existing cover</button>
+        <button class="pill" type="button" data-boiler-mode="new">Add as new service</button>
+      </div>
+      <p class="sub" id="boilerModeHint">Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.</p>
+    </div>
     <div id="boilerCoverCompare">
       <div class="nowuw">
         <div class="side">
@@ -1068,7 +1076,8 @@ const state = {
   energyAdjustTarget: 'current',  // 'current' | 'uw'
   energyAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
   manualAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
-  oneOffType: 'refund'            // 'refund' | 'charge'
+  oneOffType: 'refund',           // 'refund' | 'charge'
+  boilerMode: null                 // null | 'existing' | 'new'
 };
 
 let previewExtra = false;
@@ -1445,7 +1454,7 @@ function compute(previewSims = 0) {
 
   // --- Boiler Cover ---
   const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
-  const currentBoilerCover = $('boilerCoverToggle').checked ? numF('currentBoilerCoverMonthly') : 0;
+  const currentBoilerCover = $('boilerCoverToggle').checked && state.boilerMode === 'existing' ? numF('currentBoilerCoverMonthly') : 0;
   const boilerCoverFree = 0;
   const insuranceTotal = boilerCoverCost;
   const insuranceCount = boilerCoverCost > 0 ? 1 : 0;
