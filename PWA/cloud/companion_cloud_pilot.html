@@ -1429,6 +1429,20 @@ function mobileWelcomeBonusEligible(includedSims) {
   return (includedSims || []).some(s => s && s.uwPlan === 'unlimitedMax');
 }
 
+/* ---------- boiler comparison mode ---------- */
+document.querySelectorAll('[data-boiler-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.boilerMode = btn.dataset.boilerMode === 'new' ? 'new' : 'existing';
+    document.querySelectorAll('[data-boiler-mode]').forEach(b => b.classList.toggle('on', b === btn));
+    const currentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+    if (currentSide) currentSide.classList.toggle('hidden', state.boilerMode === 'new');
+    if ($('boilerModeHint')) $('boilerModeHint').textContent = state.boilerMode === 'new'
+      ? 'UW Boiler Cover is being added as a new service, so there is no existing monthly cost to compare.'
+      : 'Enter what the customer currently pays each month for their existing cover.';
+    calc();
+  });
+});
+
 /* ---------- cashback ---------- */
 $('spendSlider').addEventListener('input', e => { $('spendDisplay').textContent = e.target.value; calc(); });
 $('includeCashback').addEventListener('change', e => {
@@ -1714,6 +1728,13 @@ function validateInputs(r) {
         issues.push({ label: 'Mobile — ' + (s.name || key) + ' current /m', els: el ? [el] : [] });
       }
     });
+  }
+  if ($('boilerCoverToggle').checked) {
+    if (!state.boilerMode) {
+      issues.push({ label: 'Boiler Cover — existing cover or new service?', els: [...document.querySelectorAll('[data-boiler-mode]')] });
+    } else if (state.boilerMode === 'existing' && numF('currentBoilerCoverMonthly') === 0) {
+      issues.push({ label: 'Boiler Cover — current monthly cost', els: [$('currentBoilerCoverMonthly')] });
+    }
   }
   return issues;
 }
