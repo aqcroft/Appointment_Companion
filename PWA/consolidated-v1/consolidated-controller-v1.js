@@ -43,7 +43,9 @@
       } catch (_) {}
     }
     canonical.restore(row.appointment_state); if (bridge && bridge.updateWorkingRecord) { bridge.updateWorkingRecord({ customer_id: row.cloud_id || '', customer_name: row.customer_name || '', appointment_state: canonical.toLegacySnapshot(row.appointment_state), specialists: clone(row.specialist_state || {}), basket_url: row.basket_url || row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl || '' }); if (bridge.setToolState) Object.keys(row.specialist_state || {}).forEach(function (tool) { bridge.setToolState(tool, clone(row.specialist_state[tool])); }); }
-    paint(row, false); if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
+    paint(row, false);
+    try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:row.local_id, customer_name:row.customer_name || '' } })); } catch (_) {}
+    if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
   }
   function recentRows(rows) { try { localStorage.setItem('apptCompanionRecentCustomersV1', JSON.stringify(rows.filter(function (row) { return !row.deleted; }).slice(0, 20).map(function (row) { var c = row.appointment_state && row.appointment_state.canonical || {}; return { customer_id: row.local_id, customer_name: row.customer_name || 'Unnamed', updated_at: row.updated_at, summary: row.appointment_state && row.appointment_state.ui_state && row.appointment_state.ui_state.summary || {}, has_ev: !!(row.specialist_state && row.specialist_state.ev), locally_available: true, services: c.selectedServices || {} }; }))); } catch (_) {} }
   function customerJourneyIcons(row) {
@@ -213,7 +215,9 @@
     if (typeof global.resetForm === 'function') global.resetForm();
     var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.reset) controls.reset();
     var fresh = draft(); currentId = fresh.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(fresh);
-    paint(current, false); status(LOCAL_ONLY ? 'New customer started locally. Cloud is paused.' : 'New customer started locally. Cloud sync will run in the background when ready.', 'good');
+    paint(current, false);
+    try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:currentId, customer_name:'' } })); } catch (_) {}
+    status(LOCAL_ONLY ? 'New customer started locally. Cloud is paused.' : 'New customer started locally. Cloud sync will run in the background when ready.', 'good');
     return true;
   }
   async function saveAsNew() { await persist(false); currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY); await persist(true); }
