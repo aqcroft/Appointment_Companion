@@ -65,7 +65,7 @@
         font-size:27px;
         line-height:1;
         white-space:nowrap;
-        letter-spacing:-2px;
+        letter-spacing:0;
         opacity:.18;
         filter:saturate(.7);
         transform:scale(1.04);
