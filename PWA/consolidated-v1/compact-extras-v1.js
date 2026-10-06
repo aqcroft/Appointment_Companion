@@ -99,7 +99,8 @@
       }
 
       /* Cashback controls stay exposed - no extra accordion tap. */
-      #cashbackCard > .switchrow .switch { display:none!important; }
+      #cashbackCard > .switchrow .switch { display:inline-flex!important; transform:scale(.88); transform-origin:right center; }
+      #cashbackCard > .switchrow::after { content:'include'; margin-left:5px; color:var(--ac-cashback-strong); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
       #cashbackAssumptionsDetails > summary { display:none!important; }
       #cashbackAssumptionsDetails {
         display:block!important;

@@ -420,7 +420,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- ENERGY -->
   <div class="card hidden" id="energyCard">
     <div class="section-heading">
-      <h2>Energy</h2>
+      <h2>⚡🔥 Energy</h2>
       <button type="button" class="icon-toggle" id="energyAdvancedToggle" title="Energy usage" aria-label="Show energy usage" aria-expanded="false">⚙️</button>
     </div>
     <div class="hidden" id="energyAdvancedDetails">
@@ -651,7 +651,15 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <!-- BOILER COVER -->
   <div class="card hidden" id="insuranceCard">
     <input type="checkbox" id="boilerCoverToggle" class="hidden" tabindex="-1" aria-hidden="true">
-    <h2>🛡️ Boiler Cover</h2>
+    <h2>🛠️ Boiler Cover</h2>
+    <div class="field" id="boilerModeGate">
+      <label>How should Boiler Cover be compared?</label>
+      <div class="pills" id="boilerModePills">
+        <button class="pill" type="button" data-boiler-mode="existing">Existing cover</button>
+        <button class="pill" type="button" data-boiler-mode="new">Add as new service</button>
+      </div>
+      <p class="sub" id="boilerModeHint">Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.</p>
+    </div>
     <div id="boilerCoverCompare">
       <div class="nowuw">
         <div class="side">
@@ -1068,7 +1076,8 @@ const state = {
   energyAdjustTarget: 'current',  // 'current' | 'uw'
   energyAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
   manualAdjustPeriod: 'monthly',  // 'monthly' | 'annual'
-  oneOffType: 'refund'            // 'refund' | 'charge'
+  oneOffType: 'refund',           // 'refund' | 'charge'
+  boilerMode: null                 // null | 'existing' | 'new'
 };
 
 let previewExtra = false;
@@ -1087,6 +1096,13 @@ document.querySelectorAll('[data-service]').forEach(btn => {
       btn.classList.toggle('on', on);
       $('insuranceCard').classList.toggle('hidden', !on);
       $('boilerCoverCompare').classList.toggle('hidden', !on);
+      if (!on) {
+        state.boilerMode = null;
+        document.querySelectorAll('[data-boiler-mode]').forEach(b => b.classList.remove('on'));
+        const currentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+        if (currentSide) currentSide.classList.remove('hidden');
+        if ($('boilerModeHint')) $('boilerModeHint').textContent = 'Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.';
+      }
       calc();
       return;
     }
@@ -1108,6 +1124,10 @@ function setHome(which) {
   if (boilerPill) boilerPill.classList.toggle('hidden', which !== 'homeowner');
   if (which !== 'homeowner') {
     $('boilerCoverToggle').checked = false;
+    state.boilerMode = null;
+    document.querySelectorAll('[data-boiler-mode]').forEach(b => b.classList.remove('on'));
+    const currentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+    if (currentSide) currentSide.classList.remove('hidden');
     $('boilerCoverCompare').classList.add('hidden');
     $('insuranceCard').classList.add('hidden');
     if (boilerPill) boilerPill.classList.remove('on');
@@ -1420,6 +1440,20 @@ function mobileWelcomeBonusEligible(includedSims) {
   return (includedSims || []).some(s => s && s.uwPlan === 'unlimitedMax');
 }
 
+/* ---------- boiler comparison mode ---------- */
+document.querySelectorAll('[data-boiler-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.boilerMode = btn.dataset.boilerMode === 'new' ? 'new' : 'existing';
+    document.querySelectorAll('[data-boiler-mode]').forEach(b => b.classList.toggle('on', b === btn));
+    const currentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+    if (currentSide) currentSide.classList.toggle('hidden', state.boilerMode === 'new');
+    if ($('boilerModeHint')) $('boilerModeHint').textContent = state.boilerMode === 'new'
+      ? 'UW Boiler Cover is being added as a new service, so there is no existing monthly cost to compare.'
+      : 'Enter what the customer currently pays each month for their existing cover.';
+    calc();
+  });
+});
+
 /* ---------- cashback ---------- */
 $('spendSlider').addEventListener('input', e => { $('spendDisplay').textContent = e.target.value; calc(); });
 $('includeCashback').addEventListener('change', e => {
@@ -1445,7 +1479,7 @@ function compute(previewSims = 0) {
 
   // --- Boiler Cover ---
   const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
-  const currentBoilerCover = $('boilerCoverToggle').checked ? numF('currentBoilerCoverMonthly') : 0;
+  const currentBoilerCover = $('boilerCoverToggle').checked && state.boilerMode === 'existing' ? numF('currentBoilerCoverMonthly') : 0;
   const boilerCoverFree = 0;
   const insuranceTotal = boilerCoverCost;
   const insuranceCount = boilerCoverCost > 0 ? 1 : 0;
@@ -1705,6 +1739,13 @@ function validateInputs(r) {
         issues.push({ label: 'Mobile — ' + (s.name || key) + ' current /m', els: el ? [el] : [] });
       }
     });
+  }
+  if ($('boilerCoverToggle').checked) {
+    if (!state.boilerMode) {
+      issues.push({ label: 'Boiler Cover — existing cover or new service?', els: [...document.querySelectorAll('[data-boiler-mode]')] });
+    } else if (state.boilerMode === 'existing' && numF('currentBoilerCoverMonthly') === 0) {
+      issues.push({ label: 'Boiler Cover — current monthly cost', els: [$('currentBoilerCoverMonthly')] });
+    }
   }
   return issues;
 }
@@ -2434,7 +2475,11 @@ function resetForm() {
   state.simCount = 0;
   state.sims = {};
   state.includeCashback = true;
+  state.boilerMode = null;
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  const boilerCurrentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+  if (boilerCurrentSide) boilerCurrentSide.classList.remove('hidden');
+  if ($('boilerModeHint')) $('boilerModeHint').textContent = 'Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.';
   if ($('boilerServicePill')) $('boilerServicePill').classList.add('hidden');
   ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.add('hidden'));
   ['energyCard','broadbandCard','mobileCard','billCosts','energySplitNow'].forEach(id => $(id).classList.add('hidden'));
@@ -2507,6 +2552,7 @@ function serializeForm() {
     broadband: !!state.services.broadband,
     sims: Math.min(r.includedSimsCount, 2),
     insurance: (r.boilerCoverCost > 0),
+    cashback: !!state.includeCashback,
     basketLink: !!basketLink(),
     quoteShared: !!window.AppointmentCompanionQuoteSharedAt
   };
@@ -2546,6 +2592,7 @@ function restoreForm(saved) {
   state.energyAdjustPeriod = s.energyAdjustPeriod || 'monthly';
   state.manualAdjustPeriod = s.manualAdjustPeriod || 'monthly';
   state.oneOffType = s.oneOffType || 'refund';
+  state.boilerMode = s.boilerMode || null;
 
   // homeowner/tenant reveals the main cards
   if (state.homeowner) setHome(state.homeowner);
@@ -2622,6 +2669,18 @@ function restoreForm(saved) {
     b.classList.toggle('on', b.dataset.maperiod === state.manualAdjustPeriod));
   document.querySelectorAll('#oneOffTypePills .pill').forEach(b =>
     b.classList.toggle('on', b.dataset.oneoff === state.oneOffType));
+
+  // Boiler Cover comparison mode
+  document.querySelectorAll('[data-boiler-mode]').forEach(b => b.classList.toggle('on', b.dataset.boilerMode === state.boilerMode));
+  {
+    const currentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
+    if (currentSide) currentSide.classList.toggle('hidden', state.boilerMode === 'new');
+    if ($('boilerModeHint')) $('boilerModeHint').textContent = state.boilerMode === 'new'
+      ? 'UW Boiler Cover is being added as a new service, so there is no existing monthly cost to compare.'
+      : state.boilerMode === 'existing'
+        ? 'Enter what the customer currently pays each month for their existing cover.'
+        : 'Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.';
+  }
 
   // cashback tier chip
   document.querySelectorAll('[data-cbtier]').forEach(c => {
