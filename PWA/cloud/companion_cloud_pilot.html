@@ -1824,7 +1824,18 @@ function openCard() {
   }
   previewExtra = false; // reset preview each time the card opens
   renderCard(compute(0));
+  $('shareGateMsg').classList.add('hidden');
   $('cardModal').classList.add('open');
+
+  // Do not make opening the summary wait on the network, but proactively
+  // hydrate the authenticated Partner so branding is ready before sharing.
+  if (!getPartner() && activePartnerAuth()) {
+    ensurePartnerProfileFromCloud().then(partner => {
+      if (partner && $('cardModal').classList.contains('open')) {
+        renderCard(compute(currentPreviewCount()));
+      }
+    });
+  }
 }
 
 function renderCard(r) {
@@ -2036,8 +2047,9 @@ function renderCard(r) {
     $('brandRole').textContent = DEFAULT_PARTNER_ROLE + (partner.town ? ' · ' + partner.town : '');
     $('brandStrap').textContent = partner.strap || '';
   } else {
-    $('brandName').textContent = 'Partner details not set';
-    $('brandRole').textContent = 'Tap ⚙️ below the notes to add yours';
+    const loadingCloudProfile = !!activePartnerAuth();
+    $('brandName').textContent = loadingCloudProfile ? 'Loading Partner details…' : 'Partner details not set';
+    $('brandRole').textContent = loadingCloudProfile ? 'Retrieving your Cloud profile' : 'Tap ⚙️ below the notes to add yours';
     $('brandStrap').textContent = '';
   }
   const ctaLink = basketLink();
@@ -2363,17 +2375,17 @@ function continueCopyShareLink() {
     setTimeout(() => { $('copyLinkBtn').textContent = '🔗 Copy link'; }, 2000);
   });
 }
-$('shareBtn').addEventListener('click', () => {
+$('shareBtn').addEventListener('click', async () => {
   if (!requireCustomerNameForShare()) return;
-  if (!requirePartnerSetup()) return;
+  if (!await requirePartnerSetup()) return;
   if (!basketLink()) return openBasketPrompt('whatsapp');
   if (!requireShareCta()) return;
   continueShareViaWhatsApp();
 });
 
-$('copyLinkBtn').addEventListener('click', () => {
+$('copyLinkBtn').addEventListener('click', async () => {
   if (!requireCustomerNameForShare()) return;
-  if (!requirePartnerSetup()) return;
+  if (!await requirePartnerSetup()) return;
   if (!basketLink()) return openBasketPrompt('copy');
   if (!requireShareCta()) return;
   continueCopyShareLink();
@@ -2385,9 +2397,10 @@ $('addBasketLinkBtn').addEventListener('click', () => {
   $('cashbackCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   setTimeout(() => $('basketLink').focus(), 400);
 });
-$('shareWithoutBasketBtn').addEventListener('click', () => {
+$('shareWithoutBasketBtn').addEventListener('click', async () => {
   const action = pendingBasketAction;
   closeBasketPrompt();
+  if (!await requirePartnerSetup()) return;
   if (!requireShareCta()) return;
   if (action === 'copy') continueCopyShareLink();
   else continueShareViaWhatsApp();
@@ -2912,18 +2925,21 @@ function updateJoinPreview() {
     '<br>\u2192 Email: ' + shown + '@uw.partners';
 }
 
-function activePartnerAuthId() {
-  const valid = row => row && row.partner_id && row.workspace_key ? String(row.partner_id).trim().toLowerCase() : '';
+function activePartnerAuth() {
+  const valid = row => row && row.partner_id && row.workspace_key ? row : null;
   try {
     const session = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null');
-    const id = valid(session);
-    if (id) return id;
+    const row = valid(session);
+    if (row) return row;
   } catch (e) {}
   try {
-    const device = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null');
-    return valid(device);
+    return valid(JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null'));
   } catch (e) {}
-  return '';
+  return null;
+}
+function activePartnerAuthId() {
+  const auth = activePartnerAuth();
+  return auth ? String(auth.partner_id).trim().toLowerCase() : '';
 }
 function partnerForActiveAuth(profile) {
   const p = profile && typeof profile === 'object' ? profile : {};
@@ -2948,6 +2964,74 @@ function getPartner() {
   const p = rawPartner();
   return (p && p.name) ? p : null;
 }
+
+let partnerHydrationPromise = null;
+function waitForPartnerBridge(timeoutMs) {
+  const deadline = Date.now() + (timeoutMs || 1800);
+  return new Promise(resolve => {
+    const check = () => {
+      const bridge = window.AppointmentCompanionPartnerProfile;
+      if (bridge && typeof bridge.hydrate === 'function') return resolve(bridge);
+      if (Date.now() >= deadline) return resolve(null);
+      setTimeout(check, 60);
+    };
+    check();
+  });
+}
+async function ensurePartnerProfileFromCloud() {
+  const existing = getPartner();
+  if (existing) return existing;
+  if (!activePartnerAuth()) return null;
+  if (partnerHydrationPromise) return partnerHydrationPromise;
+
+  partnerHydrationPromise = (async () => {
+    const bridge = await waitForPartnerBridge(1800);
+    if (bridge) {
+      try { await bridge.hydrate(); } catch (e) {}
+      let partner = getPartner();
+      if (partner) return partner;
+
+      // hydrate() may have returned early because its boot-time request was
+      // already in flight. Give that request time to populate the cache.
+      for (let i = 0; i < 16; i++) {
+        await new Promise(resolve => setTimeout(resolve, 125));
+        partner = getPartner();
+        if (partner) return partner;
+      }
+
+      // One final retry after any earlier in-flight hydration has finished.
+      try { await bridge.hydrate(); } catch (e) {}
+      partner = getPartner();
+      if (partner) return partner;
+    }
+
+    // Last-resort authenticated Cloud read if the profile bridge failed to
+    // initialise. Keep this fail-closed to the currently logged-in Partner.
+    const api = window.AppointmentCompanionCloud;
+    const auth = activePartnerAuth();
+    if (api && auth && typeof api.getPartnerProfile === 'function') {
+      try {
+        const result = await api.getPartnerProfile(auth);
+        const cloud = partnerForActiveAuth(result && result.partner || {});
+        if (cloud && cloud.name) {
+          try {
+            localStorage.setItem('apptCompanionPartnerCloudProfileV1', JSON.stringify(cloud));
+            localStorage.setItem('apptCompanionPartnerCloudOwnerV1', String(auth.partner_id || ''));
+            localStorage.setItem(PARTNER_KEY, JSON.stringify(Object.assign({}, rawPartner(), cloud)));
+          } catch (e) {}
+          return getPartner();
+        }
+      } catch (e) {}
+    }
+    return getPartner();
+  })();
+
+  try {
+    return await partnerHydrationPromise;
+  } finally {
+    partnerHydrationPromise = null;
+  }
+}
 function setPartner(p) {
   try {
     const current = rawPartner();
@@ -2955,7 +3039,15 @@ function setPartner(p) {
   } catch (e) {}
 }
 
-function openPartnerPrompt(msg) {
+async function openPartnerPrompt(msg) {
+  $('ppErr').classList.add('hidden');
+  $('partnerPrompt').classList.add('open');
+
+  if (!getPartner() && activePartnerAuth()) {
+    $('partnerPromptMsg').textContent = 'Loading your Cloud Partner profile…';
+    await ensurePartnerProfileFromCloud();
+  }
+
   const p = rawPartner();
   $('ppName').value = p.name || '';
   $('ppJoin').value = p.partner_slug || normalisePartnerSlug(p.join || p.email || '');
@@ -2963,19 +3055,30 @@ function openPartnerPrompt(msg) {
   $('ppStrap').value = (p.strap !== undefined && p.strap !== '') ? p.strap : DEFAULT_PARTNER_STRAP;
   updateJoinPreview();
   $('partnerPromptMsg').textContent = msg ||
-    'Your Cloud Partner profile is used across Appointment Companion and shared cards. Changes here sync back to your profile.';
-  $('ppErr').classList.add('hidden');
-  $('partnerPrompt').classList.add('open');
+    (getPartner()
+      ? 'Your Cloud Partner profile is used across Appointment Companion and shared cards. Changes here sync back to your profile.'
+      : 'Your Cloud Partner profile could not be loaded. Check your Companion connection, then try again.');
 }
 function closePartnerPrompt() { $('partnerPrompt').classList.remove('open'); }
 
 // Building a quote is always allowed. Sharing uses the authenticated Cloud
 // Partner profile. Missing profile details are reported precisely - never by
 // launching first-run Partner setup/onboarding.
-function requirePartnerSetup() {
-  const partner = getPartner();
-  if (partner && partner.name) return true;
-  $('shareGateMsg').textContent = 'Your Partner profile has not finished loading. Close this summary, check ☰ → My profile, then try again.';
+async function requirePartnerSetup() {
+  let partner = getPartner();
+  if (!partner && activePartnerAuth()) {
+    $('shareGateMsg').textContent = 'Loading your Cloud Partner profile…';
+    $('shareGateMsg').classList.remove('hidden');
+    partner = await ensurePartnerProfileFromCloud();
+  }
+  if (partner && partner.name) {
+    $('shareGateMsg').classList.add('hidden');
+    renderCard(compute(currentPreviewCount()));
+    return true;
+  }
+  $('shareGateMsg').textContent = activePartnerAuth()
+    ? 'Your Partner profile could not be loaded from Cloud. Check ☰ → My profile, then try again.'
+    : 'Connect to Companion before sharing so the correct Partner details can be included.';
   $('shareGateMsg').classList.remove('hidden');
   return false;
 }
