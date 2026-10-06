@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261005-v2.46.14-partner-profile1';
+      var version = '20261006-v2.46.14-tdcv1';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var sharedView = /^d=/.test(location.hash.slice(1));
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
