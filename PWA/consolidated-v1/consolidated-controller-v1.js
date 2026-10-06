@@ -66,28 +66,87 @@
     var shared = !!(summary.quoteShared || canonical.lastQuoteSharedAt);
     var fix = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix']);
     var ev = !!specialists.ev;
-    var card = !!(specialists.card || specialists.cashback_card);
+    var cashback = summary.cashback != null ? !!summary.cashback : (ui.state ? ui.state.includeCashback !== false : true);
 
     function mini(emoji, on, title, extra) {
-      return '<span title="' + title + '" style="display:inline-flex;align-items:center;justify-content:center;min-width:' + (extra ? '30px' : '20px') + ';height:22px;' + (extra ? 'padding:0 4px;border:1px solid rgba(122,66,200,.16);border-radius:999px;background:#f8f5fe;' : '') + (on ? '' : 'opacity:.28;filter:grayscale(1);') + '">' + emoji + '</span>';
+      return '<span title="' + title + '" style="display:inline-flex;align-items:center;justify-content:center;min-width:' + (extra ? '27px' : '18px') + ';height:20px;' + (extra ? 'padding:0 3px;border:1px solid rgba(122,66,200,.14);border-radius:999px;background:#f8f5fe;letter-spacing:-1px;white-space:nowrap;' : '') + 'font-size:11px;' + (on ? '' : 'opacity:.28;filter:grayscale(1);') + '">' + emoji + '</span>';
     }
 
-    return '<span aria-label="Services and tools" style="display:inline-flex;align-items:center;justify-content:flex-start;gap:4px;flex-wrap:nowrap;white-space:nowrap;">' +
-      mini('⚡🔥', energy, 'Energy', true) +
+    return '<span aria-label="Services and tools" style="display:inline-flex;align-items:center;justify-content:flex-start;gap:3px;flex-wrap:nowrap;white-space:nowrap;">' +
+      mini('<span>⚡</span><span>🔥</span>', energy, 'Energy', true) +
       mini('🛜', broadband, 'Broadband') +
       mini('📱', simCount >= 1, 'Mobile SIM 1') +
       mini('📱', simCount >= 2, 'Mobile SIM 2') +
       mini('🛠️', cover, 'Boiler Cover') +
+      mini('💳', cashback, 'Cashback Card') +
       mini('🔗', basket, 'UW basket linked') +
       mini('✉️', shared, 'Summary shared') +
+      '<span aria-hidden="true" style="width:1px;height:18px;background:rgba(38,22,79,.20);margin:0 2px"></span>' +
       mini('📌', fix, 'Should I Fix?') +
       mini('🚙', ev, 'EV Companion') +
-      mini('💳', card, 'Cashback Companion') +
     '</span>';
   }
 
+  var pendingSwitchResolve = null;
+  function closeSwitchGuard(result) {
+    var modal = $('acProfileSwitchGuard');
+    if (modal) modal.classList.remove('open');
+    var resolve = pendingSwitchResolve;
+    pendingSwitchResolve = null;
+    if (resolve) resolve(result || 'stay');
+  }
+  function ensureSwitchGuard() {
+    var modal = $('acProfileSwitchGuard');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'acProfileSwitchGuard';
+    modal.className = 'basket-prompt';
+    modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="acProfileSwitchTitle" style="max-width:410px">' +
+      '<h3 id="acProfileSwitchTitle">Switch customer?</h3>' +
+      '<p class="sub" id="acProfileSwitchText"></p>' +
+      '<div class="modal-actions" style="display:grid;gap:7px">' +
+        '<button class="btn-share" type="button" data-switch-choice="save">💾 Save progress & switch</button>' +
+        '<button class="btn-ghost" type="button" data-switch-choice="without">Switch without saving again</button>' +
+        '<button class="btn-ghost" type="button" data-switch-choice="stay">Stay here</button>' +
+      '</div></div>';
+    modal.addEventListener('click', function (event) {
+      var choice = event.target.closest('[data-switch-choice]');
+      if (choice) closeSwitchGuard(choice.dataset.switchChoice);
+      else if (event.target === modal) closeSwitchGuard('stay');
+    });
+    document.body.appendChild(modal);
+    return modal;
+  }
+  function shouldAskBeforeSwitch(targetId) {
+    if (!current || !currentId || String(targetId || '') === String(currentId)) return false;
+    try { return meaningful(canonical.capture()); } catch (_) { return meaningful(current.appointment_state); }
+  }
+  function askBeforeSwitch(targetName) {
+    var modal = ensureSwitchGuard();
+    var currentName = String(current && current.customer_name || 'this customer');
+    $('acProfileSwitchText').textContent = 'Save the latest progress on ' + currentName + ' before switching to ' + String(targetName || 'another customer') + '?';
+    modal.classList.add('open');
+    return new Promise(function (resolve) { pendingSwitchResolve = resolve; });
+  }
+  async function requestSwitchRecord(row) {
+    if (!row || row.deleted) return false;
+    if (String(row.local_id || '') === String(currentId || '')) return true;
+    if (shouldAskBeforeSwitch(row.local_id)) {
+      clearTimeout(saveTimer);
+      var choice = await askBeforeSwitch(row.customer_name);
+      if (choice === 'stay') return false;
+      if (choice === 'save') await persist(false);
+    }
+    await loadRecord(row, false);
+    return true;
+  }
+  async function switchToLocalId(localId) {
+    var row = await store.get(String(localId || ''));
+    return requestSwitchRecord(row);
+  }
+
   async function customerBrowser() {
-    var modal = $('localFirstCustomers'); if (!modal) { modal = document.createElement('div'); modal.id = 'localFirstCustomers'; modal.className = 'basket-prompt'; modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto"><h3 id="localFirstCustomersTitle">Customers on this device</h3><p class="sub" id="localFirstCustomersNote"></p><div id="localFirstCustomerRows" style="display:grid;gap:8px"></div><div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div></div>'; modal.addEventListener('click', async function (event) { if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open'); var load = event.target.closest('[data-local-load]'); if (load) { modal.classList.remove('open'); await loadRecord(await store.get(load.dataset.localLoad)); } var del = event.target.closest('[data-local-delete]'); if (del) { await markDeleted(del.dataset.localDelete); await customerBrowser(); } var choice = event.target.closest('[data-local-conflict]'); if (choice) { await resolveConflict(choice.dataset.localConflict, choice.dataset.choice); await customerBrowser(); } }); document.body.appendChild(modal); }
+    var modal = $('localFirstCustomers'); if (!modal) { modal = document.createElement('div'); modal.id = 'localFirstCustomers'; modal.className = 'basket-prompt'; modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto"><h3 id="localFirstCustomersTitle">Customers on this device</h3><p class="sub" id="localFirstCustomersNote"></p><div id="localFirstCustomerRows" style="display:grid;gap:8px"></div><div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div></div>'; modal.addEventListener('click', async function (event) { if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open'); var load = event.target.closest('[data-local-load]'); if (load) { var target = await store.get(load.dataset.localLoad); if (await requestSwitchRecord(target)) modal.classList.remove('open'); } var del = event.target.closest('[data-local-delete]'); if (del) { await markDeleted(del.dataset.localDelete); await customerBrowser(); } var choice = event.target.closest('[data-local-conflict]'); if (choice) { await resolveConflict(choice.dataset.localConflict, choice.dataset.choice); await customerBrowser(); } }); document.body.appendChild(modal); }
     var rows = await store.list(true); recentRows(rows); $('localFirstCustomersNote').textContent = LOCAL_ONLY ? 'Local-only mode. Cloud access is deliberately paused.' : 'Every row opens from this device. Cloud-only customers appear after background hydration.';
     $('localFirstCustomerRows').innerHTML = rows.filter(function (row) { return !row.deleted; }).map(function (row) {
       var conflict = !!row.conflict;
@@ -142,11 +201,25 @@
   }
   async function sync() { if (LOCAL_ONLY || syncing || !navigator.onLine || !api) return; var credentials = auth(); if (!credentials) { icon('cloudConnectionState', false, 'Cloud sync awaits Partner sign-in'); return; } syncing = true; try { var rows = await store.list(true); for (var i = 0; i < rows.length; i++) if (rows[i].sync_state === 'pending' || rows[i].sync_state === 'pending_delete') await syncOne(rows[i], credentials); await hydrate(credentials); retryMs = 2500; current = currentId ? await store.get(currentId) : null; paint(current, false); recentRows(await store.list(true)); if (current && isSynced(current)) status('Latest local revision synchronised to Cloud.', 'good'); } catch (error) { retryMs = Math.min(retryMs * 2, 120000); icon('cloudConnectionState', false, 'Cloud unavailable; work remains safe locally'); status('Cloud unavailable — working locally. Your appointment is safe on this device.', ''); scheduleSync(retryMs); } finally { syncing = false; } }
   function scheduleSync(delay) { if (LOCAL_ONLY) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, delay == null ? retryMs : delay); }
-  async function startNewCustomer(fromDelete) { clearTimeout(saveTimer); if (!fromDelete && current && meaningful(current.appointment_state)) await persist(false); currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY); var bridge = global.AppointmentCompanionBridge; if (bridge && bridge.clearWorkingRecord) bridge.clearWorkingRecord(); if (typeof global.resetForm === 'function') global.resetForm(); var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.reset) controls.reset(); var fresh = draft(); currentId = fresh.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(fresh); paint(current, false); status(LOCAL_ONLY ? 'New customer started locally. Cloud is paused.' : 'New customer started locally. Cloud sync will run in the background when ready.', 'good'); }
+  async function startNewCustomer(fromDelete) {
+    clearTimeout(saveTimer);
+    if (!fromDelete && current && meaningful(current.appointment_state)) {
+      var choice = await askBeforeSwitch('a new customer');
+      if (choice === 'stay') return false;
+      if (choice === 'save') await persist(false);
+    }
+    currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY);
+    var bridge = global.AppointmentCompanionBridge; if (bridge && bridge.clearWorkingRecord) bridge.clearWorkingRecord();
+    if (typeof global.resetForm === 'function') global.resetForm();
+    var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.reset) controls.reset();
+    var fresh = draft(); currentId = fresh.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(fresh);
+    paint(current, false); status(LOCAL_ONLY ? 'New customer started locally. Cloud is paused.' : 'New customer started locally. Cloud sync will run in the background when ready.', 'good');
+    return true;
+  }
   async function saveAsNew() { await persist(false); currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY); await persist(true); }
   function intercept() { document.addEventListener('input', queuePersist, true); document.addEventListener('change', queuePersist, true); document.addEventListener('click', function (event) { var action = event.target.closest && event.target.closest('[data-cloud-action]'); if (!action) return; var kind = action.dataset.cloudAction; if (['save','save-as','all-customers','recent-customers','delete-current','new-customer'].indexOf(kind) < 0) return; event.preventDefault(); event.stopImmediatePropagation(); if (kind === 'save') persist(true); else if (kind === 'save-as') saveAsNew(); else if (kind === 'all-customers' || kind === 'recent-customers') customerBrowser(); else if (kind === 'new-customer') startNewCustomer(false); else if (currentId) markDeleted(currentId); }, true); document.addEventListener('click', function (event) { if (!event.target.closest || !event.target.closest('button,.cbchip') || event.target.closest('#cloudPilotCard,#conflictPanel,#localCustomerList')) return; setTimeout(function () { queuePersist(); }, 0); }, true); global.addEventListener('online', function () { scheduleSync(50); }); global.addEventListener('focus', function () { scheduleSync(100); }); global.addEventListener('ac:cloud-authenticated', function () { scheduleSync(50); }); }
   async function boot() { await store.migrate(); var rows = await store.list(); recentRows(rows); var row = currentId && await store.get(currentId); if (!row) { var oldCurrent = sessionStorage.getItem('apptCompanionLocalFirstCurrentV1'); if (oldCurrent) row = await store.get(oldCurrent); } if (row) await loadRecord(row, true); else await startNewCustomer(true); if (LOCAL_ONLY) { var banner = document.createElement('div'); banner.className = 'md-note'; banner.style.margin = '0 0 .7rem'; banner.innerHTML = '📵 <strong>Local-only mode</strong> — Cloud sync and Cloud-backed sharing are paused. Your appointment is safe on this device. <a href="../consolidated-v1/">Return to normal mode</a>.'; var wrap = document.querySelector('.wrap'); if (wrap) wrap.insertBefore(banner, wrap.firstChild); status('Local-only mode — working safely on this device.', 'good'); } intercept(); scheduleSync(700); setInterval(function () { scheduleSync(0); }, 45000); }
-  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, scheduleSync: scheduleSync, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
+  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, scheduleSync: scheduleSync, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
   global.AppointmentCompanionLocalFirst = global.AppointmentCompanionConsolidated;
   var attempts = 0, timer = setInterval(function () { if ($('cloudPilotCard') && store && canonical && global.AppointmentCompanionCanonicalControls) { clearInterval(timer); boot().catch(function (error) { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Consolidated setup needs attention: ' + error.message, 'bad'); }); } else if (++attempts > 160) clearInterval(timer); }, 50);
 })(window);
