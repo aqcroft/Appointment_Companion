@@ -47,7 +47,7 @@
     try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:row.local_id, customer_name:row.customer_name || '' } })); } catch (_) {}
     if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
   }
-  function recentRows(rows) { try { localStorage.setItem('apptCompanionRecentCustomersV1', JSON.stringify(rows.filter(function (row) { return !row.deleted; }).slice(0, 20).map(function (row) { var c = row.appointment_state && row.appointment_state.canonical || {}; return { customer_id: row.local_id, customer_name: row.customer_name || 'Unnamed', updated_at: row.updated_at, summary: row.appointment_state && row.appointment_state.ui_state && row.appointment_state.ui_state.summary || {}, has_ev: !!(row.specialist_state && row.specialist_state.ev), locally_available: true, services: c.selectedServices || {} }; }))); } catch (_) {} }
+  function recentRows(rows) { try { localStorage.setItem('apptCompanionRecentCustomersV1', JSON.stringify(rows.filter(function (row) { return !row.deleted; }).slice(0, 20).map(function (row) { var c = row.appointment_state && row.appointment_state.canonical || {}, spec = row.specialist_state || {}; return { customer_id: row.local_id, customer_name: row.customer_name || 'Unnamed', updated_at: row.updated_at, summary: row.appointment_state && row.appointment_state.ui_state && row.appointment_state.ui_state.summary || {}, has_ev: !!spec.ev, has_fix: !!(spec.fix || spec.should_i_fix || spec['should-i-fix']), locally_available: true, services: c.selectedServices || {} }; }))); } catch (_) {} }
   function customerJourneyIcons(row) {
     row = row || {};
     var appt = row.appointment_state || {};
