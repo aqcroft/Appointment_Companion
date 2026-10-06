@@ -44,8 +44,8 @@
         overflow:hidden;
         width:100%;
         min-width:0;
-        min-height:76px;
-        padding:6px 3px!important;
+        min-height:62px;
+        padding:5px 3px!important;
         display:flex;
         flex-direction:column;
         align-items:center;
@@ -62,8 +62,10 @@
         display:flex;
         align-items:center;
         justify-content:center;
-        font-size:39px;
+        font-size:27px;
         line-height:1;
+        white-space:nowrap;
+        letter-spacing:-2px;
         opacity:.18;
         filter:saturate(.7);
         transform:scale(1.04);
@@ -80,9 +82,9 @@
         position:absolute;
         left:4px;
         right:4px;
-        bottom:5px;
+        bottom:4px;
         min-width:0;
-        padding:3px 3px;
+        padding:2px 3px;
         border-radius:999px;
         background:rgba(255,255,255,.86);
         color:#266A75;
@@ -150,15 +152,15 @@
         display:flex;
         min-width:0;
       }
-      #servicesCard .ac-mobile-cell > [data-service="mobile"] { padding-bottom:31px!important; }
+      #servicesCard .ac-mobile-cell > [data-service="mobile"] { padding-bottom:27px!important; }
       #servicesCard .ac-mobile-stepper {
         position:absolute;
         left:4px;
         right:4px;
-        bottom:5px;
+        bottom:4px;
         display:none;
-        grid-template-columns:23px minmax(18px,1fr) 23px;
-        height:24px;
+        grid-template-columns:21px minmax(17px,1fr) 21px;
+        height:21px;
         border:1px solid rgba(173,62,120,.35);
         border-radius:8px;
         overflow:hidden;
@@ -185,12 +187,20 @@
         font:900 10px/1 system-ui;
       }
 
-      /* Stronger, more distinct service section identities. */
-      #energyCard { background:linear-gradient(135deg,#DDF3F6,#fff 74%)!important; border:1.5px solid var(--ac-energy-base)!important; }
-      #broadbandCard { background:linear-gradient(135deg,#DDF5E9,#fff 74%)!important; border:1.5px solid var(--ac-broadband-base)!important; }
-      #mobileCard { background:linear-gradient(135deg,#F9DDEA,#fff 74%)!important; border:1.5px solid var(--ac-mobile-base)!important; }
-      #insuranceCard { background:linear-gradient(135deg,#FFE2CE,#fff 74%)!important; border:1.5px solid var(--ac-insurance-base)!important; }
-      #cashbackCard { background:linear-gradient(135deg,#E8DFF8,#fff 74%)!important; border:1.5px solid var(--ac-cashback-base)!important; }
+      /* One colour family per service. Keep controls as pale tints rather than
+         introducing white/purple blocks that make the page feel patchy. */
+      #energyCard { background:var(--ac-energy-soft)!important; border:1.5px solid var(--ac-energy-base)!important; }
+      #broadbandCard { background:var(--ac-broadband-soft)!important; border:1.5px solid var(--ac-broadband-base)!important; }
+      #mobileCard { background:var(--ac-mobile-soft)!important; border:1.5px solid var(--ac-mobile-base)!important; }
+      #insuranceCard { background:var(--ac-insurance-soft)!important; border:1.5px solid var(--ac-insurance-base)!important; }
+      #cashbackCard { background:var(--ac-cashback-soft)!important; border:1.5px solid var(--ac-cashback-base)!important; }
+
+      #energyCard .side,#energyCard .side.uw { background:rgba(255,255,255,.30)!important; border-color:rgba(25,127,144,.28)!important; }
+      #energyCard .side.uw { box-shadow:inset 0 0 0 1px rgba(25,127,144,.11); }
+      #broadbandCard .side,#broadbandCard .side.uw { background:rgba(255,255,255,.30)!important; border-color:rgba(37,127,89,.24)!important; }
+      #mobileCard .side,#mobileCard .side.uw { background:rgba(255,255,255,.30)!important; border-color:rgba(173,62,120,.24)!important; }
+      #insuranceCard .side,#insuranceCard .side.uw { background:rgba(255,255,255,.30)!important; border-color:rgba(201,90,23,.24)!important; }
+      #cashbackCard .side,#cashbackCard .side.uw { background:rgba(255,255,255,.30)!important; border-color:rgba(103,72,168,.24)!important; }
 
       #energyCard h2 { color:var(--ac-energy-strong)!important; }
       #broadbandCard h2 { color:var(--ac-broadband-strong)!important; }
@@ -214,6 +224,28 @@
       #cashbackCard .pill.on, #cashbackCard button.on, #cashbackCard .btn-primary { background:var(--ac-cashback-strong)!important; border-color:var(--ac-cashback-strong)!important; color:#fff!important; }
       #cashbackCard .switch input:checked + .track { background:var(--ac-cashback-strong)!important; }
 
+      #energyCard input:not([type="checkbox"]):not([type="range"]), #energyCard select, #energyCard textarea {
+        background:rgba(255,255,255,.48)!important; border-color:rgba(25,127,144,.30)!important;
+      }
+      #broadbandCard input:not([type="checkbox"]):not([type="range"]), #broadbandCard select, #broadbandCard textarea {
+        background:rgba(255,255,255,.48)!important; border-color:rgba(37,127,89,.28)!important;
+      }
+      #mobileCard input:not([type="checkbox"]):not([type="range"]), #mobileCard select, #mobileCard textarea {
+        background:rgba(255,255,255,.48)!important; border-color:rgba(173,62,120,.28)!important;
+      }
+      #insuranceCard input:not([type="checkbox"]):not([type="range"]), #insuranceCard select, #insuranceCard textarea {
+        background:rgba(255,255,255,.48)!important; border-color:rgba(201,90,23,.28)!important;
+      }
+      #cashbackCard input:not([type="checkbox"]):not([type="range"]), #cashbackCard select, #cashbackCard textarea {
+        background:rgba(255,255,255,.48)!important; border-color:rgba(103,72,168,.28)!important;
+      }
+
+      #energyCard .pill:not(.on), #energyCard .icon-toggle:not(.on) { background:rgba(255,255,255,.42)!important; color:#245D66!important; }
+      #broadbandCard .pill:not(.on), #broadbandCard .icon-toggle:not(.on) { background:rgba(255,255,255,.42)!important; color:#245F45!important; }
+      #mobileCard .pill:not(.on), #mobileCard .icon-toggle:not(.on) { background:rgba(255,255,255,.42)!important; color:#71304F!important; }
+      #insuranceCard .pill:not(.on), #insuranceCard .icon-toggle:not(.on) { background:rgba(255,255,255,.42)!important; color:#7A3A16!important; }
+      #cashbackCard .pill:not(.on), #cashbackCard .icon-toggle:not(.on) { background:rgba(255,255,255,.42)!important; color:#4E3979!important; }
+
       #canonicalEnergyPanel { background:linear-gradient(135deg,#DDF3F6,#fff 84%)!important; border-color:var(--ac-energy-base)!important; }
       #canonicalEnergyPanel .canonical-title, #canonicalEnergyPanel .canonical-helper summary, #canonicalEnergyPanel .canonical-helper-output { color:var(--ac-energy-strong)!important; }
       #canonicalEnergyPanel .canonical-choice button { border-color:var(--ac-energy-base)!important; }
@@ -226,9 +258,9 @@
         #servicesCard > .pills > [data-service],
         #servicesCard > .pills > [data-pseudo-service],
         #servicesCard .ac-mobile-cell > [data-service="mobile"] { min-height:72px; }
-        #servicesCard .ac-service-ghost { font-size:34px; }
-        #servicesCard .ac-energy-state { font-size:8.3px; left:3px; right:3px; }
-        #servicesCard .ac-mobile-stepper { left:3px; right:3px; grid-template-columns:20px minmax(16px,1fr) 20px; }
+        #servicesCard .ac-service-ghost { font-size:24px; }
+        #servicesCard .ac-energy-state { font-size:8px; left:3px; right:3px; }
+        #servicesCard .ac-mobile-stepper { left:3px; right:3px; grid-template-columns:19px minmax(15px,1fr) 19px; }
       }
     `;
     document.head.appendChild(style);
@@ -350,11 +382,11 @@
     pills.appendChild(button);
 
     button.addEventListener('click', function () {
-      var cb = $('includeCashback');
-      if (!cb) return;
-      cb.checked = !cb.checked;
-      cb.dispatchEvent(new Event('change', { bubbles:true }));
-      sync();
+      var card = $('cashbackCard');
+      if (card) {
+        card.classList.remove('hidden');
+        card.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
     });
   }
 
