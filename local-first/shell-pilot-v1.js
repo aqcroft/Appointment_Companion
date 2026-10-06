@@ -220,6 +220,44 @@
     return appointmentSnapshot(currentCloudCustomer) || null;
   }
 
+  function quickProfileRows() {
+    try {
+      const controller = window.AppointmentCompanionConsolidated;
+      const currentId = controller && typeof controller.currentId === 'function' ? String(controller.currentId() || '') : '';
+      const rows = JSON.parse(localStorage.getItem(RECENT_CUSTOMERS_KEY) || '[]');
+      return (Array.isArray(rows) ? rows : [])
+        .filter(row => row && row.customer_id && String(row.customer_id) !== currentId)
+        .slice(0, 3);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function renderQuickProfiles() {
+    const wrap = $c('cloudQuickProfiles');
+    if (!wrap) return;
+    const rows = quickProfileRows();
+    wrap.innerHTML = rows.length
+      ? rows.map(row => '<button class="cloud-quick-profile" type="button" data-local-profile-id="' + esc(row.customer_id) + '">' +
+          '<strong>' + esc(row.customer_name || 'Unnamed') + '</strong>' +
+          (row.updated_at ? '<span class="sub" style="display:block;font-size:9.5px;margin-top:2px">Updated ' + esc(fmtDate(row.updated_at)) + '</span>' : '') +
+        '</button>').join('')
+      : '<div class="sub" style="font-size:10.5px;padding:3px 5px">No other recent profiles on this device.</div>';
+  }
+
+  function toggleQuickProfiles(force) {
+    const wrap = $c('cloudQuickProfiles');
+    const btn = $c('cloudPilotCurrent') && $c('cloudPilotCurrent').querySelector('[data-local-profile-toggle]');
+    if (!wrap) return;
+    const open = force !== undefined ? !!force : !wrap.classList.contains('open');
+    if (open) renderQuickProfiles();
+    wrap.classList.toggle('open', open);
+    if (btn) {
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = open ? '⌃' : '⌄';
+    }
+  }
+
   function renderCloudCurrent() {
     const el = $c('cloudPilotCurrent');
     if (!el) return;
@@ -391,7 +429,26 @@
 
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
 
-    card.addEventListener('click', e => {
+    card.addEventListener('click', async e => {
+      const profileToggle = e.target && e.target.closest ? e.target.closest('[data-local-profile-toggle]') : null;
+      if (profileToggle) {
+        e.preventDefault();
+        toggleQuickProfiles();
+        return;
+      }
+      const profileChoice = e.target && e.target.closest ? e.target.closest('[data-local-profile-id]') : null;
+      if (profileChoice) {
+        e.preventDefault();
+        const controller = window.AppointmentCompanionConsolidated;
+        if (controller && typeof controller.switchTo === 'function') {
+          const switched = await controller.switchTo(profileChoice.dataset.localProfileId);
+          if (switched) {
+            toggleQuickProfiles(false);
+            setTimeout(() => { renderCloudCurrent(); renderRecentCustomers(); }, 0);
+          }
+        }
+        return;
+      }
       const action = e.target && e.target.closest ? e.target.closest('[data-cloud-action]') : null;
       if (!action) return;
       e.preventDefault();
@@ -422,7 +479,17 @@
     document.addEventListener('input', scheduleWorkingRecordSave, true);
     document.addEventListener('change', scheduleWorkingRecordSave, true);
     document.addEventListener('click', closeActionMenuOnOutside, true);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeActionMenu(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeActionMenu();
+        toggleQuickProfiles(false);
+      }
+    });
+    window.addEventListener('ac:customer-switched', () => setTimeout(() => {
+      renderCloudCurrent();
+      renderRecentCustomers();
+      toggleQuickProfiles(false);
+    }, 0));
     ['electricityUsageKwh', 'electricityUsageDayKwh', 'electricityUsageNightKwh'].forEach(id => {
       const el = $c(id);
       if (el) el.addEventListener('input', noteUsageEdit);
