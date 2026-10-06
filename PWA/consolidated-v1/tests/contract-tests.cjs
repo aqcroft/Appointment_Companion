@@ -96,4 +96,35 @@ function load(file, sandbox) {
   assert.match(donor, /Loading your Cloud Partner profile/);
 }
 
+
+{
+  const donor = fs.readFileSync(path.resolve(root, '..', 'cloud', 'companion_cloud_pilot.html'), 'utf8');
+  assert.match(donor, /data-boiler-mode="existing"/);
+  assert.match(donor, /data-boiler-mode="new"/);
+  assert.match(donor, /Boiler Cover — existing cover or new service\?/);
+  assert.match(donor, /cashback: !!state\.includeCashback/);
+}
+
+{
+  const shell = fs.readFileSync(path.resolve(root, '..', '..', 'local-first', 'shell-pilot-v1.js'), 'utf8');
+  assert.match(shell, /id="cloudQuickProfiles"/);
+  assert.match(shell, /data-local-profile-id/);
+  assert.match(shell, /cloud-current-sep/);
+  assert.match(shell, /icon\('💳', sum\.cashback !== false/);
+}
+
+{
+  const controller = fs.readFileSync(path.join(root, 'consolidated-controller-v1.js'), 'utf8');
+  assert.match(controller, /Save progress & switch/);
+  assert.match(controller, /switchTo: switchToLocalId/);
+  assert.match(controller, /mini\('💳', cashback, 'Cashback Card'\)/);
+}
+
+{
+  const serviceUi = fs.readFileSync(path.join(root, 'service-ui-polish-v1.js'), 'utf8');
+  assert.match(serviceUi, /min-height:62px/);
+  assert.match(serviceUi, /#energyCard input:not/);
+  assert.match(serviceUi, /card\.scrollIntoView/);
+}
+
 console.log('consolidated-v1 contract tests passed');
