@@ -640,9 +640,9 @@
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'cloud-recent-load';
       const icons = summaryIconHtml(row.summary || {}, true) +
+        '<span class="cloud-current-sep" aria-hidden="true"></span>' +
         '<span class="cloud-companion-mini' + (row.has_fix ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
-        '<span class="cloud-companion-mini' + (row.has_ev ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-        '<span class="cloud-companion-mini' + (row.has_card ? ' on' : '') + '" title="Cashback Companion">💳</span>';
+        '<span class="cloud-companion-mini' + (row.has_ev ? ' on' : '') + '" title="EV Companion">🚙</span>';
       button.innerHTML = '<span><span class="cloud-recent-name">' + esc(row.customer_name || 'Unnamed') + '</span><span class="cloud-recent-meta">Updated ' + esc(fmtDate(row.updated_at)) + '</span></span><span class="cloud-current-icons">' + icons + '</span>';
       button.addEventListener('click', () => { closeRecentCustomers(); if (!getAuth()) { openConnectModal(); setStatus('Connect Cloud to load this recent customer.'); return; } loadCustomer(row.customer_id); });
       const remove = document.createElement('button');
@@ -802,7 +802,6 @@
       const specialists = appointmentSpecialists(appt);
       const evUsed = !!(customer.ev_state || customer.ev_state_json || specialists.ev);
       const fixUsed = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix']);
-      const cardUsed = !!(customer.card_state || customer.card_state_json || specialists.card || specialists.cashback_card);
       const row = document.createElement('div');
       row.className = 'basket-row cloud-row';
 
@@ -812,16 +811,17 @@
 
       const iconsHtml =
         '<span class="cloud-customer-icons">' +
-          '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service">⚡🔥</span>' +
+          '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service"><span>⚡</span><span>🔥</span></span>' +
           icon('🛜', !!sum.broadband, false) +
           icon('📱', (sum.sims || 0) >= 1, false) +
           icon('📱', (sum.sims || 0) >= 2, false) +
           icon('🛠️', !!sum.insurance, false) +
+          icon('💳', sum.cashback !== false, false) +
           '<span class="basket-icon' + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
           icon('✉️', !!sum.quoteShared, false) +
+          '<span class="cloud-current-sep" aria-hidden="true"></span>' +
           '<span class="cloud-companion-mini' + (fixUsed ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
           '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-          '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Companion">💳</span>' +
         '</span>';
 
       let heroTxt = '', heroColor = 'var(--good)';
@@ -974,7 +974,7 @@
         <div class="cloud-table-head">
           <button class="cloud-sort" type="button" id="cloudSortName">Name</button>
           <span>Saving</span>
-          <span class="cloud-service-head" aria-label="Services and tools"><span title="Energy">⚡🔥</span><span title="Broadband">🛜</span><span title="Mobile">📱</span><span title="Boiler Cover">🛠️</span><span title="Basket link">🛒</span><span title="Summary generated">✉️</span><span title="Should I Fix?">📌</span><span title="EV Companion">🚙</span></span>
+          <span class="cloud-service-head" aria-label="Services and tools"><span title="Energy">⚡🔥</span><span title="Broadband">🛜</span><span title="Mobile">📱</span><span title="Boiler Cover">🛠️</span><span title="Cashback Card">💳</span><span title="Basket link">🛒</span><span title="Summary generated">✉️</span><span aria-hidden="true">│</span><span title="Should I Fix?">📌</span><span title="EV Companion">🚙</span></span>
           <button class="cloud-sort" type="button" id="cloudSortDate">Recent</button>
           <span></span>
         </div>
