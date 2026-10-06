@@ -203,11 +203,12 @@
     const cls = tiny ? ' cloud-mini-icon' : '';
     const icon = (emoji, on, grouped) =>
       '<span class="basket-icon' + cls + (grouped ? ' basket-icon-grouped' : '') + (on ? '' : ' could') + '">' + emoji + '</span>';
-    return '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service">⚡🔥</span>' +
+    return '<span class="basket-energy' + (sum.energy ? '' : ' could') + '" title="Energy service"><span>⚡</span><span>🔥</span></span>' +
       icon('🛜', !!sum.broadband, false) +
       icon('📱', (sum.sims || 0) >= 1, false) +
       icon('📱', (sum.sims || 0) >= 2, false) +
       icon('🛠️', !!sum.insurance, false) +
+      icon('💳', sum.cashback !== false, false) +
       '<span class="basket-icon' + cls + (sum.basketLink ? '' : ' could') + '" title="UW basket linked">🔗</span>' +
       icon('✉️', !!sum.quoteShared, false);
   }
@@ -230,17 +231,17 @@
     const specialists = appointmentSpecialists(data);
     const evUsed = !!((currentCloudCustomer && (currentCloudCustomer.ev_state || currentCloudCustomer.ev_state_json)) || specialists.ev || companionHasState('ev'));
     const fixUsed = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix'] || companionHasState('fix'));
-    const cardUsed = !!(specialists.card || specialists.cashback_card || companionHasState('card') || companionHasState('cashback_card'));
     const nameEl = $c('customerName');
     // The editable name is the source of truth: never leave a loaded name in
     // the shell after the form has deliberately become a new blank draft.
     const name = String((nameEl && nameEl.value) || '').trim() || 'New customer';
     el.innerHTML = '<button class="cloud-current-name" type="button" data-cloud-action="customer-name" title="Edit customer name">' + esc(name) + '</button>' +
       '<span class="cloud-current-icons">' + summaryIconHtml(sum, true) +
+        '<span class="cloud-current-sep" aria-hidden="true"></span>' +
         '<span class="cloud-companion-mini' + (fixUsed ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
-        '<span class="cloud-companion-mini' + (cardUsed ? ' on' : '') + '" title="Cashback Companion">💳</span>' +
-      '</span>';
+      '</span>' +
+      '<button class="cloud-profile-toggle" type="button" data-local-profile-toggle aria-expanded="false" title="Switch customer" aria-label="Show recent customers">⌄</button>';
   }
 
   function buildPanel() {
@@ -255,11 +256,16 @@
       <style>
         #cloudPilotCard{position:relative}
         #cloudPilotCard .cloudbar{display:flex;align-items:center;min-width:0}
-        #cloudPilotCard .cloud-current-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-top:.42rem;padding-top:.42rem;border-top:1px solid rgba(122,66,200,.12)}
-        #cloudPilotCard .cloud-current-name{border:0;background:transparent;padding:0;font:inherit;font-size:12px;font-weight:750;color:var(--ink);cursor:pointer}
-        #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;gap:6px}
-        #cloudPilotCard .cloud-mini-icon{font-size:13px}
-        #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:13px}
+        #cloudPilotCard .cloud-current-line{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) 28px;align-items:center;gap:7px;min-width:0;margin-top:.42rem;padding-top:.42rem;border-top:1px solid rgba(122,66,200,.12)}
+        #cloudPilotCard .cloud-current-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:750;color:var(--ink);cursor:pointer;text-align:left}
+        #cloudPilotCard .cloud-current-icons{display:inline-flex;align-items:center;justify-content:flex-start;gap:4px;min-width:0;overflow:hidden}
+        #cloudPilotCard .cloud-mini-icon{font-size:11.5px}
+        #cloudPilotCard .cloud-companion-mini{opacity:.28;filter:grayscale(1);font-size:11.5px}
+        #cloudPilotCard .cloud-current-sep{display:inline-block;width:1px;height:18px;background:rgba(38,22,79,.20);margin:0 2px;flex:0 0 1px}
+        #cloudPilotCard .cloud-profile-toggle{width:27px;height:27px;padding:0;border:1px solid rgba(122,66,200,.18);border-radius:8px;background:rgba(255,255,255,.72);color:var(--purple);font:900 16px/1 system-ui;cursor:pointer}
+        #cloudPilotCard .cloud-quick-profiles{display:none;margin-top:5px;padding-top:5px;border-top:1px solid rgba(122,66,200,.10)}
+        #cloudPilotCard .cloud-quick-profiles.open{display:grid;gap:4px}
+        #cloudPilotCard .cloud-quick-profile{width:100%;min-height:34px;padding:5px 8px;border:1px solid rgba(122,66,200,.14);border-radius:8px;background:rgba(255,255,255,.72);color:var(--ink);font:700 11.5px/1.25 system-ui;text-align:left;cursor:pointer}
         #cloudPilotCard .cloud-companion-mini.on{opacity:1;filter:none}
         #cloudPilotCard .cloud-health-row{display:flex;align-items:center;gap:0;min-width:0;margin-top:.48rem;white-space:nowrap}
         #cloudPilotCard .cloud-status-label{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0}
@@ -269,7 +275,7 @@
         #cloudPilotCard .cloud-tariff-slot{min-width:0;flex:0 1 auto}
         #cloudPilotCard .cloud-tariff-slot #tariffStatus{margin:0!important}
         #cloudPilotCard .cloudicons{display:flex;align-items:center;gap:5px;width:100%;justify-content:space-between}
-        #cloudPilotCard .cloudicon{width:40px;height:40px;border:1px solid rgba(122,66,200,.24);border-radius:10px;background:white;display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
+        #cloudPilotCard .cloudicon{width:34px;height:34px;border:1px solid rgba(122,66,200,.22);border-radius:9px;background:rgba(255,255,255,.76);display:inline-flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:var(--ink);opacity:1;position:relative}
         #cloudPilotCard .cloudicon:disabled{opacity:.38;cursor:default}
         #cloudPilotCard .cloudicon.good{border-color:rgba(29,155,80,.35);background:rgba(29,155,80,.08)}
         #cloudPilotCard .state-on{border-color:rgba(29,155,80,.38);background:rgba(29,155,80,.08);box-shadow:inset 0 -2px 0 rgba(29,155,80,.38)}
@@ -294,7 +300,7 @@
         #cloudPilotCard .cloud-health img{display:block;width:18px;height:18px}
         #cloudPilotCard .cloud-health.warn{border-color:rgba(217,138,0,.58);background:#fffaf0}
         #cloudPilotCard .cloud-local-state{margin:0}
-        #cloudPilotCard .basket-energy,#cloudRecentModal .basket-energy,#cloudCustomerModal .basket-energy{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 4px;border:1px solid rgba(122,66,200,.16);border-radius:999px;background:#f8f5fe;font-size:12px;letter-spacing:-2px}
+        #cloudPilotCard .basket-energy,#cloudRecentModal .basket-energy,#cloudCustomerModal .basket-energy{display:inline-flex;align-items:center;justify-content:center;gap:0;min-width:26px;height:20px;padding:0 3px;border:1px solid rgba(122,66,200,.14);border-radius:999px;background:#f8f5fe;font-size:10.5px;letter-spacing:-1px;white-space:nowrap}
         #cloudPilotCard .basket-energy.could,#cloudRecentModal .basket-energy.could,#cloudCustomerModal .basket-energy.could{opacity:.35;filter:grayscale(1)}
         #cloudPilotCard .sr-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
         .cloud-menu-item .menu-ico{width:1.6em;text-align:center}
@@ -355,6 +361,7 @@
       </div>
       <div class="cloud-health-row"><span class="cloud-status-label cloud-status-primary">Status</span><div class="cloud-health-right"><div class="cloud-health-tariffs"><span class="cloud-status-label">Tariffs</span><div id="cloudTariffSlot" class="cloud-tariff-slot"></div></div><div class="cloud-health-backup"><span class="cloud-status-label">Backup</span><span id="cloudConnectionState" class="cloud-health" title="Current record is not synced to Cloud"></span><span id="cloudLocalState" class="cloud-health cloud-local-state" title="Working copy saved locally on this device"></span></div></div></div>
       <div id="cloudPilotCurrent" class="cloud-current-line"></div>
+      <div id="cloudQuickProfiles" class="cloud-quick-profiles" aria-label="Recent customer profiles"></div>
       <div id="cloudMenuPopover" class="cloud-menu-popover" role="menu" aria-label="Companion menu">
         <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudDeleteCurrent" data-cloud-action="delete-current" disabled><span class="menu-ico">🗑️</span><span>Delete current customer</span></button>
