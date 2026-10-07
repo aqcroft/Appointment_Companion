@@ -127,6 +127,15 @@ function load(file, sandbox) {
 }
 
 {
+  const spring = fs.readFileSync(path.join(root, 'spring-clean-v2.js'), 'utf8');
+  assert.match(spring, /status-icons\/cloud-/);
+  assert.match(spring, /status-icons\/' \+ file/);
+  assert.match(spring, /Current profile synced/);
+  assert.match(spring, /Latest changes saved locally/);
+  assert.match(spring, /saved profile/);
+}
+
+{
   const serviceUi = fs.readFileSync(path.join(root, 'service-ui-polish-v1.js'), 'utf8');
   assert.match(serviceUi, /min-height:62px/);
   assert.match(serviceUi, /#energyCard input:not/);
