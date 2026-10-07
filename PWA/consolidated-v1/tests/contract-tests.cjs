@@ -118,6 +118,12 @@ function load(file, sandbox) {
   assert.match(controller, /Save progress & switch/);
   assert.match(controller, /switchTo: switchToLocalId/);
   assert.match(controller, /mini\('💳', cashback, 'Cashback Card'\)/);
+  assert.match(controller, /id="localFirstCustomerSearch"/);
+  assert.match(controller, /id="localFirstCustomerSort"/);
+  assert.match(controller, /value="recent">Most recent/);
+  assert.match(controller, /value="name-asc">Name A-Z/);
+  assert.match(controller, /No customers match that search/);
+  assert.doesNotMatch(controller, /var syncIcon = conflict \? '⚠️' : isSynced\(row\) \? '☁️' : '💾';/);
 }
 
 {
