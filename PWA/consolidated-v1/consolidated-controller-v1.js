@@ -270,7 +270,60 @@
     for (var i = 0; i < metas.length; i++) { var meta = metas[i], local = await store.findCloud(meta.customer_id); if (local && local.deleted) continue; var changed = !local || remoteVersion(meta) && remoteVersion(meta) !== local.base_cloud_revision; if (changed) { var full = (await api.getCustomer(credentials, meta.customer_id)).customer; if (!full) continue; if (local && Number(local.local_revision) !== Number(local.cloud_synced_local_revision) && !equivalent(local, full)) await conflict(local, full); else if (local) await adoptRemote(local, full); else { var appt = appointment(full); await store.put({ cloud_id: full.customer_id, customer_name: full.customer_name || '', appointment_state: appt, specialist_state: comparableRemote(full).specialist_state, basket_url: full.basket_url || appt && appt.canonical && appt.canonical.basketUrl || '', cloud_customer: full, local_revision: 0, cloud_synced_local_revision: 0, base_cloud_revision: remoteVersion(full), base_cloud_snapshot: full, sync_state: 'synced' }, { keepRevision: true, keepSyncState: true }); } } }
     for (var j = 0; j < locals.length; j++) { var row = locals[j]; if (row.cloud_id && !ids[row.cloud_id]) { if (isSynced(row)) await store.remove(row.local_id); else if (!row.deleted) await conflict(row, { deleted: true, customer_id: row.cloud_id }); } }
   }
-  async function sync() { if (LOCAL_ONLY || syncing || !navigator.onLine || !api) return; var credentials = auth(); if (!credentials) { icon('cloudConnectionState', false, 'Cloud sync awaits Partner sign-in'); return; } syncing = true; try { var rows = await store.list(true); for (var i = 0; i < rows.length; i++) if (rows[i].sync_state === 'pending' || rows[i].sync_state === 'pending_delete') await syncOne(rows[i], credentials); await hydrate(credentials); retryMs = 2500; current = currentId ? await store.get(currentId) : null; paint(current, false); recentRows(await store.list(true)); if (current && isSynced(current)) status('Latest local revision synchronised to Cloud.', 'good'); } catch (error) { retryMs = Math.min(retryMs * 2, 120000); icon('cloudConnectionState', false, 'Cloud unavailable; work remains safe locally'); status('Cloud unavailable — working locally. Your appointment is safe on this device.', ''); scheduleSync(retryMs); } finally { syncing = false; } }
+  async function sync() {
+    if (LOCAL_ONLY || syncing || !navigator.onLine || !api) return;
+    var credentials = auth();
+    if (!credentials) {
+      icon('cloudConnectionState', false, 'Cloud sync awaits Partner sign-in');
+      try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
+      return;
+    }
+
+    syncing = true;
+    var failures = 0;
+    var firstError = '';
+    try {
+      var rows = await store.list(true);
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].sync_state !== 'pending' && rows[i].sync_state !== 'pending_delete') continue;
+        try {
+          await syncOne(rows[i], credentials);
+        } catch (rowError) {
+          failures++;
+          if (!firstError) firstError = String(rowError && rowError.message || rowError || 'Cloud sync failed');
+        }
+      }
+
+      try {
+        await hydrate(credentials);
+      } catch (hydrateError) {
+        failures++;
+        if (!firstError) firstError = String(hydrateError && hydrateError.message || hydrateError || 'Cloud reconciliation failed');
+      }
+
+      current = currentId ? await store.get(currentId) : null;
+      paint(current, false);
+      recentRows(await store.list(true));
+
+      if (failures) {
+        retryMs = Math.min(Math.max(retryMs * 2, 5000), 120000);
+        icon('cloudConnectionState', current && isSynced(current), current && isSynced(current) ? 'Current profile is synced; another local profile still needs Cloud attention' : 'Cloud sync is still catching up');
+        status(failures + ' local profile' + (failures === 1 ? '' : 's') + ' still need Cloud attention. Automatic retry is queued.', '');
+        scheduleSync(retryMs);
+      } else {
+        retryMs = 2500;
+        if (current && isSynced(current)) status('Latest local revision synchronised to Cloud.', 'good');
+      }
+    } catch (error) {
+      retryMs = Math.min(retryMs * 2, 120000);
+      icon('cloudConnectionState', false, 'Cloud unavailable; work remains safe locally');
+      status('Cloud unavailable — working locally. Your appointment is safe on this device.', '');
+      scheduleSync(retryMs);
+    } finally {
+      syncing = false;
+      try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
+    }
+  }
   function scheduleSync(delay) { if (LOCAL_ONLY) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, delay == null ? retryMs : delay); }
   async function startNewCustomer(fromDelete) {
     clearTimeout(saveTimer);
