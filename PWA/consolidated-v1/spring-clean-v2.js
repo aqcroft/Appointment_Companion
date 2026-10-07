@@ -35,6 +35,7 @@
       '#cloudMenuPopover .ac-status-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;min-height:46px;padding:7px 9px;border:1px solid rgba(122,66,200,.14);border-radius:10px;background:#fff;color:#26164f;text-align:left;cursor:pointer}',
       '#cloudMenuPopover .ac-status-row:hover{background:#faf8fe}',
       '#cloudMenuPopover .ac-status-icon{font-size:17px;text-align:center}',
+      '#cloudMenuPopover .ac-status-icon img{display:block;width:28px;height:24px;object-fit:contain;margin:auto}',
       '#cloudMenuPopover .ac-status-copy{display:grid;min-width:0;gap:1px}',
       '#cloudMenuPopover .ac-status-copy strong{font-size:12px;line-height:1.15}',
       '#cloudMenuPopover .ac-status-copy small{font-size:10px;line-height:1.2;color:#6b6b76;white-space:normal}',
@@ -173,18 +174,90 @@
     };
   }
 
+  function backupStatusIcon(kind, state, label) {
+    var file = kind + '-' + (state === 'ok' ? 'ok' : 'warn') + '.svg';
+    return '<img src="status-icons/' + file + '" alt="' + String(label || '') + '">';
+  }
+
+  function deviceStatusSnapshot() {
+    var localHealth = document.getElementById('cloudLocalState');
+    var ok = !(localHealth && localHealth.classList.contains('warn'));
+    var suggested = '';
+    try {
+      if (global.AppointmentCompanionDevice && global.AppointmentCompanionDevice.suggestedName) suggested = global.AppointmentCompanionDevice.suggestedName();
+    } catch (_) {}
+    var mobile = /iphone|ipad|android phone|android tablet|phone|tablet/i.test(String(suggested || navigator.userAgent || ''));
+    return {
+      icon: backupStatusIcon(mobile ? 'mobile' : 'desktop', ok ? 'ok' : 'warn', ok ? 'Saved locally on this device' : 'Local save in progress'),
+      text: ok ? 'Latest changes saved locally' : 'Saving latest changes locally…',
+      mark: ok ? '' : '⚠️'
+    };
+  }
+
   async function cloudSnapshot() {
     var connected = !!readAuth();
+    var engine = global.AppointmentCompanionConsolidated;
     var rows = [];
-    try { if (global.AppointmentCompanionConsolidated && global.AppointmentCompanionConsolidated.list) rows = await global.AppointmentCompanionConsolidated.list(); } catch (_) {}
+    try { if (engine && engine.list) rows = await engine.list(); } catch (_) {}
     rows = Array.isArray(rows) ? rows : [];
+
     var meaningful = rows.filter(function (r) { return r && (String(r.customer_name || '').trim() || r.deleted || r.tombstone); });
     var conflicts = meaningful.filter(function (r) { return r.sync_state === 'conflict' || r.conflict; }).length;
     var pending = meaningful.filter(function (r) { return r.sync_state === 'pending' || r.sync_state === 'pending_delete'; }).length;
-    if (!connected) return { state:'red', light:'🔴', title:'Cloud', text: pending ? pending + ' local change' + (pending === 1 ? '' : 's') + ' waiting - sign in to sync' : 'Not connected - work remains safe on this device', pending:pending, conflicts:conflicts };
-    if (conflicts) return { state:'red', light:'🔴', title:'Cloud', text:conflicts + ' sync conflict' + (conflicts === 1 ? '' : 's') + ' need review', pending:pending, conflicts:conflicts };
-    if (pending) return { state:'amber', light:'🟠', title:'Cloud', text:pending + ' local change' + (pending === 1 ? '' : 's') + ' waiting to sync', pending:pending, conflicts:0 };
-    return { state:'green', light:'🟢', title:'Cloud', text:'All local changes synced', pending:0, conflicts:0 };
+
+    var current = null;
+    try { if (engine && engine.currentRecord) current = engine.currentRecord(); } catch (_) {}
+    var currentMeaningful = !!(current && String(current.customer_name || '').trim());
+    var currentConflict = !!(currentMeaningful && (current.sync_state === 'conflict' || current.conflict));
+    var currentPending = !!(currentMeaningful && (current.sync_state === 'pending' || current.sync_state === 'pending_delete'));
+    var currentSynced = !!(currentMeaningful && current.cloud_id && current.sync_state === 'synced' &&
+      Number(current.cloud_synced_local_revision) === Number(current.local_revision));
+
+    var otherConflicts = Math.max(0, conflicts - (currentConflict ? 1 : 0));
+    var otherPending = Math.max(0, pending - (currentPending ? 1 : 0));
+    var otherAttention = otherConflicts + otherPending;
+
+    if (!connected) {
+      return {
+        state:'red', iconState:'warn', attention:true,
+        text: pending ? pending + ' profile' + (pending === 1 ? '' : 's') + ' waiting - sign in to sync' : 'Not connected - work remains safe on this device',
+        pending:pending, conflicts:conflicts
+      };
+    }
+
+    if (currentConflict) {
+      return {
+        state:'red', iconState:'warn', attention:true,
+        text:'Current profile has a Cloud sync conflict' + (otherAttention ? ' • ' + otherAttention + ' other profile' + (otherAttention === 1 ? '' : 's') + ' need attention' : ''),
+        pending:pending, conflicts:conflicts
+      };
+    }
+
+    if (currentPending) {
+      return {
+        state:'amber', iconState:'warn', attention:true,
+        text:'Current profile waiting to sync' + (otherAttention ? ' • ' + otherAttention + ' other profile' + (otherAttention === 1 ? '' : 's') + ' need attention' : ''),
+        pending:pending, conflicts:conflicts
+      };
+    }
+
+    if (currentSynced) {
+      return {
+        state: otherAttention ? 'amber' : 'green',
+        iconState:'ok',
+        attention:!!otherAttention,
+        text:'Current profile synced' + (otherAttention ? ' • ' + otherAttention + ' other profile' + (otherAttention === 1 ? '' : 's') + ' need attention' : ''),
+        pending:pending, conflicts:conflicts
+      };
+    }
+
+    if (conflicts) {
+      return { state:'red', iconState:'warn', attention:true, text:conflicts + ' profile' + (conflicts === 1 ? '' : 's') + ' have sync conflicts', pending:pending, conflicts:conflicts };
+    }
+    if (pending) {
+      return { state:'amber', iconState:'warn', attention:true, text:pending + ' saved profile' + (pending === 1 ? '' : 's') + ' waiting to sync', pending:pending, conflicts:0 };
+    }
+    return { state:'green', iconState:'ok', attention:false, text:currentMeaningful ? 'Current profile synced' : 'Cloud connected', pending:0, conflicts:0 };
   }
 
   function markForState(state) { return state === 'green' ? '✅' : state === 'amber' ? '⚠️' : state === 'red' ? '⚠️' : '…'; }
@@ -210,7 +283,7 @@
     var menu = document.getElementById('cloudMenuPopover'); if (!menu) return false;
     var block = document.getElementById('acV22StatusBlock');
     if (!block) { block = document.createElement('div'); block.id = 'acV22StatusBlock'; block.className = 'ac-status-block'; menu.appendChild(block); }
-    var tariffs = tariffSnapshot(); var cloud = await cloudSnapshot();
+    var tariffs = tariffSnapshot(); var cloud = await cloudSnapshot(); var device = deviceStatusSnapshot();
     block.innerHTML = '<div class="ac-status-title">Status</div>';
     if (tariffs) {
       block.appendChild(statusRow('📌', tariffs.fixed.label, tariffs.fixed.state === 'green' ? 'Current tariff suite' : tariffs.fixed.state === 'amber' ? 'Check tariff version' : 'Tariff version unavailable', markForState(tariffs.fixed.state), function () { showTariffDetail('fixed'); }));
@@ -219,8 +292,15 @@
     } else {
       block.appendChild(statusRow('📌','Tariffs','Checking live tariff data…','…'));
     }
-    block.appendChild(statusRow('<span class="ac-cloud-light">' + cloud.light + '</span>', 'Cloud', cloud.text, '', function () { if (!readAuth()) openCloudCredentials(); else openCloudSettings(); }, 'acV22CloudStatusRow'));
-    block.appendChild(statusRow('💻', 'This device', 'Latest changes saved locally', '✅', openLocalSettings, 'acV22DeviceStatusRow'));
+    block.appendChild(statusRow(
+      backupStatusIcon('cloud', cloud.iconState || (cloud.state === 'green' ? 'ok' : 'warn'), cloud.text),
+      'Cloud',
+      cloud.text,
+      cloud.attention ? '⚠️' : '',
+      function () { if (!readAuth()) openCloudCredentials(); else openCloudSettings(); },
+      'acV22CloudStatusRow'
+    ));
+    block.appendChild(statusRow(device.icon, 'This device', device.text, device.mark, openLocalSettings, 'acV22DeviceStatusRow'));
     return true;
   }
 
@@ -301,7 +381,7 @@
     document.documentElement.dataset.acV22StatusObserved = '1';
     var tariff = document.getElementById('tariffStatus');
     if (tariff) new MutationObserver(function () { renderStatusMenu(); }).observe(tariff, { childList:true, subtree:true, attributes:true, characterData:true });
-    ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function (name) { global.addEventListener(name, function () { setTimeout(renderStatusMenu, 100); }); });
+    ['ac:cloud-authenticated','ac:cloud-disconnected','ac:cloud-sync-state-changed'].forEach(function (name) { global.addEventListener(name, function () { setTimeout(renderStatusMenu, 100); }); });
     global.addEventListener('online', function () { setTimeout(renderStatusMenu, 600); });
     global.addEventListener('focus', function () { setTimeout(renderStatusMenu, 600); });
     setInterval(renderStatusMenu, 3000);
