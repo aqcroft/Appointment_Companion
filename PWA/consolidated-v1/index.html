@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261007-v2.47.1-profile-search1';
+      var version = '20261007-v2.47.2-backup-status1';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var sharedView = /^d=/.test(location.hash.slice(1));
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
@@ -85,6 +85,7 @@
         '<script src="../consolidated-v1/release-v2.46.15.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.47.0.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.47.1.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/release-v2.47.2.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/tariff-health-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/notification-preferences-v1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/earnings-shortcut-v2.42.js?v=' + version + '"><\/script>' +
