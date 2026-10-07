@@ -148,26 +148,95 @@
   }
 
   async function customerBrowser() {
-    var modal = $('localFirstCustomers'); if (!modal) { modal = document.createElement('div'); modal.id = 'localFirstCustomers'; modal.className = 'basket-prompt'; modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto"><h3 id="localFirstCustomersTitle">Customers on this device</h3><p class="sub" id="localFirstCustomersNote"></p><div id="localFirstCustomerRows" style="display:grid;gap:8px"></div><div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div></div>'; modal.addEventListener('click', async function (event) { if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open'); var load = event.target.closest('[data-local-load]'); if (load) { var target = await store.get(load.dataset.localLoad); if (await requestSwitchRecord(target)) modal.classList.remove('open'); } var del = event.target.closest('[data-local-delete]'); if (del) { await markDeleted(del.dataset.localDelete); await customerBrowser(); } var choice = event.target.closest('[data-local-conflict]'); if (choice) { await resolveConflict(choice.dataset.localConflict, choice.dataset.choice); await customerBrowser(); } }); document.body.appendChild(modal); }
-    var rows = await store.list(true); recentRows(rows); $('localFirstCustomersNote').textContent = LOCAL_ONLY ? 'Local-only mode. Cloud access is deliberately paused.' : 'Every row opens from this device. Cloud-only customers appear after background hydration.';
-    $('localFirstCustomerRows').innerHTML = rows.filter(function (row) { return !row.deleted; }).map(function (row) {
-      var conflict = !!row.conflict;
-      var syncIcon = conflict ? '⚠️' : isSynced(row) ? '☁️' : '💾';
-      var syncLabel = conflict ? 'Local and Cloud both changed' : isSynced(row) ? 'Latest revision synced' : 'Safe on this device - Cloud pending';
-      return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px">' +
-        '<button type="button" class="pill" style="flex:1;min-width:0;text-align:left;justify-content:flex-start;padding:7px 9px" data-local-load="' + row.local_id + '">' +
-          '<span style="display:grid;gap:4px;width:100%;min-width:0">' +
-            '<span style="display:flex;align-items:center;gap:7px;min-width:0">' +
-              '<strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(row.customer_name || 'Unnamed') + '</strong>' +
-              '<span title="' + syncLabel + '" aria-label="' + syncLabel + '" style="flex:0 0 auto;font-size:14px;line-height:1">' + syncIcon + '</span>' +
-            '</span>' +
-            '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
-          '</span>' +
-        '</button>' +
-        (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">Keep mine</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">Use Cloud</button>' : '') +
-        '<button type="button" class="btn-ghost" style="padding:6px 7px;min-width:34px" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>' +
+    var modal = $('localFirstCustomers');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'localFirstCustomers';
+      modal.className = 'basket-prompt';
+      modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
+        '<h3 id="localFirstCustomersTitle">Customers on this device</h3>' +
+        '<p class="sub" id="localFirstCustomersNote"></p>' +
+        '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
+          '<input type="search" id="localFirstCustomerSearch" placeholder="🔎 Search profiles…" autocomplete="off" aria-label="Search customer profiles" style="width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;background:#fff;color:inherit">' +
+          '<select id="localFirstCustomerSort" aria-label="Sort customer profiles" style="max-width:150px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px 28px 9px 9px;font:inherit;background:#fff;color:inherit">' +
+            '<option value="recent">Most recent</option>' +
+            '<option value="oldest">Oldest first</option>' +
+            '<option value="name-asc">Name A-Z</option>' +
+            '<option value="name-desc">Name Z-A</option>' +
+          '</select>' +
+        '</div>' +
+        '<div id="localFirstCustomerRows" style="display:grid;gap:8px"></div>' +
+        '<div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div>' +
       '</div>';
-    }).join('') || '<p class="sub">No saved customers on this device yet.</p>'; modal.classList.add('open');
+      modal.addEventListener('click', async function (event) {
+        if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open');
+        var load = event.target.closest('[data-local-load]');
+        if (load) {
+          var target = await store.get(load.dataset.localLoad);
+          if (await requestSwitchRecord(target)) modal.classList.remove('open');
+        }
+        var del = event.target.closest('[data-local-delete]');
+        if (del) {
+          await markDeleted(del.dataset.localDelete);
+          await customerBrowser();
+        }
+        var choice = event.target.closest('[data-local-conflict]');
+        if (choice) {
+          await resolveConflict(choice.dataset.localConflict, choice.dataset.choice);
+          await customerBrowser();
+        }
+      });
+      document.body.appendChild(modal);
+    }
+
+    var rows = await store.list(true);
+    recentRows(rows);
+    $('localFirstCustomersNote').textContent = LOCAL_ONLY ? 'Local-only mode. Cloud access is deliberately paused.' : 'Every row opens from this device. Cloud-only customers appear after background hydration.';
+
+    var search = $('localFirstCustomerSearch');
+    var sort = $('localFirstCustomerSort');
+    var wrap = $('localFirstCustomerRows');
+
+    function renderRows() {
+      var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
+      var mode = String(sort && sort.value || 'recent');
+      var visible = rows.filter(function (row) {
+        if (row.deleted) return false;
+        if (!query) return true;
+        return String(row.customer_name || 'Unnamed').toLocaleLowerCase('en-GB').indexOf(query) !== -1;
+      });
+
+      visible.sort(function (a, b) {
+        var aName = String(a.customer_name || 'Unnamed');
+        var bName = String(b.customer_name || 'Unnamed');
+        if (mode === 'name-asc') return aName.localeCompare(bName, 'en-GB', { sensitivity: 'base' });
+        if (mode === 'name-desc') return bName.localeCompare(aName, 'en-GB', { sensitivity: 'base' });
+        if (mode === 'oldest') return String(a.updated_at || '').localeCompare(String(b.updated_at || ''));
+        return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
+      });
+
+      wrap.innerHTML = visible.map(function (row) {
+        var conflict = !!row.conflict;
+        return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px">' +
+          '<button type="button" class="pill" style="flex:1;min-width:0;text-align:left;justify-content:flex-start;padding:7px 9px" data-local-load="' + row.local_id + '">' +
+            '<span style="display:grid;gap:4px;width:100%;min-width:0">' +
+              '<span style="display:flex;align-items:center;gap:7px;min-width:0">' +
+                '<strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(row.customer_name || 'Unnamed') + '</strong>' +
+                (conflict ? '<span title="Local and Cloud both changed" aria-label="Local and Cloud both changed" style="flex:0 0 auto;font-size:14px;line-height:1">⚠️</span>' : '') +
+              '</span>' +
+              '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
+            '</span>' +
+          '</button>' +
+          (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">Keep mine</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">Use Cloud</button>' : '') +
+          '<button type="button" class="btn-ghost" style="padding:6px 7px;min-width:34px" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>' +
+        '</div>';
+      }).join('') || '<p class="sub">' + (query ? 'No customers match that search.' : 'No saved customers on this device yet.') + '</p>';
+    }
+
+    if (search) search.oninput = renderRows;
+    if (sort) sort.onchange = renderRows;
+    renderRows();
+    modal.classList.add('open');
   }
   async function markDeleted(localId) { var row = await store.get(localId); if (!row || !global.confirm('Delete ' + (row.customer_name || 'this customer') + '? Cloud deletion will finish after reconnecting.')) return; await store.put(Object.assign({}, row, { deleted: true, tombstone: true, deletion_requested_at: new Date().toISOString(), sync_state: 'pending_delete' })); if (localId === currentId) await startNewCustomer(true); scheduleSync(50); status('Removed from this device. Linked Cloud deletion is pending acknowledgement.', ''); }
   async function resolveConflict(localId, choice) {
