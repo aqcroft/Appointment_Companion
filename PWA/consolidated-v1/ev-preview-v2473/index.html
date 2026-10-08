@@ -102,6 +102,7 @@
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
       html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.54.1 PREVIEW</title>');
+      html = html.replace('<meta name="theme-color" content="#7a42c8">', '<meta name="theme-color" content="#00877b">');
       html = html.replace('if (/^p=/.test(location.hash.slice(1)))', 'if (/^(?:p|p2)=/.test(location.hash.slice(1)))');
       html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-preview-v2473/ev-sharing-v2.54.1.js?v=' + version);
       html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
