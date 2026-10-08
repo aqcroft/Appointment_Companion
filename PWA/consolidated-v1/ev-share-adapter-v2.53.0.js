@@ -69,7 +69,7 @@
       url.searchParams.set('s', share.token);
       var slug = first.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28);
       if (slug) url.searchParams.set('for', slug);
-      var shareText = 'Hi ' + first + ' 👋\\n\\nTake a look at your personalised EV electricity comparison:\\n' + url.href;
+      var shareText = 'Hi ' + first + ' 👋\n\nTake a look at your personalised EV electricity comparison:\n' + url.href;
       var nativeShare = !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
       if (nativeShare && navigator.share) {
         try { await navigator.share({ title: 'EV Companion', text: shareText }); toast('Share ready'); return; }
