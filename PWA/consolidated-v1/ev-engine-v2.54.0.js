@@ -114,7 +114,7 @@ function buildBaseMatrix(m,i){var kinds=['ev','variable','variableE7','fixed','f
 function scenarioCalc(base,k){
  if(!base||!state.stress||!isVariableKind(k))return base;
  var f=1+state.stress/100,result=Object.assign({},base);
- ['home','car','total','peakCost','offpeakCost','chargingCost','standingAnnual'].forEach(function(key){
+ ['home','car','total','peakCost','offpeakCost','chargingCost','standingAnnual','day','night'].forEach(function(key){
    if(Number.isFinite(result[key]))result[key]*=f;
  });
  result.stress=state.stress;
@@ -147,7 +147,8 @@ function detailHtml(m,matrix,k,t,i){
     e7?'Economy 7 has a seven-hour night-rate window. The night rate can still be higher than an EV tariff night rate.':
     'The five-hour EV rate applies overnight to household electricity and home EV charging.';
   if(c.fixedEnd)note+=' Fixed until '+c.fixedEnd+'.';
-  if(state.stress&&isVariableKind(k))note+=' Illustrative +'+state.stress+'% change to variable-tariff costs; not a guaranteed forecast.';
+  if(c.sourceRef)note+=' Source: '+c.sourceRef+'.';
+  if(state.stress&&isVariableKind(k))note+=' Unit rates and standing charge shown are illustrative +'+state.stress+'% scenarios, not current supplier rates or guaranteed future changes.';
   if(i.meter)note+=' Meter readings already include any car charging.';
   return '<div class="detail ac-v254-detail" data-close-kind="'+k+'">'+
     '<div class="detail-head"><strong>'+displayName(r,k,t)+' · '+(t+1)+' UW service'+(t?'s':'')+'</strong><button type="button" class="compact-btn" data-close-kind="'+k+'">Close breakdown ↑</button></div>'+
