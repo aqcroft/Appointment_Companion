@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261008-v2.48.1-loader-preview1';
+      var version = '20261008-v2.48.2-hero-preview1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var legacyShared = /^p=/.test(location.hash.slice(1));
@@ -101,8 +101,8 @@
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
-      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.48.1 PREVIEW</title>');
-      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-preview-v2473/ev-sharing-v2.48.1.js?v=' + version);
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.48.2 PREVIEW</title>');
+      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-preview-v2473/ev-sharing-v2.48.2.js?v=' + version);
       html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
       html = html.replace(/href="manifest\.webmanifest"/i, 'href="consolidated-v1/manifest.webmanifest"');
       // Preview must not register or update the live PWA service worker.
@@ -116,8 +116,9 @@
       }
       if (!shared) inject += '<script src="consolidated-v1/specialist-features-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/spring-clean-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.3.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.4.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.41.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.42.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.44.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.3.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.4.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.5.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.6.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.7.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.8.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.9.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.10.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.11.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.12.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.13.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.14.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.15.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.45.16.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.46.0.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.46.1.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.46.2.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.46.3.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-preview-v2473/ev-tradeoff-fuel-v2.48.0.js?v=' + version + '"><\/script>';
-      if (!shared) inject += '<script src="consolidated-v1/ev-preview-v2473/release-v2.48.1.js?v=' + version + '"><\/script>';
-      html = html.replace(/<body>/i, '<body><div role="status" style="margin:5px auto;max-width:570px;text-align:center;font:700 11px system-ui;color:#176c60;background:#e7f6f1;padding:6px;border-radius:7px">🧪 EV Companion v2.48.1 · Preview only</div>');
+      inject += '<script src="consolidated-v1/ev-preview-v2473/ev-hero-polish-v2.48.2.js?v=' + version + '"><\/script>';
+      if (!shared) inject += '<script src="consolidated-v1/ev-preview-v2473/release-v2.48.2.js?v=' + version + '"><\/script>';
+      html = html.replace(/<body>/i, '<body><div role="status" style="margin:5px auto;max-width:570px;text-align:center;font:700 11px system-ui;color:#176c60;background:#e7f6f1;padding:6px;border-radius:7px">🧪 EV Companion v2.48.2 · Preview only</div>');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
