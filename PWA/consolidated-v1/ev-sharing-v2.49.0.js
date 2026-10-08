@@ -164,7 +164,7 @@ function startCompanion(payload){
   document.documentElement.classList.add('shared-started');
 
   loadScript('tariff-cache-v1.js?v=20260910-feedback1').then(function(){
-    return loadScript('consolidated-v1/ev-engine-v2.48.2.js?v=20261008-v2.48.2-hero1');
+    return loadScript('consolidated-v1/ev-engine-v2.49.0.js?v=20261008-v2.49.0-friendly1');
   }).then(function(){
     if(payload)applyPayload(payload);
     return loadScript('v16b-hero.js');
