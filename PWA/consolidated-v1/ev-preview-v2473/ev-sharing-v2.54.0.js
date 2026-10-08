@@ -313,7 +313,7 @@ function prepareShared(raw){
 
     /* Hand the optional basket to the shared customer contact treatment. */
     window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||'')};
-    loadScript('consolidated-v1/ev-customer-contact-v2.53.0.js?v=20261008-v2.53.0-simple1').catch(function(){});
+    loadScript('consolidated-v1/ev-preview-v2473/ev-customer-contact-v2.53.0.js?v=20261008-v2.53.0-simple1').catch(function(){});
 
     var splashIcons=document.querySelector('.personal-splash-icon');
     if(splashIcons)splashIcons.textContent=p.am?'🚙  🌙  🏠':safeCarIcon(p.vi)+'  🔌  🏠';
