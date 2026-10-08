@@ -17,13 +17,14 @@
    if(vehicleSection){var title=vehicleSection.querySelector('.label');if(title)title.textContent='🚙 What sort of EV are you thinking about?'}
    var homeCard=el('usagePills')&&el('usagePills').closest('section.card');
    if(homeCard){var heading=homeCard.querySelector('.label');if(heading)heading.textContent='🏠 How much electricity does your home use now?'}
-   copy('#usagePills button[data-use="medium"]','Average');
-   copy('#usagePills button[data-use="custom"]','My figures');
+   [['medium','Average'],['custom','My figures']].forEach(function(pair){
+     var b=document.querySelector('#usagePills button[data-use="'+pair[0]+'"]');
+     if(b&&b.firstChild&&b.firstChild.nodeType===3)b.firstChild.textContent=pair[1];
+   });
    copy('#usageTimingToggle strong','⏱️ When do you use your electricity?');
    copy('#usageTimingAction','Change');
    copy('#e7ActualToggle','Use figures from my bill');
    copy('#e7TimingHint','Economy 7 normally gives seven hours of cheaper electricity overnight, usually around midnight to 7 am. This tool estimates the household electricity that may benefit. Change the figures if you know your usage.');
-   copy('#comparison',el('comparison')?el('comparison').textContent:'');
    copy('.section-title','⚡ Which electricity tariff could work out cheapest?');
    copy('.section-copy','Tap any price to see how it is calculated. The highlighted column matches the services you selected above.');
    copy('.stresslabel','What if variable prices rise?');
@@ -63,7 +64,6 @@
    if(van&&van.firstChild&&van.firstChild.nodeType===3)van.firstChild.textContent='Van / less miles per kWh';
    copy('#acEvFuelTitle','⛽ What could you save by driving electric?');
    copy('.ac-ev-settings summary','⚙️ Change petrol and diesel estimates');
-   copy('.ac-ev-fuel-stat #acEvHouseCost',el('acEvHouseCost')?el('acEvHouseCost').textContent:'');
    var onCost=el('acEvHouseCost')&&el('acEvHouseCost').parentElement&&el('acEvHouseCost').parentElement.querySelector('.ac-label');
    if(onCost)onCost.textContent='🏠 Home electricity difference';
    copy('#acEvFuelAssumptions + .ac-ev-explain','This compares charging and fuel only, not buying, insuring or maintaining the vehicles. Petrol and diesel prices are estimates you can change.');
