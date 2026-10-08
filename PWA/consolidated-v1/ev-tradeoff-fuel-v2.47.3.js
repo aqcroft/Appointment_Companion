@@ -36,7 +36,7 @@
       '.ac-ev-tile-value{font-size:19px;font-weight:900;line-height:1.2;margin:4px 0 2px;letter-spacing:-.5px;white-space:nowrap}',
       '.ac-ev-tile-note{font-size:8px;line-height:1.2;opacity:.8}',
       '.ac-ev-tradeoff-caption{font-size:9px;margin:6px 1px 0;opacity:.82;line-height:1.35;text-align:center}',
-      '.ac-ev-fuel-button{float:right;display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:34px;padding:3px 8px;font-size:21px;border:1px solid #c9e5df;border-radius:11px;background:#edf9f6;cursor:pointer}',
+      '.ac-ev-fuel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.ac-ev-fuel-button{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:34px;padding:3px 8px;font-size:21px;border:1px solid #c9e5df;border-radius:11px;background:#edf9f6;cursor:pointer}',
       '.ac-ev-fuel-button:focus-visible,.ac-ev-fuel-modal button:focus-visible{outline:3px solid #edbf49;outline-offset:2px}',
       '.ac-ev-fuel-modal{position:fixed;inset:0;z-index:15000;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(21,24,42,.67)}',
       '.ac-ev-fuel-modal.open{display:flex}',
@@ -93,6 +93,7 @@
       button.title='Compare petrol or diesel with electric charging';
       button.setAttribute('aria-label','Compare petrol or diesel fuel cost');
       button.onclick = openModal;
+      header.classList.add('ac-ev-fuel-heading');
       header.appendChild(button);
     }
     makeModal();
@@ -106,7 +107,7 @@
     modal.innerHTML =
       '<div class="ac-ev-fuel-dialog" role="dialog" aria-modal="true" aria-labelledby="acEvFuelTitle">' +
         '<div class="ac-ev-fuel-top"><h2 id="acEvFuelTitle">⛽ Petrol / diesel versus EV</h2><button type="button" class="ac-ev-close" id="acEvFuelClose" aria-label="Close">×</button></div>' +
-        '<div class="ac-ev-fuel-picks" aria-label="Fuel type"><button type="button" data-ac-fuel="P" class="on" title="Petrol">P · Petrol</button><button type="button" data-ac-fuel="D" title="Diesel">D · Diesel</button></div>' +
+        '<div class="ac-ev-fuel-picks" aria-label="Fuel type"><button type="button" data-ac-fuel="P" class="on" title="Petrol" aria-label="Petrol">P</button><button type="button" data-ac-fuel="D" title="Diesel" aria-label="Diesel">D</button></div>' +
         '<div class="ac-ev-fuel-mile-row"><label for="acEvOneCarMiles">Annual miles for ONE car<input id="acEvOneCarMiles" type="number" min="0" max="150000" step="500" inputmode="numeric"></label><button type="button" class="ac-ev-half" id="acEvHalf" title="Use half the mileage from the main EV slider">½ miles</button></div>' +
         '<div class="ac-ev-fuel-grid">' +
           '<div class="ac-ev-fuel-stat"><div class="ac-label" id="acEvFuelName">⛽ Petrol</div><div class="ac-value" id="acEvFuelCost">£—</div></div>' +
