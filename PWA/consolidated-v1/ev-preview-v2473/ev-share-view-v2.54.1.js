@@ -14,7 +14,7 @@
     if (sub) sub.textContent = 'Take a look at your personalised EV comparison.';
     var live = document.querySelector('.personal-splash-live span:last-child');
     if (live) live.textContent = 'Latest UW tariff rates are checked as the tool opens.';
-    if ($('personalSplashOk')) $('personalSplashOk').textContent = 'Explore my UW EV options';
+    if ($('personalSplashOk')) { $('personalSplashOk').disabled = true; $('personalSplashOk').textContent = 'Preparing your UW EV options…'; }
   }
   function apply(snapshot) { var state = snapshot.ev_state || {}; if (state.vehicle_efficiency_mi_kwh != null) click('#vehiclePills .vpill[data-eff="' + state.vehicle_efficiency_mi_kwh + '"]'); set('miles', state.annual_mileage); if (state.uw_services != null) click('#serviceButtons button[data-tier="' + Math.max(0, Math.min(2, Number(state.uw_services) - 1)) + '"]'); set('region', state.region, 'change'); set('awayPct', state.away_pct); set('awayRate', state.away_rate_p_kwh); set('effOverride', state.efficiency_override_mi_kwh); set('knownEvKwh', state.known_ev_kwh); set('evTimingSlider', state.ev_offpeak_pct); set('e7TimingSlider', state.e7_offpeak_pct); if (state.dual_fuel != null && $('dualFuel')) { $('dualFuel').checked = !!state.dual_fuel; fire($('dualFuel'), 'change'); } if (state.e7_actual) { if ($('e7ActualWrap') && $('e7ActualWrap').hidden) click('#e7ActualToggle'); set('e7DayActualInput', state.e7_day_kwh, 'change'); set('e7NightActualInput', state.e7_night_kwh, 'change'); } if (state.stress_pct != null) click('#stressButtons button[data-stress="' + Number(state.stress_pct) + '"]'); if (state.period) click('#periodToggle button[data-period="' + state.period + '"]'); var usage = snapshot.electricityUsageTotalKwh != null ? snapshot.electricityUsageTotalKwh : state.home_usage_kwh; if (usage != null) { document.querySelectorAll('#usagePills button').forEach(function (button) { button.classList.toggle('on', button.dataset.use === 'custom'); }); if ($('customWrap')) $('customWrap').classList.add('show'); set('houseKwh', usage); } set('acMeterPeak', state.meter_peak_kwh); set('acMeterNight', state.meter_offpeak_kwh);
   if(state.meter_source==='e7')click('[data-ac-source="e7"]');
@@ -41,6 +41,8 @@
   }
   var splashButton=$('personalSplashOk');
   if(splashButton){
+    splashButton.disabled=false;
+    splashButton.textContent='Explore my UW EV options';
     splashButton.onclick=function(){
       if(this.disabled)return;
       this.disabled=true;
