@@ -67,7 +67,7 @@
   if($('welcomeName'))$('welcomeName').textContent=name;
   setText('.personal-splash-icon','⚡');
   setText('.personal-splash-copy','Your estimated UW EV electricity costs');
-  setText('.personal-splash-sub',data.meter?'Based on the day and night electricity figures supplied.':'Based on the home electricity and EV mileage assumptions supplied.');
+  setText('.personal-splash-sub',data.meter?(data.source==='e7'?'Based on your Economy 7 day and night electricity readings.':'Based on your EV tariff day and night electricity readings.'):'Based on the home electricity and EV mileage assumptions supplied.');
   var original=$('acSharedAssumptions');if(original)original.remove();
   var block=e('section');block.id='acSharedAssumptions';
   var stats=e('div','ac-v254-welcome-stats'+(data.meter?'':' two'));
@@ -86,7 +86,7 @@
   block.appendChild(stats);
   var basket=e('div','ac-v254-welcome-basket');
   var count=Math.max(0,Math.min(2,Number.isFinite(Number(data.tier))?Number(data.tier):2));
-  basket.appendChild(e('strong',null,'Starting view: '+tierLabel(count)));
+  basket.appendChild(e('strong',null,'Based on '+tierLabel(count)+' in the UW basket'));
   basket.appendChild(e('p',null,count===2?
     'This shows UW’s best EV rates. You can easily change the number of services in the tool.':
     'You can change the number of services in the tool to explore other UW EV rates.'));
