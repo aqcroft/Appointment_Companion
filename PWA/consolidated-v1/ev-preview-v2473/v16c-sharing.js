@@ -150,7 +150,7 @@ function startCompanion(payload){
   document.documentElement.classList.add('shared-started');
 
   loadScript('tariff-cache-v1.js?v=20260910-feedback1').then(function(){
-    return loadScript('consolidated-v1/ev-preview-v2473/v13-ev.js?v=20261008-v2.47.3-preview1');
+    return loadScript('consolidated-v1/ev-preview-v2473/v13-ev.js?v=20261008-v2.47.4-ev-polish1');
   }).then(function(){
     if(payload)applyPayload(payload);
     return loadScript('v16b-hero.js');
