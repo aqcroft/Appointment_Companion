@@ -412,8 +412,16 @@ $('e7NightActualInput').onchange=function(){var v=parseFloat(this.value);state.e
 document.querySelectorAll('#serviceButtons button').forEach(function(b){b.onclick=function(){state.tier=parseInt(b.dataset.tier,10);render()}});
 // The +21% forecast is an optional illustration, never the default.
 (function(){
- var group=$('stressButtons'),last=group&&group.querySelector('[data-stress="25"]');
- if(!group||!last||group.querySelector('[data-stress="21"]'))return;
+ var group=$('stressButtons'),buttons=group&&group.querySelectorAll('button');
+ if(!group||!buttons||buttons.length<4)return;
+ // The donor page starts at 0/5/10/15. Normalise *before* binding handlers.
+ [0,5,15,25].forEach(function(n,i){
+   var b=buttons[i];b.dataset.stress=String(n);
+   b.textContent=n===0?'Today':'+'+n+'%';
+   b.title=n===0?'Today’s variable electricity prices':'Illustrative +'+n+'% change';
+ });
+ var last=buttons[3];
+ if(group.querySelector('[data-stress="21"]'))return;
  var btn=document.createElement('button');btn.type='button';btn.dataset.stress='21';
  btn.textContent='+21%';btn.title='Illustrative 21% forecast scenario - not guaranteed';
  group.insertBefore(btn,last);
