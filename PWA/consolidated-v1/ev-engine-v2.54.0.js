@@ -201,7 +201,7 @@ function render(){
     document.querySelector('#serviceButtons button[data-tier="'+x+'"]').classList.toggle('on',x===t);
     $('th'+x).classList.toggle('sel',x===t)
   }
-  $('stressNote').textContent=state.stress?'What if variable electricity prices change by '+state.stress+'%? '+(state.stress===21?'The 21% figure is a forecast scenario, not a guaranteed price rise. ':'')+'Only variable-tariff estimates in the table change. Fixed prices and the main hero stay at today\'s rates.':'Variable electricity prices can change every three months. Choose a possible increase to see how the tariffs compare. This is an illustration, not a prediction.';
+  $('stressNote').textContent=state.stress?'Illustrative +'+state.stress+'% applied to variable electricity costs across a full year, not a January-specific prediction. Fixed tariffs and the green hero remain at today\'s rates.':'Variable electricity prices can change every three months. These full-year scenarios are illustrations, not predictions.';
   renderTable(m,matrix,i);
   status(m);
   var std=matrix.variable[t],e7=matrix.variableE7[t];
