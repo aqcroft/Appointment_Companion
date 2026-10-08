@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.54.0-finish-preview1';
+      var version = '20261009-v2.54.1-welcome-preview1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var legacyShared = /^p=/.test(location.hash.slice(1));
@@ -101,17 +101,18 @@
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
-      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.54.0 PREVIEW</title>');
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.54.1 PREVIEW</title>');
       html = html.replace('if (/^p=/.test(location.hash.slice(1)))', 'if (/^(?:p|p2)=/.test(location.hash.slice(1)))');
-      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-preview-v2473/ev-sharing-v2.54.0.js?v=' + version);
+      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-preview-v2473/ev-sharing-v2.54.1.js?v=' + version);
       html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
       html = html.replace(/href="manifest\.webmanifest"/i, 'href="consolidated-v1/manifest.webmanifest"');
+      html = html.replace(/<\/head>/i, '<script src="consolidated-v1/ev-preview-v2473/ev-shared-intro-v2.54.1.js?v=' + version + '"><\/script></head>');
       // Preview must not register or update the live PWA service worker.
       html = html.replace(/<script src="pwa-register\.js"><\/script>/i, '');
       var common = '<script src="../cloud-client-v1.js?v=' + version + '"><\/script><script src="cloud/companion-bridge-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/share-policy-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-share-v1.js?v=' + version + '"><\/script>';
       var inject = '';
       if (shared) {
-        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-preview-v2473/ev-share-view-v2.54.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-preview-v2473/ev-customer-contact-v2.53.0.js?v=' + version + '"><\/script><script src="consolidated-v1/public-partner-branding-v1.js?v=' + version + '"><\/script>';
+        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-preview-v2473/ev-share-view-v2.54.1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-preview-v2473/ev-customer-contact-v2.53.0.js?v=' + version + '"><\/script><script src="consolidated-v1/public-partner-branding-v1.js?v=' + version + '"><\/script>';
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-preview-v2473/ev-bridge-v2.53.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-preview-v2473/ev-share-adapter-v2.53.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-compat-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-context-nav-v1.js?v=' + version + '"><\/script>';
       }
@@ -123,8 +124,8 @@
       inject += '<script src="consolidated-v1/ev-preview-v2473/ev-layout-v2.52.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-preview-v2473/ev-onboarding-v2.53.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-preview-v2473/ev-finish-v2.54.0.js?v=' + version + '"><\/script>';
-      if (!shared) inject += '<script src="consolidated-v1/ev-preview-v2473/release-v2.54.0.js?v=' + version + '"><\/script>';
-      html = html.replace(/<body>/i, '<body><div role="status" style="margin:5px auto;max-width:570px;text-align:center;font:700 11px system-ui;color:#176c60;background:#e7f6f1;padding:6px;border-radius:7px">🧪 EV Companion v2.54.0 · Preview only</div>');
+      if (!shared) inject += '<script src="consolidated-v1/ev-preview-v2473/release-v2.54.1.js?v=' + version + '"><\/script>';
+      html = html.replace(/<body>/i, '<body><div role="status" style="margin:5px auto;max-width:570px;text-align:center;font:700 11px system-ui;color:#176c60;background:#e7f6f1;padding:6px;border-radius:7px">🧪 EV Companion v2.54.1 · Preview only</div>');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
