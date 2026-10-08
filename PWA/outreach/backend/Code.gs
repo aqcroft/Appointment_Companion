@@ -1,5 +1,3 @@
-// Code.gs v1.1.0 - 8th October 2026
-// Changelog: softer relationship-first prospect handoffs. CRM behaviour unchanged.
 const SPREADSHEET_ID = '1nS-dlFnVq3lYb1mbEMD-HDOszRTnLbUkoWlUlsBwyAY';
 const ROOT_FOLDER_ID = '1jXizwpG-CfCHQfa51lcUbCBEX40Q6Akg';
 const PROSPECTS_SHEET = 'Prospects';
@@ -284,31 +282,31 @@ function buildHandoffMarkdown(x) {
     '',
     '**Do not browse the web or research the LinkedIn profile/source URLs.** The URLs are CRM/navigation references only. Do not open them unless Adrian explicitly asks for external research. This handoff is intentionally designed to be processed from the screenshots and supplied context.',
     '',
-    '## Outreach judgement and voice',
-    'ANALYSE DEEPLY. REFERENCE LIGHTLY. Read the full available evidence, but mention only the most relevant 1-3 details where they genuinely help. Do not recite a CV, list roles or achievements, over-personalise, or make subjective judgements about someone based on a profile.',
+    '## Natural human wording / evidence compression',
+    'Analyse the screenshots and supplied evidence in detail internally, but reference that evidence lightly in the actual outreach.',
     '',
-    'Relationships first - business second. Before suggesting any approach, identify why this person, why now, and what makes UW genuinely relevant. The goal is relevance, curiosity and permission to explore, not conversion. Sometimes the right answer is relationship-building first, a supportive comment only, or no approach.',
+    'Do not mirror, summarise or recite the prospect\'s CV, profile, achievements or list of skills back to them simply to demonstrate personalisation. Detailed evidence belongs in the internal analysis; public comments and DMs should normally compress what has been learned into one or two natural observations.',
     '',
-    'Write as Adrian speaks: warm, conversational, human British English, with natural flow and light humour only where appropriate. Avoid corporate recruitment phrases, marketing clichés, artificial urgency, over-polished wording and generic AI-sounding openings. Use simple hyphens, avoid the word "quietly", and keep the copy proportionate to the relationship.',
+    'Avoid long lists of roles, skills, sectors, achievements or experience. Usually reference no more than 1-3 genuinely relevant themes, even when the screenshots provide many more.',
     '',
-    'For a public LinkedIn comment, be supportive and sincere in its own right, even if no business conversation follows. Do not mention UW publicly unless Adrian explicitly asks. Do not create a comment merely as a pretext for private outreach.',
+    'Do not confuse specificity with listing. One genuinely relevant detail is usually more personal than five accurate details.',
     '',
-    'For a first UW DM, be transparent reasonably early about Utility Warehouse and the Authorised Partner opportunity, without launching into a big explanation. Position it simply as a possible way to earn additional income alongside whatever else the person has going on. Ask one small permission-based question, make declining genuinely easy, and do not assume or promise income.',
+    'Write like somebody who has naturally noticed something interesting about the person, not like a recruiter summarising their CV.',
     '',
-    'Take particular care with redundancy and job seekers: never use vulnerability or financial pressure as a sales trigger, do not suggest UW replaces the role they actually want, and reinforce that their job search comes first. Do not assume every relevant prospect should be approached.',
+    'Where a judgement is subjective, soften it naturally - for example: "that seems to me like...", "that struck me as...", or "from the outside, that looks like...".',
     '',
-    'Give ONE recommended version, not a collection of generic alternatives. Where a draft is not appropriate, say why instead of manufacturing one.',
+    '**Core principle: ANALYSE DEEPLY. REFERENCE LIGHTLY.**',
     '',
     'Then:',
     '1. Assess what happened, what the person appears to want, the relationship context, and whether UW is genuinely relevant.',
     '2. Choose the appropriate route: approach, relationship-building first, supportive comment only, or no approach.',
-    '3. If a LinkedIn public comment is genuinely appropriate, draft it first. Keep it sincere and supportive, with no UW mention unless Adrian explicitly requests one. If the prospect\'s name appears in the comment, prefix it with @ for tagging (for example, @Mark).',
-    '4. If connecting is appropriate, draft the connection-request instruction. Normally this is a standard connection request with no note. Do not treat a connection request as mandatory.',
-    '5. Draft the first UW DM only if it is genuinely appropriate. Name UW reasonably early, explain relevance simply, ask permission to explore, and offer a genuine easy exit. For job seekers, explicitly protect the role/career they actually want and position UW only alongside it.',
-    '6. Present only the outreach outputs genuinely recommended. Keep public comment, connection instruction and potential future first DM separate. If one is not recommended, explain briefly.',
+    '3. For LinkedIn outreach, draft the public comment first. Do not mention UW publicly unless the context specifically warrants it. If the prospect\'s name appears in the public comment, prefix it with @ so Adrian can tag them easily (for example, @Mark).',
+    '4. Draft the connection-request instruction. Normally this is a standard connection request with no note.',
+    '5. Draft the first UW DM only if appropriate. For job seekers, explicitly protect the role/career they actually want and position UW only alongside it.',
+    '6. Present the copy-ready public comment and, separately, the stored first DM.',
     '6a. When writing Conversation History, use these exact Type labels so the Companion can retrieve the output: `Suggested public comment - Draft`, `Connection request instruction - Draft`, and `Suggested first DM - Draft`.',
     '7. Update the main Google Sheet Prospects row identified below. Populate Situation, Why relevant, Target role, Job preferences, Recommended approach, Analysis summary, Draft status, Status and Next action as appropriate.',
-    '8. Append a Conversation History entry for the analysis, and entries for suggested public comment, connection-request instruction and first DM only where those outputs were actually recommended and drafted.',
+    '8. Append Conversation History entries for the analysis, suggested public comment, connection-request instruction and suggested first DM.',
     '9. Do not mark Comment sent, Connection sent, Connected or First UW DM sent unless Adrian explicitly confirms those actions happened.',
     '',
     '## Prospect identity / CRM key',
@@ -332,7 +330,7 @@ function buildHandoffMarkdown(x) {
     fileLines || '- No screenshots were uploaded.',
     '',
     '## Final response to Adrian',
-    'Keep the response practical and concise. Give the recommended approach and only the copy-ready actions that fit. If an appropriate first UW DM has been drafted, note that it is stored in the CRM for later if a connection is accepted. Do not imply a DM or other action is mandatory.'
+    'Keep the response practical and concise. Give the recommended approach, the copy-ready public comment, the connection-request action, and note that the first DM has been stored in the CRM for later if a connection is accepted.'
   ].join('\n');
 }
 
