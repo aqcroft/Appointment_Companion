@@ -48,7 +48,7 @@ async function check(browser,cloud){
    const settings=document.getElementById('acEvCustomerSettings'),meter=document.getElementById('acMeterModeCard'),origin=document.getElementById('acEvUsageOrigin');
    const badge=document.getElementById('acEvModeLabel'),heading=document.getElementById('acV254SourceText');
    const actions=[...document.querySelectorAll('#stressButtons button')];
-   const rects=actions.map(x=>x.getBoundingClientRect().toJSON());
+   const rects=actions.map(x=>(x.getClientRects()[0]||x.getBoundingClientRect()).toJSON());
    const sub=document.querySelector('.personal-splash-sub');
    return {
      meterInSettings:!!settings&&!!meter&&settings.contains(meter),
