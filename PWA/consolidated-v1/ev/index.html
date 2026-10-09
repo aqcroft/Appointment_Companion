@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.55.3-modeshare1';
+      var version = '20261009-v2.55.4-herorow1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var portableShared = /^p2=/.test(location.hash.slice(1));
@@ -102,7 +102,7 @@
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
-      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.55.3</title>');
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.55.4</title>');
       // The original donor welcome has three oversized stacked emojis. Set a
       // single neutral icon even when a slow Cloud lookup has not finished.
       html = html.replace('<div class="personal-splash-icon">🚙  🔌  🏠</div>', '<div class="personal-splash-icon">🚗</div>');
@@ -131,8 +131,8 @@
       inject += '<script src="consolidated-v1/ev-finish-v2.54.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-forecast-help-v2.54.2.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-usage-origin-v2.55.0.js?v=' + version + '"><\/script>';
-      inject += '<script src="consolidated-v1/ev-mode-ui-v2.55.3.js?v=' + version + '"><\/script>';
-      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.3.js?v=' + version + '"><\/script>';
+      inject += '<script src="consolidated-v1/ev-mode-ui-v2.55.4.js?v=' + version + '"><\/script>';
+      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.4.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {

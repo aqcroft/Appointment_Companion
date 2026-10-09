@@ -1,5 +1,13 @@
 # Appointment Companion changelog
 
+## v2.55.4 - 9th October 2026
+
+- Reduced the petrol/diesel comparison shortcut and placed it in the upper-right of the hero, next to the EV situation badge.
+- Placed Energy only / +1 / +2 on the same row as Monthly / Yearly, keeping the selected tariff description underneath.
+- Ensured the choice between an existing EV and considering an EV is made from the existing Settings action rather than on the main calculator. The existing owner's annual-usage fields remain available.
+- Kept the paired blue/red and blue-violet/plum modes, the customer share button, tariff calculations and Cloud fallback intact.
+
+
 ## v2.55.3 - 9th October 2026
 
 - Colour families identify the EV journey: blue for existing EV / muted red for considering EV in the Partner tool, and corresponding blue-violet / plum-purple shades in customer-shared links.
