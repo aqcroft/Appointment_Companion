@@ -31,6 +31,8 @@ async function check(browser,cloud){
  await page.waitForFunction(()=>document.querySelectorAll('#comparison tr[data-row]').length>=5,null,{timeout:18000});
  await page.waitForSelector('#acEvFixedDetails', {timeout:12000});
  await page.waitForSelector('#acEvSimpleRates .ac-ev-simple-rate', {state:'attached',timeout:12000});
+ await page.waitForSelector('#acV254SourceText',{timeout:12000});
+ await page.waitForTimeout(240);
  const before=await page.evaluate(()=>({
   collapsed:!document.getElementById('acEvFixedDetails').open,
   allCollapsed:!document.getElementById('acEvAllTariffs').open,
@@ -60,7 +62,7 @@ async function check(browser,cloud){
      fiveButtons:actions.map(x=>({label:x.textContent,stress:x.dataset.stress,on:x.classList.contains('on')})),
      positions:rects.map(r=>({x:r.x,y:r.y,width:r.width,height:r.height})),
      btnContainer:{display:getComputedStyle(document.getElementById('stressButtons')).display,columns:getComputedStyle(document.getElementById('stressButtons')).gridTemplateColumns,width:document.getElementById('stressButtons').getBoundingClientRect().width},
-     currentNode:(()=>{const node=document.querySelector('#stressButtons [data-stress="0"]');return{html:node?.outerHTML,hidden:node?.hidden,display:getComputedStyle(node).display,visibility:getComputedStyle(node).visibility,opacity:getComputedStyle(node).opacity,inlineStyle:node?.getAttribute('style'),offsetWidth:node?.offsetWidth,parentDisplay:getComputedStyle(node.parentElement).display}})(),
+     currentNode:(()=>{const node=document.querySelector('#stressButtons [data-stress="0"]');return{html:node?.outerHTML,hidden:node?.hidden,display:getComputedStyle(node).display,visibility:getComputedStyle(node).visibility,opacity:getComputedStyle(node).opacity,transform:getComputedStyle(node).transform,inlineStyle:node?.getAttribute('style'),offsetWidth:node?.offsetWidth,parentDisplay:getComputedStyle(node.parentElement).display}})(),
      meterTree:{settingsOpen:settings?.open,visibility:meter?.checkVisibility(),style:getComputedStyle(meter).display,parent:meter?.parentNode?.className,bodyStyle:getComputedStyle(settings.querySelector('.ac-ev-customer-settings-body')).display},
      aligned:rects.length===5&&rects.every(r=>Math.abs(r.top-rects[0].top)<=2),
      nonOverlapping:rects.every((r,i)=>i===0||r.left>=rects[i-1].right-1),
