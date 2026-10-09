@@ -1,0 +1,355 @@
+/* Local-first controller with conservative Cloud reconciliation for consolidated v1. */
+(function (global) {
+  'use strict';
+  if (document.documentElement.classList.contains('view-mode')) return;
+  var store = global.AppointmentCompanionLocalStore, canonical = global.AppointmentCompanionCanonical, api = global.AppointmentCompanionCloud, LOCAL_ONLY = !!global.__AC_LOCAL_ONLY;
+  var CURRENT_KEY = 'apptCompanionConsolidatedCurrentV1', CLOUD_KEY = 'apptCloudPilotCurrentCustomer', AUTH_KEY = 'apptCloudPilotAuthSession', DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
+  var currentId = sessionStorage.getItem(CURRENT_KEY) || '', current = null, saveTimer = null, syncTimer = null, syncing = false, retryMs = 2500, editedSinceSwitch = false;
+  var $ = function (id) { return document.getElementById(id); };
+  function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+  function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null'); if (row && row.partner_id && row.workspace_key) { try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {} return row; } return null; } catch (_) { return null; } }
+  function remoteVersion(row) { return String(row && (row.cloud_revision || row.sync_revision || row.updated_at) || ''); }
+  function appointment(remote) { var value = remote && (remote.appointment_state || remote.appointment_state_json || remote.appointment_snapshot); if (!value) return null; if (typeof value === 'string') { try { value = JSON.parse(value); } catch (_) { return null; } } return canonical.normaliseAppointment(value); }
+  function escapeHtml(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function status(text, tone) { var el = $('cloudPilotStatus'); if (el) { el.textContent = text; el.style.color = tone === 'bad' ? '#c43b3b' : tone === 'good' ? '#1d7f45' : 'var(--muted)'; } }
+  function icon(id, good, title) { var el = $(id); if (!el) return; var state = good ? 'ok' : 'warn'; el.innerHTML = id === 'cloudConnectionState' ? '<img src="status-icons/cloud-' + state + '.svg" alt="" aria-hidden="true">' : '<picture><source media="(any-pointer: coarse), (max-width: 620px)" srcset="status-icons/mobile-' + state + '.svg"><img src="status-icons/desktop-' + state + '.svg" alt="" aria-hidden="true"></picture>'; el.classList.toggle('warn', !good); el.title = title; }
+  function isSynced(row) { return !!(row && row.sync_state === 'synced' && Number(row.cloud_synced_local_revision) === Number(row.local_revision)); }
+  function paint(row, saving) { icon('cloudLocalState', !saving, saving ? 'Saving the latest revision on this device' : 'Latest revision is safely stored on this device'); var synced = !LOCAL_ONLY && isSynced(row); icon('cloudConnectionState', synced, synced ? 'This exact local revision is synchronised to Cloud' : LOCAL_ONLY ? 'Cloud is deliberately paused in local-only mode' : 'Work is safe locally; Cloud is behind or unavailable'); }
+  function meaningful(appt) { var c = appt && appt.canonical; if (!c) return false; return !!(c.customerName || c.privateNotes || c.basketUrl || c.lastQuoteSharedAt || Object.keys(c.selectedServices || {}).some(function (key) { return c.selectedServices[key]; })); }
+  function draft() {
+    var appt = canonical.capture(), c = appt.canonical, bridge = global.AppointmentCompanionBridge;
+    c.homeStatus = $('pillHomeowner') && $('pillHomeowner').classList.contains('on') ? 'homeowner' : $('pillTenant') && $('pillTenant').classList.contains('on') ? 'tenant' : c.homeStatus;
+    return { local_id: currentId || store.makeId(), cloud_id: current && current.cloud_id || '', customer_name: c.customerName, appointment_state: appt, specialist_state: bridge && bridge.getJourney ? clone(bridge.getJourney().specialists || {}) : clone(current && current.specialist_state || {}), basket_url: c.basketUrl || '', cloud_customer: clone(current && current.cloud_customer || null), base_cloud_revision: current && current.base_cloud_revision || '', base_cloud_snapshot: clone(current && current.base_cloud_snapshot || null), cloud_synced_local_revision: current && current.cloud_synced_local_revision || 0 };
+  }
+  async function persist(announce) { paint(current, true); var next = draft(); currentId = next.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(next); paint(current, false); if (announce) status(LOCAL_ONLY ? 'Saved safely on this device. Cloud is paused.' : 'Saved safely on this device. Cloud sync is queued in the background.', 'good'); scheduleSync(900); return clone(current); }
+  function queuePersist(event) { if (event && event.target && event.target.closest && event.target.closest('#cloudPilotCard,#localFirstCustomers,#cloudConnectModal,#cloudSettingsModal,#cloudOnboardingModal')) return; if (event && event.isTrusted && event.target && event.target.matches && event.target.matches('input,textarea,select')) editedSinceSwitch=true; paint(current, true); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(false).catch(function () { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Local save needs attention. Keep this page open and try again.', 'bad'); }); }, 180); }
+  async function loadRecord(row, quiet) {
+    if (!row || row.deleted) return; currentId = row.local_id; current = clone(row); sessionStorage.setItem(CURRENT_KEY, currentId); if (row.cloud_id) sessionStorage.setItem(CLOUD_KEY, row.cloud_id); else sessionStorage.removeItem(CLOUD_KEY);
+    var bridge = global.AppointmentCompanionBridge;
+    if (bridge && bridge.getWorkingRecord && row.appointment_state && row.appointment_state.canonical) {
+      try {
+        var working = bridge.getWorkingRecord() || {};
+        var workingBasket = String(working.basket_url || '').trim();
+        var sameCustomer = workingBasket && (
+          (row.cloud_id && working.customer_id && String(row.cloud_id) === String(working.customer_id)) ||
+          (!row.cloud_id && !working.customer_id && row.customer_name && working.customer_name && String(row.customer_name).trim() === String(working.customer_name).trim())
+        );
+        if (sameCustomer && String(row.appointment_state.canonical.basketUrl || '').trim() !== workingBasket) {
+          var mergedAppointment = clone(row.appointment_state);
+          mergedAppointment.canonical.basketUrl = workingBasket;
+          row = await store.put(Object.assign({}, row, { appointment_state: mergedAppointment, basket_url: workingBasket }));
+          current = clone(row);
+        }
+      } catch (_) {}
+    }
+    canonical.restore(row.appointment_state); if (bridge && bridge.updateWorkingRecord) { bridge.updateWorkingRecord({ customer_id: row.cloud_id || '', customer_name: row.customer_name || '', appointment_state: canonical.toLegacySnapshot(row.appointment_state), specialists: clone(row.specialist_state || {}), basket_url: row.basket_url || row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl || '' }); if (bridge.setToolState) Object.keys(row.specialist_state || {}).forEach(function (tool) { bridge.setToolState(tool, clone(row.specialist_state[tool])); }); }
+    paint(row, false);
+    editedSinceSwitch=false;
+    try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:row.local_id, customer_name:row.customer_name || '' } })); } catch (_) {}
+    if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
+  }
+  function recentRows(rows) { try { localStorage.setItem('apptCompanionRecentCustomersV1', JSON.stringify(rows.filter(function (row) { return !row.deleted; }).slice(0, 20).map(function (row) { var c = row.appointment_state && row.appointment_state.canonical || {}, spec = row.specialist_state || {}; return { customer_id: row.local_id, customer_name: row.customer_name || 'Unnamed', updated_at: row.updated_at, summary: row.appointment_state && row.appointment_state.ui_state && row.appointment_state.ui_state.summary || {}, has_ev: !!spec.ev, has_fix: !!(spec.fix || spec.should_i_fix || spec['should-i-fix']), locally_available: true, services: c.selectedServices || {} }; }))); } catch (_) {} }
+  function customerJourneyIcons(row) {
+    row = row || {};
+    var appt = row.appointment_state || {};
+    var canonical = appt.canonical || {};
+    var ui = appt.ui_state || {};
+    var summary = ui.summary || appt.summary || {};
+    var selected = canonical.selectedServices || {};
+    var legacyServices = ui.state && ui.state.services || {};
+    var mobile = canonical.mobile || {};
+    var specialists = row.specialist_state || {};
+
+    var energy = summary.energy != null ? !!summary.energy : !!(selected.energy || legacyServices.energy);
+    var broadband = summary.broadband != null ? !!summary.broadband : !!(selected.broadband || legacyServices.broadband);
+    var simCount = Number(summary.sims || 0);
+    if (!simCount && (selected.mobile || legacyServices.mobile)) simCount = Math.max(1, Number(mobile.simCount || (ui.state && ui.state.simCount) || 1));
+    var cover = !!(summary.insurance || selected.insurance || selected.boiler || selected.homeCover || legacyServices.insurance || legacyServices.boiler || legacyServices.homeCover);
+    var basket = !!(summary.basketLink || row.basket_url || canonical.basketUrl);
+    var shared = !!(summary.quoteShared || canonical.lastQuoteSharedAt);
+    var fix = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix']);
+    var ev = !!specialists.ev;
+    var cashback = summary.cashback != null ? !!summary.cashback : (ui.state ? ui.state.includeCashback !== false : true);
+
+    function mini(emoji, on, title, extra) {
+      return '<span title="' + title + '" style="display:inline-flex;align-items:center;justify-content:center;min-width:' + (extra ? '27px' : '18px') + ';height:20px;' + (extra ? 'padding:0 3px;border:1px solid rgba(122,66,200,.14);border-radius:999px;background:#f8f5fe;letter-spacing:-1px;white-space:nowrap;' : '') + 'font-size:11px;' + (on ? '' : 'opacity:.28;filter:grayscale(1);') + '">' + emoji + '</span>';
+    }
+
+    return '<span aria-label="Services and tools" style="display:inline-flex;align-items:center;justify-content:flex-start;gap:3px;flex-wrap:nowrap;white-space:nowrap;">' +
+      mini('<span>⚡</span><span>🔥</span>', energy, 'Energy', true) +
+      mini('🛜', broadband, 'Broadband') +
+      mini('📱', simCount >= 1, 'Mobile SIM 1') +
+      mini('📱', simCount >= 2, 'Mobile SIM 2') +
+      mini('🛠️', cover, 'Boiler Cover') +
+      mini('💳', cashback, 'Cashback Card') +
+      mini('🔗', basket, 'UW basket linked') +
+      mini('✉️', shared, 'Summary shared') +
+      '<span aria-hidden="true" style="width:1px;height:18px;background:rgba(38,22,79,.20);margin:0 2px"></span>' +
+      mini('📌', fix, 'Should I Fix?') +
+      mini('🚙', ev, 'EV Companion') +
+    '</span>';
+  }
+
+  var pendingSwitchResolve = null;
+  function closeSwitchGuard(result) {
+    var modal = $('acProfileSwitchGuard');
+    if (modal) modal.classList.remove('open');
+    var resolve = pendingSwitchResolve;
+    pendingSwitchResolve = null;
+    if (resolve) resolve(result || 'stay');
+  }
+  function ensureSwitchGuard() {
+    var modal = $('acProfileSwitchGuard');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'acProfileSwitchGuard';
+    modal.className = 'basket-prompt';
+    modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="acProfileSwitchTitle" style="max-width:410px">' +
+      '<h3 id="acProfileSwitchTitle">Save and close this customer?</h3>' +
+      '<p class="sub" id="acProfileSwitchText"></p>' +
+      '<div class="modal-actions" style="display:grid;gap:7px">' +
+        '<button class="btn-share" type="button" data-switch-choice="save">💾 Save progress & switch</button>' +
+        '<button class="btn-ghost" type="button" data-switch-choice="without">Switch without saving again</button>' +
+        '<button class="btn-ghost" type="button" data-switch-choice="stay">Stay here</button>' +
+      '</div></div>';
+    modal.addEventListener('click', function (event) {
+      var choice = event.target.closest('[data-switch-choice]');
+      if (choice) closeSwitchGuard(choice.dataset.switchChoice);
+      else if (event.target === modal) closeSwitchGuard('stay');
+    });
+    document.body.appendChild(modal);
+    return modal;
+  }
+  function shouldAskBeforeSwitch(targetId) {
+    if (!current || !currentId || String(targetId || '') === String(currentId)) return false;
+    try { return meaningful(canonical.capture()); } catch (_) { return meaningful(current.appointment_state); }
+  }
+  function askBeforeSwitch(targetName) {
+    var modal = ensureSwitchGuard();
+    var currentName = String(current && current.customer_name || 'this customer');
+    $('acProfileSwitchText').textContent = 'Do you want to save and close ' + currentName + ' before opening ' + String(targetName || 'another customer') + '?';
+    modal.classList.add('open');
+    return new Promise(function (resolve) { pendingSwitchResolve = resolve; });
+  }
+  async function requestSwitchRecord(row) {
+    if (!row || row.deleted) return false;
+    if (String(row.local_id || '') === String(currentId || '')) return true;
+    if (shouldAskBeforeSwitch(row.local_id)) {
+      clearTimeout(saveTimer);
+      var choice = await askBeforeSwitch(row.customer_name);
+      if (choice === 'stay') return false;
+      if (choice === 'save') await persist(false);
+    }
+    await loadRecord(row, false);
+    return true;
+  }
+  async function switchToLocalId(localId) {
+    var row = await store.get(String(localId || ''));
+    return requestSwitchRecord(row);
+  }
+
+  async function customerBrowser() {
+    var modal = $('localFirstCustomers');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'localFirstCustomers';
+      modal.className = 'basket-prompt';
+      modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
+        '<h3 id="localFirstCustomersTitle">Customers on this device</h3>' +
+        '<p class="sub" id="localFirstCustomersNote"></p>' +
+        '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
+          '<input type="search" id="localFirstCustomerSearch" placeholder="🔎 Search profiles…" autocomplete="off" aria-label="Search customer profiles" style="width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;background:#fff;color:inherit">' +
+          '<select id="localFirstCustomerSort" aria-label="Sort customer profiles" style="max-width:150px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px 28px 9px 9px;font:inherit;background:#fff;color:inherit">' +
+            '<option value="recent">Most recent</option>' +
+            '<option value="oldest">Oldest first</option>' +
+            '<option value="name-asc">Name A-Z</option>' +
+            '<option value="name-desc">Name Z-A</option>' +
+          '</select>' +
+        '</div>' +
+        '<div id="localFirstCustomerRows" style="display:grid;gap:8px"></div>' +
+        '<div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div>' +
+      '</div>';
+      modal.addEventListener('click', async function (event) {
+        if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open');
+        var load = event.target.closest('[data-local-load]');
+        if (load) {
+          var target = await store.get(load.dataset.localLoad);
+          if (await requestSwitchRecord(target)) modal.classList.remove('open');
+        }
+        var del = event.target.closest('[data-local-delete]');
+        if (del) {
+          await markDeleted(del.dataset.localDelete);
+          await customerBrowser();
+        }
+        var choice = event.target.closest('[data-local-conflict]');
+        if (choice) {
+          await resolveConflict(choice.dataset.localConflict, choice.dataset.choice);
+          await customerBrowser();
+        }
+      });
+      document.body.appendChild(modal);
+    }
+
+    var rows = await store.list(true);
+    recentRows(rows);
+    $('localFirstCustomersNote').textContent = LOCAL_ONLY ? 'Local-only mode. Cloud access is deliberately paused.' : 'Every row opens from this device. Cloud-only customers appear after background hydration.';
+
+    var search = $('localFirstCustomerSearch');
+    var sort = $('localFirstCustomerSort');
+    var wrap = $('localFirstCustomerRows');
+
+    function renderRows() {
+      var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
+      var mode = String(sort && sort.value || 'recent');
+      var visible = rows.filter(function (row) {
+        if (row.deleted) return false;
+        if (!query) return true;
+        return String(row.customer_name || 'Unnamed').toLocaleLowerCase('en-GB').indexOf(query) !== -1;
+      });
+
+      visible.sort(function (a, b) {
+        var aName = String(a.customer_name || 'Unnamed');
+        var bName = String(b.customer_name || 'Unnamed');
+        if (mode === 'name-asc') return aName.localeCompare(bName, 'en-GB', { sensitivity: 'base' });
+        if (mode === 'name-desc') return bName.localeCompare(aName, 'en-GB', { sensitivity: 'base' });
+        if (mode === 'oldest') return String(a.updated_at || '').localeCompare(String(b.updated_at || ''));
+        return String(b.updated_at || '').localeCompare(String(a.updated_at || ''));
+      });
+
+      wrap.innerHTML = visible.map(function (row) {
+        var conflict = !!row.conflict;
+        return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px">' +
+          '<button type="button" class="pill" style="flex:1;min-width:0;text-align:left;justify-content:flex-start;padding:7px 9px" data-local-load="' + row.local_id + '">' +
+            '<span style="display:grid;gap:4px;width:100%;min-width:0">' +
+              '<span style="display:flex;align-items:center;gap:7px;min-width:0">' +
+                '<strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(row.customer_name || 'Unnamed') + '</strong>' +
+                (conflict ? '<span title="Local and Cloud both changed" aria-label="Local and Cloud both changed" style="flex:0 0 auto;font-size:14px;line-height:1">⚠️</span>' : '') +
+              '</span>' +
+              '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
+            '</span>' +
+          '</button>' +
+          (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">Keep mine</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">Use Cloud</button>' : '') +
+          '<button type="button" class="btn-ghost" style="padding:6px 7px;min-width:34px" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>' +
+        '</div>';
+      }).join('') || '<p class="sub">' + (query ? 'No customers match that search.' : 'No saved customers on this device yet.') + '</p>';
+    }
+
+    if (search) search.oninput = renderRows;
+    if (sort) sort.onchange = renderRows;
+    renderRows();
+    modal.classList.add('open');
+  }
+  async function markDeleted(localId) { var row = await store.get(localId); if (!row || !global.confirm('Delete ' + (row.customer_name || 'this customer') + '? Cloud deletion will finish after reconnecting.')) return; await store.put(Object.assign({}, row, { deleted: true, tombstone: true, deletion_requested_at: new Date().toISOString(), sync_state: 'pending_delete' })); if (localId === currentId) await startNewCustomer(true); scheduleSync(50); status('Removed from this device. Linked Cloud deletion is pending acknowledgement.', ''); }
+  async function resolveConflict(localId, choice) {
+    var row = await store.get(localId); if (!row || !row.conflict) return; var conflict = row.conflict, history = (row.conflict_history || []).concat([{ resolved_at: new Date().toISOString(), choice: choice, conflict: clone(conflict) }]).slice(-5);
+    if (choice === 'cloud') { if (conflict.cloud && conflict.cloud.deleted) { await store.remove(localId); if (currentId === localId) await startNewCustomer(true); return; } var remote = conflict.cloud || {}; var appt = appointment(remote); row = await store.put(Object.assign({}, row, { customer_name: remote.customer_name || row.customer_name, appointment_state: appt || row.appointment_state, specialist_state: remote.ev_state || remote.ev_state_json ? Object.assign({}, row.specialist_state, { ev: remote.ev_state || remote.ev_state_json }) : row.specialist_state, cloud_customer: remote, base_cloud_revision: remoteVersion(remote), base_cloud_snapshot: remote, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', conflict: null, conflict_history: history }), { keepRevision: true, keepSyncState: true }); }
+    else row = await store.put(Object.assign({}, row, { base_cloud_revision: remoteVersion(conflict.cloud), base_cloud_snapshot: conflict.cloud, conflict: null, conflict_history: history, sync_state: 'pending' }), { keepRevision: true, keepSyncState: true });
+    if (currentId === localId) await loadRecord(row, true); scheduleSync(50);
+  }
+  function cloudPayload(row) { var c = row.appointment_state.canonical, e = c.energy, existing = clone(row.cloud_customer || {}); return Object.assign(existing, { customer_id: row.cloud_id || '', customer_name: c.customerName, appointment_state_json: row.appointment_state, basket_url: c.basketUrl || '', private_notes: c.privateNotes || '', electricity_usage_kwh: e.electricityUsageTotalKwh, electricity_usage_mode: e.electricityUsageTotalKwh == null ? '' : 'known', electricity_usage_source: e.electricityUsageSourceDetail || e.electricityUsageSource || '', electricity_usage_day_kwh: e.electricityUsageDayKwh, electricity_usage_night_kwh: e.electricityUsageNightKwh, gas_usage_kwh: e.gasUsageKwh, gas_usage_source: e.gasUsageSourceDetail || e.gasUsageSource || '', energy_has_electricity: e.energyFuelSelection !== 'gas', energy_has_gas: e.energyFuelSelection !== 'electricity', ev_state_json: row.specialist_state && row.specialist_state.ev || existing.ev_state_json || null, client_revision_id: row.client_revision_id || '', local_sync_revision: row.local_revision, base_cloud_revision: row.base_cloud_revision || '' }); }
+  function comparableLocal(row) { return { appointment_state: row.appointment_state, specialist_state: row.specialist_state || {} }; }
+  function comparableRemote(remote) { var appt = appointment(remote), specialists = appt && appt.ui_state && appt.ui_state._journey && appt.ui_state._journey.specialists || {}; if (remote && (remote.ev_state || remote.ev_state_json)) specialists.ev = remote.ev_state || remote.ev_state_json; return { appointment_state: appt, specialist_state: specialists }; }
+  function equivalent(row, remote) { return JSON.stringify(comparableLocal(row)) === JSON.stringify(comparableRemote(remote)); }
+  async function conflict(row, remote) { return store.put(Object.assign({}, row, { conflict: { local: comparableLocal(row), cloud: clone(remote), base: clone(row.base_cloud_snapshot), detected_at: new Date().toISOString() }, sync_state: 'conflict' }), { keepRevision: true, keepSyncState: true }); }
+  async function adoptRemote(row, remote) { var appt = appointment(remote), specialists = comparableRemote(remote).specialist_state; return store.put(Object.assign({}, row, { customer_name: remote.customer_name || row.customer_name, appointment_state: appt || row.appointment_state, specialist_state: specialists, basket_url: remote.basket_url || appt && appt.canonical && appt.canonical.basketUrl || '', cloud_customer: remote, base_cloud_revision: remoteVersion(remote), base_cloud_snapshot: remote, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', conflict: null }), { keepRevision: true, keepSyncState: true }); }
+  async function syncOne(row, credentials) {
+    if (row.deleted) { if (!row.cloud_id) { await store.remove(row.local_id); return null; } await api.deleteCustomer(credentials, row.cloud_id); await store.remove(row.local_id); return null; }
+    if (!row.customer_name) return row;
+    if (row.cloud_id) {
+      var remote; try { remote = (await api.getCustomer(credentials, row.cloud_id)).customer; } catch (error) { if (/not found|could not be found|missing customer/i.test(String(error && error.message || error))) return conflict(row, { deleted: true, customer_id: row.cloud_id }); throw error; }
+      var remoteChanged = !!(row.base_cloud_revision && remoteVersion(remote) && remoteVersion(remote) !== row.base_cloud_revision), localChanged = Number(row.local_revision) !== Number(row.cloud_synced_local_revision);
+      if (remoteChanged && localChanged && !equivalent(row, remote)) return conflict(row, remote);
+      if (remoteChanged && !localChanged) return adoptRemote(row, remote);
+      if (equivalent(row, remote)) return adoptRemote(row, remote);
+      if (!row.base_cloud_revision && localChanged) return conflict(row, remote);
+    }
+    var saved = (await api.saveCustomer(credentials, cloudPayload(row))).customer; if (!saved) throw new Error('Cloud did not acknowledge the saved customer.');
+    return store.put(Object.assign({}, row, { cloud_id: saved.customer_id, customer_name: saved.customer_name || row.customer_name, cloud_customer: saved, base_cloud_revision: remoteVersion(saved) || 'ack:' + (row.client_revision_id || row.local_revision), base_cloud_snapshot: saved, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', tombstone: false, conflict: null }), { keepRevision: true, keepSyncState: true });
+  }
+  async function hydrate(credentials) {
+    var listing = await api.listCustomers(credentials), metas = Array.isArray(listing.customers) ? listing.customers : [], ids = {}, locals = await store.list(true); metas.forEach(function (meta) { if (meta.customer_id) ids[String(meta.customer_id)] = true; });
+    for (var i = 0; i < metas.length; i++) { var meta = metas[i], local = await store.findCloud(meta.customer_id); if (local && local.deleted) continue; var changed = !local || remoteVersion(meta) && remoteVersion(meta) !== local.base_cloud_revision; if (changed) { var full = (await api.getCustomer(credentials, meta.customer_id)).customer; if (!full) continue; if (local && Number(local.local_revision) !== Number(local.cloud_synced_local_revision) && !equivalent(local, full)) await conflict(local, full); else if (local) await adoptRemote(local, full); else { var appt = appointment(full); await store.put({ cloud_id: full.customer_id, customer_name: full.customer_name || '', appointment_state: appt, specialist_state: comparableRemote(full).specialist_state, basket_url: full.basket_url || appt && appt.canonical && appt.canonical.basketUrl || '', cloud_customer: full, local_revision: 0, cloud_synced_local_revision: 0, base_cloud_revision: remoteVersion(full), base_cloud_snapshot: full, sync_state: 'synced' }, { keepRevision: true, keepSyncState: true }); } } }
+    for (var j = 0; j < locals.length; j++) { var row = locals[j]; if (row.cloud_id && !ids[row.cloud_id]) { if (isSynced(row)) await store.remove(row.local_id); else if (!row.deleted) await conflict(row, { deleted: true, customer_id: row.cloud_id }); } }
+  }
+  async function sync() {
+    if (LOCAL_ONLY || syncing || !navigator.onLine || !api) return;
+    var credentials = auth();
+    if (!credentials) {
+      icon('cloudConnectionState', false, 'Cloud sync awaits Partner sign-in');
+      try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
+      return;
+    }
+
+    syncing = true;
+    var failures = 0;
+    var firstError = '';
+    try {
+      var rows = await store.list(true);
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].sync_state !== 'pending' && rows[i].sync_state !== 'pending_delete') continue;
+        try {
+          await syncOne(rows[i], credentials);
+        } catch (rowError) {
+          failures++;
+          if (!firstError) firstError = String(rowError && rowError.message || rowError || 'Cloud sync failed');
+        }
+      }
+
+      try {
+        await hydrate(credentials);
+      } catch (hydrateError) {
+        failures++;
+        if (!firstError) firstError = String(hydrateError && hydrateError.message || hydrateError || 'Cloud reconciliation failed');
+      }
+
+      current = currentId ? await store.get(currentId) : null;
+      paint(current, false);
+      recentRows(await store.list(true));
+
+      if (failures) {
+        retryMs = Math.min(Math.max(retryMs * 2, 5000), 120000);
+        icon('cloudConnectionState', current && isSynced(current), current && isSynced(current) ? 'Current profile is synced; another local profile still needs Cloud attention' : 'Cloud sync is still catching up');
+        status(failures + ' local profile' + (failures === 1 ? '' : 's') + ' still need Cloud attention. Automatic retry is queued.', '');
+        scheduleSync(retryMs);
+      } else {
+        retryMs = 2500;
+        if (current && isSynced(current)) status('Latest local revision synchronised to Cloud.', 'good');
+      }
+    } catch (error) {
+      retryMs = Math.min(retryMs * 2, 120000);
+      icon('cloudConnectionState', false, 'Cloud unavailable; work remains safe locally');
+      status('Cloud unavailable — working locally. Your appointment is safe on this device.', '');
+      scheduleSync(retryMs);
+    } finally {
+      syncing = false;
+      try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
+    }
+  }
+  function scheduleSync(delay) { if (LOCAL_ONLY) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, delay == null ? retryMs : delay); }
+  async function startNewCustomer(fromDelete) {
+    clearTimeout(saveTimer);
+    if (!fromDelete && (editedSinceSwitch || shouldAskBeforeSwitch('__new_customer__'))) {
+      var choice = await askBeforeSwitch('a new customer');
+      if (choice === 'stay') return false;
+      if (choice === 'save') {
+        try { await persist(false); } catch(error){status('Could not save this customer: '+((error&&error.message)||'Please retry.'),'bad');return false;}
+      }
+    }
+    editedSinceSwitch=false;
+    currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY);
+    var bridge = global.AppointmentCompanionBridge; if (bridge && bridge.clearWorkingRecord) bridge.clearWorkingRecord();
+    if (typeof global.resetForm === 'function') global.resetForm();
+    var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.reset) controls.reset();
+    var fresh = draft(); currentId = fresh.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(fresh);
+    paint(current, false);
+    try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:currentId, customer_name:'' } })); } catch (_) {}
+    status(LOCAL_ONLY ? 'New customer started locally. Cloud is paused.' : 'New customer started locally. Cloud sync will run in the background when ready.', 'good');
+    return true;
+  }
+  async function saveAsNew() { await persist(false); currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY); await persist(true); }
+  function intercept() { document.addEventListener('input', queuePersist, true); document.addEventListener('change', queuePersist, true); document.addEventListener('click', function (event) { var action = event.target.closest && event.target.closest('[data-cloud-action]'); if (!action) return; var kind = action.dataset.cloudAction; if (['save','save-as','all-customers','recent-customers','delete-current','new-customer'].indexOf(kind) < 0) return; event.preventDefault(); event.stopImmediatePropagation(); if(kind==='new-customer'){var menu=$('cloudMenuPopover');if(menu)menu.classList.remove('open');var toggle=$('cloudActionMenu');if(toggle){toggle.setAttribute('aria-expanded','false');toggle.title='Show actions';}} if (kind === 'save') persist(true); else if (kind === 'save-as') saveAsNew(); else if (kind === 'all-customers' || kind === 'recent-customers') customerBrowser(); else if (kind === 'new-customer') startNewCustomer(false); else if (currentId) markDeleted(currentId); }, true); document.addEventListener('click', function (event) { if (!event.target.closest || !event.target.closest('button,.cbchip') || event.target.closest('#cloudPilotCard,#conflictPanel,#localCustomerList')) return; setTimeout(function () { queuePersist(); }, 0); }, true); global.addEventListener('online', function () { scheduleSync(50); }); global.addEventListener('focus', function () { scheduleSync(100); }); global.addEventListener('ac:cloud-authenticated', function () { scheduleSync(50); }); }
+  async function boot() { await store.migrate(); var rows = await store.list(); recentRows(rows); var row = currentId && await store.get(currentId); if (!row) { var oldCurrent = sessionStorage.getItem('apptCompanionLocalFirstCurrentV1'); if (oldCurrent) row = await store.get(oldCurrent); } if (row) await loadRecord(row, true); else await startNewCustomer(true); if (LOCAL_ONLY) { var banner = document.createElement('div'); banner.className = 'md-note'; banner.style.margin = '0 0 .7rem'; banner.innerHTML = '📵 <strong>Local-only mode</strong> — Cloud sync and Cloud-backed sharing are paused. Your appointment is safe on this device. <a href="../consolidated-v1/">Return to normal mode</a>.'; var wrap = document.querySelector('.wrap'); if (wrap) wrap.insertBefore(banner, wrap.firstChild); status('Local-only mode — working safely on this device.', 'good'); } intercept(); scheduleSync(700); setInterval(function () { scheduleSync(0); }, 45000); }
+  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, scheduleSync: scheduleSync, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
+  global.AppointmentCompanionLocalFirst = global.AppointmentCompanionConsolidated;
+  var attempts = 0, timer = setInterval(function () { if ($('cloudPilotCard') && store && canonical && global.AppointmentCompanionCanonicalControls) { clearInterval(timer); boot().catch(function (error) { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Consolidated setup needs attention: ' + error.message, 'bad'); }); } else if (++attempts > 160) clearInterval(timer); }, 50);
+})(window);

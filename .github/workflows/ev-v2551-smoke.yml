@@ -1,0 +1,22 @@
+name: EV v2.55.1 share browser test
+on:
+  push:
+    branches: [main, fix/ev-shared-button-and-main-menu-20261009]
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Test actual shared-link buttons in mobile Chromium
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ev-browser-server.log 2>&1 &
+          sleep 2
+          timeout 85s node tests/ev-v2551-smoke.cjs
