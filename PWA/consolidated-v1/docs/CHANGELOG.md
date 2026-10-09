@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.55.3 - 9th October 2026
+
+- Colour families identify the EV journey: blue for existing EV / muted red for considering EV in the Partner tool, and corresponding blue-violet / plum-purple shades in customer-shared links.
+- Clear 🔌 / 🚗 mode badge on the hero and matching icon on the customer launcher. This supplements colour for readability and accessibility.
+- Restored service control layout using a dedicated full-width hero row, preventing the floating/overlapping Energy only, +1 and +2 buttons.
+- Linked EV customer sharing can now generate portable personalised links immediately, even when Cloud sync is queued or fails; verified Cloud-linked profiles may still use a short token link.
+- Existing customer figures, costs, tariffs, assumptions and the Open Basket handover are unchanged.
+- Updated the EV and main app version metadata and PWA cache token.
+
+
 ## v2.55.2 - 9th October 2026
 
 - Shared customer EV screens now have a purple colourway distinct from the teal Partner editor, without changing the working launcher.

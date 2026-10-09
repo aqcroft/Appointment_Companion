@@ -41,13 +41,19 @@ async function run(browser,cloud){
   palette:getComputedStyle(document.querySelector('.hero')).backgroundImage,
   headers:[...document.querySelectorAll('#th0,#th1,#th2')].map(x=>x.textContent.trim()),
   services:[...document.querySelectorAll('#serviceButtons button[data-tier]')].map(x=>x.querySelector('.num')?.textContent.trim()),
-  welcome:document.querySelector('#customerWelcome small')?.textContent.trim()
+  welcome:document.querySelector('#customerWelcome small')?.textContent.trim(),
+  badge:document.querySelector('#acEvModeLabel')?.textContent,
+  journey:document.documentElement.dataset.evJourney,
+  serviceGeometry:(()=>{let s=document.querySelector('.hero-service-row')?.getBoundingClientRect(),g=document.querySelector('.hero-grid')?.getBoundingClientRect();return s&&g?{serviceTop:s.top,gridBottom:g.bottom}:null})()
  })),6500);
  console.log('UI '+JSON.stringify(view));
  assert(view.palette.includes('132, 116, 202'),'Cool blue-purple customer colourway');
  assert.deepEqual(view.headers,['Energy only','Energy + 1 service','Energy + 2 services']);
  assert.deepEqual(view.services,['Energy only','+1','+2']);
  assert(view.welcome.includes('fixed Economy 7'),'Self-service message visible');
+ assert.equal(view.journey,'existing');
+ assert(view.badge.includes('Already owns an EV'));
+ assert(view.serviceGeometry && view.serviceGeometry.serviceTop>=view.serviceGeometry.gridBottom-3,'Service buttons sit below usage cards');
  console.log('ERRORS '+JSON.stringify(errors.slice(0,4)));
  assert.equal(errors.length,0,'No uncaught JavaScript errors after opening the shared calculator');
  console.log((cloud?'CLOUD':'PORTABLE')+' SUCCESS');
@@ -71,15 +77,43 @@ async function prospective(browser){
    hidden:document.getElementById('personalSplash')?.style.display==='none',
    mode:document.documentElement.classList.contains('ac-metered-mode'),
    headers:[...document.querySelectorAll('#th0,#th1,#th2')].map(x=>x.textContent.trim()),
-   welcome:document.querySelector('#customerWelcome small')?.textContent.trim()
+   welcome:document.querySelector('#customerWelcome small')?.textContent.trim(),
+   palette:getComputedStyle(document.querySelector('.hero')).backgroundImage,
+   badge:document.querySelector('#acEvModeLabel')?.textContent,
+   serviceGeometry:(()=>{let s=document.querySelector('.hero-service-row')?.getBoundingClientRect(),g=document.querySelector('.hero-grid')?.getBoundingClientRect();return s&&g?{serviceTop:s.top,gridBottom:g.bottom}:null})()
  })),6500);
  console.log('PROSPECTIVE OPEN '+JSON.stringify(after));
  assert(after.open&&after.hidden&&!after.mode,'Prospective EV opens estimated mode');
  assert.deepEqual(after.headers,['Energy only','Energy + 1 service','Energy + 2 services']);
  assert(after.welcome.includes('fixed Economy 7'));
+ assert(after.palette.includes('181, 106, 167'),'Warm plum customer colourway');
+ assert(after.badge.includes('Considering an EV'));
+ assert(after.serviceGeometry && after.serviceGeometry.serviceTop>=after.serviceGeometry.gridBottom-3,'Prospective service row sits below cards');
  assert.deepEqual(errors,[],'No JS exceptions opening prospective EV');
  await page.close();console.log('PROSPECTIVE SUCCESS');
 }
+
+async function partnerPalette(browser){
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('https://**/*',r=>r.abort());
+ await page.goto(base+'?local=1',{waitUntil:'commit',timeout:10000});await wait(3900);
+ const current=()=>page.evaluate(()=>({mode:document.documentElement.classList.contains('ac-metered-mode'),palette:getComputedStyle(document.querySelector('.hero')).backgroundImage,badge:document.querySelector('#acEvModeLabel')?.textContent}));
+ const before=await timed(current(),6500);
+ console.log('PARTNER CONSIDERING',JSON.stringify(before));
+ assert(before.palette.includes('199, 104, 117'),'Red Partner mode');
+ assert(before.badge.includes('Considering an EV'),'Prospective mode label');
+ await page.evaluate(()=>document.querySelector('[data-ac-mode="meter"]')?.click());
+ await wait(1400);
+ const after=await timed(current(),6500);
+ console.log('PARTNER EXISTING',JSON.stringify(after));
+ assert(after.mode,'Existing owner selected');
+ assert(after.palette.includes('54, 143, 202'),'Blue Partner mode');
+ assert(after.badge.includes('Already owns an EV'),'Owner mode label');
+ assert.deepEqual(errors,[],'No new Partner view JS errors');
+ await page.close();
+}
+
 async function newCustomer(browser){
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  await page.route('https://**/*',r=>r.abort());
@@ -110,4 +144,4 @@ async function newCustomer(browser){
  await page.close();
 }
 
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true);await newCustomer(browser);await prospective(browser)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
+(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true);await newCustomer(browser);await prospective(browser);await partnerPalette(browser)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
