@@ -84,7 +84,7 @@
       '.ac-ev-fixed-details .stressbar{display:flex!important;flex-wrap:wrap!important;gap:6px!important}',
       '.ac-ev-fixed-details .stressbar>.stresslabel{flex:1 1 100%!important;font-weight:850}',
       '.ac-ev-fixed-details .stressbuttons{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;width:100%!important}',
-      '.ac-ev-fixed-details .stressbuttons button{min-width:0!important;min-height:40px!important;position:relative!important;padding:6px 1px!important;font-size:10px!important;line-height:1.15!important}',
+      '.ac-ev-fixed-details .stressbuttons button{min-width:0!important;min-height:40px!important;position:relative!important;transform:none!important;scale:1!important;padding:6px 1px!important;font-size:10px!important;line-height:1.15!important}',
       'html.shared-view .ac-ev-fixed-details #stressButtons button[data-stress="0"]{display:block!important;visibility:visible!important;grid-column:auto!important;min-height:40px!important}',
       '.ac-ev-fixed-details .stressbuttons button[data-stress="21"]:not(.on){border:2px solid #bda3d6!important}',
       '.ac-ev-fixed-details .stressbuttons button[data-stress="21"]::after{content:"forecast";display:block;font-size:7px;font-weight:750;line-height:1.1;opacity:.7}',
