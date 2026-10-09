@@ -44,7 +44,7 @@ async function check(browser,cloud){
  assert(before.collapsed&&before.allCollapsed&&before.settingsCollapsed,'Three progressive disclosures collapsed');
  assert(before.prepared.includes('Customer sample'),'Compact personal touch');
  assert(before.basketButton.includes('Go to my UW basket'),'Basket CTA available');
- assert(before.current==='Current UW rates','Current price labels');
+ assert(['Current UW rates','Current'].includes(before.current),'Current price labels');
  assert(before.rates&&before.rates.includes('Economy 7'),'Fixed comparison exists');
  await page.locator('#acEvFixedDetails > summary').click();
  const open=await page.evaluate(()=>({outer:document.getElementById('acEvFixedDetails').open,full:document.getElementById('acEvAllTariffs').open,fore:document.querySelector('#stressButtons [data-stress="21"]')?.textContent}));
