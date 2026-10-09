@@ -44,7 +44,7 @@ async function run(browser,cloud){
   welcome:document.querySelector('#customerWelcome small')?.textContent.trim()
  })),6500);
  console.log('UI '+JSON.stringify(view));
- assert(view.palette.includes('128, 83, 187'),'Purple customer colourway');
+ assert(view.palette.includes('132, 116, 202'),'Cool blue-purple customer colourway');
  assert.deepEqual(view.headers,['Energy only','Energy + 1 service','Energy + 2 services']);
  assert.deepEqual(view.services,['Energy only','+1','+2']);
  assert(view.welcome.includes('fixed Economy 7'),'Self-service message visible');
