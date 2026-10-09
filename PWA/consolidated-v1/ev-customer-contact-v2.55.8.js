@@ -233,9 +233,11 @@
   }
   function moveVatToTariff(){
     var hero=document.querySelector('.hero'),footer=hero&&hero.querySelector('.hero-footer-v16c');
-    var tariff=footer&&footer.querySelector('.hero-tariff');
+    var tariff=hero&&hero.querySelector('.hero-tariff');
     var vat=document.getElementById('acV2482Vat');
     if(!footer||!tariff||!vat)return false;
+    // The older hero layout sometimes leaves the tariff above the footer.
+    if(tariff.parentElement!==footer)footer.appendChild(tariff);
     if(vat.parentElement!==footer)footer.appendChild(vat);
     // Reuse the existing VAT controls so their event handlers and explanation survive.
     return true;
