@@ -219,6 +219,14 @@ async function prospective(browser){
  assert(await page.locator('#acEvModeLabel').evaluate(n=>getComputedStyle(n).display==='none'),'Prospective mode badge also hidden in customer view');
  const prospectiveButtons=await page.locator('#stressButtons button').allTextContents();
  assert.equal(prospectiveButtons.length,5,'Prospective customer gets five scenario buttons');
+ const prospectiveHint=await page.evaluate(()=>({
+   selected:document.querySelector('#serviceButtons button.on')?.dataset.tier,
+   hintExists:!!document.getElementById('acEvTwoSimHint'),
+   hidden:document.getElementById('acEvTwoSimHint')?.hidden,
+   visible:document.getElementById('acEvTwoSimHint')?.checkVisibility(),
+   buttons:[...document.querySelectorAll('#serviceButtons button')].map(b=>({tier:b.dataset.tier,on:b.classList.contains('on')}))
+ }));
+ console.log('PROSPECTIVE TWO SIMS '+JSON.stringify(prospectiveHint));
  assert(await page.locator('#acEvTwoSimHint').isVisible(),'Two-SIM hint also shown for customers considering EV at +2');
  const prospectLayout=await page.evaluate(()=>({
    footer:document.getElementById('acV2482Vat')?.parentNode?.className,
