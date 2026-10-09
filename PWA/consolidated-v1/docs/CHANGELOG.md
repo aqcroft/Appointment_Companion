@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.55.5 - 9th October 2026
+
+- Fixed an excessive Economy 7 overnight allocation for existing EV owners: the converter now allows for 2 extra hours of off-peak usage by transferring a capped 5% of inferred household electricity, independently of the prospective-EV Economy 7 slider.
+- A supplied 4,800 kWh overnight / 2,275 kWh daytime becomes approximately 4,926 kWh overnight / 2,149 kWh daytime on E7, always retaining 7,075 kWh in total, even if a prior estimate used 70% overnight.
+- The existing-EV mode hides the petrol/diesel comparison shortcut and dismisses its modal when switching to this mode.
+- Added small theme-colour highlights to tariff details, VAT and usage sections, retaining the blue/red Partner and matched purple customer palettes.
+- Preserved the working sharing links, EV hero geometry, tariffs, rate feed and Cloud customer data.
+
+
 ## v2.55.4 - 9th October 2026
 
 - Reduced the petrol/diesel comparison shortcut and placed it in the upper-right of the hero, next to the EV situation badge.
