@@ -1,0 +1,26 @@
+name: EV shared link browser smoke
+
+on:
+  push:
+    branches:
+      - test/ev-share-smoke-20261009
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependency
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Smoke test both personalised EV link formats
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ev-smoke-http.log 2>&1 &
+          sleep 2
+          node PWA/consolidated-v1/tests/ev-share-smoke.cjs
