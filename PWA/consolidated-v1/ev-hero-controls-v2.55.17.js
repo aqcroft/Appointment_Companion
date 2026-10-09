@@ -30,6 +30,9 @@
    'html.shared-view #acEvHeroVatSlot #acV2482Vat .ac-v2482-vat-switch button{border:0!important;border-radius:7px!important;background:transparent!important;color:#fff!important;font-size:10px!important;font-weight:750!important;line-height:1.2!important;min-height:24px!important;padding:4px 7px!important;white-space:nowrap!important;box-shadow:none!important}',
    'html.shared-view #acEvHeroVatSlot #acV2482Vat .ac-v2482-vat-switch button.on{background:#fff!important;color:#46316c!important;font-weight:900!important;box-shadow:0 1px 3px #26123b26!important}',
    'html.shared-view #acEvHeroVatSlot #acEvVatNote{display:none!important}',
+   'html.shared-view body .hero[data-v16c-layout="1"] .hero-footer-v16c>#periodToggle,html.shared-view #acEvHeroVatSlot #acV2482Vat .ac-v2482-vat-switch{width:108px!important;min-width:108px!important;max-width:108px!important;height:34px!important;min-height:34px!important;box-sizing:border-box!important;display:flex!important;align-items:stretch!important;justify-content:center!important;gap:1px!important;padding:3px!important;border-radius:9px!important;background:rgba(255,255,255,.19)!important}',
+   'html.shared-view body .hero[data-v16c-layout="1"] .hero-footer-v16c>#periodToggle button,html.shared-view #acEvHeroVatSlot #acV2482Vat .ac-v2482-vat-switch button{flex:1 1 50%!important;min-width:0!important;width:50%!important;height:28px!important;min-height:28px!important;max-height:28px!important;box-sizing:border-box!important;margin:0!important;padding:2px 1px!important;font:800 11px/1.1 system-ui!important;border-radius:7px!important;text-align:center!important}',
+   'html.shared-view #acEvServiceValueCopy .ac-ev-hint-second{display:block!important;margin-top:1px!important}',
    'html.shared-view .ac-ev-service-value-hint{display:flex!important;align-items:flex-start!important;gap:8px!important;padding:3px 4px!important;margin:6px 0 8px!important;font:650 12px/1.38 system-ui!important;color:#604687!important}',
    'html.shared-view .ac-ev-service-value-hint .ac-ev-lightbulb{flex:0 0 auto!important;font-size:17px!important;line-height:1.1!important}',
    '@media(max-width:380px){html.shared-view body .hero[data-v16c-layout="1"] .hero-footer-v16c{column-gap:4px!important}html.shared-view #acEvHeroVatSlot #acV2482Vat .ac-v2482-vat-switch button{font-size:9px!important;padding:4px 6px!important}.ac-ev-service-value-hint{font-size:11px!important}}'
@@ -52,9 +55,18 @@
   var hint=$('acEvServiceValueHint'),copy=$('acEvServiceValueCopy');
   if(copy){
    var hasGas=$('dualFuel')&&$('dualFuel').checked;
-   copy.textContent=t===2?
-    ('+2 services could be two £6 mobile SIMs'+(hasGas?' - and reduces your gas costs too.':'.')):
-    (t===1?'Add 1 more service to unlock the best EV rates.':'Add 2 other services to unlock the best EV rates.');
+   copy.textContent='';
+   if(t===2){
+    var first=doc.createElement('span');first.textContent='+2 services could be two £6 mobile SIMs';
+    copy.appendChild(first);
+    if(hasGas){
+     var second=doc.createElement('span');second.className='ac-ev-hint-second';
+     second.textContent='- and reduce your gas bill too.';
+     copy.appendChild(second);
+    }else first.textContent+='.';
+   }else{
+    copy.textContent=t===1?'Add 1 more service to unlock the best EV rates.':'Add 2 other services to unlock the best EV rates.';
+   }
   }
   if(hint)hint.hidden=false;
  }
