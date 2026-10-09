@@ -282,6 +282,9 @@
   function install() {
     if (!document.body || !document.querySelector('.wrap')) return false;
     addStyles();addProfile();customerSetup();
+    // A portable link may finish rendering before the contact script loads.
+    // Recover that already-computed model, then continue tracking changes.
+    if(global.__AC_EV_TRADEOFF)updateFromModel(global.__AC_EV_TRADEOFF);
     return true;
   }
   document.addEventListener('ac:ev-comparison',function(e){updateFromModel(e.detail)});
