@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.54.3 - 9th October 2026
+
+- Reworked the EV shared welcome into a compact, teal, phone-friendly summary with an overnight/daytime/total usage split for meter-based shares.
+- Restored essential assumption notes for estimated shares, covering mileage, household use, EV efficiency, home overnight usage and charging away from home.
+- Changed cloud EV share opening to read the saved customer settings first, then start the EV engine from a working customer button.
+- Added an explicit timeout, visible retry message and core-loaded/error events so a slow or failing cloud read does not leave a dead button.
+- Left-aligned the second hero controls row to match the hero layout, without changing tariff calculations.
+- Incremented the app and EV version, and refreshed script and PWA cache tokens.
+
+
 ## v2.46.3 - 4th October 2026
 
 - Corrected the Should I Fix Tracker comparison for the 1st October cap and tariff change.
