@@ -136,6 +136,25 @@
       '.ac-ev-save-chip{display:inline-block;background:#ffbe2f;color:#3a2a0c;border-radius:4px;padding:2px 7px;font-weight:850}',
       '.ac-ev-basket-actions{margin-top:10px!important;gap:7px!important}',
       '.ac-ev-basket-actions a{padding:11px!important}',
+      '.ac-ev-basket-sheet{max-width:440px!important;padding:18px 15px!important}',
+      '.ac-ev-basket-sheet h2{font-size:18px!important;margin:0 0 7px!important}',
+      '.ac-ev-basket-sheet>p{font-size:12px!important;line-height:1.4!important;margin:7px 0!important}',
+      '.ac-ev-basket-sheet .ac-ev-basket-note{font-size:10px!important;margin:7px 0!important;color:#81758b!important}',
+      '.ac-ev-basket-journey{margin:12px 0 10px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:7px!important}',
+      '.ac-ev-basket-journey>div{padding:12px 6px!important}',
+      '.ac-ev-basket-journey>div:last-child{background:#edf7f1!important;border-color:#addbc0!important}',
+      '.ac-ev-basket-journey>div:last-child strong{color:#14683d!important}',
+      '.ac-ev-basket-journey strong{font-size:22px!important;line-height:1.2!important;margin:9px 0 7px!important}',
+      '.ac-ev-basket-journey small{font-size:10px!important;line-height:1.3!important}',
+      '.ac-ev-basket-journey>div:first-child{position:relative}',
+      '.ac-ev-basket-journey>div:first-child:after{content:"→";position:absolute;top:50%;right:-11px;transform:translateY(-50%);z-index:2;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #d9c9e9;color:#73519e;font-size:13px}',
+      '.ac-ev-interest-preview{padding:10px 11px!important;margin:8px 0!important}',
+      '.ac-ev-interest-preview>strong{font-size:13px!important}',
+      '.ac-ev-interest-choice{border:1px solid #d5c5e6;border-radius:8px;padding:8px;background:#fff;align-items:flex-start!important;font-size:11px!important}',
+      '.ac-ev-interest-tick{flex:0 0 19px!important;width:19px!important;height:19px!important}',
+      '.ac-ev-interest-preview small{font-size:11px!important;color:#534466!important;line-height:1.35}',
+      '.ac-ev-basket-actions{margin-top:9px!important}',
+      '@media(max-width:370px){.ac-ev-basket-sheet{padding:13px 12px!important}.ac-ev-basket-journey strong{font-size:19px!important}}',
       '.ac-ev-basket-note{font-size:10px!important;line-height:1.35!important}',
 
       'html.shared-view .ac-ev-rate-vat-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:7px!important;margin:2px 0 8px!important;position:relative!important;z-index:5!important;width:100%!important;min-width:0!important}',
@@ -195,18 +214,15 @@
     panel.setAttribute('role','presentation');
     var sheet=document.createElement('div');sheet.className='ac-ev-basket-sheet';
     sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','acEvBasketTitle');
-    sheet.innerHTML='<h2 id="acEvBasketTitle">A quick heads-up about your UW quote</h2>'+
-      '<p id="acEvBasketIntro">Your UW basket starts with standard variable electricity. You can register interest in the EV tariff as you join.</p>'+
+    sheet.innerHTML='<h2 id="acEvBasketTitle">One thing to look out for</h2>'+
+      '<p id="acEvBasketIntro">Your UW quote starts on standard electricity. Once your smart meter is ready, UW can confirm your EV tariff options.</p>'+
       '<div id="acEvBasketFigures"></div>'+
-      '<div class="ac-ev-uw-quote-preview" aria-label="Preview of the UW variable electricity tariff breakdown">'+
-        '<div class="ac-ev-uw-quote-top"><strong>Variable tariff breakdown</strong><span>Electricity</span></div>'+
-        '<div id="acEvUwPreviewRates" class="ac-ev-uw-quote-grid"></div>'+
-      '</div>'+
-      '<div class="ac-ev-interest-preview"><strong>🚗 Look out for Electric Vehicle Tariff</strong>'+
+      '<div class="ac-ev-interest-preview" aria-label="Illustration of the EV interest choice on the UW sign-up screen">'+
+        '<strong>☑ Tick the EV interest box</strong>'+
         '<div class="ac-ev-interest-choice"><span class="ac-ev-interest-tick" aria-hidden="true">✓</span><span>Email me with more information about your Electric Vehicle Tariff</span></div>'+
-        '<small>If this option appears, make sure it is ticked and tap <span class="ac-ev-save-chip">Save</span>.</small>'+
+        '<small>Look for this on the UW screen, tick it and tap <span class="ac-ev-save-chip">Save</span>.</small>'+
       '</div>'+
-      '<p class="ac-ev-basket-note">Estimates use the same electricity consumption and current 0% VAT. EV rates require eligibility and may change. Your UW quote may include other services.</p>'+
+      '<p class="ac-ev-basket-note">The EV cost is an estimate, subject to eligibility, smart meter communication and the tariff available when you switch.</p>'+
       '<div class="ac-ev-basket-actions"><a id="acEvBasketContinue" href="'+safeEsc(link)+'" target="_blank" rel="noopener noreferrer">Continue to my UW '+(basket()?'basket':'quote')+' →</a><button type="button" id="acEvBasketClose">Back to comparison</button></div>';
     panel.appendChild(sheet);document.body.appendChild(panel);
     function close(){panel.remove();if(dialogReturnFocus&&dialogReturnFocus.focus)dialogReturnFocus.focus();}
@@ -220,47 +236,22 @@
     var host=document.getElementById('acEvBasketFigures');if(!host)return;
     var d=lastModel, std=d&&d.standard,ev=d&&d.ev;
     if(!std||!ev||!Number.isFinite(std.total)||!Number.isFinite(ev.total)){
-      host.textContent='Your personalised electricity prices will appear once the current UW rates are available.';
+      host.textContent='Your estimated costs will appear once the latest electricity rates are available.';
       return;
     }
-    // The customer's initial UW basket shows standard variable electricity before the
-    // dual fuel discount. The live EV calculator already deducts that discount (where
-    // gas is selected), so reverse it ONLY for the initial basket comparison number.
-    // The UW basket currently quotes electricity at 0% VAT, even when the calculator
-    // is showing the long-term 5% benchmark. This bridge therefore always uses 0%.
+    // UW's initial quote uses standard variable electricity before its dual-fuel
+    // discount, at 0% VAT. The existing EV total already includes that discount.
     var vatFactor=Number(d.vatPercent)===5?1.05:1;
     var dual=d.dualFuelSelected===true;
     var discountAnnual=Math.max(0,Number(d.standardDualFuelDiscountExVatAnnual)||0);
     var basketAnnual=std.total/vatFactor+(dual?discountAnnual:0);
-    var evAnnual=ev.total/vatFactor; // EV's dual fuel discount is already included.
-    function monthlyPence(annual){
-      return Number.isFinite(annual)?'£'+(annual/12).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
-    }
-    var intro=document.getElementById('acEvBasketIntro');
-    if(intro)intro.innerHTML=dual?
-      'Your UW quote starts on <strong>standard variable electricity</strong>, before the dual fuel discount. The EV estimate includes it.':
-      'Your UW quote starts on <strong>standard variable electricity</strong>. These figures reflect your settings without a dual fuel discount.';
-    host.innerHTML='<div class="ac-ev-basket-compare"><div><small>Initial UW basket<br>standard variable</small><strong>'+monthlyPence(basketAnnual)+'</strong><small>per month</small></div>'+
-      '<div><small>Estimated EV tariff'+(dual?'<br>with dual fuel discount':'')+'</small><strong>'+money(evAnnual/12)+'</strong><small>per month</small></div></div>'+
-      (basketAnnual>evAnnual?'<div class="ac-ev-basket-difference">'+money((basketAnnual-evAnnual)/12)+'/month below the initial UW basket estimate</div>':'');
-    // Present the same recognisable tariff fields the customer will encounter
-    // in UW's breakdown. These are read from live regional tariff data, never
-    // hard-coded from the example screenshot.
-    var preview=document.getElementById('acEvUwPreviewRates');
-    if(preview){
-      function safeNumber(n){return typeof n==='number'&&Number.isFinite(n)?n:null}
-      function decimals(n,digits){var num=safeNumber(n);return num===null?'—':num.toLocaleString('en-GB',{minimumFractionDigits:digits,maximumFractionDigits:digits})}
-      var unit=safeNumber(d.standardUnitRateExVatP),sc=safeNumber(d.standardStandingChargeExVatP);
-      var usage=safeNumber(d.standardAnnualKwh);
-      var pairs=[
-        ['Tariff',d.standardName||'Standard variable'],
-        ['Annual electricity',usage===null?'—':Math.round(usage).toLocaleString('en-GB')+' kWh'],
-        ['Annual estimate', '£'+basketAnnual.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})],
-        ['Unit rate',unit===null?'—':decimals(unit,3)+'p/kWh'],
-        ['Daily standing charge',sc===null?'—':decimals(sc,2)+'p/day']
-      ];
-      preview.innerHTML=pairs.map(function(pair){return '<div><span>'+safeEsc(pair[0])+'</span><b>'+safeEsc(pair[1])+'</b></div>'}).join('');
-    }
+    var evAnnual=ev.total/vatFactor;
+    function monthly(n){return Number.isFinite(n)?'£'+Math.round(n/12).toLocaleString('en-GB'):'—'}
+    function monthlyPence(n){return Number.isFinite(n)?'£'+(n/12).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
+    host.innerHTML='<div class="ac-ev-basket-compare ac-ev-basket-journey">'+
+      '<div><small>1. Your UW quote starts at</small><strong>'+monthlyPence(basketAnnual)+'</strong><small>/month on standard electricity</small></div>'+
+      '<div><small>2. Estimated EV tariff</small><strong>'+monthly(evAnnual)+'</strong><small>/month once eligible</small></div>'+
+      '</div>';
   }
   function cardSettings(){
     if(document.getElementById('acEvCustomerSettings'))return true;
