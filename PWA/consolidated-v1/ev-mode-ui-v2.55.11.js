@@ -121,7 +121,7 @@ function apply(){
   if(!hint){
    hint=doc.createElement('div');
    hint.id='acEvTwoSimHint';hint.className='ac-ev-two-sim-hint';
-   hint.textContent='💡 +2 services could be two £6 mobile SIMs - and may reduce your gas costs too.';
+   hint.textContent='💡 +2 services could be two £6 mobile SIMs - and reduces your gas costs too.';
    footer.appendChild(hint);
   }
   const selected=hero.querySelector('#serviceButtons button.on[data-tier]');
