@@ -176,12 +176,12 @@ function startCompanion(payload){
   loadScript('tariff-cache-v1.js?v=20260910-feedback1').catch(function(err){
     console.warn('EV tariff cache helper unavailable:',err);
   });
-  loadScript('consolidated-v1/ev-engine-v2.55.2.js?v=20261009-v2.55.2-e7view1').then(function(){
+  loadScript('consolidated-v1/ev-engine-v2.55.2.js?v=20261009-v2.55.3-modeshare1').then(function(){
     if(payload)applyPayload(payload);
     document.dispatchEvent(new CustomEvent('ac:ev-core-ready'));
     return loadScript('v16b-hero.js').catch(function(err){console.warn('EV hero enhancement unavailable:',err)});
   }).then(function(){
-    return loadScript('consolidated-v1/ev-table-v2.55.2.js?v=20261009-v2.55.2-launch1').catch(function(err){console.warn('EV table enhancement unavailable:',err)});
+    return loadScript('consolidated-v1/ev-table-v2.55.1.js?v=20261009-v2.55.3-modeshare1').catch(function(err){console.warn('EV table enhancement unavailable:',err)});
   }).then(function(){
     return loadScript('v15-freshness.js?v=20260910-feedback1').catch(function(err){console.warn('EV freshness enhancement unavailable:',err)});
   }).catch(function(err){
