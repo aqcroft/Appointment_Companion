@@ -1,5 +1,17 @@
 # Appointment Companion changelog
 
+## v2.55.6 - 9th October 2026
+
+- Customer-shared EV pages now lead with the three electricity estimate cards, keeping detailed figures/settings collapsed behind a cog.
+- Added a gentle optional fixed-vs-variable Economy 7 comparison; the full UW tariff matrix is available through a second disclosure. Partner table stays open.
+- Moved the former lengthy sign-up explanation into an intercepting pre-basket dialog with dynamic monthly estimates for the standard variable and EV electricity tariffs, calculated from the existing model at the same usage, region and service tier. No invented prices when tariffs are missing.
+- Simplified the welcome basket assumptions to three lines and reduced the repeated greeting.
+- Clarified temporary 0% electricity VAT, dated 1 October 2026 to 31 March 2027, with 5% default retained for longer-term comparison.
+- Forecast information now explains the approximate 21% January 2027 Price Cap forecast, links to MoneySavingExpert, and clearly distinguishes a possible UW rate increase.
+- Highlighted the lowest estimate tile in green and updated the short caveat.
+- Underlying tariff calculations, data feed, PWA customer profiles and personalised sharing remain untouched.
+
+
 ## v2.55.5 - 9th October 2026
 
 - Fixed an excessive Economy 7 overnight allocation for existing EV owners: the converter now allows for 2 extra hours of off-peak usage by transferring a capped 5% of inferred household electricity, independently of the prospective-EV Economy 7 slider.
