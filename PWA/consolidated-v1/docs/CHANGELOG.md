@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.54.4 - 9th October 2026
+
+- Put day, night and total icons above their centred labels and kWh figures on shared EV welcome cards.
+- Reformatted the UW service/basket and VAT notes as clear bullets; retained the live tariff check note.
+- Changed the Cloud EV shared-button behaviour to show the calculator immediately and load the model and personalised assumptions behind a visible status.
+- Added an explicit retry action for failed core or tariff loading, so customers are not trapped on an unresponsive welcome panel.
+- Preserved the portable sharing route and all EV cost calculations unchanged.
+- Incremented app and EV versions and updated the PWA cache and script references.
+
+
 ## v2.54.3 - 9th October 2026
 
 - Reworked the EV shared welcome into a compact, teal, phone-friendly summary with an overnight/daytime/total usage split for meter-based shares.
