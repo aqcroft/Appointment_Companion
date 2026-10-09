@@ -141,6 +141,11 @@ function apply(){
 }
 doc.addEventListener('ac:ev-comparison',apply);
 doc.addEventListener('ac:ev-mode-change',apply);
+doc.addEventListener('ac:ev-core-ready',function(){
+ // Shared EV calculator starts only after tapping the opening card.
+ // The hero/footer enhancer loads afterwards, so re-apply as its DOM arrives.
+ [40,160,400,900].forEach(ms=>setTimeout(apply,ms));
+});
  // Some versions update the selected tier immediately after the click event.
 doc.addEventListener('click',function(e){
  if(e.target.closest('#serviceButtons button[data-tier]'))global.requestAnimationFrame(apply);
