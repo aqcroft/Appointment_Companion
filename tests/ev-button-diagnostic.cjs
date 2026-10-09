@@ -6,9 +6,21 @@ function delay(ms){return new Promise(r=>setTimeout(r,ms))}
 async function exercise(browser,cloud){
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  // Isolation trial: disable mutation callbacks to detect an infinite DOM observer loop.
- await page.addInitScript(() => { window.MutationObserver = class {observe(){} disconnect(){} takeRecords(){return []}}; });
+ await page.addInitScript(() => {
+   const Native=window.MutationObserver;
+   window.MutationObserver=class {
+     constructor(callback){this.observer=new Native(callback)}
+     observe(target,options){
+       // Only suppress the hero-subtree observer; allow normal DOM observers.
+       if(target && target.classList && target.classList.contains('hero'))return;
+       this.observer.observe(target,options)
+     }
+     disconnect(){this.observer.disconnect()}
+     takeRecords(){return this.observer.takeRecords()}
+   };
+ });
  const errors=[],badrequests=[];
- page.on('pageerror',e=>errors.push(e.message));
+ page.on('pageerror',e=>errors.push(e.stack||e.message));
  page.on('requestfailed',r=>badrequests.push(r.url()+' '+r.failure()?.errorText));
  page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text())});
  // Do not allow production cloud storage to be accessed.
