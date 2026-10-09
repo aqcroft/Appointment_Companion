@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.55.8-layout1';
+      var version = '20261009-v2.55.9-ratevat1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var portableShared = /^p2=/.test(location.hash.slice(1));
@@ -102,13 +102,13 @@
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
-      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.55.8</title>');
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.55.9</title>');
       // The original donor welcome has three oversized stacked emojis. Set a
       // single neutral icon even when a slow Cloud lookup has not finished.
       html = html.replace('<div class="personal-splash-icon">🚙  🔌  🏠</div>', '<div class="personal-splash-icon">🚗</div>');
       html = html.replace('<meta name="theme-color" content="#7a42c8">', '<meta name="theme-color" content="#00877b">');
       html = html.replace('if (/^p=/.test(location.hash.slice(1)))', 'if (/^(?:p|p2)=/.test(location.hash.slice(1)))');
-      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-sharing-v2.55.8.js?v=' + version);
+      html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-sharing-v2.55.9.js?v=' + version);
       html = html.replace(/<head>/i, '<head><base href="../../"><script>window.__AC_LOCAL_FIRST=true;window.__AC_CONSOLIDATED_V1=true;window.__AC_LOCAL_ONLY=' + (localOnly ? 'true' : 'false') + ';<\/script><script src="consolidated-v1/tariff-fetch-v1.js?v=' + version + '"><\/script>');
       html = html.replace(/href="manifest\.webmanifest"/i, 'href="consolidated-v1/manifest.webmanifest"');
       // Same customer welcome UI for portable #p2 and Cloud token links.
@@ -117,7 +117,7 @@
       var common = '<script src="../cloud-client-v1.js?v=' + version + '"><\/script><script src="cloud/companion-bridge-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/share-policy-v2.55.0.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-share-v1.js?v=' + version + '"><\/script>';
       var inject = '';
       if (shared) {
-        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-share-view-v2.55.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-customer-contact-v2.55.8.js?v=' + version + '"><\/script><script src="consolidated-v1/public-partner-branding-v1.js?v=' + version + '"><\/script>';
+        inject = '<script>document.documentElement.classList.add("shared-view");<\/script>' + common + '<script src="consolidated-v1/ev-share-view-v2.55.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-customer-contact-v2.55.9.js?v=' + version + '"><\/script><script src="consolidated-v1/public-partner-branding-v1.js?v=' + version + '"><\/script>';
       } else if (linked) {
         inject = '<script>document.body.dataset.companionTool="ev";<\/script>' + common + '<script src="consolidated-v1/local-customer-store-v2.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-bridge-v2.55.0.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-adapter-v2.55.3.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-share-compat-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/ev-return-v1.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-context-nav-v1.js?v=' + version + '"><\/script>';
       }
@@ -132,7 +132,7 @@
       inject += '<script src="consolidated-v1/ev-forecast-help-v2.55.6.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-usage-origin-v2.55.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-mode-ui-v2.55.5.js?v=' + version + '"><\/script>';
-      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.8.js?v=' + version + '"><\/script>';
+      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.9.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
