@@ -42,6 +42,7 @@
       '.ac-ev-contact-route.whatsapp{color:#128c7e}.ac-ev-contact-route svg{width:20px;height:20px;flex:0 0 auto}',
       '.ac-ev-profile-action{justify-content:flex-start;padding:10px 11px;margin-top:6px;font-size:.78rem}.ac-ev-profile-action.quote{background:linear-gradient(135deg,#7a42c8,#26164f);color:#fff;border-color:transparent}',
       '.ac-ev-profile-site{text-align:center;font-size:.68rem;font-weight:800;margin-top:9px}.ac-ev-profile-site a{color:#7a42c8}.ac-ev-profile-closehint{font-size:.62rem;color:#968da4;text-align:center;margin-top:4px}',
+      'html.shared-view .ac-ev-profile{pointer-events:none!important}html.shared-view .ac-ev-profile-photo,html.shared-view .ac-ev-profile.open .ac-ev-profile-card{pointer-events:auto!important}',
       '.ac-ev-conversion{background:linear-gradient(135deg,#f3ecfc,#fff);border:1px solid rgba(122,66,200,.24);border-radius:16px;padding:17px 16px;margin:16px 0 0;text-align:center;color:#26164f}',
       '.ac-ev-conversion h2{margin:0 0 5px;font-size:18px;color:#26164f}.ac-ev-conversion p{margin:0;color:#6b6277;font-size:.86rem;font-weight:650}',
       '.ac-ev-cta{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:12px 14px;border-radius:11px;background:#7a42c8;color:#fff!important;text-decoration:none;font-weight:850;font-size:14px}',
