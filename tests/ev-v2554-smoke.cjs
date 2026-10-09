@@ -136,6 +136,23 @@ async function partnerPalette(browser){
  console.log('PARTNER CONSIDERING',JSON.stringify(before));
  assert(before.palette.includes('199, 104, 117'),'Red Partner mode');
  assert(before.badge.includes('Considering an EV'),'Prospective mode label');
+ await page.evaluate(()=>document.querySelector('.ac-ev-fuel-button')?.click());
+ await wait(150);
+ assert(await page.evaluate(()=>document.querySelector('#acEvFuelModal')?.classList.contains('open')),'Compact petrol button still opens comparison modal');
+ await page.evaluate(()=>document.querySelector('#acEvFuelClose')?.click());
+ await page.evaluate(()=>{
+  document.querySelector('#serviceButtons button[data-tier="1"]')?.click();
+  document.querySelector('#periodToggle button[data-period="year"]')?.click();
+ });
+ await wait(180);
+ const changed=await page.evaluate(()=>({
+  tier:document.querySelector('#serviceButtons button.on')?.dataset.tier,
+  period:document.querySelector('#periodToggle button.on')?.dataset.period
+ }));
+ assert.deepEqual(changed,{tier:'1',period:'year'},'Moved service and annual controls still work');
+ const rearranged=await timed(page.evaluate(inspectHeroGeometry),6500);
+ assertHeroGeometry(rearranged,'Partner after selecting +1 and Yearly');
+
  const pre=await page.evaluate(()=>({
   settingsControl:!!document.querySelector('#acV250Modal .ac-v250-body #acEvChangeSituation'),
   mainToggleHidden:getComputedStyle(document.querySelector('#acMeterModeCard>.ac-meter-choices')).display==='none'
