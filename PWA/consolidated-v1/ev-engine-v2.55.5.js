@@ -241,6 +241,11 @@ function render(){
     standardStandingChargeExVatP:(pack(m,t,'variable')||{}).sc,
     standardAnnualKwh:std?std.peakKwh+std.offKwh:null,
     evDualFuelDiscountExVatAnnual:(pack(m,t,'ev')||{}).discount||0,
+    // Raw pence-per-kWh and pence-per-day inputs from the same tariff used
+    // to calculate the hero. Exposed only for tappable rate transparency.
+    evPeakRateExVatP:er&&Number.isFinite(er.day)?er.day:null,
+    evOffPeakRateExVatP:er&&Number.isFinite(er.night)?er.night:null,
+    evStandingChargeExVatP:er&&Number.isFinite(er.sc)?er.sc:null,
     economy7:e7?{car:e7.car,home:e7.home,total:e7.total,overnightCost:e7.offpeakCost,daytimeCost:e7.peakCost}:null,
     // Exact annual scenario totals for colour-only highlighting in the two-card comparison.
     // The displayed numbers remain rounded by the existing table formatter.
