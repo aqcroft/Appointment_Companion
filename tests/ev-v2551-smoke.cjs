@@ -38,7 +38,38 @@ async function run(browser,cloud){
  assert.equal(controls.day,'2275');
  assert.equal(controls.night,'4800');
  console.log('ERRORS '+JSON.stringify(errors.slice(0,4)));
+ assert.equal(errors.length,0,'No uncaught JavaScript errors after opening the shared calculator');
  console.log((cloud?'CLOUD':'PORTABLE')+' SUCCESS');
  await page.close({runBeforeUnload:false});
 }
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
+async function newCustomer(browser){
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ await page.route('https://**/*',r=>r.abort());
+ console.log('START NEW CUSTOMER');
+ await page.goto('http://127.0.0.1:8765/PWA/consolidated-v1/?local=1',{waitUntil:'commit',timeout:10000});
+ await page.locator('#customerName').waitFor({state:'attached',timeout:14000});
+ await page.locator('[data-cloud-action="new-customer"]').waitFor({state:'attached',timeout:14000});
+ await wait(1300);
+ await page.locator('#customerName').fill('Browser Test Customer',{timeout:6000});
+ await page.evaluate(()=>{
+   document.getElementById('cloudActionMenu').click();
+   document.querySelector('[data-cloud-action="new-customer"]').click();
+ });
+ await wait(650);
+ const guard=await timed(page.evaluate(()=>({
+   modal:document.getElementById('acProfileSwitchGuard')?.classList.contains('open'),
+   menu:document.getElementById('cloudMenuPopover')?.classList.contains('open'),
+   name:document.getElementById('customerName')?.value
+ })),6000);
+ console.log('NEW GUARD '+JSON.stringify(guard));
+ assert(guard.modal,'The save-and-close modal must open for edited details');
+ assert.equal(guard.menu,false,'New customer closes the action menu');
+ assert.equal(guard.name,'Browser Test Customer','Previous customer is not discarded before confirmation');
+ await page.evaluate(()=>document.querySelector('[data-switch-choice="stay"]').click());
+ await wait(100);
+ assert.equal(await page.locator('#customerName').inputValue(),'Browser Test Customer','Stay keeps the unsaved customer visible');
+ console.log('NEW CUSTOMER SAFETY SUCCESS');
+ await page.close();
+}
+
+(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true);await newCustomer(browser)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
