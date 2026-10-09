@@ -31,7 +31,7 @@ async function check(browser,cloud){
  await page.waitForFunction(()=>document.querySelectorAll('#comparison tr[data-row]').length>=5,null,{timeout:18000});
  await page.waitForSelector('#acEvFixedDetails', {timeout:12000});
  await page.waitForSelector('#acEvSimpleRates .ac-ev-simple-rate', {state:'attached',timeout:12000});
- await page.waitForSelector('#acV254SourceText',{timeout:12000});
+ await page.waitForSelector('#acV254SourceText',{state:'attached',timeout:12000});
  await page.waitForTimeout(240);
  const before=await page.evaluate(()=>({
   collapsed:!document.getElementById('acEvFixedDetails').open,
