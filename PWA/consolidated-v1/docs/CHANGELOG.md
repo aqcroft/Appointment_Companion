@@ -1,5 +1,20 @@
 # Appointment Companion changelog
 
+## v2.55.0 - 9th October 2026 (draft preview)
+
+- Added a compact usage-source selector for customers who already own an EV.
+- Source defaults to **Estimated Annual Consumption (kWh)** from an energy bill, with one alternative: **Figures from agreed sources**. Older alternative source values map to the latter.
+- The opening modal addresses the Partner: **Does the potential customer already own an EV?** Its choices are phrased in the third person.
+- Source choice is independent of the EV tariff / Economy 7 selector and does not change costs.
+- Portable and Cloud shares now describe the annual figures accurately and preserve the selected source.
+- Linked customer EV profiles persist the source in their specialist state.
+- Legacy shares missing source metadata default to the supplier bill estimate.
+- Unified the personalised launcher across existing and prospective EV customers: the same three Overnight / Daytime / Total kWh/year cards appear for both, with clear source-specific explanatory copy. Prospective EV usage is derived from the existing household and vehicle assumptions, excluding charging away from home.
+- Simplified the launcher: car icon, no redundant usage paragraph or routine tariff-check bullet, and two concise service/VAT bullets.
+- Updated the dynamic basket heading to **Estimated costs based on [selected services] in the UW basket**.
+- The EV script reference for the hero uses the existing working v2.54.3 file rather than the missing v2.54.4 asset.
+
+
 ## v2.54.4 - 9th October 2026
 
 - Put day, night and total icons above their centred labels and kWh figures on shared EV welcome cards.
