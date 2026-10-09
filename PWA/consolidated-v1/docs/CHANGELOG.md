@@ -1,5 +1,16 @@
 # Appointment Companion changelog
 
+## v2.55.0 - 9th October 2026 (draft preview)
+
+- Added a compact usage-source selector for customers who already own an EV.
+- Source defaults to estimated annual day/night electricity consumption from an energy bill. Alternatives are recorded actual consumption over 12 months and a customer-provided estimate.
+- Source choice is independent of the EV tariff / Economy 7 selector and does not change costs.
+- Portable and Cloud shares now describe the annual figures accurately and preserve the selected source.
+- Linked customer EV profiles persist the source in their specialist state.
+- Legacy shares missing source metadata default to the supplier bill estimate.
+- The EV script reference for the hero uses the existing working v2.54.3 file rather than the missing v2.54.4 asset.
+
+
 ## v2.54.4 - 9th October 2026
 
 - Put day, night and total icons above their centred labels and kWh figures on shared EV welcome cards.
