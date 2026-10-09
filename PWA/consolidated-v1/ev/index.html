@@ -136,7 +136,7 @@
       inject += '<script src="consolidated-v1/ev-shared-header-v2.55.16.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-hero-controls-v2.55.17.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-tap-rates-v2.55.19.js?v=' + version + '"><\/script>';
-      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.11.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.55.20.js?v=' + version + '"><\/script>'<script src="consolidated-v1/release-v2.55.21.js?v=' + version + '"><\/script>;
+      if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.11.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.55.20.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.55.21.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
