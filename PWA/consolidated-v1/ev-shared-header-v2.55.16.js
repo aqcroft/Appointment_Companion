@@ -70,6 +70,7 @@
   if(which==='info'){
    para('Prepared for '+(val('welcomeName')||'you'),true);
    para(val('rateStrip').replace(/\s*·\s*5% VAT incl\.?/i,'').replace(/\s*·\s*0% VAT.*$/i,''));
+   para('Electricity VAT: choose 5% for a longer-term comparison or the temporary 0% rate. Both options update the estimated costs.');
    para(val('fixedDetailState')==='⚠️ Check version'?'Check tariff version before using these costs.':'');
    para(val('freshWarning'));
    para('This is a guide, not an official UW quote. Variable prices may change; fixed tariffs can have exit fees.');
