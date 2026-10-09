@@ -13,9 +13,9 @@ async function check(browser,cloud){
  // Deterministic tariff feed verifies prices from calculator, not hard-coded examples.
  const fake={tariffLive:[]};
  for(const [t,suffix] of [[0,'Value'],[1,'Gold'],[2,'Double Gold']]){
-   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'variable_ev',tariff_name:'EV '+suffix,EDSC_Std:52,EUR_EV_Peak:30,EUR_EV_OffPeak:8,EUR_Std:30,EDSC_E7:52,EUR_E7_Day:30,EUR_E7_Night:8});
-   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'variable',tariff_name:suffix,EDSC_Std:52,EUR_Std:32,EDSC_E7:52,EUR_E7_Day:35,EUR_E7_Night:18});
-   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'fixed',tariff_name:t===2?'Fixed Saver':t===1?'Fixed':'Fixed Start',EDSC_Std:50,EUR_Std:30,EDSC_E7:50,EUR_E7_Day:31,EUR_E7_Night:15});
+   fake.tariffLive.push({region_no:11,payment_method:'dd',valid_from:'2026-10-01',tariff_type:'variable_ev',tariff_name:'EV '+suffix,EDSC_Std:52,EUR_EV_Peak:30,EUR_EV_OffPeak:8,EUR_Std:30,EDSC_E7:52,EUR_E7_Day:30,EUR_E7_Night:8});
+   fake.tariffLive.push({region_no:11,payment_method:'dd',valid_from:'2026-10-01',tariff_type:'variable',tariff_name:suffix,EDSC_Std:52,EUR_Std:32,EDSC_E7:52,EUR_E7_Day:35,EUR_E7_Night:18});
+   fake.tariffLive.push({region_no:11,payment_method:'dd',valid_from:'2026-10-01',tariff_type:'fixed',tariff_name:t===2?'Fixed Saver':t===1?'Fixed':'Fixed Start',EDSC_Std:50,EUR_Std:30,EDSC_E7:50,EUR_E7_Day:31,EUR_E7_Night:15});
  }
  await page.route('https://script.google.com/macros/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fake)}));
  const url=base+(cloud?'?s=test-token&for=customer-sample':'?local=1#p2='+Buffer.from(JSON.stringify(sample)).toString('base64url'));
@@ -89,6 +89,8 @@ async function check(browser,cloud){
   const t=tariff?.getBoundingClientRect(),v=vat?.getBoundingClientRect(),h=hero?.getBoundingClientRect();
   return {
    vatInHero:!!vat&&vat.parentElement===footer,
+   vatParent:vat?.parentElement?.className,
+   footerExists:!!footer,
    vatVisible:!!vat&&vat.checkVisibility(),
    vatButtonCount:vat?.querySelectorAll('button[data-ac-vat]').length,
    aligned:!!t&&!!v&&Math.abs((t.top+t.bottom)/2-(v.top+v.bottom)/2)<18,
