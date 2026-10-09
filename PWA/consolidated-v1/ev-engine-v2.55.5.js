@@ -235,6 +235,11 @@ function render(){
     // the initial UW basket electricity quote can display it before that deduction.
     dualFuelSelected:!!i.dual,
     standardDualFuelDiscountExVatAnnual:(pack(m,t,'variable')||{}).discount||0,
+    // Raw ex-VAT tariff rates and annual electricity use for the UW basket preview.
+    // These only inform the handover display, not the EV or tariff calculations.
+    standardUnitRateExVatP:(pack(m,t,'variable')||{}).day,
+    standardStandingChargeExVatP:(pack(m,t,'variable')||{}).sc,
+    standardAnnualKwh:std?std.peakKwh+std.offKwh:null,
     evDualFuelDiscountExVatAnnual:(pack(m,t,'ev')||{}).discount||0,
     economy7:e7?{car:e7.car,home:e7.home,total:e7.total,overnightCost:e7.offpeakCost,daytimeCost:e7.peakCost}:null,
     standardName:displayName(pack(m,t,'variable'),'variable',t),
