@@ -111,7 +111,7 @@
   }
   var split=usageSplit(data),night=split?Math.round(split.night):null;
   var day=split?Math.round(split.day):null;
-  var total=split?Math.round(split.night+split.day):null;
+  var total=split?night+day:null;
   stat('🌙','Overnight',night===null?'—':fmt(night),'kWh/year');
   stat('☀️','Daytime',day===null?'—':fmt(day),'kWh/year');
   stat('⚡','Total',total===null?'—':fmt(total),'kWh/year');
