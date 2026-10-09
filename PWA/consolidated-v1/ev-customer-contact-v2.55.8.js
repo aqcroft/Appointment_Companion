@@ -242,6 +242,20 @@
     // Reuse the existing VAT controls so their event handlers and explanation survive.
     return true;
   }
+  var layoutObserversStarted=false;
+  function followVatPlacement(){
+    if(layoutObserversStarted||!global.MutationObserver)return;
+    var wrap=document.querySelector('.wrap'),hero=document.querySelector('.hero');
+    if(!wrap||!hero)return;
+    layoutObserversStarted=true;
+    // Other layout modules may insert or relocate the original VAT control after
+    // this customer module initialises. Watch only structural changes, not inputs.
+    var observer=new MutationObserver(function(){moveVatToTariff()});
+    observer.observe(wrap,{childList:true});
+    observer.observe(hero,{childList:true});
+    moveVatToTariff();
+  }
+
   function settingsAfterComparison(){
     var comparison=document.getElementById('acEvFixedDetails');
     var settings=document.getElementById('acEvCustomerSettings');
@@ -326,7 +340,7 @@
   }
   function customerSetup(){
     if(!document.documentElement.classList.contains('shared-view'))return;
-    addStyles();compactGreeting();cardSettings();relocateUsageInputs();addComparison();settingsAfterComparison();moveVatToTariff();compactTariffInformation();
+    addStyles();compactGreeting();cardSettings();relocateUsageInputs();addComparison();settingsAfterComparison();moveVatToTariff();followVatPlacement();compactTariffInformation();
     var b=document.getElementById('acEvConversion');
     if(global.__AppointmentCompanionEvSharedSnapshot&&(!b||!document.getElementById('acEvOpenBasket')))addBottomCard();
     updateSimple();updateForecast();
