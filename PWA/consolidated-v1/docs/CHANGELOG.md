@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.55.1 - 9th October 2026
+
+- Prevented the shared EV launcher from becoming unresponsive by replacing an EV hero layout MutationObserver with bounded polling.
+- Aligned the three secondary hero cost comparison cards to the left.
+- Standardised the three service tiers in EV table headers and detailed tariff breakdowns: Energy only, Energy + 1 service, Energy + 2 services.
+- New customer closes the menu immediately, checks current unsaved form inputs before switching and asks whether to save and close; failed saves keep the current customer open.
+- Bumped EV/main versions and refreshed PWA cache tokens. Tariff rates, costs and Cloud storage contracts unchanged.
+
+
 ## v2.55.0 - 9th October 2026 (draft preview)
 
 - Added a compact usage-source selector for customers who already own an EV.
