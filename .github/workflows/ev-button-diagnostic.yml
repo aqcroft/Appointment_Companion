@@ -1,0 +1,24 @@
+name: EV share button browser diagnostic
+on:
+  push:
+    branches: [test/ev-button-diagnostics-20261009]
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Click both shared-link buttons
+        timeout-minutes: 2
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ev-test-server.log 2>&1 &
+          sleep 2
+          timeout 115s node tests/ev-button-diagnostic.cjs
