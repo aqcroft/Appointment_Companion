@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.55.16-leanlaunch1';
+      var version = '20261009-v2.55.17-herovat1';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var portableShared = /^p2=/.test(location.hash.slice(1));
@@ -134,6 +134,7 @@
       inject += '<script src="consolidated-v1/ev-mode-ui-v2.55.11.js?v=' + version + '"><\/script>';
        inject += '<script src="consolidated-v1/ev-fixed-compare-polish-v2.55.12.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-shared-header-v2.55.16.js?v=' + version + '"><\/script>';
+      inject += '<script src="consolidated-v1/ev-hero-controls-v2.55.17.js?v=' + version + '"><\/script>';
       if (!shared && !portableShared) inject += '<script src="consolidated-v1/release-v2.55.11.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
