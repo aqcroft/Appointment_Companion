@@ -1,5 +1,13 @@
 # Appointment Companion changelog
 
+## v2.55.8 - 9th October 2026
+
+- Compact customer-shared EV page layout: existing 5%/0% VAT selector and its explanation now share the bottom hero row with the EV tariff name, avoiding a separate VAT panel.
+- Condensed the customer-facing status to "EV rates: [quarter] · [region number] [region] · Direct Debit · [VAT] incl", retaining dynamic region, tariff quarter and VAT state.
+- Moved Your figures & settings below the optional fixed/variable comparison for both existing and prospective EV recipients.
+- Preserved Partner layouts, underlying calculations, all customer controls, tariff data feeds and the personalised basket handover.
+
+
 ## v2.55.7 - 9th October 2026
 
 - Removed the customer's EV ownership badge, preserving the Partner-facing indicator and paired colourways.
