@@ -227,6 +227,7 @@ async function prospective(browser){
    buttons:[...document.querySelectorAll('#serviceButtons button')].map(b=>({tier:b.dataset.tier,on:b.classList.contains('on')}))
  }));
  console.log('PROSPECTIVE TWO SIMS '+JSON.stringify(prospectiveHint));
+ await page.waitForFunction(()=>{const h=document.getElementById('acEvTwoSimHint');return !!h&&!h.hidden&&h.checkVisibility()},null,{timeout:6000});
  assert(await page.locator('#acEvTwoSimHint').isVisible(),'Two-SIM hint also shown for customers considering EV at +2');
  const prospectLayout=await page.evaluate(()=>({
    footer:document.getElementById('acV2482Vat')?.parentNode?.className,
