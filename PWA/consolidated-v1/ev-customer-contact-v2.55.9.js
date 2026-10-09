@@ -172,7 +172,8 @@
       'html.shared-view .hero[data-v16c-layout="1"] .hero-footer-v16c>.hero-tariff{grid-column:1/-1!important;grid-row:2!important;min-width:0!important;max-width:100%!important;align-self:start!important;margin:3px 0 0!important;font-size:10px!important}',
       '@media(max-width:380px){html.shared-view .ac-ev-rate-vat-row{gap:5px!important}html.shared-view .ac-ev-rate-vat-row #rateStrip{font-size:9px!important}html.shared-view .ac-ev-rate-vat-row #acV2482Vat .ac-v2482-vat-switch button{font-size:8px!important;padding:4px!important}}',
       '.ac-ev-customer-vat small{display:block;margin-top:4px;font-size:10px}',
-      '@media(max-width:560px){.ac-ev-profile{top:8px;right:8px}.ac-ev-profile-photo{width:47px;height:47px}}'
+      '@media(max-width:560px){.ac-ev-profile{top:8px;right:8px}.ac-ev-profile-photo{width:47px;height:47px}}',
+      '@media(max-width:560px){html.shared-view #acEvConversion{position:relative!important;overflow:visible!important}html.shared-view #acEvConversion #acEvProfile{position:absolute!important;top:11px!important;right:11px!important;bottom:auto!important;left:auto!important;z-index:10020!important;margin:0!important;display:flex!important;align-items:flex-end!important;pointer-events:none!important}html.shared-view #acEvConversion #acEvProfile .ac-ev-profile-photo{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;border-width:2px!important;pointer-events:auto!important}html.shared-view #acEvConversion #acEvProfile .ac-ev-profile-card{position:absolute!important;top:auto!important;bottom:calc(100% + 8px)!important;right:0!important;left:auto!important;z-index:10025!important;width:min(300px,calc(100vw - 35px))!important;box-sizing:border-box!important;text-align:left!important}html.shared-view #acEvConversion h2{padding:0 30px!important}}'
     ].join('');
     document.head.appendChild(st);
   }
@@ -195,7 +196,14 @@
   function priceDisplay(raw){return raw&&Number.isFinite(raw.total)?priceMonth(raw.total):'—'}
   function safeEsc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function addBottomCard() {
-    var old=document.getElementById('acEvConversion');if(old)old.remove();
+    var old=document.getElementById('acEvConversion');
+    if(old){
+      // Preserve the actual clickable profile when refreshing a customer's
+      // basket card, instead of deleting it along with the old card.
+      var existingProfile=old.querySelector('#acEvProfile');
+      if(existingProfile)document.body.appendChild(existingProfile);
+      old.remove();
+    }
     var host=document.querySelector('.wrap')||document.body;
     var card=document.createElement('section');card.id='acEvConversion';card.className='ac-ev-conversion';
     var b=basket(),target=b||PROFILE.quote;
@@ -443,11 +451,28 @@
     var name=document.getElementById('welcomeName');
     x.textContent='Prepared for '+(name&&name.textContent.trim()||'you');
   }
+  function positionContactPhoto(){
+    var profile=document.getElementById('acEvProfile');
+    if(!profile)return;
+    var narrow=!!(global.matchMedia&&global.matchMedia('(max-width:560px)').matches);
+    var host=narrow?document.getElementById('acEvConversion'):document.body;
+    if(host&&profile.parentElement!==host){
+      profile.classList.remove('open');
+      host.appendChild(profile);
+    }
+  }
+  var photoResizePending=false;
+  global.addEventListener('resize',function(){
+    if(photoResizePending)return;
+    photoResizePending=true;
+    global.requestAnimationFrame(function(){photoResizePending=false;positionContactPhoto();});
+  });
   function customerSetup(){
     if(!document.documentElement.classList.contains('shared-view'))return;
     addStyles();compactGreeting();cardSettings();relocateUsageInputs();addComparison();followSettingsCog();moveVatToRateRow();followVatPlacement();compactTariffInformation();
     var b=document.getElementById('acEvConversion');
     if(global.__AppointmentCompanionEvSharedSnapshot&&(!b||!document.getElementById('acEvOpenBasket')))addBottomCard();
+    positionContactPhoto();
     updateSimple();updateForecast();
   }
   function updateFromModel(model){
