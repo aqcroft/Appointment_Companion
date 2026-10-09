@@ -165,10 +165,10 @@
     var sheet=document.createElement('div');sheet.className='ac-ev-basket-sheet';
     sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','acEvBasketTitle');
     sheet.innerHTML='<h2 id="acEvBasketTitle">A quick heads-up about your UW quote</h2>'+
-      '<p>Your initial UW quote uses <strong>standard variable electricity rates</strong>, not the lower overnight EV rates. The electricity estimate may look higher at first.</p>'+
+      '<p id="acEvBasketIntro">Your UW quote starts on <strong>standard variable electricity</strong>. The EV estimate below includes the assumed dual fuel discount.</p>'+
       '<div id="acEvBasketFigures"></div>'+
       '<p>Choose the <strong>EV interest</strong> option when joining, if offered. Once eligible, UW will explain how to switch to the EV tariff.</p>'+
-      '<p class="ac-ev-basket-note">Both estimates use the same annual home and EV electricity usage and selected UW services. The EV tariff is subject to eligibility and may change. Neither figure is a guaranteed Direct Debit amount.</p>'+
+      '<p class="ac-ev-basket-note">Both estimates use the same annual electricity usage and 0% electricity VAT, matching the current UW quote basis. Both tariffs can qualify for a dual fuel discount. EV eligibility and rates may change; these are estimates, not guaranteed Direct Debits.</p>'+
       '<div class="ac-ev-basket-actions"><a id="acEvBasketContinue" href="'+safeEsc(link)+'" target="_blank" rel="noopener noreferrer">Continue to my UW '+(basket()?'basket':'quote')+' →</a><button type="button" id="acEvBasketClose">Back to comparison</button></div>';
     panel.appendChild(sheet);document.body.appendChild(panel);
     function close(){panel.remove();if(dialogReturnFocus&&dialogReturnFocus.focus)dialogReturnFocus.focus();}
@@ -185,9 +185,26 @@
       host.textContent='Your personalised electricity prices will appear once the current UW rates are available.';
       return;
     }
-    host.innerHTML='<div class="ac-ev-basket-compare"><div><small>Initial standard variable<br>electricity estimate</small><strong>'+priceDisplay(std)+'</strong><small>per month</small></div>'+
-      '<div><small>Estimated EV<br>electricity cost</small><strong>'+priceDisplay(ev)+'</strong><small>per month</small></div></div>'+
-      (std.total>ev.total?'<div class="ac-ev-basket-difference">'+money((std.total-ev.total)/12)+'/month less on the EV estimate</div>':'');
+    // The customer's initial UW basket shows standard variable electricity before the
+    // dual fuel discount. The live EV calculator already deducts that discount (where
+    // gas is selected), so reverse it ONLY for the initial basket comparison number.
+    // The UW basket currently quotes electricity at 0% VAT, even when the calculator
+    // is showing the long-term 5% benchmark. This bridge therefore always uses 0%.
+    var vatFactor=Number(d.vatPercent)===5?1.05:1;
+    var dual=d.dualFuelSelected===true;
+    var discountAnnual=Math.max(0,Number(d.standardDualFuelDiscountExVatAnnual)||0);
+    var basketAnnual=std.total/vatFactor+(dual?discountAnnual:0);
+    var evAnnual=ev.total/vatFactor; // EV's dual fuel discount is already included.
+    function monthlyPence(annual){
+      return Number.isFinite(annual)?'£'+(annual/12).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+    }
+    var intro=document.getElementById('acEvBasketIntro');
+    if(intro)intro.innerHTML=dual?
+      'Your UW quote starts on <strong>standard variable electricity</strong>, before the dual fuel discount. The EV estimate includes it.':
+      'Your UW quote starts on <strong>standard variable electricity</strong>. These figures reflect your settings without a dual fuel discount.';
+    host.innerHTML='<div class="ac-ev-basket-compare"><div><small>Initial UW basket<br>standard variable</small><strong>'+monthlyPence(basketAnnual)+'</strong><small>per month</small></div>'+
+      '<div><small>Estimated EV tariff'+(dual?'<br>with dual fuel discount':'')+'</small><strong>'+money(evAnnual/12)+'</strong><small>per month</small></div></div>'+
+      (basketAnnual>evAnnual?'<div class="ac-ev-basket-difference">'+money((basketAnnual-evAnnual)/12)+'/month below the initial UW basket estimate</div>':'');
   }
   function cardSettings(){
     if(document.getElementById('acEvCustomerSettings'))return true;
