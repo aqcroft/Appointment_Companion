@@ -14,6 +14,7 @@
    'html.shared-view #acEvFixedDetails>summary{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;gap:2px 8px!important;align-items:center!important;min-height:0!important;padding:9px 12px!important}',
    'html.shared-view #acEvFixedDetails>summary .ac-ev-fixed-title{display:block!important;grid-column:1!important;grid-row:1!important;font-size:13px!important;line-height:1.22!important;margin:0!important;color:#513777!important}',
    'html.shared-view #acEvFixedDetails>summary .ac-ev-fixed-sub{display:block!important;grid-column:1!important;grid-row:2!important;color:#776c85!important;font-size:10px!important;line-height:1.3!important;margin:0!important}',
+   'html.shared-view #acEvFixedDetails>summary .ac-ev-e7-second{display:block!important;margin-top:1px!important}',
    'html.shared-view #acEvFixedDetails>summary:after{content:"⌄"!important;grid-column:2!important;grid-row:1/span 2!important;align-self:center!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:27px!important;min-width:26px!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:6px!important;font-size:20px!important;color:#7250a0!important}',
    'html.shared-view #acEvFixedDetails[open]>summary:after{content:"⌃"!important}',
    'html.shared-view #acEvFixedDetails[open]>summary{border-bottom:1px solid #eee7f5!important}',
@@ -43,7 +44,16 @@
   var title=outer.querySelector('summary .ac-ev-fixed-title');
   if(title)title.textContent='🛡️ Worried about prices rising? Fixed might be an option';
   var subtitle=outer.querySelector('summary .ac-ev-fixed-sub');
-  if(subtitle)subtitle.textContent='Economy 7 offers 2 extra off-peak hours, but peak rates are typically higher than EV peak rates.';
+  if(subtitle){
+   // Both lines remain in the heading before and after expansion.
+   subtitle.textContent='';
+   var first=document.createElement('span');
+   first.textContent='Economy 7 offers 2 extra off-peak hours,';
+   var second=document.createElement('span');
+   second.className='ac-ev-e7-second';
+   second.textContent='but peak rates are typically higher than EV peak rates.';
+   subtitle.appendChild(first);subtitle.appendChild(second);
+  }
  }
  function updateTariffLink(){
   var more=$('acEvAllTariffs');
