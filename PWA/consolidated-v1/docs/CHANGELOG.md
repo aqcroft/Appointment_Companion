@@ -9,7 +9,8 @@
 - Portable and Cloud shares now describe the annual figures accurately and preserve the selected source.
 - Linked customer EV profiles persist the source in their specialist state.
 - Legacy shares missing source metadata default to the supplier bill estimate.
-- Simplified the personalised EV welcome: car icon, retained the three annual usage cards for existing owners, removed the lengthy explanation and the normal tariff-check line, and tightened the two service/VAT bullets.
+- Unified the personalised launcher across existing and prospective EV customers: the same three Overnight / Daytime / Total kWh/year cards appear for both, with clear source-specific explanatory copy. Prospective EV usage is derived from the existing household and vehicle assumptions, excluding charging away from home.
+- Simplified the launcher: car icon, no redundant usage paragraph or routine tariff-check bullet, and two concise service/VAT bullets.
 - Updated the dynamic basket heading to **Estimated costs based on [selected services] in the UW basket**.
 - The EV script reference for the hero uses the existing working v2.54.3 file rather than the missing v2.54.4 asset.
 

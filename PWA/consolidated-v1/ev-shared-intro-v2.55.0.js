@@ -78,23 +78,43 @@
   var meterDescription=isAgreed?
     'Based on annual day and night electricity figures agreed during your review.':
     'Based on Estimated Annual Consumption (kWh) figures from your electricity bill.';
-  setText('.personal-splash-sub',data.meter?meterDescription:'Based on the home electricity and EV mileage assumptions supplied.');
+  setText('.personal-splash-sub',data.meter?meterDescription:'Estimated annual electricity use, including expected EV charging at home overnight.');
   var original=$('acSharedAssumptions');if(original)original.remove();
   var block=e('section');block.id='acSharedAssumptions';
-  var stats=e('div','ac-v254-welcome-stats'+(data.meter?'':' two'));
+  var stats=e('div','ac-v254-welcome-stats');
   function stat(symbol,label,value,unit){
    var card=e('div','ac-v254-welcome-stat');
    var image=e('span','ac-stat-icon',symbol);image.setAttribute('aria-hidden','true');card.appendChild(image);
    card.appendChild(e('small',null,label));card.appendChild(e('strong',null,value));card.appendChild(e('span',null,unit));stats.appendChild(card);
   }
-  if(data.meter){
-    stat('🌙','Overnight',fmt(data.night),'kWh/year');
-    stat('☀️','Daytime',fmt(data.day),'kWh/year');
-    stat('⚡','Total',fmt((Number(data.night)||0)+(Number(data.day)||0)),'kWh/year');
-  }else{
-    stat('🚙','EV mileage',fmt(data.miles),'miles/year');
-    stat('🏠','Home electricity',fmt(data.home),'kWh/year');
+  // The same three usage cards are used in both EV situations. Existing
+  // owners use the annual day/night figures supplied. Prospective owners
+  // combine assumed home use with anticipated charging at home on the EV
+  // overnight rate; charging away from home is excluded from the home bill.
+  function finiteNonNegative(v){return v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0}
+  function usageSplit(d){
+    if(d.meter){
+      if(!finiteNonNegative(d.day)||!finiteNonNegative(d.night))return null;
+      return{day:Number(d.day),night:Number(d.night)};
+    }
+    if(!finiteNonNegative(d.home)||!finiteNonNegative(d.miles))return null;
+    var efficiency=Number(d.efficiency);
+    var known=finiteNonNegative(d.knownEvKwh)&&Number(d.knownEvKwh)>0?Number(d.knownEvKwh):null;
+    if(known===null&&(!Number.isFinite(efficiency)||efficiency<=0))return null;
+    var car=known===null?Number(d.miles)/efficiency:known;
+    var away=Number.isFinite(Number(d.awayPct))?Math.max(0,Math.min(100,Number(d.awayPct))):0;
+    var homeOff=Number.isFinite(Number(d.homeNightPct))?Math.max(0,Math.min(100,Number(d.homeNightPct))):10;
+    return{
+      night:Number(d.home)*homeOff/100+car*(1-away/100),
+      day:Number(d.home)*(1-homeOff/100)
+    };
   }
+  var split=usageSplit(data),night=split?Math.round(split.night):null;
+  var day=split?Math.round(split.day):null;
+  var total=split?Math.round(split.night+split.day):null;
+  stat('🌙','Overnight',night===null?'—':fmt(night),'kWh/year');
+  stat('☀️','Daytime',day===null?'—':fmt(day),'kWh/year');
+  stat('⚡','Total',total===null?'—':fmt(total),'kWh/year');
   block.appendChild(stats);
   var basket=e('div','ac-v254-welcome-basket');
   var count=Math.max(0,Math.min(2,Number.isFinite(Number(data.tier))?Number(data.tier):2));
@@ -151,5 +171,5 @@
  theme();
  // Even before the cloud snapshot arrives, the fallback icon must never
  // stack the original car/plug/house emojis over the greeting on a phone.
- setText('.personal-splash-icon','⚡');
+ setText('.personal-splash-icon','🚗');
 })(window);

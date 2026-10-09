@@ -338,7 +338,7 @@ function prepareShared(raw){
         day:p.ap,night:p.ao,miles:p.mi,
         home:p.ce?(Number(p.cd)||0)+(Number(p.cn)||0):p.hk,
         tier:p.ti==null?2:p.ti,vat:p.vat,
-        efficiency:p.eo||p.ve,homeNightPct:p.ep,awayPct:p.aw,
+        efficiency:p.eo||p.ve,homeNightPct:p.ep,awayPct:p.aw,knownEvKwh:p.ke,
         usageOrigin:p.uso||'bill_estimate'
       });
     }else{

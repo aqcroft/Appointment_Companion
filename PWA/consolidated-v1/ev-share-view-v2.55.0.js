@@ -41,7 +41,7 @@
       tier:state.uw_services==null?2:Number(state.uw_services)-1,
       vat:state.vat_percent,
       efficiency:state.efficiency_override_mi_kwh||state.vehicle_efficiency_mi_kwh,
-      homeNightPct:state.ev_offpeak_pct,awayPct:state.away_pct,
+      homeNightPct:state.ev_offpeak_pct,awayPct:state.away_pct,knownEvKwh:state.known_ev_kwh,
       usageOrigin:state.usage_origin||'bill_estimate'
     });
   }
@@ -73,7 +73,7 @@
       tier:state.uw_services==null?2:Number(state.uw_services)-1,
       vat:state.vat_percent,
       efficiency:state.efficiency_override_mi_kwh||state.vehicle_efficiency_mi_kwh,
-      homeNightPct:state.ev_offpeak_pct,awayPct:state.away_pct,
+      homeNightPct:state.ev_offpeak_pct,awayPct:state.away_pct,knownEvKwh:state.known_ev_kwh,
       usageOrigin:state.usage_origin||'bill_estimate'
     });
   }
