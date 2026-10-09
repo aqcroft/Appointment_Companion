@@ -65,6 +65,13 @@
       '.ac-ev-customer-settings[open]>summary:after{content:"⌃"}',
       '.ac-ev-customer-settings-body{padding:0 10px 11px}',
       '.ac-ev-customer-settings-body>.card{margin:7px 0!important}',
+      // Shared customer figures live inside the existing header-cog settings dialog.
+      // Hide the staging wrapper while the modal and its original inputs initialise.
+      'html.shared-view .wrap #acEvCustomerSettings{display:none!important}',
+      'html.shared-view #acV250Modal #acEvCustomerSettings{display:block!important;background:transparent!important;border:0!important;border-radius:0!important;margin:0 0 8px!important;overflow:visible!important;padding:0!important}',
+      'html.shared-view #acV250Modal #acEvCustomerSettings .ac-ev-customer-settings-body{padding:0!important}',
+      'html.shared-view #acV250Modal #acEvCustomerSettings .card{margin:7px 0!important}',
+      'html.shared-view #acV250Modal #acEvCustomerSettings .ac-ev-restore{width:100%;box-sizing:border-box;margin:8px 0!important}',
       '.ac-ev-restore{display:block;margin:6px 3px 2px;border:1px solid #ddd1ec;border-radius:9px;background:#fff;color:#59407e;padding:9px;font-weight:750;cursor:pointer}',
       '.ac-ev-fixed-details{margin:16px 0;border:1px solid #e2d5ed;border-radius:14px;overflow:hidden;background:#fff}',
       '.ac-ev-fixed-details>summary{cursor:pointer;list-style:none;padding:15px 14px;color:#46345f}',
@@ -259,10 +266,10 @@
     if(document.getElementById('acEvCustomerSettings'))return true;
     var hero=document.querySelector('.hero'),wrap=document.querySelector('.wrap');
     if(!hero||!wrap)return false;
-    var settings=document.createElement('details');settings.id='acEvCustomerSettings';settings.className='ac-ev-customer-settings';
-    var summary=document.createElement('summary');summary.id='acEvSettingsSummary';summary.textContent='⚙️ Your figures & settings';
+    var settings=document.createElement('div');settings.id='acEvCustomerSettings';settings.className='ac-ev-customer-settings';
+    settings.setAttribute('role','group');settings.setAttribute('aria-label','Your figures and settings');
     var body=document.createElement('div');body.className='ac-ev-customer-settings-body';
-    settings.appendChild(summary);settings.appendChild(body);
+    settings.appendChild(body);
     var cards=Array.from(wrap.children);
     var first=cards.findIndex(function(n){return n===hero});
     var compare=cards.findIndex(function(n){return n.querySelector&&n.querySelector('.tablewrap #comparison')});
@@ -334,12 +341,34 @@
     moveVatToRateRow();
   }
 
-  function settingsAfterComparison(){
-    var comparison=document.getElementById('acEvFixedDetails');
+  function settingsIntoCog(){
     var settings=document.getElementById('acEvCustomerSettings');
-    if(!comparison||!settings)return false;
-    if(comparison.nextElementSibling!==settings)comparison.insertAdjacentElement('afterend',settings);
+    var modal=document.getElementById('acV250Modal');
+    var body=modal&&modal.querySelector('.ac-v250-body');
+    if(!settings||!body)return false;
+    // Move the actual cards and original input elements, never copies, into
+    // the modal which is already opened by the cog in the top-right corner.
+    var firstExisting=body.querySelector('#acV250Night');
+    if(settings.parentElement!==body)body.insertBefore(settings,firstExisting||body.firstChild);
+    var title=document.getElementById('acV250Title');
+    if(title)title.textContent='⚙️ Your figures & settings';
+    var cog=document.getElementById('acV250Gear');
+    if(cog){
+      cog.title='Your figures & settings';
+      cog.setAttribute('aria-label','Open your figures and settings');
+      cog.setAttribute('aria-controls','acV250Modal');
+      cog.setAttribute('aria-haspopup','dialog');
+    }
     return true;
+  }
+  var cogFollowStarted=false;
+  function followSettingsCog(){
+    if(settingsIntoCog()||cogFollowStarted)return;
+    cogFollowStarted=true;
+    var tries=0;
+    var timer=global.setInterval(function(){
+      if(settingsIntoCog()||++tries>=120)global.clearInterval(timer);
+    },120);
   }
 
   function addComparison(){
@@ -418,7 +447,7 @@
   }
   function customerSetup(){
     if(!document.documentElement.classList.contains('shared-view'))return;
-    addStyles();compactGreeting();cardSettings();relocateUsageInputs();addComparison();settingsAfterComparison();moveVatToRateRow();followVatPlacement();compactTariffInformation();
+    addStyles();compactGreeting();cardSettings();relocateUsageInputs();addComparison();followSettingsCog();moveVatToRateRow();followVatPlacement();compactTariffInformation();
     var b=document.getElementById('acEvConversion');
     if(global.__AppointmentCompanionEvSharedSnapshot&&(!b||!document.getElementById('acEvOpenBasket')))addBottomCard();
     updateSimple();updateForecast();
@@ -438,6 +467,7 @@
     global.requestAnimationFrame(customerSetup);
     return true;
   }
+  document.addEventListener('ac:ev-workspace-ready',customerSetup);
   document.addEventListener('ac:ev-comparison',function(e){
     updateFromModel(e.detail);
     // The existing hero/footer and VAT are assembled by later handlers on
