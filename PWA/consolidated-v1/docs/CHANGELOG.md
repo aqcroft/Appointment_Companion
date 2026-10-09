@@ -1,5 +1,13 @@
 # Appointment Companion changelog
 
+## v2.55.9 - 9th October 2026
+
+- Corrected placement of the customer-facing 0%/5% VAT switch. It now sits at the top-right beside the concise EV rates line, *above* the purple savings hero, rather than consuming space inside the hero.
+- Removed the unnecessary extra height from the customer hero, retaining the EV tariff name below the three-card summary and UW service control.
+- The original VAT switch and help pop-up remain active, with tariff calculation and personalised sharing unchanged.
+- Partner-facing screen and previously agreed colours remain unchanged.
+
+
 ## v2.55.8 - 9th October 2026
 
 - Compact customer-shared EV page layout: existing 5%/0% VAT selector and its explanation now share the bottom hero row with the EV tariff name, avoiding a separate VAT panel.
