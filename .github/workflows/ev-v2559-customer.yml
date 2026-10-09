@@ -1,0 +1,22 @@
+name: EV v2.55.9 VAT above hero smoke
+on:
+  push:
+    branches: [main, fix/ev-vat-rate-row-v2559-20261009]
+  workflow_dispatch:
+jobs:
+  customer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install mobile browser test dependencies
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Test customer shares, forecast and basket handover
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ev-server.log 2>&1 &
+          sleep 2
+          timeout 140s node tests/ev-v2559-customer.cjs
