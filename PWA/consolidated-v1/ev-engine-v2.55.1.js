@@ -163,7 +163,11 @@ function renderTable(m,matrix,i){var groups=[{label:'Variable tariffs (change ev
 function renderUsageTiming(i){var evOff=i.home*state.evPct/100,evPeak=i.home-evOff,e7Pct=i.e7Total?i.e7Night/i.e7Total*100:state.e7NightPct;$('usageTimingPanel').hidden=!state.timingOpen;$('usageTimingToggle').setAttribute('aria-expanded',state.timingOpen?'true':'false');$('usageTimingAction').textContent=state.timingOpen?'Done':'Adjust';$('evSplitLabel').textContent=Math.round(state.evPct)+'% off-peak';$('evPeakKwh').textContent=kwh(evPeak);$('evCheapKwh').textContent=kwh(evOff);$('evTimingSlider').value=Math.round(state.evPct);$('e7SplitLabelTop').textContent=Math.round(e7Pct)+'% off-peak';$('e7DayDisplay').textContent=kwh(i.e7Day);$('e7NightDisplay').textContent=kwh(i.e7Night);$('e7TimingSlider').value=Math.round(e7Pct);$('e7TimingSlider').disabled=state.e7Actual;$('e7ActualWrap').hidden=!state.e7Actual;$('e7ActualToggle').textContent=state.e7Actual?'Use percentage estimate':'Use actual bill figures';$('e7TimingHint').textContent=state.e7Actual?'Using the peak/off-peak kWh entered from the bill.':'Defaults to 15% off-peak. *Economy 7 switching times can vary by meter and region, and some meters remain on GMT year-round. Use actual bill figures if known.';if(state.e7Actual){$('e7DayActualInput').value=Math.round(i.e7Day);$('e7NightActualInput').value=Math.round(i.e7Night)}var changed=Math.round(state.evPct)!==10||Math.round(e7Pct)!==15||state.e7Actual;$('usageTimingSummary').textContent=changed?('EV '+Math.round(state.evPct)+'% · E7 '+(state.e7Actual?'actual':Math.round(e7Pct)+'%')):'Default assumptions applied'}
 function render(){
   var m=mapped(),i=assumptions(),matrix=buildBaseMatrix(m,i),t=state.tier,ec=matrix.ev[t],er=pack(m,t,'ev');
-  $('heroCarIcon').textContent=$('heroTotalIcon').textContent=state.icon;
+  // These icon spans can be replaced when the compact hero is enhanced.
+  // Do not let a missing presentation-only icon abort tariff recalculation.
+  var carIcon=$('heroCarIcon'),totalIcon=$('heroTotalIcon');
+  if(carIcon)carIcon.textContent=state.icon;
+  if(totalIcon)totalIcon.textContent=state.icon;
   $('fixedSeries').textContent=series(m);
   $('heroTitle').textContent='Your estimated electricity costs';
   $('heroTariff').textContent=displayName(er,'ev',t);
