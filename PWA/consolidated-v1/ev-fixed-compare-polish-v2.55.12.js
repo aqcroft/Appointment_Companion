@@ -41,9 +41,9 @@
  function updateTitle(){
   if(!outer)return;
   var title=outer.querySelector('summary .ac-ev-fixed-title');
-  if(title)title.textContent='🛡️ Fixed vs variable if prices rise';
+  if(title)title.textContent='🛡️ Worried about prices rising? Fixed might be an option';
   var subtitle=outer.querySelector('summary .ac-ev-fixed-sub');
-  if(subtitle)subtitle.textContent='Economy 7 gives 2 extra off-peak hours, but daytime rates are typically higher than EV rates.';
+  if(subtitle)subtitle.textContent='Economy 7 offers 2 extra off-peak hours, but peak rates are typically higher than EV peak rates.';
  }
  function updateTariffLink(){
   var more=$('acEvAllTariffs');
@@ -76,7 +76,16 @@
   style();
   var scenarios=$('stressButtons');
   if(scenarios)scenarios.setAttribute('aria-label','Illustrative variable electricity price-rise scenarios');
-  outer.addEventListener('toggle',updateTitle);
+  outer.addEventListener('toggle',function(){
+   updateTitle();
+   requestAnimationFrame(refresh);
+  });
+  // Prices can be initially rendered before this presentation module installs.
+  // Refresh the green winner when the original, live cards are redrawn.
+  if(window.MutationObserver){
+   var priceObserver=new MutationObserver(function(){requestAnimationFrame(refresh)});
+   priceObserver.observe(rates,{childList:true});
+  }
   var more=$('acEvAllTariffs');
   if(more)more.addEventListener('toggle',updateTariffLink);
   ready=true;refresh();
