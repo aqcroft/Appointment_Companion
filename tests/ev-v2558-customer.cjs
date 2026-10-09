@@ -120,6 +120,17 @@ async function check(browser,cloud){
  await page.waitForFunction(()=>document.getElementById('rateStrip')?.textContent.includes('5% VAT incl'),null,{timeout:6000});
  assert((await page.locator('#acV2482Vat [data-ac-vat="5"]').getAttribute('aria-pressed'))==='true','Moved 5% VAT control restores default');
 
+ await page.setViewportSize({width:360,height:800});
+ await page.waitForTimeout(80);
+ const narrow=await page.evaluate(()=>{
+   const footer=document.querySelector('.hero-footer-v16c'),t=footer?.querySelector('.hero-tariff')?.getBoundingClientRect(),v=document.getElementById('acV2482Vat')?.getBoundingClientRect(),h=document.querySelector('.hero')?.getBoundingClientRect();
+   return {aligned:!!t&&!!v&&Math.abs((t.top+t.bottom)/2-(v.top+v.bottom)/2)<22,nonOverlap:!!t&&!!v&&t.right<=v.left+2,insideHero:!!h&&!!v&&v.right<=h.right+2};
+ });
+ console.log('NARROW HERO '+JSON.stringify(narrow));
+ assert(narrow.aligned&&narrow.nonOverlap&&narrow.insideHero,'VAT and tariff are usable at 360px width');
+ await page.setViewportSize({width:390,height:844});
+
+
  await page.locator('#acEvCustomerSettings > summary').click();
  const visibleInputs=await page.evaluate(()=>({
   peak:document.querySelector('#acMeterPeak')?.getBoundingClientRect().height,
