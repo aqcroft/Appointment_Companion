@@ -48,7 +48,8 @@
     '.ac-v254-welcome-basket li{font-size:11px;line-height:1.5;color:#5d756e;margin:5px 0;padding-left:2px}',
     '.ac-v254-welcome-basket li::marker{color:#168467}',
     '.ac-v254-welcome-vat{display:block;font-size:11px;line-height:1.4;color:#677872;margin:10px 0 0}',
-    'html.shared-view .personal-splash-live{display:flex;gap:7px;justify-content:flex-start!important;text-align:left!important;max-width:none!important;margin:7px 0 0 13px!important;padding:0!important;background:none!important;border:0!important;color:#66817b!important;font:550 11px/1.4 system-ui!important}',
+    'html.shared-view .personal-splash-live:not(.error){display:none!important}',
+    'html.shared-view .personal-splash-live.error{display:flex!important;gap:7px;justify-content:flex-start!important;text-align:left!important;max-width:none!important;margin:10px 0 0!important;padding:0!important;background:none!important;border:0!important;color:#986129!important;font:650 11px/1.4 system-ui!important}',
     'html.shared-view .personal-splash-live .live-dot{flex:0 0 auto;width:6px!important;height:6px!important;box-shadow:none!important}',
     'html.shared-view .personal-splash-ok{display:block;width:100%!important;min-height:47px;min-width:0!important;margin:16px 0 0!important;background:#00877b!important;color:#fff!important;border-radius:11px!important;box-shadow:none!important;font:800 15px system-ui!important;cursor:pointer}',
     'html.shared-view .personal-splash-ok:focus-visible{outline:3px solid #e3b33a;outline-offset:3px}',
@@ -70,7 +71,7 @@
   var name=String(data.name||'').trim().replace(/\s+/g,' ').slice(0,80)||'there';
   if($('splashName'))$('splashName').textContent=name;
   if($('welcomeName'))$('welcomeName').textContent=name;
-  setText('.personal-splash-icon','⚡');
+  setText('.personal-splash-icon','🚗');
   setText('.personal-splash-copy','Your personalised UW EV electricity comparison');
   var source=String(data.usageOrigin||'bill_estimate');
   var isAgreed=['agreed_sources','actual_12m','customer_estimate'].indexOf(source)>=0;
@@ -95,35 +96,20 @@
     stat('🏠','Home electricity',fmt(data.home),'kWh/year');
   }
   block.appendChild(stats);
-  // The customer should see what makes the estimate personalised, without
-  // claiming to know a home/car split from meter readings.
-  if(data.meter){
-    block.appendChild(e('p','ac-v254-welcome-assumptions','These annual figures describe total household electricity, including home EV charging where covered. The tool uses the day/night split without adding car charging a second time.'));
-  }else{
-    var factors=[];
-    if(Number(data.efficiency)>0)factors.push('Vehicle: '+Number(data.efficiency).toLocaleString('en-GB',{maximumFractionDigits:2})+' miles/kWh');
-    if(data.homeNightPct!==undefined&&data.homeNightPct!==null)factors.push(Number(data.homeNightPct)+'% of household use overnight');
-    if(data.awayPct!==undefined&&data.awayPct!==null)factors.push(Number(data.awayPct)+'% of car charging away from home');
-    if(factors.length)block.appendChild(e('p','ac-v254-welcome-assumptions','Assumptions: '+factors.join(' · ')+'.'));
-  }
   var basket=e('div','ac-v254-welcome-basket');
   var count=Math.max(0,Math.min(2,Number.isFinite(Number(data.tier))?Number(data.tier):2));
-  basket.appendChild(e('strong',null,'Based on '+tierLabel(count)+' in the UW basket'));
+  basket.appendChild(e('strong',null,'Estimated costs based on '+tierLabel(count)+' in the UW basket'));
   var bullets=e('ul');
   function bullet(message){bullets.appendChild(e('li',null,message));}
-  bullet(count===2 ?
-    'UW’s best EV rates are shown for this basket. Compare other service combinations in the tool.' :
-    'You can compare other service combinations and UW EV rates in the tool.');
+  bullet('Change the services to compare other UW EV rates.');
   var vatZero=Number(data.vat)===0;
   bullet(vatZero ?
-    '0% electricity VAT assumed. The tool also shows the 5% option.' :
-    '5% electricity VAT included in the annual estimate. The tool also shows the 0% option.');
+    'Includes 0% electricity VAT - switch to 5% in the tool.' :
+    'Includes 5% electricity VAT - switch to 0% in the tool.');
   basket.appendChild(bullets);
   block.appendChild(basket);
   var sub=doc.querySelector('.personal-splash-sub');
   if(sub)sub.insertAdjacentElement('afterend',block);
-  var live=doc.querySelector('.personal-splash-live span:last-child');
-  if(live)live.textContent='Latest UW tariff rates are checked when you open the tool.';
   var ok=$('personalSplashOk');
   if(ok){ok.textContent='Explore my UW EV options';ok.setAttribute('aria-label','Explore my UW EV options')}
  }

@@ -51,7 +51,7 @@
   function showRetry(message) {
     var button=$('personalSplashOk');
     var live=document.querySelector('.personal-splash-live span:last-child');
-    if(live)live.textContent=message;
+    if(live){live.textContent=message;var row=live.closest('.personal-splash-live');if(row)row.classList.add('error');}
     if(button){
       button.disabled=false;
       button.textContent='Retry loading my comparison';

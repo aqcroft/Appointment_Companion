@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.55.0-preview2';
+      var version = '20261009-v2.55.0-preview3';
       var params = new URL(location.href).searchParams;
       // Test-only personalised preview. No saved customers or sensitive data.
       var demo = params.get('demo');
@@ -114,7 +114,7 @@
       html = html.replace(/<body>/i,'<body><div aria-label="Preview version" style="position:fixed;z-index:1203;top:8px;left:50%;transform:translateX(-50%);background:#fff5c5;color:#594700;border:1px solid #e6d187;padding:5px 12px;border-radius:999px;font:800 11px system-ui;white-space:nowrap;pointer-events:none">PREVIEW v2.55.0 · sample data only</div>');
       // The original donor welcome has three oversized stacked emojis. Set a
       // single neutral icon even when a slow Cloud lookup has not finished.
-      html = html.replace('<div class="personal-splash-icon">🚙  🔌  🏠</div>', '<div class="personal-splash-icon">⚡</div>');
+      html = html.replace('<div class="personal-splash-icon">🚙  🔌  🏠</div>', '<div class="personal-splash-icon">🚗</div>');
       html = html.replace('<meta name="theme-color" content="#7a42c8">', '<meta name="theme-color" content="#00877b">');
       html = html.replace('if (/^p=/.test(location.hash.slice(1)))', 'if (/^(?:p|p2)=/.test(location.hash.slice(1)))');
       html = html.replace('v16c-sharing.js?v=20260916-sharegate2', 'consolidated-v1/ev-source-preview-v2550/ev-sharing-v2.55.0.js?v=' + version);
