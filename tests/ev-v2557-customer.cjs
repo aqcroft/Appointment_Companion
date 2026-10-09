@@ -58,6 +58,9 @@ async function check(browser,cloud){
      topLineHidden:!document.getElementById('acEvToplineV2554')||getComputedStyle(document.getElementById('acEvToplineV2554')).display==='none',
      heading:heading?.textContent,
      fiveButtons:actions.map(x=>({label:x.textContent,stress:x.dataset.stress,on:x.classList.contains('on')})),
+     positions:rects.map(r=>({x:r.x,y:r.y,width:r.width,height:r.height})),
+     btnContainer:{display:getComputedStyle(document.getElementById('stressButtons')).display,columns:getComputedStyle(document.getElementById('stressButtons')).gridTemplateColumns,width:document.getElementById('stressButtons').getBoundingClientRect().width},
+     meterTree:{settingsOpen:settings?.open,visibility:meter?.checkVisibility(),style:getComputedStyle(meter).display,parent:meter?.parentNode?.className,bodyStyle:getComputedStyle(settings.querySelector('.ac-ev-customer-settings-body')).display},
      aligned:rects.length===5&&rects.every(r=>Math.abs(r.top-rects[0].top)<=2),
      nonOverlapping:rects.every((r,i)=>i===0||r.left>=rects[i-1].right-1),
      splashSourceHidden:!!sub&&(sub.style.display==='none'||getComputedStyle(sub).display==='none')
