@@ -242,6 +242,10 @@ function render(){
     standardAnnualKwh:std?std.peakKwh+std.offKwh:null,
     evDualFuelDiscountExVatAnnual:(pack(m,t,'ev')||{}).discount||0,
     economy7:e7?{car:e7.car,home:e7.home,total:e7.total,overnightCost:e7.offpeakCost,daytimeCost:e7.peakCost}:null,
+    // Exact annual scenario totals for colour-only highlighting in the two-card comparison.
+    // The displayed numbers remain rounded by the existing table formatter.
+    evScenarioAnnual:ec?scenarioCalc(ec,'ev').total:null,
+    fixedE7Annual:matrix.fixedE7[t]?matrix.fixedE7[t].total:null,
     standardName:displayName(pack(m,t,'variable'),'variable',t),
     services:t+1,period:state.period,miles:input('miles'),efficiency:input('effOverride')||state.eff,
     awayPct:input('awayPct'),evHomePct:state.evPct,vatPercent:state.vatPercent,vatBasis:state.vatPercent===5?'5%-inclusive annualised electricity costs':'0% electricity VAT illustration for the temporary relief period'
