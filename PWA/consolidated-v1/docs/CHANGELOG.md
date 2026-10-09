@@ -1,5 +1,12 @@
 # Appointment Companion changelog
 
+## v2.55.11 - 9th October 2026
+
+- Added a compact contextual note inside the EV hero when Energy + 2 extra services is selected: two £6 mobile SIMs could count as those services, and gas costs may also be reduced.
+- Hide the note if the basket is switched to Energy only or +1; no new price calculations or customer inputs.
+- Partner and customer journey colours, VAT placement, tariff assumptions, personalised sharing and basket handover unchanged.
+
+
 ## v2.55.10 - 9th October 2026
 
 - Customer view: preserved 5% / 0% VAT beside the concise EV rates status in both existing-EV and considering-EV journeys.
