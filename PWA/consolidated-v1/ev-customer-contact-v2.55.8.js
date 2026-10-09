@@ -341,10 +341,18 @@
     // A portable link may finish rendering before the contact script loads.
     // Recover that already-computed model, then continue tracking changes.
     if(global.__AC_EV_TRADEOFF)updateFromModel(global.__AC_EV_TRADEOFF);
+    global.requestAnimationFrame(customerSetup);
     return true;
   }
-  document.addEventListener('ac:ev-comparison',function(e){updateFromModel(e.detail)});
-  global.addEventListener('ac:ev-public-snapshot',function(){addBottomCard();customerSetup()});
+  document.addEventListener('ac:ev-comparison',function(e){
+    updateFromModel(e.detail);
+    // The existing hero/footer and VAT are assembled by later handlers on
+    // this event. Finish customer-only positioning after those handlers.
+    global.requestAnimationFrame(customerSetup);
+  });
+  global.addEventListener('ac:ev-public-snapshot',function(){
+    addBottomCard();customerSetup();global.requestAnimationFrame(customerSetup);
+  });
   document.addEventListener('click',function(e){
     // The profile shortcut must follow the same pre-basket explanation.
     var a=e.target.closest('.ac-ev-profile-action.quote');
