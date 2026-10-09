@@ -54,10 +54,11 @@ function apply(){
  const existing=root.classList.contains('ac-metered-mode')||root.dataset.evJourney==='existing';
  const hero=doc.querySelector('.hero');
  if(!hero)return false;
- const head=hero.querySelector('.hero-head');
- if(head){
+ const grid=hero.querySelector('.hero-grid');
+ if(grid){
   let label=doc.getElementById('acEvModeLabel');
-  if(!label){label=doc.createElement('span');label.id='acEvModeLabel';label.className='ac-ev-mode-label';head.insertBefore(label,head.firstChild);}
+  if(!label){label=doc.createElement('span');label.id='acEvModeLabel';label.className='ac-ev-mode-label';}
+  if(label.nextElementSibling!==grid)hero.insertBefore(label,grid);
   label.textContent=existing?'🔌 Already owns an EV':'🚗 Considering an EV';
  }
  const row=doc.querySelector('.hero-service-row');
