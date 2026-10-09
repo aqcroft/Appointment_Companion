@@ -1,3 +1,11 @@
+## v2.55.20 - 9th October 2026 (draft)
+
+- Added a visible electricity region selector to the main customer profile, saved with each customer's canonical appointment data.
+- Old records no longer inherit a guessed region. Main requests an explicit selection before opening either energy calculator.
+- Should I Fix receives the region as its tariff query parameter; the linked EV tool uses the saved profile region ahead of any previously stored EV scenario region.
+- Transient Cloud service failures now get a distinct message from rejected login details; local changes remain unaffected.
+- No tariff calculations or server-side Cloud API contracts changed.
+
 # Appointment Companion changelog
 
 ## v2.55.11 - 9th October 2026
