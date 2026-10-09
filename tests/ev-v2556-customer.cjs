@@ -79,6 +79,31 @@ async function check(browser,cloud){
  console.log((cloud?'CLOUD':'PORTABLE')+' PASS');
  await ctx.close();
 }
+
+async function prospective(browser){
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const entry={v:'16C',n:'Future EV driver',am:false,ms:'ev',mi:10000,hk:2500,ve:3.2,ti:2,rg:11,ep:10,vat:'5',away:0};
+ await page.route('https://**/*',r=>r.abort());
+ await page.goto(base+'?local=1#p2='+Buffer.from(JSON.stringify(entry)).toString('base64url'),{waitUntil:'domcontentloaded'});
+ await page.waitForSelector('#acSharedAssumptions .ac-v254-welcome-stat',{timeout:15000});
+ await page.waitForFunction(()=>document.getElementById('personalSplashOk')?.disabled===false,null,{timeout:12000});
+ await page.locator('#personalSplashOk').click();
+ await page.waitForSelector('#acEvFixedDetails',{timeout:16000});
+ await page.locator('#acEvCustomerSettings > summary').click();
+ assert(await page.locator('#acEvCustomerSettings').evaluate(x=>x.open),'Advanced assumptions available for prospective EV');
+ await page.locator('#acEvCustomerSettings > summary').click();
+ const tiers=await page.locator('#serviceButtons button').count();assert.equal(tiers,3);
+ await page.locator('#serviceButtons button[data-tier="1"]').click();
+ await page.waitForFunction(()=>document.querySelector('#serviceButtons button.on')?.dataset.tier==='1',null,{timeout:7000});
+ await page.locator('#acEvOpenBasket').click();
+ assert(await page.locator('#acEvBasketDialog').isVisible(),'Prospective driver can open pre-basket guidance');
+ assert((await page.locator('#acEvBasketDialog').innerText()).includes('EV interest'));
+ await page.locator('#acEvBasketClose').click();
+ assert.deepEqual(errors,[],'Prospective sharing produces no browser errors');
+ await page.close();console.log('PROSPECTIVE PASS');
+}
+
 async function partner(browser){
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  await page.route('https://**/*',r=>r.abort());
@@ -89,4 +114,4 @@ async function partner(browser){
  assert(await page.locator('#serviceButtons button').count()===3,'Partner hero intact');
  console.log('PARTNER PASS');await page.close();
 }
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await check(browser,false);await check(browser,true);await partner(browser)}finally{await browser.close()}})().catch(e=>{console.error('EV CUSTOMER SMOKE FAILURE',e.stack);process.exitCode=1});
+(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await check(browser,false);await check(browser,true);await prospective(browser);await partner(browser)}finally{await browser.close()}})().catch(e=>{console.error('EV CUSTOMER SMOKE FAILURE',e.stack);process.exitCode=1});
