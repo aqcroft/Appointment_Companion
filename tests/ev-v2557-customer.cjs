@@ -31,6 +31,8 @@ async function check(browser,cloud){
  await page.waitForFunction(()=>document.querySelectorAll('#comparison tr[data-row]').length>=5,null,{timeout:18000});
  await page.waitForSelector('#acEvFixedDetails', {timeout:12000});
  await page.waitForSelector('#acEvSimpleRates .ac-ev-simple-rate', {state:'attached',timeout:12000});
+ await page.waitForSelector('#acV254SourceText',{state:'attached',timeout:12000});
+ await page.waitForTimeout(240);
  const before=await page.evaluate(()=>({
   collapsed:!document.getElementById('acEvFixedDetails').open,
   allCollapsed:!document.getElementById('acEvAllTariffs').open,
@@ -41,10 +43,55 @@ async function check(browser,cloud){
   current:document.querySelector('[data-stress="0"]')?.textContent
  }));
  console.log((cloud?'CLOUD':'PORTABLE')+' START '+JSON.stringify(before));
+
+ const compact=await page.evaluate(()=>{
+   const settings=document.getElementById('acEvCustomerSettings'),meter=document.getElementById('acMeterModeCard'),origin=document.getElementById('acEvUsageOrigin');
+   const badge=document.getElementById('acEvModeLabel'),heading=document.getElementById('acV254SourceText');
+   const actions=[...document.querySelectorAll('#stressButtons button')];
+   const rects=actions.map(x=>(x.getClientRects()[0]||x.getBoundingClientRect()).toJSON());
+   const sub=document.querySelector('.personal-splash-sub');
+   return {
+     meterInSettings:!!settings&&!!meter&&settings.contains(meter),
+     originInSettings:!!settings&&!!origin&&settings.contains(origin),
+     sourceValue:origin?.value,
+     readings:[document.getElementById('acMeterPeak')?.value,document.getElementById('acMeterNight')?.value],
+     meterVisible:!!meter&&meter.checkVisibility(),
+     badgeHidden:!!badge&&getComputedStyle(badge).display==='none',
+     topLineHidden:!document.getElementById('acEvToplineV2554')||getComputedStyle(document.getElementById('acEvToplineV2554')).display==='none',
+     heading:heading?.textContent,
+     fiveButtons:actions.map(x=>({label:x.textContent,stress:x.dataset.stress,on:x.classList.contains('on')})),
+     positions:rects.map(r=>({x:r.x,y:r.y,width:r.width,height:r.height})),
+     btnContainer:{display:getComputedStyle(document.getElementById('stressButtons')).display,columns:getComputedStyle(document.getElementById('stressButtons')).gridTemplateColumns,width:document.getElementById('stressButtons').getBoundingClientRect().width},
+     currentNode:(()=>{const node=document.querySelector('#stressButtons [data-stress="0"]');return{html:node?.outerHTML,hidden:node?.hidden,display:getComputedStyle(node).display,visibility:getComputedStyle(node).visibility,opacity:getComputedStyle(node).opacity,transform:getComputedStyle(node).transform,position:getComputedStyle(node).position,scale:getComputedStyle(node).scale,zoom:getComputedStyle(node).zoom,offsetLeft:node?.offsetLeft,offsetTop:node?.offsetTop,offsetHeight:node?.offsetHeight,checkVisibility:node?.checkVisibility(),clipPath:getComputedStyle(node).clipPath,contentVisibility:getComputedStyle(node).contentVisibility,contain:getComputedStyle(node).contain,rects:Array.from(node.getClientRects()).map(r=>r.toJSON()),inlineStyle:node?.getAttribute('style'),offsetWidth:node?.offsetWidth,parentDisplay:getComputedStyle(node.parentElement).display}})(),
+     meterTree:{settingsOpen:settings?.open,visibility:meter?.checkVisibility(),style:getComputedStyle(meter).display,parent:meter?.parentNode?.className,bodyStyle:getComputedStyle(settings.querySelector('.ac-ev-customer-settings-body')).display},
+     aligned:rects.length===5&&rects.every(r=>Math.abs(r.top-rects[0].top)<=2),
+     nonOverlapping:rects.every((r,i)=>i===0||r.left>=rects[i-1].right-1),
+     splashSourceHidden:!!sub&&(sub.style.display==='none'||getComputedStyle(sub).display==='none')
+   };
+ });
+ console.log('CUSTOMER CLEAN '+JSON.stringify(compact));
+ assert(compact.meterInSettings&&compact.originInSettings,'Annual readings and usage origin relocated into settings');
+ assert.deepEqual(compact.readings,['2275','4800'],'Real existing-EV annual readings remain unchanged');
+ assert.equal(compact.sourceValue,'bill_estimate','Source preserved');
+ assert(!compact.meterVisible,'Expanded annual input card is hidden until settings opened');
+ assert(compact.badgeHidden&&compact.topLineHidden,'Recipient no longer sees redundant owner slug');
+ assert(compact.heading.includes('Home + EV estimated annual consumption'),'Annual usage heading is meaningful');
+ assert(compact.splashSourceHidden,'Share launch does not repeat the usage source');
+ assert.deepEqual(compact.fiveButtons.map(x=>x.stress),['0','5','15','21','25'],'Five scenarios including forecast');
+ assert(compact.fiveButtons[0].on,'Current scenario selected by default');
+ assert(compact.aligned&&compact.nonOverlapping,'Five forecast buttons form one non-overlapping row');
+ await page.locator('#acEvCustomerSettings > summary').click();
+ const visibleInputs=await page.evaluate(()=>({
+  peak:document.querySelector('#acMeterPeak')?.getBoundingClientRect().height,
+  night:document.querySelector('#acMeterNight')?.getBoundingClientRect().height
+ }));
+ assert(visibleInputs.peak>0&&visibleInputs.night>0,'Original annual readings available after opening settings');
+ await page.locator('#acEvCustomerSettings > summary').click();
+
  assert(before.collapsed&&before.allCollapsed&&before.settingsCollapsed,'Three progressive disclosures collapsed');
  assert(before.prepared.includes('Customer sample'),'Compact personal touch');
  assert(before.basketButton.includes('Go to my UW basket'),'Basket CTA available');
- assert(['Current UW rates','Current'].includes(before.current),'Current price labels');
+ assert.equal(before.current,'Current','Current is the first selected forecast option');
  assert(before.rates&&before.rates.includes('Economy 7'),'Fixed comparison exists');
  await page.locator('#acEvFixedDetails > summary').click();
  const open=await page.evaluate(()=>({outer:document.getElementById('acEvFixedDetails').open,full:document.getElementById('acEvAllTariffs').open,fore:document.querySelector('#stressButtons [data-stress="21"]')?.textContent}));
@@ -90,6 +137,10 @@ async function prospective(browser){
  await page.waitForFunction(()=>document.getElementById('personalSplashOk')?.disabled===false,null,{timeout:12000});
  await page.locator('#personalSplashOk').click();
  await page.waitForSelector('#acEvFixedDetails',{timeout:16000});
+ assert(await page.locator('#acEvModeLabel').evaluate(n=>getComputedStyle(n).display==='none'),'Prospective mode badge also hidden in customer view');
+ const prospectiveButtons=await page.locator('#stressButtons button').allTextContents();
+ assert.equal(prospectiveButtons.length,5,'Prospective customer gets five scenario buttons');
+
  await page.locator('#acEvCustomerSettings > summary').click();
  assert(await page.locator('#acEvCustomerSettings').evaluate(x=>x.open),'Advanced assumptions available for prospective EV');
  await page.locator('#acEvCustomerSettings > summary').click();
