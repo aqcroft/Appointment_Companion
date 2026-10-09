@@ -69,11 +69,9 @@
   function val(id){var x=$(id);return x?(x.textContent||'').trim():''}
   if(which==='info'){
    para('Prepared for '+(val('welcomeName')||'you'),true);
-   para(val('rateStrip').replace(/\\s*·\\s*5% VAT incl\\.?/i,'').replace(/\\s*·\\s*0% VAT.*$/i,''));
-   para(val('acEvPrepared')?'':''); // The customer name above replaces the separate prepared-for row.
+   para(val('rateStrip').replace(/\s*·\s*5% VAT incl\.?/i,'').replace(/\s*·\s*0% VAT.*$/i,''));
    para(val('fixedDetailState')==='⚠️ Check version'?'Check tariff version before using these costs.':'');
    para(val('freshWarning'));
-   para(val('unused')||'');
    para('This is a guide, not an official UW quote. Variable prices may change; fixed tariffs can have exit fees.');
   }else if(which==='fixed'){
    para(val('fixedDetailTitle')||'Fixed tariff version',true);
