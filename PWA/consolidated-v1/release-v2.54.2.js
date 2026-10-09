@@ -6,6 +6,9 @@
     date: '9th Oct 2026',
     summary: 'Accessible forecast explanation without extra page clutter',
     changes: [
+      'Hero cards now use whole house icons for overnight, daytime and total, with no partial-house shading.',
+      'Every tariff breakdown labels costs simply Overnight, Daytime and Total; the daytime figure still includes the daily standing charge.',
+      'Tariff headings explicitly say Variable tariffs (change every 3 months) and Fixed tariffs (unit rates and standing charges are fixed).',
       'A small accessible information icon beside variable uplift buttons explains that the 21% scenario is based on a typical medium-usage dual-fuel Direct Debit household, not individual EV electricity rates.',
       'The long forecast description is kept off the main page and available with a tap; illustrative uplift maths, current-price default and fixed-tariff treatment are unchanged.',
       'Personalised shared EV links open with a smaller, more professional teal welcome panel and the clear action Explore my UW EV options.',
