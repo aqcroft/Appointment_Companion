@@ -11,10 +11,12 @@
   if($('acEvFixedComparePolishV25512'))return;
   var el=document.createElement('style');el.id='acEvFixedComparePolishV25512';
   el.textContent=[
-   'html.shared-view #acEvFixedDetails[open]>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:8px 12px!important;border-bottom:1px solid #eee7f5!important;min-height:22px!important}',
-   'html.shared-view #acEvFixedDetails[open]>summary .ac-ev-fixed-title{font-size:14px!important;line-height:1.25!important;margin:0!important;color:#523878!important}',
-   'html.shared-view #acEvFixedDetails[open]>summary .ac-ev-fixed-sub{display:none!important}',
-   'html.shared-view #acEvFixedDetails[open]>summary:after{content:"⌃"!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;margin:0!important;padding:2px 8px!important;background:transparent!important;color:#7250a0!important;font-size:20px!important;font-weight:700!important;border:0!important;border-radius:6px!important}',
+   'html.shared-view #acEvFixedDetails>summary{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;gap:2px 8px!important;align-items:center!important;min-height:0!important;padding:9px 12px!important}',
+   'html.shared-view #acEvFixedDetails>summary .ac-ev-fixed-title{display:block!important;grid-column:1!important;grid-row:1!important;font-size:13px!important;line-height:1.22!important;margin:0!important;color:#513777!important}',
+   'html.shared-view #acEvFixedDetails>summary .ac-ev-fixed-sub{display:block!important;grid-column:1!important;grid-row:2!important;color:#776c85!important;font-size:10px!important;line-height:1.3!important;margin:0!important}',
+   'html.shared-view #acEvFixedDetails>summary:after{content:"⌄"!important;grid-column:2!important;grid-row:1/span 2!important;align-self:center!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:27px!important;min-width:26px!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:6px!important;font-size:20px!important;color:#7250a0!important}',
+   'html.shared-view #acEvFixedDetails[open]>summary:after{content:"⌃"!important}',
+   'html.shared-view #acEvFixedDetails[open]>summary{border-bottom:1px solid #eee7f5!important}',
    'html.shared-view #acEvFixedDetails[open]>.card{padding:8px 10px 9px!important}',
    'html.shared-view #acEvFixedDetails[open] .stressbar{margin:0!important;padding:0!important}',
    'html.shared-view #acEvFixedDetails[open] .stressbar>.stresslabel{display:none!important}',
@@ -23,11 +25,11 @@
    'html.shared-view #acEvFixedDetails[open] .ac-ev-simple-rate{padding:8px 5px!important;border-radius:10px!important;transition:background-color .14s ease,border-color .14s ease}',
    'html.shared-view #acEvFixedDetails .ac-ev-simple-rate.ac-v25514-cheaper{background:#e7f6ed!important;border-color:#8fc9a5!important;box-shadow:inset 0 0 0 1px #a6dcb7!important}',
    'html.shared-view #acEvFixedDetails .ac-ev-simple-rate.ac-v25514-cheaper strong{color:#14683c!important}',
-   'html.shared-view .ac-v25512-usage{text-align:center;color:#706781;font:500 10px/1.35 system-ui,sans-serif;margin:4px 3px 5px}',
    'html.shared-view #acEvFixedDetails[open] .ac-ev-all-rates{margin-top:6px!important;padding-top:5px!important}',
    'html.shared-view #acEvFixedDetails[open] .ac-ev-all-rates>summary{font-size:11px!important;padding:9px 7px!important}',
-   '@media(max-width:370px){html.shared-view #acEvFixedDetails[open]>summary{padding:7px 9px!important}html.shared-view .ac-v25512-usage{font-size:9.5px!important}}'
-  ].join('');
+   'html.shared-view #acEvFixedDetails .ac-v25512-usage{display:none!important}',
+   '@media(max-width:370px){html.shared-view #acEvFixedDetails>summary{padding:8px 9px!important}html.shared-view #acEvFixedDetails>summary .ac-ev-fixed-sub{font-size:9.5px!important}}'
+  ].join('');;
   document.head.appendChild(el);
  }
  function amount(el){
@@ -39,7 +41,9 @@
  function updateTitle(){
   if(!outer)return;
   var title=outer.querySelector('summary .ac-ev-fixed-title');
-  if(title)title.textContent=outer.open?'🛡️ Fixed vs variable if prices rise':'🛡️ Prefer the certainty of a fixed price?';
+  if(title)title.textContent='🛡️ Fixed vs variable if prices rise';
+  var subtitle=outer.querySelector('summary .ac-ev-fixed-sub');
+  if(subtitle)subtitle.textContent='Economy 7 gives 2 extra off-peak hours, but daytime rates are typically higher than EV rates.';
  }
  function updateTariffLink(){
   var more=$('acEvAllTariffs');
@@ -70,9 +74,6 @@
   var rates=$('acEvSimpleRates');
   if(!outer||!rates)return false;
   style();
-  var note=document.createElement('div');note.className='ac-v25512-usage';
-  note.textContent='Economy 7 gives 2 extra off-peak hours, but daytime rates are typically higher than EV rates.';
-  rates.insertAdjacentElement('afterend',note);
   var scenarios=$('stressButtons');
   if(scenarios)scenarios.setAttribute('aria-label','Illustrative variable electricity price-rise scenarios');
   outer.addEventListener('toggle',updateTitle);
