@@ -53,6 +53,33 @@ async function run(browser,cloud){
  console.log((cloud?'CLOUD':'PORTABLE')+' SUCCESS');
  await page.close({runBeforeUnload:false});
 }
+async function prospective(browser){
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('https://**/*',r=>r.abort());
+ const state={v:'16C',n:'Prospective customer',am:false,ms:'ev',mi:10000,hk:2500,ve:3.2,vi:'🚙',ti:2,rg:11,ep:10,aw:0,vat:'5'};
+ const url=base+'?local=1#p2='+Buffer.from(JSON.stringify(state)).toString('base64url');
+ console.log('START PROSPECTIVE EV');
+ await page.goto(url,{waitUntil:'commit',timeout:10000});await wait(2800);
+ const before=await timed(page.evaluate(()=>({values:[...document.querySelectorAll('#acSharedAssumptions .ac-v254-welcome-stat strong')].map(x=>x.textContent),btn:document.getElementById('personalSplashOk')?.disabled})),6500);
+ console.log('PROSPECTIVE CARDS '+JSON.stringify(before));
+ assert.deepEqual(before.values,['3,375','2,250','5,625'],'Prospective home + vehicle estimates on three cards');
+ assert.equal(before.btn,false);
+ await page.locator('#personalSplashOk').click({timeout:4500});await wait(3500);
+ const after=await timed(page.evaluate(()=>({
+   open:document.documentElement.classList.contains('shared-started'),
+   hidden:document.getElementById('personalSplash')?.style.display==='none',
+   mode:document.documentElement.classList.contains('ac-metered-mode'),
+   headers:[...document.querySelectorAll('#th0,#th1,#th2')].map(x=>x.textContent.trim()),
+   welcome:document.querySelector('#customerWelcome small')?.textContent.trim()
+ })),6500);
+ console.log('PROSPECTIVE OPEN '+JSON.stringify(after));
+ assert(after.open&&after.hidden&&!after.mode,'Prospective EV opens estimated mode');
+ assert.deepEqual(after.headers,['Energy only','Energy + 1 service','Energy + 2 services']);
+ assert(after.welcome.includes('fixed Economy 7'));
+ assert.deepEqual(errors,[],'No JS exceptions opening prospective EV');
+ await page.close();console.log('PROSPECTIVE SUCCESS');
+}
 async function newCustomer(browser){
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  await page.route('https://**/*',r=>r.abort());
@@ -83,4 +110,4 @@ async function newCustomer(browser){
  await page.close();
 }
 
-(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true);await newCustomer(browser)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
+(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox']});try{await run(browser,false);await run(browser,true);await newCustomer(browser);await prospective(browser)}finally{await browser.close()}})().catch(e=>{console.error('SMOKE FAILURE',e.stack);process.exitCode=1});
