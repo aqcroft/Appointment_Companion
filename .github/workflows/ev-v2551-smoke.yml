@@ -1,7 +1,7 @@
 name: EV v2.55.1 share browser test
 on:
   push:
-    branches: [fix/ev-shared-button-and-main-menu-20261009]
+    branches: [main, fix/ev-shared-button-and-main-menu-20261009]
   workflow_dispatch:
 jobs:
   smoke:
