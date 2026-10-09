@@ -176,7 +176,7 @@ function startCompanion(payload){
   loadScript('tariff-cache-v1.js?v=20260910-feedback1').catch(function(err){
     console.warn('EV tariff cache helper unavailable:',err);
   });
-  loadScript('consolidated-v1/ev-engine-v2.55.5.js?v=20261009-v2.55.5-e7allow1').then(function(){
+  loadScript('consolidated-v1/ev-engine-v2.55.5.js?v=20261009-v2.55.13-basketbridge1').then(function(){
     if(payload)applyPayload(payload);
     document.dispatchEvent(new CustomEvent('ac:ev-core-ready'));
     return loadScript('v16b-hero.js').catch(function(err){console.warn('EV hero enhancement unavailable:',err)});
@@ -328,7 +328,7 @@ function prepareShared(raw){
 
     /* Hand the optional basket to the shared customer contact treatment. */
     window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||'')};
-    loadScript('consolidated-v1/ev-customer-contact-v2.55.9.js?v=20261009-v2.55.9-ratevat1').catch(function(){});
+    loadScript('consolidated-v1/ev-customer-contact-v2.55.9.js?v=20261009-v2.55.13-basketbridge1').catch(function(){});
 
     // One shared presentation across portable and Cloud customer links.
     var intro=window.AppointmentCompanionEvSharedIntro;
