@@ -231,6 +231,11 @@ function render(){
     meter:state.meterMode,meterSource:state.meterSource,considerE7:state.considerE7,validMeter:!!i.validMeter,meterPeak:i.meterPeak||0,meterNight:i.meterNight||0,meterTotal:i.meterTotal||0,
     ev:ec?{car:ec.car,home:ec.home,total:ec.total,overnightCost:ec.offpeakCost,daytimeCost:ec.peakCost,chargingCost:ec.chargingCost,overnightKwh:ec.offKwh,daytimeKwh:ec.peakKwh}:null,
     standard:std?{car:std.car,home:std.home,total:std.total,overnightCost:std.offpeakCost,daytimeCost:std.peakCost}:null,
+    // Bridge-only tariff metadata. The engine already deducts this discount when gas is selected;
+    // the initial UW basket electricity quote can display it before that deduction.
+    dualFuelSelected:!!i.dual,
+    standardDualFuelDiscountExVatAnnual:(pack(m,t,'variable')||{}).discount||0,
+    evDualFuelDiscountExVatAnnual:(pack(m,t,'ev')||{}).discount||0,
     economy7:e7?{car:e7.car,home:e7.home,total:e7.total,overnightCost:e7.offpeakCost,daytimeCost:e7.peakCost}:null,
     standardName:displayName(pack(m,t,'variable'),'variable',t),
     services:t+1,period:state.period,miles:input('miles'),efficiency:input('effOverride')||state.eff,
