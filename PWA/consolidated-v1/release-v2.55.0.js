@@ -8,7 +8,8 @@
     changes: [
       'For customers who already own an EV, the source selector offers Estimated Annual Consumption (kWh) or Figures from agreed sources.',
       'The Partner-facing opening question asks whether the potential customer already owns an EV; the data-source choice remains independent of EV versus Economy 7 tariff comparison and does not affect the cost maths.',
-      'Personalised share cards describe the annual source precisely, without calling a bill estimate meter readings.',
+      'Personalised welcome cards keep the day/night/total usage split, describe annual usage sources precisely, remove redundant explanation and show two concise notes.',
+      'The welcome uses a simple car icon and a clear Estimated costs based on UW basket heading.',
       'Source metadata persists in linked customer EV state, portable links and Cloud share snapshots.',
       'Existing personalised links without a source selection default to Estimated Annual Consumption; older alternative source values are mapped to agreed sources.'
     ]
