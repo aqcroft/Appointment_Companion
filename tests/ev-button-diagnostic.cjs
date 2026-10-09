@@ -5,6 +5,8 @@ const snapshot={customer_name:'Diagnostics',ev_state:{meter_mode:'meter',meter_s
 function delay(ms){return new Promise(r=>setTimeout(r,ms))}
 async function exercise(browser,cloud){
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ // Isolation trial: disable mutation callbacks to detect an infinite DOM observer loop.
+ await page.addInitScript(() => { window.MutationObserver = class {observe(){} disconnect(){} takeRecords(){return []}}; });
  const errors=[],badrequests=[];
  page.on('pageerror',e=>errors.push(e.message));
  page.on('requestfailed',r=>badrequests.push(r.url()+' '+r.failure()?.errorText));
@@ -21,13 +23,13 @@ async function exercise(browser,cloud){
   if(rect){const element=document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2);elementAtCenter=element?.id||element?.className||element?.tagName;}
   return {title:document.title,root:document.documentElement.className,button:b?{text:b.textContent,disabled:b.disabled,handler:typeof b.onclick,rect:rect?.toJSON()}:null,elementAtCenter,splash:s?{display:getComputedStyle(s).display,opacity:getComputedStyle(s).opacity,classes:s.className}:null,summary:document.querySelectorAll('#acSharedAssumptions .ac-v254-welcome-stat').length,start:typeof window.AppointmentCompanionEvStart,scriptCount:document.scripts.length,loading:document.getElementById('acEvShareLoading')?.textContent};
  });
- console.log('BEFORE '+JSON.stringify(await get()));
+ console.log('BEFORE '+JSON.stringify(await Promise.race([get(),delay(7000).then(()=>({error:'MAIN_THREAD_STALLED'}))])));
  await page.evaluate(()=>{window.__diagnosticClicks=0;document.addEventListener('click',e=>{if(e.target.closest('#personalSplashOk'))window.__diagnosticClicks++},true)});
  try{await page.locator('#personalSplashOk').click({timeout:5000})}catch(e){console.log('CLICK ERROR '+e.message.slice(0,1600))}
  await delay(600);
- console.log('AFTER 600ms '+JSON.stringify(await get())+' clicks='+await page.evaluate(()=>window.__diagnosticClicks));
+ console.log('AFTER 600ms '+JSON.stringify(await Promise.race([get(),delay(7000).then(()=>({error:'MAIN_THREAD_STALLED'}))])));
  await delay(3600);
- console.log('AFTER 4.2s '+JSON.stringify(await get()));
+ console.log('AFTER 4.2s '+JSON.stringify(await Promise.race([get(),delay(7000).then(()=>({error:'MAIN_THREAD_STALLED'}))])));
  console.log('ERRORS '+JSON.stringify(errors.slice(0,14)));
  console.log('FAILED REQUESTS '+JSON.stringify(badrequests.slice(0,12)));
  await page.close();
