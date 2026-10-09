@@ -328,7 +328,7 @@ function prepareShared(raw){
 
     /* Hand the optional basket to the shared customer contact treatment. */
     window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||'')};
-    loadScript('consolidated-v1/ev-customer-contact-v2.55.9.js?v=20261009-v2.55.15-settingscog1').catch(function(){});
+    loadScript('consolidated-v1/ev-customer-contact-v2.55.9.js?v=20261009-v2.55.16-leanlaunch1').catch(function(){});
 
     // One shared presentation across portable and Cloud customer links.
     var intro=window.AppointmentCompanionEvSharedIntro;
