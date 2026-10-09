@@ -11,7 +11,7 @@
   function detail(value, fallback) { var v = String(value || '').toLowerCase(); if (!v || v === 'legacy/unknown' || v === 'unknown') return fallback || 'legacy_unknown'; if (v === 'estimate' || v === 'estimated') return fallback || null; return v === 'manual' ? 'manual' : v; }
   function defaults() {
     return {
-      customerName: '', homeStatus: null,
+      customerName: '', homeStatus: null, region: null,
       selectedServices: { energy: false, broadband: false, mobile: false },
       basketUrl: '', privateNotes: '', lastQuoteSharedAt: '',
       energy: {
@@ -26,6 +26,7 @@
   function normaliseCanonical(input) {
     var out = defaults(), row = input || {}, energy = row.energy || {}, mobile = row.mobile || {};
     out.customerName = String(row.customerName || '').trim();
+    var region=Number(row.region); out.region = row.region !== '' && row.region != null && Number.isInteger(region) && region>=10 && region<=23 ? region : null;
     out.homeStatus = row.homeStatus === 'homeowner' || row.homeStatus === 'tenant' ? row.homeStatus : null;
     out.selectedServices = Object.assign(out.selectedServices, clone(row.selectedServices || {}));
     out.basketUrl = String(row.basketUrl || ''); out.privateNotes = String(row.privateNotes || ''); out.lastQuoteSharedAt = String(row.lastQuoteSharedAt || '');
@@ -49,7 +50,7 @@
     var profile = String(inputs.electricityProfile || ((day != null || night != null) ? 'economy7' : 'standard'));
     var rawElecSource = inputs.electricityUsageSource, rawGasSource = inputs.gasUsageSource;
     return normaliseCanonical({
-      customerName: data.customerName || inputs.customerName || '', homeStatus: state.homeowner || null,
+      customerName: data.customerName || inputs.customerName || '', homeStatus: state.homeowner || null, region: inputs.region == null ? null : inputs.region,
       selectedServices: { energy: !!services.energy, broadband: !!services.broadband, mobile: !!services.mobile },
       basketUrl: inputs.basketLink || data.basket_url || '', privateNotes: data.notes || '', lastQuoteSharedAt: data.quoteSharedAt || '',
       energy: {
@@ -63,7 +64,7 @@
   }
   function cleanUi(saved) {
     var ui = clone(saved || {}); delete ui.canonical; delete ui.schema_version; delete ui.customerName; delete ui.notes; delete ui.quoteSharedAt; delete ui._journey;
-    ui.inputs = ui.inputs || {}; ['customerName','basketLink','energyHasElectricity','energyHasGas','electricityUsageKwh','electricityUsageTotalKwh','electricityUsageSource','electricityUsageSourceDetail','electricityUsageCapturedAt','electricityUsageBasis','electricityUsageDayKwh','electricityUsageNightKwh','electricityProfile','gasUsageKwh','gasUsageSource','gasUsageSourceDetail','gasUsageCapturedAt','canonicalFuelSelection','canonicalElectricityProfile','canonicalElectricitySource','canonicalGasSource','canonicalElectricitySourceDetail','canonicalGasSourceDetail','canonicalElectricityTotal','canonicalGasUsage','canonicalElectricityDay','canonicalElectricityNight','canonicalSimCount','splitAnnualTotal','splitSampleDay','splitSampleNight'].forEach(function (key) { delete ui.inputs[key]; });
+    ui.inputs = ui.inputs || {}; ['customerName','region','basketLink','energyHasElectricity','energyHasGas','electricityUsageKwh','electricityUsageTotalKwh','electricityUsageSource','electricityUsageSourceDetail','electricityUsageCapturedAt','electricityUsageBasis','electricityUsageDayKwh','electricityUsageNightKwh','electricityProfile','gasUsageKwh','gasUsageSource','gasUsageSourceDetail','gasUsageCapturedAt','canonicalFuelSelection','canonicalElectricityProfile','canonicalElectricitySource','canonicalGasSource','canonicalElectricitySourceDetail','canonicalGasSourceDetail','canonicalElectricityTotal','canonicalGasUsage','canonicalElectricityDay','canonicalElectricityNight','canonicalSimCount','splitAnnualTotal','splitSampleDay','splitSampleNight'].forEach(function (key) { delete ui.inputs[key]; });
     ui.state = ui.state || {}; delete ui.state.homeowner; delete ui.state.services; delete ui.state.simCount;
     return ui;
   }
@@ -77,7 +78,7 @@
     var appointment = normaliseAppointment(input), c = appointment.canonical, e = c.energy, ui = clone(appointment.ui_state || {});
     ui.app = ui.app || 'appointment-companion'; ui.v = ui.v || 2; ui.customerName = c.customerName; ui.notes = c.privateNotes; ui.quoteSharedAt = c.lastQuoteSharedAt;
     ui.inputs = ui.inputs || {}; ui.state = ui.state || {};
-    ui.inputs.customerName = c.customerName; ui.inputs.basketLink = c.basketUrl;
+    ui.inputs.customerName = c.customerName; ui.inputs.region = c.region == null ? '' : String(c.region); ui.inputs.basketLink = c.basketUrl;
     ui.inputs.energyHasElectricity = e.energyFuelSelection !== 'gas'; ui.inputs.energyHasGas = e.energyFuelSelection !== 'electricity';
     ui.inputs.electricityUsageTotalKwh = e.electricityUsageTotalKwh == null ? '' : String(e.electricityUsageTotalKwh);
     ui.inputs.electricityUsageKwh = ui.inputs.electricityUsageTotalKwh;
@@ -94,7 +95,7 @@
     var migrated = legacyCanonical(base), controls = global.AppointmentCompanionCanonicalControls;
     if (controls && typeof controls.capture === 'function') migrated = normaliseCanonical(Object.assign({}, migrated, controls.capture()));
     var name = document.getElementById('customerName'), notes = document.getElementById('apptNotes'), basket = document.getElementById('basketLink');
-    if (name) migrated.customerName = String(name.value || '').trim(); if (notes) migrated.privateNotes = String(notes.value || ''); if (basket) migrated.basketUrl = String(basket.value || '').trim();
+    if (name) migrated.customerName = String(name.value || '').trim(); var r=document.getElementById('customerRegion'); migrated.region=r&&r.value?Number(r.value):null; if (notes) migrated.privateNotes = String(notes.value || ''); if (basket) migrated.basketUrl = String(basket.value || '').trim();
     migrated.lastQuoteSharedAt = String(global.AppointmentCompanionQuoteSharedAt || '');
     return migrated;
   }
@@ -104,7 +105,7 @@
   }
   function restore(saved) {
     var appointment = normaliseAppointment(saved), result = baseRestore(toLegacySnapshot(appointment));
-    setTimeout(function () { var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.hydrate) controls.hydrate(appointment.canonical); }, 0);
+    setTimeout(function () { var controls = global.AppointmentCompanionCanonicalControls; if (controls && controls.hydrate) controls.hydrate(appointment.canonical); var r=document.getElementById('customerRegion'); if(r)r.value=appointment.canonical.region == null ? '' : String(appointment.canonical.region); }, 0);
     return result;
   }
   var api = { defaults: defaults, normaliseCanonical: normaliseCanonical, normaliseAppointment: normaliseAppointment, migrateSnapshot: normaliseAppointment, capture: capture, restore: restore, toLegacySnapshot: toLegacySnapshot, baseSerialize: baseSerialize, baseRestore: baseRestore };

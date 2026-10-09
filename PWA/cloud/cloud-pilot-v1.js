@@ -721,7 +721,7 @@
     } catch (err) {
       if (canReuseSession && isDefiniteAuthFailure(err)) clearAuth();
       if (!getAuth()) showConnected(false);
-      const message = 'Login failed - please check your Companion Login ID and Password and try again.';
+      const message = isDefiniteAuthFailure(err) ? 'Cloud rejected these login details. Please check your Companion Login ID and Password.' : 'Cloud is temporarily unavailable. Your saved login and device copies have been kept. Please try again shortly.';
       setInlineConnectError(errorId, message);
       setStatus(message, 'bad');
       return false;
@@ -900,7 +900,7 @@
     ensureConnectModal();
     $c('cloudPilotPartnerId').value = localStorage.getItem(PARTNER_ID_KEY) || '';
     setBackupIcon('cloudLocalState', false, 'Working copy is being checked on this device');
-    setStatus(getAuth() ? 'Cloud connection healthy' : 'Cloud not connected', getAuth() ? 'good' : '');
+    setStatus(getAuth() ? 'Cloud login saved - connection not yet verified' : 'Cloud not connected', '');
     const auth = getAuth();
     const note = $c('cloudSessionPasswordNote');
     if (note) note.classList.toggle('hidden', !auth);
