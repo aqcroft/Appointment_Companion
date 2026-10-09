@@ -302,6 +302,13 @@
     var hero=document.querySelector('.hero'),footer=hero&&hero.querySelector('.hero-footer-v16c');
     var tariff=hero&&hero.querySelector('.hero-tariff');
     var vat=document.getElementById('acV2482Vat');
+    // The shared customer VAT switch now lives alongside Monthly/Year inside
+    // the hero. Preserve the original buttons and never move them back above it.
+    var heroSlot=hero&&hero.querySelector('#acEvHeroVatSlot');
+    if(heroSlot&&vat){
+      if(vat.parentElement!==heroSlot)heroSlot.appendChild(vat);
+      return true;
+    }
     var strip=document.querySelector('.strip:has(#rateStrip)');
     if(!footer||!tariff||!vat||!strip)return false;
     // Keep the tariff footer intact, but put VAT with the compact rate status,
