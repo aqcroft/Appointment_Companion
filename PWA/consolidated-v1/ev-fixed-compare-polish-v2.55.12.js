@@ -52,12 +52,13 @@
   updateTitle();updateTariffLink();
   var cards=document.querySelectorAll('#acEvSimpleRates .ac-ev-simple-rate');
   if(cards.length<2)return;
-  var variable=amount(cards[0].querySelector('strong'));
-  var fixed=amount(cards[1].querySelector('strong'));
+  var model=window.__AC_EV_TRADEOFF||{};
+  var variable=Number.isFinite(model.evScenarioAnnual)?model.evScenarioAnnual:amount(cards[0].querySelector('strong'));
+  var fixed=Number.isFinite(model.fixedE7Annual)?model.fixedE7Annual:amount(cards[1].querySelector('strong'));
   cards.forEach(function(card){card.classList.remove('ac-v25514-cheaper');card.removeAttribute('title')});
   // The price tiles are rendered by the existing tariff engine. No estimates
   // are recomputed here: highlight the lower currently-displayed scenario.
-  if(!Number.isFinite(variable)||!Number.isFinite(fixed)||Math.abs(variable-fixed)<.5)return;
+  if(!Number.isFinite(variable)||!Number.isFinite(fixed)||Math.abs(variable-fixed)<.01)return;
   var cheaper=cards[variable<fixed?0:1];
   cheaper.classList.add('ac-v25514-cheaper');
   cheaper.title='Lower estimated cost for this scenario';
