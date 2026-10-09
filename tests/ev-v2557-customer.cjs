@@ -53,7 +53,7 @@ async function check(browser,cloud){
      originInSettings:!!settings&&!!origin&&settings.contains(origin),
      sourceValue:origin?.value,
      readings:[document.getElementById('acMeterPeak')?.value,document.getElementById('acMeterNight')?.value],
-     meterVisible:!!meter&&getComputedStyle(meter).display!=='none'&&meter.getClientRects().length>0,
+     meterVisible:!!meter&&meter.checkVisibility(),
      badgeHidden:!!badge&&getComputedStyle(badge).display==='none',
      topLineHidden:!document.getElementById('acEvToplineV2554')||getComputedStyle(document.getElementById('acEvToplineV2554')).display==='none',
      heading:heading?.textContent,
