@@ -3,7 +3,8 @@
 ## v2.55.0 - 9th October 2026 (draft preview)
 
 - Added a compact usage-source selector for customers who already own an EV.
-- Source defaults to estimated annual day/night electricity consumption from an energy bill. Alternatives are recorded actual consumption over 12 months and a customer-provided estimate.
+- Source defaults to **Estimated Annual Consumption (kWh)** from an energy bill, with one alternative: **Figures from agreed sources**. Older alternative source values map to the latter.
+- The opening modal addresses the Partner: **Does the potential customer already own an EV?** Its choices are phrased in the third person.
 - Source choice is independent of the EV tariff / Economy 7 selector and does not change costs.
 - Portable and Cloud shares now describe the annual figures accurately and preserve the selected source.
 - Linked customer EV profiles persist the source in their specialist state.

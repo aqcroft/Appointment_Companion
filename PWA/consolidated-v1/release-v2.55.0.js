@@ -6,11 +6,11 @@
     date: '9th Oct 2026',
     summary: 'Annual EV usage source saved and explained in shared comparisons',
     changes: [
-      'Added a compact annual usage source selector when the customer already owns an EV: estimated annual usage from bill, actual use over 12 months, or customer-provided estimate.',
-      'The source choice is independent of EV versus Economy 7 tariff comparison and does not affect the cost maths.',
+      'For customers who already own an EV, the source selector offers Estimated Annual Consumption (kWh) or Figures from agreed sources.',
+      'The Partner-facing opening question asks whether the potential customer already owns an EV; the data-source choice remains independent of EV versus Economy 7 tariff comparison and does not affect the cost maths.',
       'Personalised share cards describe the annual source precisely, without calling a bill estimate meter readings.',
       'Source metadata persists in linked customer EV state, portable links and Cloud share snapshots.',
-      'Existing personalised links without a source selection default to the assumed bill estimate description.'
+      'Existing personalised links without a source selection default to Estimated Annual Consumption; older alternative source values are mapped to agreed sources.'
     ]
   });
   global.AppointmentCompanionRelease = meta;

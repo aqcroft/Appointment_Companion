@@ -72,10 +72,11 @@
   if($('welcomeName'))$('welcomeName').textContent=name;
   setText('.personal-splash-icon','⚡');
   setText('.personal-splash-copy','Your personalised UW EV electricity comparison');
-  var origin=['bill_estimate','actual_12m','customer_estimate'].indexOf(data.usageOrigin)>=0?data.usageOrigin:'bill_estimate';
-  var meterDescription=origin==='actual_12m'?'Based on actual annual day and night electricity usage from your bills or energy account.':
-    origin==='customer_estimate'?'Based on the annual day and night electricity usage estimates you supplied.':
-    'Based on estimated annual day and night electricity usage shown on your energy bill.';
+  var source=String(data.usageOrigin||'bill_estimate');
+  var isAgreed=['agreed_sources','actual_12m','customer_estimate'].indexOf(source)>=0;
+  var meterDescription=isAgreed?
+    'Based on annual day and night electricity figures agreed during your review.':
+    'Based on Estimated Annual Consumption (kWh) figures from your electricity bill.';
   setText('.personal-splash-sub',data.meter?meterDescription:'Based on the home electricity and EV mileage assumptions supplied.');
   var original=$('acSharedAssumptions');if(original)original.remove();
   var block=e('section');block.id='acSharedAssumptions';

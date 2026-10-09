@@ -1,8 +1,8 @@
 /* v2.55.0: Existing EV driver's annual usage source, independent of tariff/maths. */
 (function(global){
 'use strict';
-const choices=['bill_estimate','actual_12m','customer_estimate'];
-function normalise(value){return choices.includes(value)?value:'bill_estimate'}
+const choices=['bill_estimate','agreed_sources'];
+function normalise(value){return value==='agreed_sources'||value==='actual_12m'||value==='customer_estimate'?'agreed_sources':'bill_estimate'}
 function el(){return document.getElementById('acEvUsageOrigin')}
 function mount(){
  if(el())return true;
@@ -14,9 +14,9 @@ function mount(){
  const row=document.createElement('div');row.className='ac-ev-origin';
  const label=document.createElement('label');label.htmlFor='acEvUsageOrigin';label.textContent='📋 Usage figures from';
  const select=document.createElement('select');select.id='acEvUsageOrigin';
- [['bill_estimate','Estimated annual usage on bill'],['actual_12m','Actual usage over 12 months'],['customer_estimate','Customer-provided estimate']].forEach(function(k){const o=document.createElement('option');o.value=k[0];o.textContent=k[1];select.appendChild(o)});
- const tip=document.createElement('p');tip.id='acEvUsageOriginTip';tip.className='ac-ev-origin-tip';tip.hidden=true;tip.textContent='Enter total home electricity including home EV charging, not car-only consumption.';
- select.addEventListener('change',function(){tip.hidden=select.value!=='customer_estimate'});
+ [['bill_estimate','Estimated Annual Consumption (kWh)'],['agreed_sources','Figures from agreed sources']].forEach(function(k){const o=document.createElement('option');o.value=k[0];o.textContent=k[1];select.appendChild(o)});
+ const tip=document.createElement('p');tip.id='acEvUsageOriginTip';tip.className='ac-ev-origin-tip';tip.hidden=true;tip.textContent='Use annual household day/night electricity consumption, including charging at home. Car-app figures alone may not include household use.';
+ select.addEventListener('change',function(){tip.hidden=select.value!=='agreed_sources'});
  row.append(label,select);fields.parentNode.insertBefore(row,fields);fields.parentNode.insertBefore(tip,fields);return true;
 }
 function set(value){if(!mount())return false;el().value=normalise(value);el().dispatchEvent(new Event('change',{bubbles:true}));return true}
