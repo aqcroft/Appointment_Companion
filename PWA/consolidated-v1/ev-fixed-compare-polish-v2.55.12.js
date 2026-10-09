@@ -1,4 +1,4 @@
-/* EV Companion v2.55.12 - customer-facing fixed/variable comparison polish.
+/* EV Companion v2.55.14 - compact customer-facing fixed/variable comparison.
  * Presentation only. Uses the existing live tariff engine and existing buttons;
  * does not modify consumption, tariff prices, VAT, saved data or shared links.
  */
@@ -11,20 +11,22 @@
   if($('acEvFixedComparePolishV25512'))return;
   var el=document.createElement('style');el.id='acEvFixedComparePolishV25512';
   el.textContent=[
-   'html.shared-view #acEvFixedDetails[open]>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:9px!important;padding:12px 14px 10px!important;border-bottom:1px solid #eee7f5!important;min-height:24px!important}',
+   'html.shared-view #acEvFixedDetails[open]>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding:8px 12px!important;border-bottom:1px solid #eee7f5!important;min-height:22px!important}',
    'html.shared-view #acEvFixedDetails[open]>summary .ac-ev-fixed-title{font-size:14px!important;line-height:1.25!important;margin:0!important;color:#523878!important}',
    'html.shared-view #acEvFixedDetails[open]>summary .ac-ev-fixed-sub{display:none!important}',
    'html.shared-view #acEvFixedDetails[open]>summary:after{content:"⌃"!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;margin:0!important;padding:2px 8px!important;background:transparent!important;color:#7250a0!important;font-size:20px!important;font-weight:700!important;border:0!important;border-radius:6px!important}',
-   'html.shared-view #acEvFixedDetails[open]>.card{padding:12px 10px 13px!important}',
-   'html.shared-view #acEvFixedDetails[open] .stressbar{margin-top:0!important}',
-   'html.shared-view #acEvFixedDetails[open] .ac-ev-simple-rates{margin:10px 0 6px!important;gap:8px!important}',
-   'html.shared-view #acEvFixedDetails[open] .ac-ev-simple-rate{padding:10px 6px!important;border-radius:10px!important}',
-   'html.shared-view .ac-v25512-insight{text-align:center;color:#49336a;font:800 12px/1.4 system-ui,sans-serif;margin:8px 2px 0;padding:3px 3px 0}',
-   'html.shared-view .ac-v25512-insight[hidden]{display:none!important}',
-   'html.shared-view .ac-v25512-usage{text-align:center;color:#7b7186;font:500 10px/1.4 system-ui,sans-serif;margin:5px 6px 10px}',
-   'html.shared-view #acEvFixedDetails[open] .ac-ev-all-rates{margin-top:9px!important;padding-top:7px!important}',
+   'html.shared-view #acEvFixedDetails[open]>.card{padding:8px 10px 9px!important}',
+   'html.shared-view #acEvFixedDetails[open] .stressbar{margin:0!important;padding:0!important}',
+   'html.shared-view #acEvFixedDetails[open] .stressbar>.stresslabel{display:none!important}',
+   'html.shared-view #acEvFixedDetails[open] #stressButtons button{min-height:34px!important}',
+   'html.shared-view #acEvFixedDetails[open] .ac-ev-simple-rates{margin:7px 0 3px!important;gap:7px!important}',
+   'html.shared-view #acEvFixedDetails[open] .ac-ev-simple-rate{padding:8px 5px!important;border-radius:10px!important;transition:background-color .14s ease,border-color .14s ease}',
+   'html.shared-view #acEvFixedDetails .ac-ev-simple-rate.ac-v25514-cheaper{background:#e7f6ed!important;border-color:#8fc9a5!important;box-shadow:inset 0 0 0 1px #a6dcb7!important}',
+   'html.shared-view #acEvFixedDetails .ac-ev-simple-rate.ac-v25514-cheaper strong{color:#14683c!important}',
+   'html.shared-view .ac-v25512-usage{text-align:center;color:#706781;font:500 10px/1.35 system-ui,sans-serif;margin:4px 3px 5px}',
+   'html.shared-view #acEvFixedDetails[open] .ac-ev-all-rates{margin-top:6px!important;padding-top:5px!important}',
    'html.shared-view #acEvFixedDetails[open] .ac-ev-all-rates>summary{font-size:11px!important;padding:9px 7px!important}',
-   '@media(max-width:370px){html.shared-view #acEvFixedDetails[open]>summary{padding:11px 10px 9px!important}html.shared-view .ac-v25512-insight{font-size:11px!important}}'
+   '@media(max-width:370px){html.shared-view #acEvFixedDetails[open]>summary{padding:7px 9px!important}html.shared-view .ac-v25512-usage{font-size:9.5px!important}}'
   ].join('');
   document.head.appendChild(el);
  }
@@ -37,7 +39,7 @@
  function updateTitle(){
   if(!outer)return;
   var title=outer.querySelector('summary .ac-ev-fixed-title');
-  if(title)title.textContent=outer.open?'🛡️ Fixed vs variable':'🛡️ Prefer the certainty of a fixed price?';
+  if(title)title.textContent=outer.open?'🛡️ Fixed vs variable if prices rise':'🛡️ Prefer the certainty of a fixed price?';
  }
  function updateTariffLink(){
   var more=$('acEvAllTariffs');
@@ -47,42 +49,31 @@
  }
  function refresh(){
   if(!ready)return;
-  updateTitle();
-  updateTariffLink();
-  var insight=$('acEvScenarioInsight');
-  if(!insight)return;
+  updateTitle();updateTariffLink();
   var cards=document.querySelectorAll('#acEvSimpleRates .ac-ev-simple-rate');
-  if(cards.length<2){insight.hidden=true;return;}
+  if(cards.length<2)return;
   var variable=amount(cards[0].querySelector('strong'));
   var fixed=amount(cards[1].querySelector('strong'));
-  if(!Number.isFinite(variable)||!Number.isFinite(fixed)){insight.hidden=true;return;}
-  var yearly=/year/i.test((cards[0].querySelectorAll('small')[1]||{}).textContent||'');
-  var unit=yearly?'year':'month';
-  var stress=document.querySelector('#stressButtons button.on');
-  var pct=stress?Number(stress.dataset.stress||0):0;
-  var opening=pct>0?'With an illustrative +'+pct+'% rise, ':'At today\u2019s rates, ';
-  var delta=Math.abs(variable-fixed);
-  if(delta<0.5){
-   insight.textContent=opening+'both tariffs cost about the same.';
-  }else{
-   var cheaper=variable<fixed?'EV variable':'Economy 7 fixed';
-   insight.textContent=opening+cheaper+' costs £'+Math.round(delta).toLocaleString('en-GB')+'/'+unit+' less.';
-  }
-  insight.hidden=false;
+  cards.forEach(function(card){card.classList.remove('ac-v25514-cheaper');card.removeAttribute('title')});
+  // The price tiles are rendered by the existing tariff engine. No estimates
+  // are recomputed here: highlight the lower currently-displayed scenario.
+  if(!Number.isFinite(variable)||!Number.isFinite(fixed)||Math.abs(variable-fixed)<.5)return;
+  var cheaper=cards[variable<fixed?0:1];
+  cheaper.classList.add('ac-v25514-cheaper');
+  cheaper.title='Lower estimated cost for this scenario';
  }
+
  function install(){
   if(ready)return true;
   outer=$('acEvFixedDetails');
   var rates=$('acEvSimpleRates');
   if(!outer||!rates)return false;
   style();
-  var insight=document.createElement('div');
-  insight.id='acEvScenarioInsight';insight.className='ac-v25512-insight';
-  insight.setAttribute('aria-live','polite');insight.hidden=true;
-  rates.insertAdjacentElement('afterend',insight);
   var note=document.createElement('div');note.className='ac-v25512-usage';
-  note.textContent='Allows for 2 extra hours of off-peak usage on Economy 7.';
-  insight.insertAdjacentElement('afterend',note);
+  note.textContent='Economy 7 gives 2 extra off-peak hours, but daytime rates are typically higher than EV rates.';
+  rates.insertAdjacentElement('afterend',note);
+  var scenarios=$('stressButtons');
+  if(scenarios)scenarios.setAttribute('aria-label','Illustrative variable electricity price-rise scenarios');
   outer.addEventListener('toggle',updateTitle);
   var more=$('acEvAllTariffs');
   if(more)more.addEventListener('toggle',updateTariffLink);
