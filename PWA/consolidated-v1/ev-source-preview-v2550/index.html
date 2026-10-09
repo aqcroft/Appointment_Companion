@@ -80,12 +80,12 @@
   <script>
   (async function () {
     try {
-      var version = '20261009-v2.55.0-preview1';
+      var version = '20261009-v2.55.0-preview2';
       var params = new URL(location.href).searchParams;
       // Test-only personalised preview. No saved customers or sensitive data.
       var demo = params.get('demo');
       if(demo && !location.hash){
-        var origin = demo==='actual'?'actual_12m':demo==='supplied'?'customer_estimate':'bill_estimate';
+        var origin = ['agreed','actual','supplied'].indexOf(demo)>=0?'agreed_sources':'bill_estimate';
         var sample = {v:'16C',n:'Sample customer',am:true,ms:'ev',ap:2275,ao:4800,mi:9000,hk:2500,ve:3.2,ti:2,rg:11,ep:10,e7:15,aw:0,vat:'5',uso:origin};
         location.hash = 'p2=' + btoa(unescape(encodeURIComponent(JSON.stringify(sample)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       }
@@ -136,7 +136,7 @@
       inject += '<script src="consolidated-v1/ev-copy-v2.49.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-compact-ui-v2.50.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-layout-v2.52.0.js?v=' + version + '"><\/script>';
-      inject += '<script src="consolidated-v1/ev-onboarding-v2.53.0.js?v=' + version + '"><\/script>';
+      inject += '<script src="consolidated-v1/ev-source-preview-v2550/ev-onboarding-v2.55.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-finish-v2.54.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-forecast-help-v2.54.2.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-source-preview-v2550/ev-usage-origin-v2.55.0.js?v=' + version + '"><\/script>';
