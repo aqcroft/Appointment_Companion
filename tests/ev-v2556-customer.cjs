@@ -10,6 +10,14 @@ async function check(browser,cloud){
  page.on('pageerror',e=>errors.push(e.message));
  if(cloud)await page.route('**/consolidated-v1/specialist-share-v1.js*',r=>r.fulfill({contentType:'application/javascript',body:'window.AppointmentCompanionSpecialistShare={read:async()=>({snapshot:'+JSON.stringify(snapshot)+'})};'}));
  await page.route('https://**/*',r=>r.abort());
+ // Deterministic tariff feed verifies prices from calculator, not hard-coded examples.
+ const fake={tariffLive:[]};
+ for(const [t,suffix] of [[0,'Value'],[1,'Gold'],[2,'Double Gold']]){
+   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'variable_ev',tariff_name:'EV '+suffix,EDSC_Std:52,EUR_EV_Peak:30,EUR_EV_OffPeak:8,EUR_Std:30,EDSC_E7:52,EUR_E7_Day:30,EUR_E7_Night:8});
+   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'variable',tariff_name:suffix,EDSC_Std:52,EUR_Std:32,EDSC_E7:52,EUR_E7_Day:35,EUR_E7_Night:18});
+   fake.tariffLive.push({region_no:11,payment_method:'dd',tariff_type:'fixed',tariff_name:t===2?'Fixed Saver':t===1?'Fixed':'Fixed Start',EDSC_Std:50,EUR_Std:30,EDSC_E7:50,EUR_E7_Day:31,EUR_E7_Night:15});
+ }
+ await page.route('https://script.google.com/macros/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fake)}));
  const url=base+(cloud?'?s=test-token&for=customer-sample':'?local=1#p2='+Buffer.from(JSON.stringify(sample)).toString('base64url'));
  await page.goto(url,{waitUntil:'domcontentloaded',timeout:16000});
  await page.locator('#acSharedAssumptions .ac-v254-welcome-stat').first().waitFor({timeout:16000});
@@ -56,7 +64,13 @@ async function check(browser,cloud){
  assert(quote.includes('standard variable electricity'),'Initial quote tariff explained');
  assert(quote.includes('EV interest'),'EV application guidance');
  assert(quote.includes('per month'),'Monthly side-by-side numbers');
- assert(quote.includes('£'),'No hard-coded £171 / £104 example');
+ const calculated=await page.evaluate(()=>window.__AC_EV_TRADEOFF);
+ const initial='£'+Math.round(calculated.standard.total/12).toLocaleString('en-GB');
+ const expectedEV='£'+Math.round(calculated.ev.total/12).toLocaleString('en-GB');
+ assert(quote.includes(initial),'Initial electricity amount uses the standard variable tariff calculation');
+ assert(quote.includes(expectedEV),'EV amount uses the selected EV tariff calculation');
+ assert.notEqual(initial,expectedEV,'Two different electricity estimates are compared');
+ console.log('CALCULATED electricity '+initial+' standard / '+expectedEV+' EV');
  const basketLink=await page.locator('#acEvBasketContinue').getAttribute('href');
  assert.equal(basketLink,'https://example.org/test-basket','Original customer basket preserved');
  await page.locator('#acEvBasketClose').click();
