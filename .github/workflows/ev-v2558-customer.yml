@@ -1,7 +1,7 @@
 name: EV v2.55.8 compact customer layout smoke
 on:
   push:
-    branches: [main, fix/ev-share-layout-v2558-20261009]
+    branches: [main, test/ev-v2558-compatible-v2559-20261009]
   workflow_dispatch:
 jobs:
   customer:

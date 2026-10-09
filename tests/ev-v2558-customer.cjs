@@ -89,6 +89,7 @@ async function check(browser,cloud){
   const t=tariff?.getBoundingClientRect(),v=vat?.getBoundingClientRect(),h=hero?.getBoundingClientRect();
   return {
    vatInHero:!!vat&&vat.parentElement===footer,
+   vatInStatus:vat?.parentElement?.id==='acEvRateVatRow',
    vatParent:vat?.parentElement?.className,
    footerExists:!!footer,
    vatVisible:!!vat&&vat.checkVisibility(),
@@ -96,13 +97,14 @@ async function check(browser,cloud){
    aligned:!!t&&!!v&&Math.abs((t.top+t.bottom)/2-(v.top+v.bottom)/2)<18,
    nonOverlap:!!t&&!!v&&t.right<=v.left+2,
    fits:!!h&&!!v&&v.right<=h.right+2,
+   statusAligned:(()=>{const x=document.querySelector('#acEvRateVatRow>.strip')?.getBoundingClientRect();return !!x&&!!v&&Math.abs((x.top+x.bottom)/2-(v.top+v.bottom)/2)<20&&x.right<=v.left+2})(),
    afterFixed:comparison?.nextElementSibling===settings,
    rates:rate
   };
  });
  console.log('CUSTOMER LAYOUT '+JSON.stringify(layout));
- assert(layout.vatInHero&&layout.vatVisible&&layout.vatButtonCount===2,'Original VAT controls displayed in hero');
- assert(layout.aligned&&layout.nonOverlap&&layout.fits,'VAT and tariff share a non-overlapping row inside hero');
+ assert((layout.vatInHero||layout.vatInStatus)&&layout.vatVisible&&layout.vatButtonCount===2,'Original VAT controls remain available');
+ assert(layout.vatInStatus?layout.statusAligned&&layout.fits:layout.aligned&&layout.nonOverlap&&layout.fits,'VAT has a non-overlapping layout');
  assert(layout.afterFixed,'Collapsed figures/settings follows optional fixed comparison');
  assert(layout.rates.includes('EV rates:')&&layout.rates.includes('11 East Mids')&&layout.rates.includes('Direct Debit')&&layout.rates.includes('5% VAT incl'),'Condensed but dynamic rate strip');
  assert(!layout.rates.includes('Region 11')&&!layout.rates.includes('5% VAT included'),'No unnecessary rate caption wording');
@@ -123,11 +125,15 @@ async function check(browser,cloud){
  await page.setViewportSize({width:360,height:800});
  await page.waitForTimeout(80);
  const narrow=await page.evaluate(()=>{
-   const footer=document.querySelector('.hero-footer-v16c'),t=footer?.querySelector('.hero-tariff')?.getBoundingClientRect(),v=document.getElementById('acV2482Vat')?.getBoundingClientRect(),h=document.querySelector('.hero')?.getBoundingClientRect();
-   return {aligned:!!t&&!!v&&Math.abs((t.top+t.bottom)/2-(v.top+v.bottom)/2)<22,nonOverlap:!!t&&!!v&&t.right<=v.left+2,insideHero:!!h&&!!v&&v.right<=h.right+2};
+   const hero=document.querySelector('.hero'),v=document.getElementById('acV2482Vat')?.getBoundingClientRect();
+   const status=document.querySelector('#acEvRateVatRow>.strip')?.getBoundingClientRect();
+   const row=document.getElementById('acEvRateVatRow')?.getBoundingClientRect();
+   const tariff=hero?.querySelector('.hero-tariff')?.getBoundingClientRect(),h=hero?.getBoundingClientRect();
+   if(row)return {valid:!!status&&!!v&&!!h&&Math.abs((status.top+status.bottom)/2-(v.top+v.bottom)/2)<27&&status.right<=v.left+2&&v.right<=row.right+2&&v.bottom<=h.top+2};
+   return {valid:!!tariff&&!!v&&!!h&&Math.abs((tariff.top+tariff.bottom)/2-(v.top+v.bottom)/2)<22&&tariff.right<=v.left+2&&v.right<=h.right+2};
  });
- console.log('NARROW HERO '+JSON.stringify(narrow));
- assert(narrow.aligned&&narrow.nonOverlap&&narrow.insideHero,'VAT and tariff are usable at 360px width');
+ console.log('NARROW VAT '+JSON.stringify(narrow));
+ assert(narrow.valid,'VAT remains usable at 360px width');
  await page.setViewportSize({width:390,height:844});
 
 
@@ -196,7 +202,7 @@ async function prospective(browser){
    settingsAfter:document.getElementById('acEvFixedDetails')?.nextElementSibling?.id,
    rate:document.getElementById('rateStrip')?.textContent
  }));
- assert(prospectLayout.footer.includes('hero-footer-v16c'),'VAT also moved into prospective EV hero');
+ assert(/hero-footer-v16c|ac-ev-rate-vat-row/.test(prospectLayout.footer),'Prospective VAT remains in the intended responsive position');
  assert.equal(prospectLayout.settingsAfter,'acEvCustomerSettings','Prospective EV settings follow the fixed question');
  assert(prospectLayout.rate.includes('11 East Mids'),'Prospective rate strip shortened');
 
