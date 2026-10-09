@@ -1,5 +1,14 @@
 # Appointment Companion changelog
 
+## v2.55.2 - 9th October 2026
+
+- Shared customer EV screens now have a purple colourway distinct from the teal Partner editor, without changing the working launcher.
+- Customer introduction encourages exploring UW service levels, illustrative variable-price increases, and a fixed Economy 7 alternative.
+- Reaffirmed Energy only / Energy + 1 service / Energy + 2 services labels on the service selector and all three tariff table columns even when rendering is delayed.
+- Explained the five-hour to seven-hour off-peak shift in the Economy 7 breakdown: kWh moves between day and night, never added to total consumption.
+- The basket handover remains unchanged pending separate wording and process agreement.
+
+
 ## v2.55.1 - 9th October 2026
 
 - Prevented the shared EV launcher from becoming unresponsive by replacing an EV hero layout MutationObserver with bounded polling.
