@@ -22,14 +22,14 @@ async function check(browser,cloud){
  await page.waitForFunction(()=>document.documentElement.classList.contains('shared-started'),null,{timeout:12000});
  await page.waitForFunction(()=>document.querySelectorAll('#comparison tr[data-row]').length>=5,null,{timeout:18000});
  await page.waitForSelector('#acEvFixedDetails', {timeout:12000});
- await page.waitForSelector('#acEvSimpleRates .ac-ev-simple-rate', {timeout:12000});
+ await page.waitForSelector('#acEvSimpleRates .ac-ev-simple-rate', {state:'attached',timeout:12000});
  const before=await page.evaluate(()=>({
   collapsed:!document.getElementById('acEvFixedDetails').open,
   allCollapsed:!document.getElementById('acEvAllTariffs').open,
   settingsCollapsed:!document.getElementById('acEvCustomerSettings').open,
   prepared:document.getElementById('acEvPrepared')?.textContent,
   basketButton:document.getElementById('acEvOpenBasket')?.textContent,
-  rates:document.getElementById('acEvSimpleRates')?.innerText,
+  rates:document.getElementById('acEvSimpleRates')?.textContent,
   current:document.querySelector('[data-stress="0"]')?.textContent
  }));
  console.log((cloud?'CLOUD':'PORTABLE')+' START '+JSON.stringify(before));
