@@ -1,5 +1,15 @@
 # Appointment Companion changelog
 
+## v2.55.7 - 9th October 2026
+
+- Removed the customer's EV ownership badge, preserving the Partner-facing indicator and paired colourways.
+- Moved the existing EV owner's annual electricity inputs and usage source into the collapsed Your figures & settings. Relocates live DOM nodes rather than recreating inputs or affecting saved figures.
+- The usage heading inside customer settings now says Home + EV estimated annual consumption.
+- Simplified the personalised opening summary by removing its redundant usage-source explanation, leaving the three day/night/total kWh cards.
+- Fixed price-rise scenario controls to a single five-column row: Current, +5%, +15%, +21% (forecast marker), +25%; Current remains the default.
+- Did not modify tariff arithmetic, partner controls, the dynamic basket handover, or share payloads.
+
+
 ## v2.55.6 - 9th October 2026
 
 - Customer-shared EV pages now lead with the three electricity estimate cards, keeping detailed figures/settings collapsed behind a cog.
