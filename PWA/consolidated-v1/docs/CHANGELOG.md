@@ -1,5 +1,13 @@
 # Appointment Companion changelog
 
+## v2.55.10 - 9th October 2026
+
+- Customer view: preserved 5% / 0% VAT beside the concise EV rates status in both existing-EV and considering-EV journeys.
+- Moved the petrol/diesel comparison shortcut beside Monthly/Yearly, immediately to its left, only for customers considering an EV. Existing EV owners continue without the petrol shortcut.
+- Removed the empty top mode row from customer views while preserving the clear Partner mode identification.
+- Reused the existing comparison button, event handler and calculator; no tariff, VAT, profile, basket or share-link calculations changed.
+
+
 ## v2.55.9 - 9th October 2026
 
 - Corrected placement of the customer-facing 0%/5% VAT switch. It now sits at the top-right beside the concise EV rates line, *above* the purple savings hero, rather than consuming space inside the hero.
