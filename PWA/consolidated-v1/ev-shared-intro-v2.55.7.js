@@ -129,7 +129,7 @@
   basket.appendChild(e('strong',null,'Your comparison starts with:'));
   var bullets=e('ul');
   function bullet(message){bullets.appendChild(e('li',null,message));}
-  bullet(['UW EV Value','UW EV Gold','UW EV Double Gold'][count]+' (variable)');
+  bullet(count===2?"UW's best EV rates (variable)":"UW's EV rates (variable)");
   bullet(['Energy only','Energy + 1 other UW service','Energy + 2 other UW services'][count]);
   var vatZero=Number(data.vat)===0;
   bullet(vatZero ?
