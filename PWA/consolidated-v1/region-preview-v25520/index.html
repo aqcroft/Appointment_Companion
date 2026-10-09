@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PREVIEW - Customer electricity region | Appointment Companion v2.55.20</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#7945c7">
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#26164f}
+*{box-sizing:border-box}
+body{margin:0;background:#f5f3fa;font-size:14px}
+header{background:#7945c7;color:white;padding:17px 19px 19px}
+.wrap{max-width:600px;margin:0 auto;padding:16px}
+.head-inner{max-width:600px;margin:auto}
+header .heading{font-size:17px;font-weight:850;letter-spacing:-.3px}
+header .subheading{font-size:12px;opacity:.9;margin-top:2px}
+.banner{border:1px solid #ddd3ed;border-radius:12px;background:#fff;color:#534078;padding:12px 14px;line-height:1.45;margin-bottom:12px;font-size:12px}
+.banner strong{display:block;font-size:12px;color:#5f3797;margin-bottom:4px}
+.card{background:white;border:1px solid #e5ddef;border-radius:18px;padding:18px 16px;box-shadow:0 5px 20px rgba(38,22,79,.05)}
+.card h2{margin:0 0 16px;font-size:17px}
+.field{margin-bottom:8px}
+label{font-size:12px;display:block;color:#61566c;font-weight:750;margin-bottom:7px}
+input[type=text]{font:500 17px system-ui;color:#26164f;border:1px solid #ded5e9;border-radius:12px;background:#fff;padding:14px;width:100%}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #f0ebf5;padding:14px 0;color:#282131;font-size:13px;font-weight:700}
+.fake-switch{border-radius:99px;background:#e4ddec;width:42px;height:23px;position:relative;flex-shrink:0}
+.fake-switch:before{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;background:#fff;border-radius:50%;box-shadow:0 1px 3px #aaa}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button.action{min-height:40px;background:#7945c7;color:white;border:0;border-radius:10px;padding:10px 13px;font:750 12px system-ui;cursor:pointer}
+button.secondary{background:white;color:#503477;border:1px solid #d8cae6}
+.note{font-size:12px;color:#6e6579;line-height:1.45}
+.preview-panel{border:1px solid #e6ddef;border-radius:14px;background:#fff;padding:15px;margin-top:12px}
+.preview-panel h3{font-size:14px;margin:0 0 9px}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tool-grid button{font:700 13px system-ui;color:#4c3373;background:#fbfaff;border:1px solid #dcd2e9;border-radius:11px;min-height:45px;cursor:pointer}
+#handoff{min-height:38px;margin-top:11px;border:1px solid #e9e2f0;border-radius:9px;padding:11px;font-weight:700;font-size:12px;background:#faf8fc;line-height:1.5}
+#status{min-height:20px;margin-top:11px;color:#62536f;font-size:12px}
+footer{font-size:11px;color:#736883;text-align:center;margin:15px 0}
+footer a{color:#5b3b88}
+</style>
+</head>
+<body>
+<header><div class="head-inner"><div class="heading">🔢 Appointment Companion</div><div class="subheading">Customer profile - region control concept</div></div></header>
+<main class="wrap">
+  <div class="banner"><strong>PREVIEW v2.55.20 - safe example only</strong>
+    This is a working preview of the proposed Main Companion region control, not the full calculator. It does not access, save or change any of your real customer profiles, login details or cloud data.
+  </div>
+  <section class="card" aria-label="Preview customer profile">
+    <h2>Customer &amp; household</h2>
+    <div class="field"><label for="customerName">Customer name</label>
+      <input id="customerName" type="text" value="Example customer" autocomplete="off">
+    </div>
+    <!-- The exact branch region control is injected immediately after the customer name. -->
+    <div class="switchrow"><span>Referred by an existing customer</span><span class="fake-switch" aria-hidden="true"></span></div>
+    <div class="switchrow"><span>⚽ National League referral</span><span class="fake-switch" aria-hidden="true"></span></div>
+    <div class="controls">
+      <button type="button" class="action" id="saveReopen">Save &amp; reopen example</button>
+      <button type="button" class="action secondary" id="newCustomer">New example customer</button>
+    </div>
+    <p class="note">Tap the small ⚡ Region label beneath the name to choose or change the customer's region. Once selected, it collapses again.</p>
+  </section>
+  <section class="preview-panel" aria-label="Specialist tool region handoff">
+    <h3>Check how the region follows into another tool</h3>
+    <div class="tool-grid">
+      <button type="button" id="openFix">📌 Should I Fix?</button>
+      <button type="button" id="openEv">🚙 EV Companion</button>
+    </div>
+    <div id="handoff" role="status">Select a region above, then tap either tool.</div>
+    <div id="status" role="status"></div>
+    <p class="note">The two buttons demonstrate the region hand-off from the actual customer profile data model; they do not open live calculators. Both real tools retain their own region selectors for subsequent adjustments.</p>
+  </section>
+  <footer>Draft preview - <a href="https://github.com/aqcroft/Appointment_Companion/pull/39">review the corresponding GitHub change</a> · No service worker or customer data used</footer>
+</main>
+<script>
+  // Preview-only donor-form stubs. No localStorage, IndexedDB, Cloud, or external fetch.
+  window.serializeForm = function () {
+    return {customerName: document.getElementById('customerName').value, inputs: {customerName: document.getElementById('customerName').value}, state: {services: {energy: true}}};
+  };
+  window.restoreForm = function (snapshot) {
+    document.getElementById('customerName').value = snapshot.customerName || '';
+    return true;
+  };
+</script>
+<script src="./canonical-state-preview-v2.55.20.js"></script>
+<script src="./customer-region-v2.55.20.js"></script>
+<script>
+(function(){
+'use strict';
+var api=window.AppointmentCompanionCanonical;
+var status=document.getElementById('status'),handoff=document.getElementById('handoff');
+function record(){return api.capture();}
+function previewTool(which){
+  var el=document.getElementById('customerRegion');
+  var profile=record();
+  var input=api.toLegacySnapshot(profile).inputs;
+  var code=Number(input.region);
+  if(!input.region||!Number.isInteger(code)||code<10||code>23){
+    handoff.textContent='⚠️ Set the customer region in Main Companion first.';
+    status.textContent='The real Main Companion will request a region before opening either calculator.';
+    if(el){var chip=document.querySelector('.ac-region-chip');if(chip)chip.click();}
+    return;
+  }
+  var option=el.options[el.selectedIndex];
+  handoff.textContent=which+' receives region '+option.textContent+' from '+(profile.canonical.customerName||'this customer')+'.';
+  status.textContent='Main profile is the starting point. The '+which+' region may still be changed inside that tool.';
+}
+function init(){
+var el=document.getElementById('customerRegion');
+if(!el)return false;
+document.getElementById('openFix').addEventListener('click',function(){previewTool('Should I Fix?')});
+document.getElementById('openEv').addEventListener('click',function(){previewTool('EV Companion')});
+document.getElementById('saveReopen').addEventListener('click',function(){
+  var saved=record();
+  document.getElementById('customerName').value='';
+  el.value='';
+  api.restore(saved);
+  window.dispatchEvent(new CustomEvent('ac:customer-switched',{detail:{customer_name:saved.canonical.customerName}}));
+  setTimeout(function(){status.textContent='✓ Example reopened. Region restored from this customer profile.';},120);
+});
+document.getElementById('newCustomer').addEventListener('click',function(){
+  document.getElementById('customerName').value='Another example customer';
+  el.value='';
+  window.dispatchEvent(new CustomEvent('ac:customer-switched',{detail:{customer_name:''}}));
+  handoff.textContent='New example customer - no region selected.';
+  status.textContent='No previous customer region has been copied.';
+});
+status.textContent='Preview ready. Tap the small region control beneath the customer name.';
+return true;
+}
+var tries=0,timer=setInterval(function(){if(init()||++tries>100)clearInterval(timer);},50);
+})();
+</script>
+</body></html>
