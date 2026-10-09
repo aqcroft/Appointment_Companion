@@ -254,8 +254,8 @@
     if(!note||!model)return;
     var isZero=model.vatPercent===0;
     note.textContent=isZero?
-      'Temporary 0% electricity VAT applies until 31 March 2027. Switch to 5% for a longer-term comparison.':
-      'Electricity VAT is 0% until 31 March 2027. Showing 5% for a longer-term comparison - switch to 0% to see the temporary rate.';
+      'Temporary 0% electricity VAT applies from 1 October 2026 to 31 March 2027. Switch to 5% for a longer-term comparison.':
+      'Electricity VAT is 0% from 1 October 2026 to 31 March 2027. Showing 5% for a longer-term comparison - switch to 0% for the temporary rate.';
     if(isZero&&model.period==='year')note.textContent+=' The yearly figure is a 0%-rate equivalent, not a full-year VAT forecast.';
   }
   function compactGreeting(){
