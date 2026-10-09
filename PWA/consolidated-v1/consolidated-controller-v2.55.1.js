@@ -4,7 +4,7 @@
   if (document.documentElement.classList.contains('view-mode')) return;
   var store = global.AppointmentCompanionLocalStore, canonical = global.AppointmentCompanionCanonical, api = global.AppointmentCompanionCloud, LOCAL_ONLY = !!global.__AC_LOCAL_ONLY;
   var CURRENT_KEY = 'apptCompanionConsolidatedCurrentV1', CLOUD_KEY = 'apptCloudPilotCurrentCustomer', AUTH_KEY = 'apptCloudPilotAuthSession', DEVICE_AUTH_KEY = 'apptCloudPilotAuthDeviceV1';
-  var currentId = sessionStorage.getItem(CURRENT_KEY) || '', current = null, saveTimer = null, syncTimer = null, syncing = false, retryMs = 2500;
+  var currentId = sessionStorage.getItem(CURRENT_KEY) || '', current = null, saveTimer = null, syncTimer = null, syncing = false, retryMs = 2500, editedSinceSwitch = false;
   var $ = function (id) { return document.getElementById(id); };
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
   function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null'); if (row && row.partner_id && row.workspace_key) { try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {} return row; } return null; } catch (_) { return null; } }
@@ -22,7 +22,7 @@
     return { local_id: currentId || store.makeId(), cloud_id: current && current.cloud_id || '', customer_name: c.customerName, appointment_state: appt, specialist_state: bridge && bridge.getJourney ? clone(bridge.getJourney().specialists || {}) : clone(current && current.specialist_state || {}), basket_url: c.basketUrl || '', cloud_customer: clone(current && current.cloud_customer || null), base_cloud_revision: current && current.base_cloud_revision || '', base_cloud_snapshot: clone(current && current.base_cloud_snapshot || null), cloud_synced_local_revision: current && current.cloud_synced_local_revision || 0 };
   }
   async function persist(announce) { paint(current, true); var next = draft(); currentId = next.local_id; sessionStorage.setItem(CURRENT_KEY, currentId); current = await store.put(next); paint(current, false); if (announce) status(LOCAL_ONLY ? 'Saved safely on this device. Cloud is paused.' : 'Saved safely on this device. Cloud sync is queued in the background.', 'good'); scheduleSync(900); return clone(current); }
-  function queuePersist(event) { if (event && event.target && event.target.closest && event.target.closest('#cloudPilotCard,#localFirstCustomers,#cloudConnectModal,#cloudSettingsModal,#cloudOnboardingModal')) return; paint(current, true); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(false).catch(function () { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Local save needs attention. Keep this page open and try again.', 'bad'); }); }, 180); }
+  function queuePersist(event) { if (event && event.target && event.target.closest && event.target.closest('#cloudPilotCard,#localFirstCustomers,#cloudConnectModal,#cloudSettingsModal,#cloudOnboardingModal')) return; if (event && event.isTrusted && event.target && event.target.matches && event.target.matches('input,textarea,select')) editedSinceSwitch=true; paint(current, true); clearTimeout(saveTimer); saveTimer = setTimeout(function () { persist(false).catch(function () { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Local save needs attention. Keep this page open and try again.', 'bad'); }); }, 180); }
   async function loadRecord(row, quiet) {
     if (!row || row.deleted) return; currentId = row.local_id; current = clone(row); sessionStorage.setItem(CURRENT_KEY, currentId); if (row.cloud_id) sessionStorage.setItem(CLOUD_KEY, row.cloud_id); else sessionStorage.removeItem(CLOUD_KEY);
     var bridge = global.AppointmentCompanionBridge;
@@ -44,6 +44,7 @@
     }
     canonical.restore(row.appointment_state); if (bridge && bridge.updateWorkingRecord) { bridge.updateWorkingRecord({ customer_id: row.cloud_id || '', customer_name: row.customer_name || '', appointment_state: canonical.toLegacySnapshot(row.appointment_state), specialists: clone(row.specialist_state || {}), basket_url: row.basket_url || row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl || '' }); if (bridge.setToolState) Object.keys(row.specialist_state || {}).forEach(function (tool) { bridge.setToolState(tool, clone(row.specialist_state[tool])); }); }
     paint(row, false);
+    editedSinceSwitch=false;
     try { global.dispatchEvent(new CustomEvent('ac:customer-switched', { detail:{ local_id:row.local_id, customer_name:row.customer_name || '' } })); } catch (_) {}
     if (!quiet) status((row.customer_name || 'Local customer') + ' opened from this device.', 'good');
   }
@@ -327,13 +328,14 @@
   function scheduleSync(delay) { if (LOCAL_ONLY) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, delay == null ? retryMs : delay); }
   async function startNewCustomer(fromDelete) {
     clearTimeout(saveTimer);
-    if (!fromDelete && shouldAskBeforeSwitch('__new_customer__')) {
+    if (!fromDelete && (editedSinceSwitch || shouldAskBeforeSwitch('__new_customer__'))) {
       var choice = await askBeforeSwitch('a new customer');
       if (choice === 'stay') return false;
       if (choice === 'save') {
         try { await persist(false); } catch(error){status('Could not save this customer: '+((error&&error.message)||'Please retry.'),'bad');return false;}
       }
     }
+    editedSinceSwitch=false;
     currentId = ''; current = null; sessionStorage.removeItem(CURRENT_KEY); sessionStorage.removeItem(CLOUD_KEY);
     var bridge = global.AppointmentCompanionBridge; if (bridge && bridge.clearWorkingRecord) bridge.clearWorkingRecord();
     if (typeof global.resetForm === 'function') global.resetForm();
