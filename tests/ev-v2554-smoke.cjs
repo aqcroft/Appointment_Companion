@@ -14,7 +14,11 @@ function inspectHeroGeometry(){
  const b=buttons?.getBoundingClientRect(),p=period?.getBoundingClientRect(),g=grid?.getBoundingClientRect(),f=fuel?.getBoundingClientRect(),top=topline?.getBoundingClientRect(),t=tariff?.getBoundingClientRect();
  return{
   buttons:b?.toJSON(),period:p?.toJSON(),grid:g?.toJSON(),fuel:f?.toJSON(),topline:top?.toJSON(),tariff:t?.toJSON(),
-  fuelVisible:!!fuel&&getComputedStyle(fuel).display!=='none',
+  fuelVisible:!!fuel&&fuel.checkVisibility()&&!fuel.hidden,
+  sharedProspective:document.documentElement.classList.contains('shared-view')&&
+    !document.documentElement.classList.contains('ac-metered-mode')&&
+    document.documentElement.dataset.evJourney!=='existing',
+  fuelInFooter:!!fuel&&fuel.parentNode===hero?.querySelector('.hero-footer-v16c'),
   mainModeHidden:(()=>{let x=document.querySelector('#acMeterModeCard>.ac-meter-choices');return x?getComputedStyle(x).display==='none':null})(),
   settingsChooser:!!document.querySelector('#acV250Modal .ac-v250-body #acEvChangeSituation')
  };
@@ -27,7 +31,13 @@ function assertHeroGeometry(g,label){
  assert(g.tariff.top>=Math.max(g.buttons.bottom,g.period.bottom)-2,label+' tariff label is below controls');
  assert.equal(g.mainModeHidden,true,label+' mode buttons hidden from main page');
  if(g.fuelVisible){
-  assert(g.fuel.top>=g.topline.top-2&&g.fuel.bottom<=g.grid.top+1,label+' petrol button above usage cards');
+  if(g.sharedProspective){
+   assert(g.fuelInFooter,label+' petrol button is in the customer hero footer');
+   assert(g.fuel.right<=g.period.left+3&&g.period.left-g.fuel.right<=14,label+' petrol button immediately left of Monthly/Yearly');
+   assert(Math.abs((g.fuel.top+g.fuel.bottom)/2-(g.period.top+g.period.bottom)/2)<10,label+' fuel and period controls aligned');
+  }else{
+   assert(g.fuel.top>=g.topline.top-2&&g.fuel.bottom<=g.grid.top+1,label+' Partner petrol button above usage cards');
+  }
   assert(g.fuel.width<=32&&g.fuel.height<=32,label+' petrol button smaller');
  }
 }
