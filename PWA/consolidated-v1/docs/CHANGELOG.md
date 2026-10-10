@@ -1,3 +1,11 @@
+## v2.56.0 - 10th October 2026
+
+- New customer profiles are saved as local drafts while details are being entered; typing a name no longer creates a permanent Cloud customer row.
+- The first Cloud upload requires **Save to Cloud** (toolbar shortcut or menu). **Save as new scenario** also approves the new copy; a draft does not create a duplicate local draft.
+- Existing Cloud-linked customer profiles continue to autosynchronise changes, with a gentler 2.8-second sync debounce after local edits. Local autosaving still runs promptly.
+- Clearly label device-only drafts in the customer picker and distinguish **Save locally & switch** from uploading to Cloud.
+- Retain every existing local and Cloud profile. This release does not delete or migrate any customer data.
+
 ## v2.55.28 - 10th October 2026
 
 - Clarified the PWA's login and onboarding fields: UW Partner ID is the Companion Cloud login, and the separate Companion Cloud password is not the UW Partner Portal password. Retained a note for Partners still using a legacy login ID.
