@@ -1,3 +1,11 @@
+## v2.56.3 - 10th October 2026
+
+- New customer profiles start with electricity region **11 - East Midlands**, including the initial empty profile and a fresh profile after switching customers.
+- The new default is included in the first local customer snapshot, so **EV Companion** and **Should I Fix?** inherit region 11 without requiring a manual selection.
+- Restoring an existing customer uses that customer's previously saved region, including a deliberately missing value, rather than overwriting historical profile data.
+- The top universal Save retains its existing scope: Main form plus specialist state already stored for the customer; it does not yet capture all live Should I Fix iframe adjustments. No Save behaviour changed.
+- Existing local drafts, first-Cloud-save safeguards, quiet EV autosave and synced customer IDs are unchanged.
+
 ## v2.56.2 - 10th October 2026
 
 - The EV Companion now distinguishes device-only drafts from existing Cloud-linked profiles in its manual Save confirmation.
