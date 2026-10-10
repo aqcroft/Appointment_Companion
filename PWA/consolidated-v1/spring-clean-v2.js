@@ -203,13 +203,14 @@
 
     var meaningful = rows.filter(function (r) { return r && (String(r.customer_name || '').trim() || r.deleted || r.tombstone); });
     var conflicts = meaningful.filter(function (r) { return r.sync_state === 'conflict' || r.conflict; }).length;
-    var pending = meaningful.filter(function (r) { return r.sync_state === 'pending' || r.sync_state === 'pending_delete'; }).length;
+    var pending = meaningful.filter(function (r) { return (r.sync_state === 'pending' || r.sync_state === 'pending_delete') && (r.cloud_id || r.cloud_creation_approved || r.deleted); }).length;
 
     var current = null;
     try { if (engine && engine.currentRecord) current = engine.currentRecord(); } catch (_) {}
     var currentMeaningful = !!(current && String(current.customer_name || '').trim());
     var currentConflict = !!(currentMeaningful && (current.sync_state === 'conflict' || current.conflict));
-    var currentPending = !!(currentMeaningful && (current.sync_state === 'pending' || current.sync_state === 'pending_delete'));
+    var currentDraft = !!(currentMeaningful && !current.cloud_id && !current.cloud_creation_approved && !current.deleted);
+    var currentPending = !!(currentMeaningful && !currentDraft && (current.sync_state === 'pending' || current.sync_state === 'pending_delete'));
     var currentSynced = !!(currentMeaningful && current.cloud_id && current.sync_state === 'synced' &&
       Number(current.cloud_synced_local_revision) === Number(current.local_revision));
 
@@ -257,7 +258,7 @@
     if (pending) {
       return { state:'amber', iconState:'warn', attention:true, text:pending + ' saved profile' + (pending === 1 ? '' : 's') + ' waiting to sync', pending:pending, conflicts:0 };
     }
-    return { state:'green', iconState:'ok', attention:false, text:currentMeaningful ? 'Current profile synced' : 'Cloud connected', pending:0, conflicts:0 };
+    return { state:'green', iconState:'ok', attention:false, text:currentDraft ? 'Cloud connected - draft saved on this device' : currentMeaningful ? 'Current profile synced' : 'Cloud connected', pending:0, conflicts:0 };
   }
 
   function markForState(state) { return state === 'green' ? '✅' : state === 'amber' ? '⚠️' : state === 'red' ? '⚠️' : '…'; }
