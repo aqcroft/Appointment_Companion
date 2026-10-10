@@ -26,16 +26,6 @@ const timeout = 26000;
   const errors = [];
   page.on('pageerror', err => errors.push(String(err.message || err)));
   await page.route('https://**/*', route => route.abort());
-  await page.addInitScript(() => {
-    window.__acDebugDeletes = [];
-    if (window.IDBObjectStore && IDBObjectStore.prototype.delete) {
-      const original = IDBObjectStore.prototype.delete;
-      IDBObjectStore.prototype.delete = function (id) {
-        window.__acDebugDeletes.push({ id, store: this.name, stack: String(new Error().stack).slice(0, 850) });
-        return original.call(this, id);
-      };
-    }
-  });
 
   try {
     await page.goto(mainUrl, { waitUntil: 'domcontentloaded', timeout });
@@ -78,39 +68,22 @@ const timeout = 26000;
     assert.equal(persistedNew.name, 'East Midlands Test');
     assert.equal(persistedNew.region, 11);
     assert(persistedNew.stored, 'named draft should be present in IndexedDB');
-    console.log('BEFORE OLD LOAD ' + JSON.stringify(await page.evaluate(async id => ({
-      record: await window.AppointmentCompanionLocalStore.get(id),
-      all: (await window.AppointmentCompanionLocalStore.list(true)).map(r=>({id:r.local_id,name:r.customer_name,region:r.appointment_state?.canonical?.region})),
-      deletes: window.__acDebugDeletes
-    }), freshId)).slice(0, 1400));
 
     await page.evaluate(async id => {
       const row = await window.AppointmentCompanionLocalStore.get(id);
       await window.AppointmentCompanionConsolidated.load(row);
     }, originalId);
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '14', null, { timeout });
-    console.log('AFTER OLD LOAD ' + JSON.stringify(await page.evaluate(async id => ({
-      fresh: await window.AppointmentCompanionLocalStore.get(id),
-      all: (await window.AppointmentCompanionLocalStore.list(true)).map(r=>({id:r.local_id,name:r.customer_name,region:r.appointment_state?.canonical?.region})),
-      deletes: window.__acDebugDeletes
-    }), freshId)).slice(0, 2500));
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
     const switchFresh = await page.evaluate(async id => {
-      const store = window.AppointmentCompanionLocalStore;
-      const row = await store.get(id);
-      const before = (await store.list(true)).map(r => ({ id: r.local_id, name: r.customer_name, region: r.appointment_state?.canonical?.region, deleted: r.deleted }));
-      if (row && !row.deleted) await window.AppointmentCompanionConsolidated.load(row);
+      const row = await window.AppointmentCompanionLocalStore.get(id);
+      await window.AppointmentCompanionConsolidated.load(row);
       return {
         id: window.AppointmentCompanionConsolidated.currentId(),
-        region: window.AppointmentCompanionConsolidated.currentRecord()?.appointment_state?.canonical?.region,
-        storedRegion: row?.appointment_state?.canonical?.region,
-        storedName: row?.customer_name || null,
-        storedDeleted: row?.deleted,
-        before
+        storedRegion: row?.appointment_state?.canonical?.region
       };
     }, freshId);
-    console.log('RESTORE FRESH ' + JSON.stringify(switchFresh));
     assert.equal(switchFresh.id, freshId, 'reopened named customer should be the selected customer');
     assert.equal(switchFresh.storedRegion, 11, 'saved named draft must preserve East Midlands');
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '11', null, { timeout: 6500 });
@@ -120,6 +93,7 @@ const timeout = 26000;
     await page.waitForFunction(() => window.AppointmentCompanionConsolidated?.currentRecord()?.customer_name === 'East Midlands Test', null, { timeout });
     await page.evaluate(() => document.querySelector('#cloudCompanionEv').click());
     await page.waitForURL(/\/consolidated-v1\/ev\//, { timeout });
+    await page.waitForFunction(() => window.AppointmentCompanionBridge?.receive()?.extra?.customer?.region === 11, null, { timeout });
     const evRegion = await page.evaluate(() => {
       const e = window.AppointmentCompanionBridge?.receive();
       return e?.extra?.customer?.region;
@@ -133,6 +107,11 @@ const timeout = 26000;
     await page.locator('#cloudCompanionFix').waitFor({ state: 'attached', timeout });
     await page.evaluate(() => document.querySelector('#cloudCompanionFix').click());
     await page.waitForURL(/\/consolidated-v1\/should-i-fix\//, { timeout });
+    await page.waitForFunction(() => window.AppointmentCompanionBridge?.receive()?.extra?.customer?.region === 11, null, { timeout });
+    await page.waitForFunction(() => {
+      const frame = document.getElementById('fixFrame');
+      return frame && frame.src && new URL(frame.src).searchParams.get('r') === '11';
+    }, null, { timeout });
     const fixRegion = await page.evaluate(() => {
       const e = window.AppointmentCompanionBridge?.receive();
       const frame = document.getElementById('fixFrame');
