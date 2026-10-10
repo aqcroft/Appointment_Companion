@@ -1,3 +1,9 @@
+## v2.56.2 - 10th October 2026
+
+- The EV Companion now distinguishes device-only drafts from existing Cloud-linked profiles in its manual Save confirmation.
+- New drafts say EV work is saved locally and explain that **Save to Cloud** in the Main Companion creates the first Cloud profile.
+- Continues v2.56.1 silent EV autosave, clear error notices, draft-aware status indicators and v2.56.0 explicit first-save gating. No Cloud records deleted.
+
 ## v2.56.1 - 10th October 2026
 
 - EV Companion background autosave no longer displays repeated floating save notifications; automatic status remains available to screen readers.
