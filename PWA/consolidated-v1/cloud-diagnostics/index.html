@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#7944bd">
-<title>Cloud Diagnostics v1.0.0 | Appointment Companion</title>
+<title>Cloud Diagnostics v1.1.0 | Appointment Companion</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f1f9;color:#28194e;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{background:#7944bd;color:#fff;padding:16px}header>div,main{max-width:620px;margin:auto}
@@ -13,18 +13,28 @@ h2{font-size:15px;margin:0 0 8px}.note{color:#6e657c;font-size:12px}p{margin:6px
 button,a.action{display:inline-flex;justify-content:center;align-items:center;min-height:43px;padding:10px 15px;border-radius:10px;border:1px solid #d8cde9;background:#fff;color:#543487;font:750 14px system-ui;text-decoration:none;cursor:pointer}
 button.primary{color:#fff;background:#7944bd;border-color:#7944bd}button:disabled{opacity:.6;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:9px}
 .row{padding:11px 0;border-top:1px solid #efebf5}.row:first-of-type{border-top:0}
-.row strong{display:block;font-size:13px}.row .detail{font-size:12px;color:#665b74;overflow-wrap:anywhere;margin-top:3px}
+.row strong{display:block;font-size:13px}input[type=text]{display:block;width:100%;max-width:390px;min-height:44px;border:1px solid #d8cde9;border-radius:10px;padding:9px 12px;margin:7px 0 12px;font:650 16px system-ui;color:#28194e}label{font-weight:750}.row .detail{font-size:12px;color:#665b74;overflow-wrap:anywhere;margin-top:3px}
 .good{color:#167848}.bad{color:#a92f34}.warn{color:#985f12}
 pre{background:#f9f7fc;border:1px solid #eee5f6;border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Consolas,monospace;overflow-wrap:anywhere;white-space:pre-wrap;max-height:370px;overflow:auto}
 </style>
 </head>
 <body>
-<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.0.0 · 10th October 2026</small></div></header>
+<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.1.0 · 10th October 2026</small></div></header>
 <main>
 <section><h2>Find out why your profiles aren't synchronising</h2>
 <p>This checks the cloud service, attempts a <strong>read-only</strong> customer listing with the login already saved in this browser, and counts local records. No uploads, deletions, password display or changes to your appointments.</p>
 <div class="actions"><button id="run" class="primary" type="button">🔍 Run read-only checks</button><a class="action" href="../">Back to Main Companion</a></div>
 <p class="note">Use the same phone and browser/profile as your installed Companion. If its saved login isn't visible here, we'll still test the server. Never enter your password into this page.</p>
+</section>
+<section aria-label="Read-only Partner ID migration test">
+<h2>Step 2 - Test the proposed Partner ID without changing anything</h2>
+<p>Before migrating customer ownership in Google Sheets, check whether the new Partner ID accepts your <strong>existing saved password</strong>. This is a read-only request. Nothing will be saved, deleted or migrated.</p>
+<label for="newPartnerId">New Companion Login ID</label>
+<input id="newPartnerId" type="text" placeholder="e.g. G16990" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="60">
+<div class="actions"><button id="testPartnerId" class="primary" type="button">🔍 Test new ID (read-only)</button></div>
+<div id="newIdResult" role="status" class="detail" style="margin-top:9px;font-size:12px">Waiting for test</div>
+<p class="note">Uses only the password already saved by Companion on this device. If authentication succeeds, zero customers is normal until the records are migrated. This test never changes your saved Companion login.</p>
+<p class="note">v1.1.0 update: added a safe Partner ID migration pre-check.</p>
 </section>
 <section aria-live="polite">
 <h2>Results</h2>
@@ -106,7 +116,7 @@ function getSavedAuth(){
 }
 async function run(){
  const btn=document.getElementById('run');btn.disabled=true;
- reportLines=['Companion Cloud Diagnostics v1.0.0','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
+ reportLines=['Companion Cloud Diagnostics v1.1.0','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
  try{
    const online=navigator.onLine?'Online flag TRUE (not proof of Internet access)':'Browser reports offline';
    show('network',online,navigator.onLine?'good':'warn');report('Browser',online);
@@ -134,6 +144,31 @@ async function run(){
  }finally{btn.disabled=false;}
 }
 document.getElementById('run').addEventListener('click',run);
+document.getElementById('testPartnerId').addEventListener('click',async function(){
+ const btn=this, target=document.getElementById('newPartnerId').value.trim().toLowerCase();
+ const result=document.getElementById('newIdResult');
+ if(!target||!/^[a-z0-9._-]{1,60}$/.test(target)){result.textContent='Please enter a valid Companion Login ID first.';result.className='detail warn';return;}
+ const auth=getSavedAuth();
+ if(!auth){result.textContent='No saved password is accessible in this browser. Open this page in the same browser context as your Companion.';result.className='detail warn';return;}
+ btn.disabled=true;result.textContent='Checking new ID with the password already saved on this device…';result.className='detail';
+ try{
+   const r=await call(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'listCustomers',partner_id:target,workspace_key:String(auth.workspace_key)})});
+   if(r.payload.ok===true){
+     const count=Array.isArray(r.payload.customers)?r.payload.customers.length:'not reported';
+     result.textContent='✓ New Partner ID authenticated. Cloud returned '+count+' customer(s). Nothing changed.';
+     result.className='detail good';
+     report('New Partner ID test','AUTHENTICATION SUCCEEDED; customer count '+count+'; no changes made');
+   }else{
+     const reason=category(new Error(String(r.payload.error||'Unknown API error')));
+     result.textContent='✕ New Partner ID not yet authenticated: '+reason;
+     result.className='detail bad';
+     report('New Partner ID test','AUTHENTICATION FAILED: '+reason+'; no changes made');
+   }
+ }catch(err){
+   const reason=category(err);result.textContent='✕ Unable to verify new Partner ID: '+reason;result.className='detail bad';
+   report('New Partner ID test','FAILED: '+reason+'; no changes made');
+ }finally{btn.disabled=false;}
+});
 document.getElementById('copy').addEventListener('click',async function(){
  const txt=document.getElementById('report').textContent;
  try{await navigator.clipboard.writeText(txt);this.textContent='Copied ✓';}
