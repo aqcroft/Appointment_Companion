@@ -10,8 +10,8 @@ const mainIndex = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const evIndex = fs.readFileSync(path.join(root, 'ev', 'index.html'), 'utf8');
 const cloudStatus = fs.readFileSync(path.join(root, 'spring-clean-v2.js'), 'utf8');
 
-assert.match(mainIndex, /release-v2\.56\.1\.js/);
-assert.match(evIndex, /ev-bridge-v2\.56\.1\.js/);
+assert.match(mainIndex, /release-v2\.56\.2\.js/);
+assert.match(evIndex, /ev-bridge-v2\.56\.2\.js/);
 assert.match(script, /localStore\.updateSpecialist\(currentLocalId, 'ev', state\)/);
 assert.match(script, /delete copy\.updated_at/);
 assert.match(script, /EV draft saved on this device - tap Save to Cloud in Companion when ready/);
