@@ -26,6 +26,16 @@ const timeout = 26000;
   const errors = [];
   page.on('pageerror', err => errors.push(String(err.message || err)));
   await page.route('https://**/*', route => route.abort());
+  await page.addInitScript(() => {
+    window.__acDebugDeletes = [];
+    if (window.IDBObjectStore && IDBObjectStore.prototype.delete) {
+      const original = IDBObjectStore.prototype.delete;
+      IDBObjectStore.prototype.delete = function (id) {
+        window.__acDebugDeletes.push({ id, store: this.name, stack: String(new Error().stack).slice(0, 850) });
+        return original.call(this, id);
+      };
+    }
+  });
 
   try {
     await page.goto(mainUrl, { waitUntil: 'domcontentloaded', timeout });
@@ -55,12 +65,22 @@ const timeout = 26000;
     // Blank drafts are intentionally transient; name the draft so it becomes a stored profile.
     await page.locator('#customerName').fill('East Midlands Test');
     await page.waitForFunction(async id => (await window.AppointmentCompanionLocalStore.get(id))?.customer_name === 'East Midlands Test', freshId, { timeout });
+    console.log('BEFORE OLD LOAD ' + JSON.stringify(await page.evaluate(async id => ({
+      record: await window.AppointmentCompanionLocalStore.get(id),
+      all: (await window.AppointmentCompanionLocalStore.list(true)).map(r=>({id:r.local_id,name:r.customer_name,region:r.appointment_state?.canonical?.region})),
+      deletes: window.__acDebugDeletes
+    }), freshId)).slice(0, 1400));
 
     await page.evaluate(async id => {
       const row = await window.AppointmentCompanionLocalStore.get(id);
       await window.AppointmentCompanionConsolidated.load(row);
     }, originalId);
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '14', null, { timeout });
+    console.log('AFTER OLD LOAD ' + JSON.stringify(await page.evaluate(async id => ({
+      fresh: await window.AppointmentCompanionLocalStore.get(id),
+      all: (await window.AppointmentCompanionLocalStore.list(true)).map(r=>({id:r.local_id,name:r.customer_name,region:r.appointment_state?.canonical?.region})),
+      deletes: window.__acDebugDeletes
+    }), freshId)).slice(0, 2500));
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
     const switchFresh = await page.evaluate(async id => {
