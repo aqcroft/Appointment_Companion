@@ -695,7 +695,7 @@
     const errorId = opts.errorId || 'cloudConnectError';
     setInlineConnectError(errorId, '');
     if (!partnerId || !workspaceKey) {
-      const message = 'Enter both the Companion Login ID and Password.';
+      const message = 'Enter your UW Partner ID (Companion Cloud login) and Companion Cloud password.';
       setInlineConnectError(errorId, message);
       setStatus(message, 'bad');
       return false;
@@ -704,7 +704,7 @@
     const btn = opts.button || $c('cloudPilotConnect');
     btn.disabled = true;
     setStatus('Connecting...');
-    showLoading('Connecting to Companion...', 'Checking your Companion Login ID and Password.');
+    showLoading('Connecting to Companion...', 'Checking your UW Partner ID / Cloud login and Companion password.');
     try {
       const candidateAuth = { partner_id: partnerId, workspace_key: workspaceKey };
       const res = await api.listCustomers(candidateAuth);
@@ -721,7 +721,7 @@
     } catch (err) {
       if (canReuseSession && isDefiniteAuthFailure(err)) clearAuth();
       if (!getAuth()) showConnected(false);
-      const message = isDefiniteAuthFailure(err) ? 'Cloud rejected these login details. Please check your Companion Login ID and Password.' : 'Cloud is temporarily unavailable. Your saved login and device copies have been kept. Please try again shortly.';
+      const message = isDefiniteAuthFailure(err) ? 'Cloud rejected these login details. Check your UW Partner ID / Cloud login and Companion password (not your UW Partner Portal password).' : 'Cloud is temporarily unavailable. Your saved login and device copies have been kept. Please try again shortly.';
       setInlineConnectError(errorId, message);
       setStatus(message, 'bad');
       return false;
@@ -737,7 +737,7 @@
     showConnected(false);
     $c('cloudPilotList').classList.add('hidden');
     setCurrent(null);
-    setStatus('Disconnected.');
+    setStatus('Cloud disconnected from this device. Local customer records remain available here.');
   }
 
   async function refreshCustomers() {
@@ -869,16 +869,16 @@
     modal.id = 'cloudConnectModal';
     modal.innerHTML = `
       <div class="basket-prompt-card" style="max-width:440px;">
-        <h3>☁️ Connect Cloud</h3>
-        <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft. Need your login details? Contact Adrian on WhatsApp.</p>
+        <h3>☁️ Connect to Companion Cloud</h3>
+        <p class="sub">Use your UW Partner ID (for example G16990) and Companion Cloud password. These are separate from your UW Partner Portal login. If you were issued an older Companion ID, use that until it is updated.</p>
         <div id="cloudPilotLogin">
           <div class="field">
-            <label for="cloudPilotPartnerId">Companion Login ID</label>
-            <input type="text" id="cloudPilotPartnerId" autocomplete="off" spellcheck="false" placeholder="p_...">
+            <label for="cloudPilotPartnerId">UW Partner ID (Companion Cloud login)</label>
+            <input type="text" id="cloudPilotPartnerId" autocomplete="off" spellcheck="false" placeholder="e.g. G16990">
           </div>
           <div class="field">
-            <label for="cloudPilotWorkspaceKey">Password</label>
-            <input type="password" id="cloudPilotWorkspaceKey" autocomplete="off" spellcheck="false" placeholder="Password">
+            <label for="cloudPilotWorkspaceKey">Companion Cloud password</label>
+            <input type="password" id="cloudPilotWorkspaceKey" autocomplete="current-password" spellcheck="false" placeholder="Companion password"><p class="sub" style="margin:.25rem 0 .35rem">Created or reset in Companion Admin. Not your UW Partner Portal password.</p>
             <p class="sub hidden" id="cloudSessionPasswordNote" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password already available for this session. Leave this blank to reuse it, or type a replacement.</p>
           </div>
           <p class="sub hidden" id="cloudConnectError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
@@ -1351,9 +1351,9 @@
       const auth = getAuth();
       title.textContent = 'Step 1 - Connect to Companion';
       body.innerHTML = `
-        <p class="sub">Your Companion Login ID and Password are issued by Adrian Croft.</p>
-        <div class="field"><label for="onboardLoginId">Companion Login ID</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
-        <div class="field"><label for="onboardPassword">Password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (saved on this device)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password is saved on this device. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
+        <p class="sub">Use your UW Partner ID (for example G16990) and your Companion Cloud password. These are not your UW Partner Portal login details. Older accounts may still use a separately issued Companion login ID.</p>
+        <div class="field"><label for="onboardLoginId">UW Partner ID (Companion Cloud login)</label><input type="text" id="onboardLoginId" autocomplete="off" value="${esc(localStorage.getItem(PARTNER_ID_KEY) || '')}"></div>
+        <div class="field"><label for="onboardPassword">Companion Cloud password</label><input type="password" id="onboardPassword" autocomplete="off" placeholder="${auth ? '•••••••• (saved on this device)' : 'Password'}">${auth ? '<p class="sub" style="margin:.35rem 0 0;color:#1d7f45;font-weight:700;">Password is saved on this device. Leave this blank to reuse it, or type a replacement.</p>' : ''}</div>
         <p class="sub hidden" id="cloudOnboardingError" role="alert" style="margin:0 0 .65rem;color:#c43b3b;font-weight:750;"></p>
         <a class="pill cloud-menu-item" href="${ADRIAN_WHATSAPP_URL}" target="_blank" rel="noopener"><span class="menu-ico"><span class="whatsapp-ico">☎</span></span><span>Need login details? WhatsApp Adrian</span></a>
       `;
@@ -1511,9 +1511,9 @@
           <button class="btn-ghost cloud-settings-back" type="button" data-settings-section="hub">← Settings</button>
           <p class="sub">Connection, device, autosave and open-on-other-device status.</p>
           <div class="cloud-settings-list">
-            <button class="pill cloud-menu-item" type="button" id="cloudSettingsConnect"><span class="menu-ico">☁️</span><span>Connect / reconnect Companion</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsConnect"><span class="menu-ico">☁️</span><span>Connect / reconnect Cloud</span></button>
             <button class="pill cloud-menu-item" type="button" id="cloudSettingsReload"><span class="menu-ico">🔄</span><span>Reload current from Cloud</span></button>
-            <button class="pill cloud-menu-item" type="button" id="cloudSettingsDisconnect"><span class="menu-ico">⏻</span><span>Disconnect Cloud for this session</span></button>
+            <button class="pill cloud-menu-item" type="button" id="cloudSettingsDisconnect" title="Remove the saved Cloud login from this device. Local customer records stay on this device."><span class="menu-ico" aria-hidden="true"><svg viewBox="0 0 32 32" width="29" height="29" style="display:block;flex-shrink:0" fill="none"><path d="M7 23.5h-1a5.5 5.5 0 0 1-.5-11 9.5 9.5 0 0 1 17.9-2.2 7 7 0 0 1 2.2 13.2" stroke="#7142b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 13l15 15M27 13L12 28" stroke="#dc233d" stroke-width="4.5" stroke-linecap="round"/></svg></span><span>Disconnect Cloud on this device</span></button>
           </div>
           <div id="cloudSettingsDynamic" style="margin-top:.75rem;"></div>
         </div>
