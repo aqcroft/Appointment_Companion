@@ -64,7 +64,20 @@ const timeout = 26000;
     console.log('PASS: New customer resets region to 11 without copying previous customer');
     // Blank drafts are intentionally transient; name the draft so it becomes a stored profile.
     await page.locator('#customerName').fill('East Midlands Test');
-    await page.waitForFunction(async id => (await window.AppointmentCompanionLocalStore.get(id))?.customer_name === 'East Midlands Test', freshId, { timeout });
+    const persistedNew = await page.evaluate(async () => {
+      const row = await window.AppointmentCompanionConsolidated.persist(false);
+      return {
+        id: row.local_id,
+        name: row.customer_name,
+        region: row.appointment_state?.canonical?.region,
+        stored: !!(await window.AppointmentCompanionLocalStore.get(row.local_id))
+      };
+    });
+    console.log('EXPLICIT NEW PERSIST ' + JSON.stringify(persistedNew));
+    assert.equal(persistedNew.id, freshId, 'named draft should retain its local customer ID');
+    assert.equal(persistedNew.name, 'East Midlands Test');
+    assert.equal(persistedNew.region, 11);
+    assert(persistedNew.stored, 'named draft should be present in IndexedDB');
     console.log('BEFORE OLD LOAD ' + JSON.stringify(await page.evaluate(async id => ({
       record: await window.AppointmentCompanionLocalStore.get(id),
       all: (await window.AppointmentCompanionLocalStore.list(true)).map(r=>({id:r.local_id,name:r.customer_name,region:r.appointment_state?.canonical?.region})),
