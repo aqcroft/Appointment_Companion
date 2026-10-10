@@ -1,3 +1,11 @@
+## v2.56.1 - 10th October 2026
+
+- EV Companion background autosave no longer displays repeated floating save notifications; automatic status remains available to screen readers.
+- A deliberate EV Save still confirms success, and genuine save errors remain visible.
+- Linked EV changes continue to update the same local customer record using deduplicated state, without creating extra Cloud profiles.
+- Intentionally unsaved local customer drafts no longer appear as Cloud changes waiting to sync; Cloud status reports the distinction clearly.
+- Retains v2.56.0 first-save-to-Cloud gate and existing customer Cloud autosync behaviour. No records deleted.
+
 ## v2.56.0 - 10th October 2026
 
 - New customer profiles are saved as local drafts while details are being entered; typing a name no longer creates a permanent Cloud customer row.
