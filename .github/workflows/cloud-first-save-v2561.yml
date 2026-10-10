@@ -1,4 +1,4 @@
-name: Local-first and EV safe autosave v2.56.1
+name: Local-first and EV safe autosave v2.56.2
 on:
   push:
     branches: [main]
@@ -6,9 +6,11 @@ on:
       - 'PWA/consolidated-v1/consolidated-controller-v2.56.0.js'
       - 'PWA/consolidated-v1/local-customer-store-v2.js'
       - 'PWA/consolidated-v1/ev-bridge-v2.56.1.js'
+      - 'PWA/consolidated-v1/ev-bridge-v2.56.2.js'
       - 'PWA/consolidated-v1/spring-clean-v2.js'
       - 'PWA/consolidated-v1/tests/cloud-first-save-v2.56.0.test.cjs'
       - 'PWA/consolidated-v1/tests/ev-autosave-v2.56.1.test.cjs'
+      - 'PWA/consolidated-v1/tests/ev-autosave-v2.56.2.test.cjs'
       - 'PWA/consolidated-v1/ev/index.html'
       - 'PWA/consolidated-v1/index.html'
       - 'local-first/shell-pilot-v1.js'
@@ -27,4 +29,4 @@ jobs:
       - name: Test first Cloud save and safe existing-record updates
         run: node PWA/consolidated-v1/tests/cloud-first-save-v2.56.0.test.cjs
       - name: Test EV autosave notifications and record reuse
-        run: node PWA/consolidated-v1/tests/ev-autosave-v2.56.1.test.cjs
+        run: node PWA/consolidated-v1/tests/ev-autosave-v2.56.2.test.cjs
