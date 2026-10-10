@@ -52,28 +52,33 @@ const timeout = 26000;
       'new local snapshot should contain East Midlands');
     const freshId = await page.evaluate(() => window.AppointmentCompanionConsolidated.currentId());
     console.log('PASS: New customer resets region to 11 without copying previous customer');
+    // Blank drafts are intentionally transient; name the draft so it becomes a stored profile.
+    await page.locator('#customerName').fill('East Midlands Test');
+    await page.waitForFunction(async id => (await window.AppointmentCompanionLocalStore.get(id))?.customer_name === 'East Midlands Test', freshId, { timeout });
 
-    await page.evaluate(async id => window.AppointmentCompanionConsolidated.switchTo(id), originalId);
+    await page.evaluate(async id => {
+      const row = await window.AppointmentCompanionLocalStore.get(id);
+      await window.AppointmentCompanionConsolidated.load(row);
+    }, originalId);
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '14', null, { timeout });
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
     const switchFresh = await page.evaluate(async id => {
-      const result = await window.AppointmentCompanionConsolidated.switchTo(id);
+      const row = await window.AppointmentCompanionLocalStore.get(id);
+      await window.AppointmentCompanionConsolidated.load(row);
       return {
-        result: result,
-        currentId: window.AppointmentCompanionConsolidated.currentId(),
-        regionFromCurrentRecord: window.AppointmentCompanionConsolidated.currentRecord()?.appointment_state?.canonical?.region,
-        storedRegion: (await window.AppointmentCompanionLocalStore.get(id))?.appointment_state?.canonical?.region,
-        domRegion: document.getElementById('customerRegion')?.value,
-        guardOpen: document.getElementById('acProfileSwitchGuard')?.classList.contains('open')
+        id: window.AppointmentCompanionConsolidated.currentId(),
+        region: window.AppointmentCompanionConsolidated.currentRecord()?.appointment_state?.canonical?.region,
+        storedRegion: row?.appointment_state?.canonical?.region
       };
     }, freshId);
-    console.log('RESTORE FRESH DEBUG ' + JSON.stringify(switchFresh));
+    console.log('RESTORE FRESH ' + JSON.stringify(switchFresh));
+    assert.equal(switchFresh.id, freshId, 'reopened named customer should be the selected customer');
+    assert.equal(switchFresh.storedRegion, 11, 'saved named draft must preserve East Midlands');
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '11', null, { timeout: 6500 });
     assert.equal(await page.locator('#customerRegion').inputValue(), '11');
     console.log('PASS: Reopening existing customer restores 14, newer customer restores 11');
 
-    await page.locator('#customerName').fill('East Midlands Test');
     await page.waitForFunction(() => window.AppointmentCompanionConsolidated?.currentRecord()?.customer_name === 'East Midlands Test', null, { timeout });
     await page.evaluate(() => document.querySelector('#cloudCompanionEv').click());
     await page.waitForURL(/\/consolidated-v1\/ev\//, { timeout });
