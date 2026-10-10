@@ -166,8 +166,10 @@
       return post({ action: 'adminGetPartnerLoginDetails', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
     },
 
-    async adminResetPartnerPassword(adminPassword, partnerId) {
-      return post({ action: 'adminResetPartnerPassword', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() });
+    async adminResetPartnerPassword(adminPassword, partnerId, newPassword) {
+      const body = { action: 'adminResetPartnerPassword', admin_password: String(adminPassword || ''), partner_id: String(partnerId || '').trim() };
+      if (typeof newPassword === 'string' && newPassword.length) body.new_password = newPassword;
+      return post(body);
     },
 
     async adminUploadPartnerPhoto(adminPassword, photo) {
