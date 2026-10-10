@@ -390,7 +390,7 @@
       <div class="cloudbar">
         <div class="cloudicons">
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCustomerShortcut" data-cloud-action="recent-customers" title="Recent customers" aria-label="Recent customers">👥</button>
-          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudSaveShortcut" data-cloud-action="save" title="Save current customer" aria-label="Save current customer">💾</button>
+          <button class="cloudicon cloud-top-shortcut" type="button" id="cloudSaveShortcut" data-cloud-action="save" title="Save customer to Cloud" aria-label="Save customer to Cloud">💾</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionEv" data-cloud-action="ev" title="EV Companion" aria-label="EV Companion">🚙</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudCompanionCard" data-cloud-action="card" title="Cashback Card Companion" aria-label="Cashback Card Companion">💳</button>
           <button class="cloudicon cloud-top-shortcut" type="button" id="cloudShareShortcut" data-cloud-action="share" title="Share summary" aria-label="Share summary">📤</button>
@@ -404,7 +404,7 @@
         <button class="pill cloud-menu-item" type="button" data-cloud-action="new-customer"><span class="menu-ico">📄</span><span>New customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudDeleteCurrent" data-cloud-action="delete-current" disabled><span class="menu-ico">🗑️</span><span>Delete current customer</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
-        <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save now</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save to Cloud</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="partner"><span class="menu-ico">👤</span><span>My profile</span></button>
