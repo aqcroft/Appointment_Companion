@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#7944bd">
-<title>Cloud Diagnostics v1.1.1 | Appointment Companion</title>
+<title>Cloud Diagnostics v1.2.0 | Appointment Companion</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f1f9;color:#28194e;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{background:#7944bd;color:#fff;padding:16px}header>div,main{max-width:620px;margin:auto}
@@ -19,22 +19,25 @@ pre{background:#f9f7fc;border:1px solid #eee5f6;border-radius:10px;padding:12px;
 </style>
 </head>
 <body>
-<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.1.1 · 10th October 2026</small></div></header>
+<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.2.0 · 10th October 2026</small></div></header>
 <main>
 <section><h2>Find out why your profiles aren't synchronising</h2>
 <p>This checks the cloud service, attempts a <strong>read-only</strong> customer listing with the login already saved in this browser, and counts local records. No uploads, deletions, password display or changes to your appointments.</p>
 <div class="actions"><button id="run" class="primary" type="button">🔍 Run read-only checks</button><a class="action" href="../">Back to Main Companion</a></div>
-<p class="note">Use the same phone and browser/profile as your installed Companion. If its saved login isn't visible here, we'll still test the server. Never enter your password into this page.</p>
+<p class="note">Use the same phone and browser/profile as your installed Companion. The diagnostic never changes customer data or your saved login. If you enter a test password below, it is used once and not stored.</p>
 </section>
 <section aria-label="Read-only Partner ID migration test">
 <h2>Step 2 - Test the proposed Partner ID without changing anything</h2>
-<p>Before migrating customer ownership in Google Sheets, check whether the new Partner ID accepts your <strong>existing saved password</strong>. This is a read-only request. Nothing will be saved, deleted or migrated.</p>
+<p>Find out whether the backend recognises your new Partner ID and whether its password matches. This sends only a <strong>read-only customer-list request</strong>. Nothing will be saved, deleted or migrated.</p>
 <label for="newPartnerId">New Companion Login ID</label>
 <input id="newPartnerId" type="text" placeholder="e.g. G16990" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="60">
+<label for="testWorkspaceKey">Password for the new ID (optional)</label>
+<input id="testWorkspaceKey" type="password" autocomplete="off" spellcheck="false" placeholder="Blank = use the password saved on this phone">
+<p class="note">If the new ID has a different password, enter it here for this read-only test only. You can find it in your own Companion Admin. <strong>Never send a password or screenshot of it in ChatGPT.</strong> This page does not save the password.</p>
 <div class="actions"><button id="testPartnerId" class="primary" type="button">🔍 Test new ID (read-only)</button></div>
 <div id="newIdResult" role="status" class="detail" style="margin-top:9px;font-size:12px">Waiting for test</div>
-<p class="note">Uses only the password already saved by Companion on this device. If authentication succeeds, zero customers is normal until the records are migrated. This test never changes your saved Companion login.</p>
-<p class="note">v1.1.1 update: read-only ID check preserves exact capitalisation for existing Partner records.</p>
+<p class="note">Uses the password you enter above, or your previously saved Companion password if left blank. If authentication succeeds, zero customers is normal until records are migrated. The test will not change your saved login.</p>
+<p class="note">v1.2.0: clearer error categories and optional one-off password check for Partner ID migration.</p>
 </section>
 <section aria-live="polite">
 <h2>Results</h2>
@@ -64,9 +67,12 @@ function category(error){
   if(/abort|timeout/i.test(s))return 'Request timed out';
   if(/Failed to fetch|NetworkError|Load failed/i.test(s))return 'Fetch blocked or failed (network/CORS/service)';
   if(/non-JSON/i.test(s))return s.slice(0,130);
-  // Avoid accidentally displaying server responses containing account or customer details.
-  if(/invalid|unauthori[sz]ed|forbidden|password|workspace|login/i.test(s))return 'Server reported a login or permissions problem';
-  return s.replace(/https?:\/\/\S+/g,'[URL]').slice(0,120);
+  // Allowlist of diagnosis labels only. Never echo server text that could contain secrets.
+  if(/partner (?:not found|could not be found|does not exist)|no such partner|unknown partner/i.test(s))return 'Partner ID not found in active Cloud';
+  if(/partner profile is unavailable/i.test(s))return 'Partner ID missing or inactive in active Cloud';
+  if(/bad workspace|invalid workspace|invalid password|incorrect password|wrong password|password is incorrect|bad write token|invalid credential|invalid login|login failed/i.test(s))return 'Partner ID/password combination rejected';
+  if(/unauthori[sz]ed|forbidden|access denied|authentication|permissions?/i.test(s))return 'Cloud rejected access (reason not specific)';
+  return 'Other server error (not shown to protect credentials)';
 }
 async function call(url,options){
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);
@@ -116,7 +122,7 @@ function getSavedAuth(){
 }
 async function run(){
  const btn=document.getElementById('run');btn.disabled=true;
- reportLines=['Companion Cloud Diagnostics v1.1.1','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
+ reportLines=['Companion Cloud Diagnostics v1.2.0','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
  try{
    const online=navigator.onLine?'Online flag TRUE (not proof of Internet access)':'Browser reports offline';
    show('network',online,navigator.onLine?'good':'warn');report('Browser',online);
@@ -148,11 +154,15 @@ document.getElementById('testPartnerId').addEventListener('click',async function
  const btn=this, target=document.getElementById('newPartnerId').value.trim();
  const result=document.getElementById('newIdResult');
  if(!target||!/^[a-zA-Z0-9._-]{1,60}$/.test(target)){result.textContent='Please enter a valid Companion Login ID first.';result.className='detail warn';return;}
+ const typed=document.getElementById('testWorkspaceKey').value;
  const auth=getSavedAuth();
- if(!auth){result.textContent='No saved password is accessible in this browser. Open this page in the same browser context as your Companion.';result.className='detail warn';return;}
- btn.disabled=true;result.textContent='Checking new ID with the password already saved on this device…';result.className='detail';
+ const key=typed||(auth&&auth.workspace_key)||'';
+ if(!key){result.textContent='No password is available. Enter the new ID password from Companion Admin, or open this page in the same browser as the Companion.';result.className='detail warn';return;}
+ btn.disabled=true;result.textContent='Checking the new ID using '+(typed?'the password entered for this test':'the password saved on this device')+'…';result.className='detail';
+ // Remove a manually entered password from the field before the network response is processed.
+ document.getElementById('testWorkspaceKey').value='';
  try{
-   const r=await call(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'listCustomers',partner_id:target,workspace_key:String(auth.workspace_key)})});
+   const r=await call(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'listCustomers',partner_id:target,workspace_key:String(key)})});
    if(r.payload.ok===true){
      const count=Array.isArray(r.payload.customers)?r.payload.customers.length:'not reported';
      result.textContent='✓ New Partner ID authenticated. Cloud returned '+count+' customer(s). Nothing changed.';
