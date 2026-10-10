@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#7944bd">
-<title>Cloud Diagnostics v1.1.0 | Appointment Companion</title>
+<title>Cloud Diagnostics v1.1.1 | Appointment Companion</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f1f9;color:#28194e;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{background:#7944bd;color:#fff;padding:16px}header>div,main{max-width:620px;margin:auto}
@@ -19,7 +19,7 @@ pre{background:#f9f7fc;border:1px solid #eee5f6;border-radius:10px;padding:12px;
 </style>
 </head>
 <body>
-<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.1.0 · 10th October 2026</small></div></header>
+<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.1.1 · 10th October 2026</small></div></header>
 <main>
 <section><h2>Find out why your profiles aren't synchronising</h2>
 <p>This checks the cloud service, attempts a <strong>read-only</strong> customer listing with the login already saved in this browser, and counts local records. No uploads, deletions, password display or changes to your appointments.</p>
@@ -34,7 +34,7 @@ pre{background:#f9f7fc;border:1px solid #eee5f6;border-radius:10px;padding:12px;
 <div class="actions"><button id="testPartnerId" class="primary" type="button">🔍 Test new ID (read-only)</button></div>
 <div id="newIdResult" role="status" class="detail" style="margin-top:9px;font-size:12px">Waiting for test</div>
 <p class="note">Uses only the password already saved by Companion on this device. If authentication succeeds, zero customers is normal until the records are migrated. This test never changes your saved Companion login.</p>
-<p class="note">v1.1.0 update: added a safe Partner ID migration pre-check.</p>
+<p class="note">v1.1.1 update: read-only ID check preserves exact capitalisation for existing Partner records.</p>
 </section>
 <section aria-live="polite">
 <h2>Results</h2>
@@ -116,7 +116,7 @@ function getSavedAuth(){
 }
 async function run(){
  const btn=document.getElementById('run');btn.disabled=true;
- reportLines=['Companion Cloud Diagnostics v1.1.0','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
+ reportLines=['Companion Cloud Diagnostics v1.1.1','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
  try{
    const online=navigator.onLine?'Online flag TRUE (not proof of Internet access)':'Browser reports offline';
    show('network',online,navigator.onLine?'good':'warn');report('Browser',online);
@@ -145,9 +145,9 @@ async function run(){
 }
 document.getElementById('run').addEventListener('click',run);
 document.getElementById('testPartnerId').addEventListener('click',async function(){
- const btn=this, target=document.getElementById('newPartnerId').value.trim().toLowerCase();
+ const btn=this, target=document.getElementById('newPartnerId').value.trim();
  const result=document.getElementById('newIdResult');
- if(!target||!/^[a-z0-9._-]{1,60}$/.test(target)){result.textContent='Please enter a valid Companion Login ID first.';result.className='detail warn';return;}
+ if(!target||!/^[a-zA-Z0-9._-]{1,60}$/.test(target)){result.textContent='Please enter a valid Companion Login ID first.';result.className='detail warn';return;}
  const auth=getSavedAuth();
  if(!auth){result.textContent='No saved password is accessible in this browser. Open this page in the same browser context as your Companion.';result.className='detail warn';return;}
  btn.disabled=true;result.textContent='Checking new ID with the password already saved on this device…';result.className='detail';
