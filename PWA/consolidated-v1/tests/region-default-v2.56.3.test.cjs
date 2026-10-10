@@ -64,12 +64,17 @@ const timeout = 26000;
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
     const switchFresh = await page.evaluate(async id => {
-      const row = await window.AppointmentCompanionLocalStore.get(id);
-      await window.AppointmentCompanionConsolidated.load(row);
+      const store = window.AppointmentCompanionLocalStore;
+      const row = await store.get(id);
+      const before = (await store.list(true)).map(r => ({ id: r.local_id, name: r.customer_name, region: r.appointment_state?.canonical?.region, deleted: r.deleted }));
+      if (row && !row.deleted) await window.AppointmentCompanionConsolidated.load(row);
       return {
         id: window.AppointmentCompanionConsolidated.currentId(),
         region: window.AppointmentCompanionConsolidated.currentRecord()?.appointment_state?.canonical?.region,
-        storedRegion: row?.appointment_state?.canonical?.region
+        storedRegion: row?.appointment_state?.canonical?.region,
+        storedName: row?.customer_name || null,
+        storedDeleted: row?.deleted,
+        before
       };
     }, freshId);
     console.log('RESTORE FRESH ' + JSON.stringify(switchFresh));
