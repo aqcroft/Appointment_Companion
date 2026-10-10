@@ -57,8 +57,19 @@ const timeout = 26000;
     await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '14', null, { timeout });
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
-    await page.evaluate(async id => window.AppointmentCompanionConsolidated.switchTo(id), freshId);
-    await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '11', null, { timeout });
+    const switchFresh = await page.evaluate(async id => {
+      const result = await window.AppointmentCompanionConsolidated.switchTo(id);
+      return {
+        result: result,
+        currentId: window.AppointmentCompanionConsolidated.currentId(),
+        regionFromCurrentRecord: window.AppointmentCompanionConsolidated.currentRecord()?.appointment_state?.canonical?.region,
+        storedRegion: (await window.AppointmentCompanionLocalStore.get(id))?.appointment_state?.canonical?.region,
+        domRegion: document.getElementById('customerRegion')?.value,
+        guardOpen: document.getElementById('acProfileSwitchGuard')?.classList.contains('open')
+      };
+    }, freshId);
+    console.log('RESTORE FRESH DEBUG ' + JSON.stringify(switchFresh));
+    await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '11', null, { timeout: 6500 });
     assert.equal(await page.locator('#customerRegion').inputValue(), '11');
     console.log('PASS: Reopening existing customer restores 14, newer customer restores 11');
 
