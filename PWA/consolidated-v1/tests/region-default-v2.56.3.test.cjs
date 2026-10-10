@@ -37,6 +37,7 @@ const timeout = 26000;
     console.log('PASS: First blank customer defaults to East Midlands in both UI and local store');
 
     await page.locator('#customerName').fill('Region Regression');
+    await page.locator('.ac-region-chip').click();
     await page.locator('#customerRegion').selectOption('14');
     await page.waitForFunction(() => window.AppointmentCompanionConsolidated?.currentRecord()?.appointment_state?.canonical?.region === 14, null, { timeout });
     const originalId = await page.evaluate(() => window.AppointmentCompanionConsolidated.currentId());
@@ -53,9 +54,11 @@ const timeout = 26000;
     console.log('PASS: New customer resets region to 11 without copying previous customer');
 
     await page.evaluate(async id => window.AppointmentCompanionConsolidated.switchTo(id), originalId);
+    await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '14', null, { timeout });
     assert.equal(await page.locator('#customerRegion').inputValue(), '14',
       'opening saved customer should restore their explicit region');
     await page.evaluate(async id => window.AppointmentCompanionConsolidated.switchTo(id), freshId);
+    await page.waitForFunction(() => document.getElementById('customerRegion')?.value === '11', null, { timeout });
     assert.equal(await page.locator('#customerRegion').inputValue(), '11');
     console.log('PASS: Reopening existing customer restores 14, newer customer restores 11');
 
