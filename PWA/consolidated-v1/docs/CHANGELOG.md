@@ -1,3 +1,10 @@
+## v2.55.28 - 10th October 2026
+
+- Clarified the PWA's login and onboarding fields: UW Partner ID is the Companion Cloud login, and the separate Companion Cloud password is not the UW Partner Portal password. Retained a note for Partners still using a legacy login ID.
+- Replaced the confusing Cloud disconnect symbol with a cloud and large red cross.
+- Corrected the disconnect label to say "on this device", matching the existing removal of saved credentials from both sessionStorage and localStorage. Local customer records are retained.
+- Kept sync, customer records, tariff calculations and authentication logic unchanged.
+
 ## v2.55.20 - 9th October 2026 (draft)
 
 - Added a visible electricity region selector to the main customer profile, saved with each customer's canonical appointment data.
