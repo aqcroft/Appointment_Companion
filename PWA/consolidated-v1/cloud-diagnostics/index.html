@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#7944bd">
+<title>Cloud Diagnostics v1.0.0 | Appointment Companion</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f1f9;color:#28194e;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:#7944bd;color:#fff;padding:16px}header>div,main{max-width:620px;margin:auto}
+header strong{display:block;font-size:18px}header small{opacity:.85}
+main{padding:15px}section{border:1px solid #e4dbef;border-radius:15px;background:#fff;padding:16px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 8px}.note{color:#6e657c;font-size:12px}p{margin:6px 0 12px}
+button,a.action{display:inline-flex;justify-content:center;align-items:center;min-height:43px;padding:10px 15px;border-radius:10px;border:1px solid #d8cde9;background:#fff;color:#543487;font:750 14px system-ui;text-decoration:none;cursor:pointer}
+button.primary{color:#fff;background:#7944bd;border-color:#7944bd}button:disabled{opacity:.6;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:9px}
+.row{padding:11px 0;border-top:1px solid #efebf5}.row:first-of-type{border-top:0}
+.row strong{display:block;font-size:13px}.row .detail{font-size:12px;color:#665b74;overflow-wrap:anywhere;margin-top:3px}
+.good{color:#167848}.bad{color:#a92f34}.warn{color:#985f12}
+pre{background:#f9f7fc;border:1px solid #eee5f6;border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Consolas,monospace;overflow-wrap:anywhere;white-space:pre-wrap;max-height:370px;overflow:auto}
+</style>
+</head>
+<body>
+<header><div><strong>☁️ Companion Cloud Diagnostics</strong><small>Read-only test · v1.0.0 · 10th October 2026</small></div></header>
+<main>
+<section><h2>Find out why your profiles aren't synchronising</h2>
+<p>This checks the cloud service, attempts a <strong>read-only</strong> customer listing with the login already saved in this browser, and counts local records. No uploads, deletions, password display or changes to your appointments.</p>
+<div class="actions"><button id="run" class="primary" type="button">🔍 Run read-only checks</button><a class="action" href="../">Back to Main Companion</a></div>
+<p class="note">Use the same phone and browser/profile as your installed Companion. If its saved login isn't visible here, we'll still test the server. Never enter your password into this page.</p>
+</section>
+<section aria-live="polite">
+<h2>Results</h2>
+<div class="row"><strong>🌐 Browser connectivity</strong><div class="detail" id="network">Not checked</div></div>
+<div class="row"><strong>💾 Local queue</strong><div class="detail" id="local">Not checked</div></div>
+<div class="row"><strong>🟢 Cloud health (GET)</strong><div class="detail" id="health">Not checked</div></div>
+<div class="row"><strong>☁️ Cloud login and customer list (read-only POST)</strong><div class="detail" id="list">Not checked</div></div>
+</section>
+<section>
+<h2>Safe diagnostic report</h2>
+<p class="note">Copy this text back into ChatGPT. It contains only technical results and aggregate counts, never customer names, IDs or passwords.</p>
+<pre id="report">Press “Run read-only checks” above.</pre>
+<div class="actions"><button type="button" id="copy">Copy diagnostic report</button></div>
+</section>
+</main>
+<script>
+(function(){
+'use strict';
+const CLOUD_URL='https://script.google.com/macros/s/AKfycbyEEvE7ALdjbRZ540PSYsiX-tkA83ZiEryFQBqA_zSa8W-Xpd_DWL3FG_YFMU6XmE3D/exec';
+const ids={network:document.getElementById('network'),local:document.getElementById('local'),health:document.getElementById('health'),list:document.getElementById('list')};
+let reportLines=[];
+const fmt=x=>x?new Date(x).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'unknown';
+function show(key,message,kind){const el=ids[key];el.textContent=message;el.className='detail '+(kind||'');}
+function report(key,message){reportLines.push(key+': '+message);document.getElementById('report').textContent=reportLines.join('\n');}
+function category(error){
+  const s=String(error&&error.message||error||'unknown');
+  if(/abort|timeout/i.test(s))return 'Request timed out';
+  if(/Failed to fetch|NetworkError|Load failed/i.test(s))return 'Fetch blocked or failed (network/CORS/service)';
+  if(/non-JSON/i.test(s))return s.slice(0,130);
+  // Avoid accidentally displaying server responses containing account or customer details.
+  if(/invalid|unauthori[sz]ed|forbidden|password|workspace|login/i.test(s))return 'Server reported a login or permissions problem';
+  return s.replace(/https?:\/\/\S+/g,'[URL]').slice(0,120);
+}
+async function call(url,options){
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);
+ try{
+   const res=await fetch(url,Object.assign({redirect:'follow',cache:'no-store',signal:controller.signal},options||{}));
+   const contentType=res.headers.get('content-type')||'';
+   const body=await res.text();
+   let payload=null;try{payload=JSON.parse(body)}catch(_){}
+   if(!payload)throw new Error('non-JSON response, HTTP '+res.status+', '+(contentType.toLowerCase().includes('html')?'HTML instead of API JSON':'not JSON'));
+   return {http:res.status,payload:payload};
+ }finally{clearTimeout(timer);}
+}
+async function readLocal(){
+ if(!window.indexedDB||typeof indexedDB.databases!=='function'){
+   show('local','Cannot safely inspect this browser\'s IndexedDB without creating a database. Skipped.','warn');
+   report('Local','Skipped (read-only enumeration not supported)');return;
+ }
+ let known;
+ try{known=await indexedDB.databases()}catch(e){show('local','Storage access unavailable','warn');report('Local','Storage access unavailable');return;}
+ if(!known.some(x=>x.name==='apptCompanionConsolidatedV1')){
+   show('local','No Companion local database found in this browser. Your installed PWA may use a different browser storage context.','warn');
+   report('Local','No Companion database found in this browser');return;
+ }
+ let db;
+ try{
+   db=await new Promise((resolve,reject)=>{const request=indexedDB.open('apptCompanionConsolidatedV1');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+   if(!db.objectStoreNames.contains('customers')){show('local','No customer records store found','warn');report('Local','No customers store found');return;}
+   const rows=await new Promise((resolve,reject)=>{const req=db.transaction('customers','readonly').objectStore('customers').getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});
+   const pending=rows.filter(r=>r.sync_state==='pending'||r.sync_state==='pending_delete');
+   const conflicts=rows.filter(r=>r.sync_state==='conflict'||r.conflict);
+   const deletions=rows.filter(r=>r.sync_state==='pending_delete').length;
+   const synced=rows.filter(r=>r.sync_state==='synced').length;
+   const oldest=pending.map(r=>r.updated_at).filter(Boolean).sort()[0];
+   const message=rows.length+' local records · '+pending.length+' pending ('+deletions+' deletions) · '+synced+' marked synced · '+conflicts.length+' conflicts'+(oldest?' · oldest pending revision: '+fmt(oldest):'');
+   show('local',message,pending.length||conflicts.length?'warn':'good');
+   report('Local',message);
+ }catch(e){show('local','Read-only storage check failed','warn');report('Local','Read-only storage check failed: '+category(e));}
+ finally{if(db)db.close();}
+}
+function getSavedAuth(){
+ for(const storage of [sessionStorage,localStorage]){
+   for(const k of ['apptCloudPilotAuthSession','apptCloudPilotAuthDeviceV1']){
+     try{let value=JSON.parse(storage.getItem(k)||'null');if(value&&value.partner_id&&value.workspace_key)return value;}catch(_){}
+   }
+ }
+ return null;
+}
+async function run(){
+ const btn=document.getElementById('run');btn.disabled=true;
+ reportLines=['Companion Cloud Diagnostics v1.0.0','Checked: '+fmt(new Date()),'Page: stand-alone read-only diagnostics',''];document.getElementById('report').textContent=reportLines.join('\n');
+ try{
+   const online=navigator.onLine?'Online flag TRUE (not proof of Internet access)':'Browser reports offline';
+   show('network',online,navigator.onLine?'good':'warn');report('Browser',online);
+   await readLocal();
+   show('health','Testing GET /exec?action=health…');
+   try{
+     const h=await call(CLOUD_URL+'?action=health');
+     if(h.payload.ok===true){show('health','Success: HTTP '+h.http+', backend returned ok:true','good');report('Health','OK - HTTP '+h.http);}
+     else{show('health','Reached endpoint, but backend did not return ok:true','bad');report('Health','Unexpected response: HTTP '+h.http+'; ok='+String(h.payload.ok).slice(0,10));}
+   }catch(e){const kind=category(e);show('health',kind,'bad');report('Health',kind);}
+   const auth=getSavedAuth();
+   if(!auth){show('list','No saved Companion login accessible in this browser. Skipped; no password required.','warn');report('Customer list','Skipped: saved login not accessible');return;}
+   show('list','Saved login found. Testing read-only listCustomers…');
+   try{
+     const r=await call(CLOUD_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'listCustomers',partner_id:String(auth.partner_id),workspace_key:String(auth.workspace_key)})});
+     if(r.payload.ok===true){
+       const count=Array.isArray(r.payload.customers)?r.payload.customers.length:'not supplied';
+       show('list','Success: authenticated Cloud customer listing (count '+count+').','good');
+       report('Customer list','OK - HTTP '+r.http+'; count '+count);
+     }else{
+       const err=category(new Error(String(r.payload.error||'Unexpected response')));
+       show('list','Backend returned an error: '+err,'bad');report('Customer list','API returned ok:false; '+err);
+     }
+   }catch(e){const kind=category(e);show('list',kind,'bad');report('Customer list',kind);}
+ }finally{btn.disabled=false;}
+}
+document.getElementById('run').addEventListener('click',run);
+document.getElementById('copy').addEventListener('click',async function(){
+ const txt=document.getElementById('report').textContent;
+ try{await navigator.clipboard.writeText(txt);this.textContent='Copied ✓';}
+ catch(_){const box=document.createElement('textarea');box.value=txt;document.body.appendChild(box);box.select();document.execCommand('copy');box.remove();this.textContent='Copied (fallback) ✓';}
+ setTimeout(()=>this.textContent='Copy diagnostic report',1800);
+});
+})();
+</script>
+</body></html>
