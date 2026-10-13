@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-consolidated-v2-56-3-regiondefault1-20261010';
+const CACHE_NAME = 'appointment-companion-consolidated-v2-57-0-navigation-rates-share-20261013';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './pwa-register.js', './tariff-fetch-v1.js', './tariff-health-v2.42.js', './notification-preferences-v1.js',
   './canonical-state-v1.js', './canonical-controls-v1.js', './customer-region-v2.55.20.js', './customer-region-v2.56.3.js', './service-ui-polish-v1.js', './compact-extras-v1.js', './spring-clean-v2.js', './release-v2.3.js', './release-v2.4.js', './release-v2.41.js', './release-v2.42.js', './persistence-guard-v2.42.js', './local-customer-store-v2.js',
@@ -6,6 +6,7 @@ const SHELL = [
   './ev-sharing-v2.55.27.js', './ev-share-view-v2.55.27.js', './ev-shared-intro-v2.55.27.js', './ev-customer-contact-v2.55.27.js', './ev-fixed-compare-polish-v2.55.27.js', './release-v2.55.27.js', './release-v2.55.28.js', './release-v2.56.0.js', './release-v2.56.1.js', './release-v2.56.2.js', './release-v2.56.3.js',
   './specialist-launcher-v1.js', './specialist-launcher-v2.55.25.js', './specialist-features-v1.js', './specialist-context-nav-v1.js', './fix-share-gate-v1.js',
   './ev/', './ev/index.html', './assets/uw-ev-interest-ticked-v1.svg', './ev-share-adapter-v1.js', './ev-share-compat-v1.js', './ev-share-view-v1.js', './ev-customer-contact-v1.js', './ev-return-v1.js',
+  './specialist-launcher-v2.57.0.js', './spring-clean-v2.57.0.js', './ev-tap-rates-v2.57.0.js', './share-app-v2.57.0.js', './release-v2.57.0.js',
   './should-i-fix/', './should-i-fix/index.html',
   '../cloud/companion_cloud_pilot.html', '../cloud/tariff-status.js', '../cloud/device-identity-v1.js', '../cloud/companion-bridge-v1.js',
   '../cloud-test/should-i-fix-pilot-v2.html',
