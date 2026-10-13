@@ -42,7 +42,7 @@ window.AppointmentCompanionGettingStartedCss="\n#acGettingStartedRoot{position:f
     if(u.searchParams.has('ac_return')||u.searchParams.get('local')==='1'&&!global.__AC_PREVIEW)return false;
     var s=saved();
     if(s.choice==='never'||s.choice==='shown'||s.choice==='existing'||s.choice==='done')return false;
-    if(s.choice==='later'){if(s.reminded)return false;if(Date.now()-Number(s.when||0)<7*86400000)return false;mark({choice:'later',when:Date.now(),reminded:true});}
+    if(s.choice==='later'){if(s.reminded)return false;if(Date.now()-Number(s.when||0)<7*86400000)return false;}
     return true;
   }
   function ensureStyle(){
@@ -82,7 +82,7 @@ window.AppointmentCompanionGettingStartedCss="\n#acGettingStartedRoot{position:f
     if(platform==='ios'&&step===4||platform==='android'&&step===3)return '<div class="ac-gs-appgrid"><div style="font-size:12px;font-weight:700;margin-bottom:34px">Your home screen</div><div class="ac-gs-icon ac-gs-highlight"><img src="'+icon+'" alt="Companion app icon"></div><span style="font-size:11px">Companion</span></div>';
     var header='<div class="ac-gs-screen" style="'+(platform==='android'?'padding-top:56px':'')+'"><div class="ac-gs-apphead"><img src="'+icon+'" alt="">Appointment Companion</div><div class="ac-gs-fake"><strong>Your Partner tools</strong><small>Ready when you are</small></div></div>';
     if(platform==='ios'){
-      var bar='<div class="ac-gs-browser"><span>‹</span><span>›</span><span class="ac-gs-url">🔒 aqcroft.github.io</span><span class="'+(step===0&&!compact?'ac-gs-highlight':'')+'" style="padding:0 4px" aria-label="Share">⇧</span><span class="'+(step===0&&compact?'ac-gs-highlight':'')+'" style="padding:0 4px">···</span></div>';
+      var bar='<div class="ac-gs-browser"><span>‹</span><span>›</span><span class="ac-gs-url">🔒 aqcroft.github.io</span><span class="'+(step===0&&!compact?'ac-gs-highlight':'')+'" style="padding:0 4px" aria-label="Share"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M9 8H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-4"/></svg></span><span class="'+(step===0&&compact?'ac-gs-highlight':'')+'" style="padding:0 4px">···</span></div>';
       if(step===1&&compact)return header+bar+'<div class="ac-gs-sheet"><div class="ac-gs-sheethead">Safari Page Menu</div><div class="ac-gs-sheetrow sel">↥ Share</div><div class="ac-gs-sheetrow">Find on Page</div></div>';
       if(step===1||step===2)return header+bar+'<div class="ac-gs-sheet"><div class="ac-gs-sheethead">Safari Share</div><div class="ac-gs-sheetrow">Copy</div><div class="ac-gs-sheetrow sel">⊞ Add to Home Screen</div><div class="ac-gs-sheetrow">Edit Actions</div></div>';
       if(step===3)return header+bar+'<div class="ac-gs-dialog"><strong>Add to Home Screen</strong><div style="margin:10px 0;font-size:12px">Companion · aqcroft.github.io</div><div style="font-size:12px;margin:10px 0">Open as Web App <strong style="color:#19864e">● On</strong></div><div class="ac-gs-primary ac-gs-highlight" style="text-align:center">Add</div></div>';
@@ -181,7 +181,7 @@ window.AppointmentCompanionGettingStartedCss="\n#acGettingStartedRoot{position:f
     }
     var tries=0;var ticker=setInterval(function(){if(installMenu()||++tries>160)clearInterval(ticker)},100);
     if(new URL(location.href).searchParams.has('guide')||global.__AC_PREVIEW&&new URL(location.href).searchParams.has('demo')){setTimeout(openWelcome,450);return;}
-    if(eligible())setTimeout(function(){if(eligible())openWelcome()},700);
+    if(eligible())setTimeout(function(){if(eligible()){var old=saved();if(old.choice==='later')mark({choice:'later',when:Date.now(),reminded:true});openWelcome()}},700);
   }
   global.AppointmentCompanionGettingStarted={open:openTutorial,welcome:openWelcome};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
