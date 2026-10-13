@@ -35,7 +35,7 @@ window.AppointmentCompanionGettingStartedCss="\n#acGettingStartedRoot{position:f
     }catch(_){return hasAuth()}
   }
   function installed(){return (global.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
-  function mobile(){return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)}
+  function mobile(){return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(/Macintosh/i.test(navigator.userAgent)&&navigator.maxTouchPoints>1)}
   function eligible(){
     if(!mobile()||installed()||established()||global.__appointmentCompanionSpecialistReturn)return false;
     var u=new URL(location.href);
