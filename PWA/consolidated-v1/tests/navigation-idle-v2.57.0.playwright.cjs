@@ -14,7 +14,7 @@ const timeout = 30000;
     await page.goto(ROOT+'?local=1', {waitUntil:'domcontentloaded',timeout});
     await page.locator('#acSharedToolstrip .ac-toolbtn[aria-label="EV Companion"]').waitFor({timeout});
     await page.locator('#acShareAppMenuButton').waitFor({state:'attached',timeout});
-    await page.locator('#cloudActionMenu').click();
+    await page.locator('#acSharedToolstrip .ac-toolbtn[aria-label="Companion menu"]').click();
     await page.locator('#acShareAppMenuButton').click();
     await page.locator('#acShareAppModal').waitFor({timeout});
     assert.equal(await page.locator('#acShareAppLink').inputValue(),
