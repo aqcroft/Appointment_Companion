@@ -1,3 +1,12 @@
+## v2.57.0 - 13th October 2026
+
+- Main Companion's EV and Should I Fix toolbar buttons now use delegated launch handlers, avoiding reliance on hidden, potentially stale Cloud-era shortcut elements after background re-renders.
+- Routine Cloud health checks no longer raise a delayed full-screen warning over the appointment. Cloud health and genuine conflicts remain available in the Status menu, with the existing automatic Cloud retry and customer-save processes untouched.
+- Cloud status menu updates when opened and when relevant events occur; background IndexedDB refresh is reduced from every 3 seconds to every 15 seconds only whilst the menu is open.
+- EV overnight and daytime hero cards both open one transparent rate breakdown (off-peak unit rate, peak unit rate and one daily standing charge), in Partner and customer shared views, using the calculator's existing tariff feed and VAT choice. No tariff calculations changed.
+- Added **Share app link** to the hamburger menu, using a distinct square-and-up-arrow icon. Opens the clean Companion link with Copy link and native Share where supported; does not include any customer data.
+- New versioned scripts, PWA cache, entrypoints, changelog and regression tests updated.
+
 ## v2.56.3 - 10th October 2026
 
 - New customer profiles start with electricity region **11 - East Midlands**, including the initial empty profile and a fresh profile after switching customers.
