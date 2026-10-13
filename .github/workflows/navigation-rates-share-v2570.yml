@@ -1,0 +1,40 @@
+name: Main navigation and EV rate disclosure v2.57.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'PWA/consolidated-v1/index.html'
+      - 'PWA/consolidated-v1/ev/index.html'
+      - 'PWA/consolidated-v1/should-i-fix/index.html'
+      - 'PWA/consolidated-v1/spring-clean-v2.57.0.js'
+      - 'PWA/consolidated-v1/specialist-launcher-v2.57.0.js'
+      - 'PWA/consolidated-v1/ev-tap-rates-v2.57.0.js'
+      - 'PWA/consolidated-v1/share-app-v2.57.0.js'
+      - 'PWA/consolidated-v1/release-v2.57.0.js'
+      - 'PWA/consolidated-v1/sw.js'
+      - 'PWA/consolidated-v1/tests/navigation-rates-share-v2.57.0.test.cjs'
+      - 'PWA/consolidated-v1/tests/navigation-idle-v2.57.0.playwright.cjs'
+      - '.github/workflows/navigation-rates-share-v2570.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Syntax, app sharing and post-idle browser navigation
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check release integration and syntax
+        run: node PWA/consolidated-v1/tests/navigation-rates-share-v2.57.0.test.cjs
+      - name: Install browser test runner
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Verify toolbar navigation after 34 seconds idle
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/companion-http.log 2>&1 &
+          sleep 2
+          timeout 160s node PWA/consolidated-v1/tests/navigation-idle-v2.57.0.playwright.cjs
