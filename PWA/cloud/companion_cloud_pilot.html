@@ -2979,23 +2979,43 @@ function normalisePartnerSlug(raw) {
   const email = s.match(/^([^@\s]+)@uw\.partners$/i);
   if (email) s = email[1];
   const m = s.match(/uw\.partners\/([a-z0-9][a-z0-9._-]*)/i);
-  return (m ? m[1] : s)
-    .replace(/^https?:\/\//i, '')
-    .replace(/\/(?:partner\/)?join\/?$/i, '')
-    .replace(/^\/+|\/+$/g, '')
-    .replace(/\s+/g, '');
+  const slug = (m ? m[1] : s).replace(/\/(?:partner\/)?join\/?$/i, '').replace(/^\/+|\/+$/g, '');
+  return /^[a-z0-9][a-z0-9._-]*$/i.test(slug) ? slug.toLowerCase() : '';
 }
 function normaliseJoin(raw) {
   const slug = normalisePartnerSlug(raw);
   return slug ? 'https://uw.partners/' + slug + '/join' : '';
 }
 function updateJoinPreview() {
-  const slug = normalisePartnerSlug($('ppJoin').value);
-  const shown = slug || 'first.last';
-  $('ppJoinPreview').innerHTML =
-    '\u2192 Customer: https://uw.partners/' + shown + '/join' +
-    '<br>\u2192 Partner: https://uw.partners/' + shown + '/partner/join' +
-    '<br>\u2192 Email: ' + shown + '@uw.partners';
+  const host = $('ppJoinPreview'), slug = normalisePartnerSlug($('ppJoin').value);
+  if (!host) return;
+  host.replaceChildren();
+  if (!slug) {
+    host.textContent = 'Enter the real UW slug (for example first.last) to preview links. Email addresses are not valid slugs.';
+    return;
+  }
+  const mailField = document.getElementById('ppEmail');
+  const email = (mailField && mailField.value.trim()) || slug + '@uw.partners';
+  [
+    ['Customer', 'https://uw.partners/' + slug + '/join', 'ppJoin'],
+    ['Partner', 'https://uw.partners/' + slug + '/partner/join', 'ppJoin'],
+    ['Email', email, 'ppEmail']
+  ].forEach(([label, value, fieldId]) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:6px;margin:3px 0;flex-wrap:wrap';
+    const title = document.createElement('span'); title.textContent = label + ':';
+    const link = document.createElement('a');
+    link.href = label === 'Email' ? 'mailto:' + email : value;
+    link.textContent = value;
+    if (label !== 'Email') { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+    link.style.cssText = 'overflow-wrap:anywhere;word-break:break-word;flex:1';
+    const edit = document.createElement('button');
+    edit.type = 'button'; edit.textContent = 'Edit';
+    edit.style.cssText = 'font:700 11px system-ui;border:0;background:transparent;color:#7043ab;cursor:pointer';
+    edit.addEventListener('click', () => { const field = document.getElementById(fieldId); if (field) { field.focus(); field.scrollIntoView({block:'nearest'}); } });
+    row.append(title, link, edit);
+    host.appendChild(row);
+  });
 }
 
 function activePartnerAuth() {
@@ -3187,7 +3207,7 @@ $('ppSaveBtn').addEventListener('click', () => {
   const slug = normalisePartnerSlug($('ppJoin').value);
   const join = slug ? 'https://uw.partners/' + slug + '/join' : '';
   if (!name) return showErr('Please enter your name.');
-  if (!slug) return showErr('Please enter your UW Partner slug, usually first.last.');
+  if (!slug) return showErr('Enter the real UW Partner slug, usually first.last. A normal email address is not valid.');
   setPartner({
     name: name,
     partner_slug: slug,
@@ -3201,6 +3221,7 @@ $('ppSaveBtn').addEventListener('click', () => {
 });
 $('ppCancelBtn').addEventListener('click', closePartnerPrompt);
 $('ppJoin').addEventListener('input', updateJoinPreview);
+document.addEventListener('input', e => { if (e.target && e.target.id === 'ppEmail') updateJoinPreview(); });
 $('partnerPrompt').addEventListener('click', e => { if (e.target.id === 'partnerPrompt') closePartnerPrompt(); });
 $('partnerSettingsBtn').addEventListener('click', () => openPartnerPrompt());
 
