@@ -225,6 +225,7 @@
     $('localFirstCustomersNote').textContent = LOCAL_ONLY ? 'Local-only mode. Cloud access is deliberately paused.' : 'New drafts stay on this device until you tap Save to Cloud. Existing Cloud profiles synchronise automatically.';
 
     var search = $('localFirstCustomerSearch');
+    if(search && options && options.conflictsOnly)search.value='';
     var sort = $('localFirstCustomerSort');
     var wrap = $('localFirstCustomerRows');
     var conflictToggle=$('localFirstConflictToggle');
@@ -255,7 +256,7 @@
 
       wrap.innerHTML = visible.map(function (row) {
         var conflict = !!row.conflict;
-        return '<div style="display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px">' +
+        return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:6px">' +
           '<button type="button" class="pill" style="flex:1;min-width:0;text-align:left;justify-content:flex-start;padding:7px 9px" data-local-load="' + row.local_id + '">' +
             '<span style="display:grid;gap:4px;width:100%;min-width:0">' +
               '<span style="display:flex;align-items:center;gap:7px;min-width:0">' +
@@ -266,7 +267,7 @@
               '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
             '</span>' +
           '</button>' +
-          (conflict && row.conflict ? '<details style="font-size:11px;line-height:1.5;padding:3px 6px;max-width:185px"><summary style="cursor:pointer;font-weight:650">Compare versions</summary>'+
+          (conflict && row.conflict ? '<details style="flex:1 0 100%;font-size:11px;line-height:1.5;padding:4px 6px"><summary style="cursor:pointer;font-weight:650">Compare device and Cloud versions before choosing</summary>'+
             '<div><b>This device:</b> '+escapeHtml(row.updated_at || 'Date unavailable')+
               '<br>Basket link: '+(row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl?'saved':'not set')+'</div>'+
             '<div><b>Cloud:</b> '+escapeHtml(row.conflict.cloud && row.conflict.cloud.updated_at || 'Date unavailable')+
