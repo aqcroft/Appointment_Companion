@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.1 - verified current-customer Cloud sync and location review.
+/* Appointment Companion v2.60.2 - grouped navigation with unified TCP status.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.60.1',
+    version: 'v2.60.2',
     date: '14 October 2026',
-    summary: 'One-tap Cloud save, customer location checks and Tracker Plus',
+    summary: 'Simpler Companion menu with three clear sections',
     changes: [
-      'Tracker Plus is now shown as the middle Tracker tariff, with its live tariff number and verified tick.',
-      'Customer records can be filtered by device-only, Cloud-only or conflict; mobile, computer and Cloud indicators show what is actually verified.',
-      'An explicit Save to Cloud button uploads a local-only customer and reports success only after Cloud acknowledgement.',
-      'The Customer traffic light prioritises verified synchronisation of the currently open customer, keeping genuine conflicts visible.'
+      'The shared Companion menu now groups Customers & quotes, Account & app, and More.',
+      'Cloud customer browsing, saving, scenarios, quote links and account controls retain their existing actions.',
+      'App status & updates remains a single TCP status modal, and Cold Outreach remains a separate app.',
+      'No changes to tariff calculations, Cloud save rules, customer records or Partner identity.'
     ]
   });
   global.AppointmentCompanionRelease = meta;

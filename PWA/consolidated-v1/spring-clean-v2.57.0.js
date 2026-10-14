@@ -280,6 +280,9 @@
   }
 
   async function renderStatusMenu() {
+    // The consolidated PWA now uses the single v2.59+ TCP status modal.
+    // Skip the retired five-row status menu and its Cloud/tariff scans.
+    if (global.__AC_CONSOLIDATED_V1) return true;
     if (!isMain) return true;
     var menu = document.getElementById('cloudMenuPopover'); if (!menu) return false;
     var block = document.getElementById('acV22StatusBlock');
@@ -334,6 +337,7 @@
   }
 
   function observeStatusSources() {
+    if (global.__AC_CONSOLIDATED_V1) return;
     if (!isMain || document.documentElement.dataset.acV22StatusObserved) return;
     document.documentElement.dataset.acV22StatusObserved = '1';
     var tariff = document.getElementById('tariffStatus');
