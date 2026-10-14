@@ -64,6 +64,7 @@ test('tariff feed retains all 3 real names including Tracker Plus for each of 4 
   const html=h.status.tariffSection();
   assert.equal((html.match(/class="ac-us-tariff present"/g)||[]).length,12);
   assert.match(html,/Fixed Saver 99/);
+  assert.match(html,/Tracker Plus 7/);
   assert.match(html,/Tracker Saver 7/);
   assert.match(html,/EV Double Gold/);
   assert.match(html,/Take me to the UW TIL/);
@@ -153,4 +154,20 @@ test('Cloud connection failures make Customers red, without adding a fourth indi
   assert.equal(h.status.dimensions().map(d=>d.letter).join(''),'TCP');
   assert.match(h.status.customerSection(),/Unavailable/);
   assert.equal(h.status.overallStatus().state,'red');
+});
+
+
+test('Customer green prioritises current confirmed local plus Cloud record',()=>{
+  const h=harness();
+  h.status.setCloud({connection:'verified',profile:'loaded',
+    customerIds:['cloud-id'],customerCount:1});
+  h.status.setSync({mode:'synced',conflicts:0,pending:0,
+    localOnly:2,localIds:['cloud-id'],
+    currentCloudId:'cloud-id',currentRevisionSynced:true,currentConflict:false});
+  assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,green,green');
+  assert.equal(h.status.overallStatus().state,'green');
+  h.status.setCloud({connection:'verified',profile:'loaded',
+    customerIds:['different-id'],customerCount:1});
+  assert.equal(h.status.dimensions()[1].state,'amber',
+    'The Cloud must actually confirm the current customer ID');
 });
