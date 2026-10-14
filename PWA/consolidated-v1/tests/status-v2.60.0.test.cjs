@@ -106,8 +106,8 @@ test('local-only drafts are amber, not conflicts, and cloud-only records can be 
   h.status.setSync({mode:'local',count:2,conflicts:0,pending:0,localOnly:1,localIds:['id1'],current:'',local:'Saved'});
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
-  assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
-  assert.match(html,/In Cloud only \(not on this device\)<\/span><strong>1<\/strong>/);
+  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
+  assert.match(html,/In Cloud only \(not on this device\)<\/span><button[^>]*>1 · View/);
   assert.doesNotMatch(html,/sync conflict\(s\) need attention/);
 });
 
@@ -122,14 +122,14 @@ test('Cloud customer drafts are not falsely counted as queued uploads',async()=>
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
   assert.doesNotMatch(html,/Cloud-enabled profile\(s\) waiting to sync/);
-  assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
+  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
 });
 
 test('update history begins collapsed and displays last three versions',()=>{
   const h=harness();
   const html=h.status.appSection();
   assert.match(html,/Last 3 updates/);
-  assert.match(html,/v2\.60\.0/);
+  assert.match(html,/v2\.60\.1/);
   assert.doesNotMatch(html,/ac-us-update-history/);
 });
 
