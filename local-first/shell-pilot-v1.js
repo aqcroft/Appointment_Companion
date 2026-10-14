@@ -406,7 +406,7 @@
         <button class="pill cloud-menu-item" type="button" id="cloudPilotLoad" data-cloud-action="all-customers"><span class="menu-ico">☁️</span><span>View all Cloud customers</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSave" data-cloud-action="save"><span class="menu-ico">💾</span><span>Save to Cloud</span></button>
         <button class="pill cloud-menu-item" type="button" id="cloudPilotSaveAs" data-cloud-action="save-as"><span class="menu-ico">💾+</span><span>Save as new scenario</span></button>
-        <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Basket link</span></button>
+        <button class="pill cloud-menu-item" type="button" id="cloudBasketShortcut" data-cloud-action="basket"><span class="menu-ico">🛒</span><span>Saved quote basket link</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="partner"><span class="menu-ico">👤</span><span>My profile</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="settings"><span class="menu-ico">⚙️</span><span>Settings</span></button>
         <button class="pill cloud-menu-item" type="button" data-cloud-action="admin"><span class="menu-ico">🔐</span><span>Admin</span></button>
