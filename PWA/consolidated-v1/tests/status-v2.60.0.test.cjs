@@ -68,7 +68,7 @@ test('tariff feed retains all 3 real names for each of 4 families',()=>{
   assert.match(html,/EV Double Gold/);
   assert.match(html,/Take me to the UW TIL/);
   assert.match(html,/uw\.co\.uk\/legal\/terms-conditions\/energy-tariff-information/);
-  assert.equal((html.match(/class="ac-us-tariff-row"/g)||[]).length,4);
+  assert.equal((html.match(/class="ac-us-detail ac-us-tariff-row"/g)||[]).length,4);
 });
 
 test('a missing tariff does not receive a false green tick',()=>{
