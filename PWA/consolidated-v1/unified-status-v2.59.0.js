@@ -228,6 +228,7 @@
       '.ac-us-signal.big{width:22px;height:22px;font-size:12px;margin-right:4px}',
       '#acUnifiedStatusTrigger[data-overall="green"]{border-color:#a7d8b9}',
       '#acUnifiedStatusTrigger[data-overall="red"]{border-color:#e8adb2}',
+      '@media(max-width:430px){body>#acSharedToolstrip .ac-toolstrip-inner{gap:2px!important;width:100%!important;min-width:0!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-sep{display:none!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-toolbtn{min-width:29px!important;flex:0 1 34px!important;padding-left:2px!important;padding-right:2px!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-toolbtn[aria-label="Companion menu"]{flex:0 0 34px!important;min-width:34px!important;margin-left:auto!important;position:sticky;right:0;z-index:3;background:#fffbe3!important}}',
       '.ac-version-stack{flex:0 0 38px!important;min-width:38px!important;max-width:38px!important;min-height:34px!important;height:34px!important;overflow:visible!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}',
       '.ac-toolstrip-inner{min-width:0!important}',
       '.ac-toolstrip-inner .ac-sep{flex-shrink:1!important}',
