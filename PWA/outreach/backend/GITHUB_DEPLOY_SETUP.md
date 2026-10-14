@@ -9,7 +9,7 @@ This is a separate setup from the installable PWA. Until the steps below are com
 Open **Cold Outreach CRM v1** Google Sheet → **Extensions → Apps Script**.
 
 - Send the **Apps Script editor URL** (`https://script.google.com/home/projects/.../edit`) to the developer. This URL is **not** a credential.
-- In **Project Settings** copy the **Script ID**. The *Sheet ID* is different - do not use the CRM spreadsheet ID in its place.
+- The **Script ID has already been preconfigured** from the Apps Script editor URL you supplied, so no need to enter it again. The *Sheet ID* is different - do not confuse it with the script project.
 - In **Deploy → Manage deployments**, select the currently active Cold Outreach **Web app** and copy its **Deployment ID**. It is important to reuse the active deployment, not create a new one.
 - Confirm this is the Apps Script project that is actually serving the PWA's saved `/exec` backend connection.
 - Back up the live Apps Script project before initial synchronisation. Check for manual changes newer than GitHub's `Code.gs`. Do not blindly overwrite them.
@@ -29,13 +29,14 @@ Google's own CLI, `clasp`, manages Apps Script projects via the official Apps Sc
 
 ## 3. Identify the project and preserve the web-app URL
 
-In the repository, under **Settings → Secrets and variables → Actions → Variables**, create:
+The script ID is already set in the GitHub workflow. In the repository, under **Settings → Secrets and variables → Actions → Variables**, add:
 
 | Variable | Value |
 | --- | --- |
-| `OUTREACH_SCRIPT_ID` | Script ID from the **existing Apps Script project** |
 | `OUTREACH_DEPLOYMENT_ID` | Deployment ID of the **current live web app** |
 | `OUTREACH_DEPLOY_AUTOMATIC` | `false` initially; enable only after a successful test |
+
+The Script ID is already configured from this editor URL: `https://script.google.com/u/0/home/projects/1-Zsoj5dlXs6H4yuZa8vFLoZ5YlZmaZsCJgF9vKg9mlSW_NGoN7fRko7_/edit`.
 
 These are *not* the private workspace key and are not the Google Sheets/Drive IDs. **Never change or share** the existing `CRM_WORKSPACE_KEY` script property.
 
