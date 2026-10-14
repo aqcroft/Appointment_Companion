@@ -14,13 +14,35 @@ Open **Cold Outreach CRM v1** Google Sheet → **Extensions → Apps Script**.
 - Confirm this is the Apps Script project that is actually serving the PWA's saved `/exec` backend connection.
 - Back up the live Apps Script project before initial synchronisation. Check for manual changes newer than GitHub's `Code.gs`. Do not blindly overwrite them.
 
-## 2. Enable the Google Apps Script API and authorise clasp
+## 2. Reuse your existing PRISM / Companion Cloud clasp login
+
+**If you previously completed the setup for PRISM or Appointment Companion Cloud, do NOT reinstall Node, reinstall clasp or run `clasp login` again unless the existing authorisation has expired.** Both projects already have GitHub Actions deployment workflows using `clasp@3.4.1`. The same Google account's local clasp authorisation can be reused for Cold Outreach.
+
+On Windows, check for the credential file with PowerShell:
+
+```powershell
+Test-Path "$HOME\.clasprc.json"
+```
+
+If that reports `True`, copy its contents to the clipboard **without printing it on screen**:
+
+```powershell
+Get-Content "$HOME\.clasprc.json" -Raw | Set-Clipboard
+```
+
+Open [Cold Outreach repository Actions secrets](https://github.com/aqcroft/Appointment_Companion/settings/secrets/actions), select **New repository secret**, use the exact name `OUTREACH_CLASPRC_JSON`, and paste the clipboard directly into its **Secret** field. The value cannot be viewed later. **Do not paste any credential into ChatGPT, issues, commits, screenshots or shared documents.** The existing PRISM/Companion repository secret cannot be automatically read by this different repository.
+
+If the file is missing or authorisation no longer works, follow the one-time setup below.
+
+### Only if you have not previously authorised clasp
+
+### Initial authorisation instructions
 
 Google's own CLI, `clasp`, manages Apps Script projects via the official Apps Script API: https://developers.google.com/apps-script/guides/clasp
 
-1. Open https://script.google.com/home/usersettings and turn on **Google Apps Script API** for the account owning the project.
-2. On a trusted computer with Node.js 22+, install `clasp`: `npm install -g @google/clasp@3.4.1`.
-3. Run `clasp login` and authorise the account that owns the existing Cold Outreach Apps Script project.
+1. The **Google Apps Script API is already enabled** for this account.
+2. On a trusted computer with Node.js 22+, install `clasp` only if missing: `npm install -g @google/clasp@3.4.1`.
+3. Run `clasp login` **only if there is no usable existing authorisation**, and authorise the Google account that owns the Cold Outreach Apps Script project.
 4. This creates a local `~/.clasprc.json` (on Windows, the equivalent file in the user's home directory). It contains OAuth credentials including a refresh token.
 5. In the existing GitHub repository **Settings → Secrets and variables → Actions → Secrets**, create **repository secret** `OUTREACH_CLASPRC_JSON` containing that file's *entire JSON contents*. **Never paste it into ChatGPT, issues, screenshots, source files or a commit.**
 6. Delete any incidental copies used when transferring this credential to GitHub, and protect your Google account and GitHub repository with two-factor authentication.
