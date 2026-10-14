@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.0 - four status signals, complete tariff suites and safer conflict review.
+/* Appointment Companion v2.60.1 - verified current-customer Cloud sync and location review.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.60.0',
+    version: 'v2.60.1',
     date: '14 October 2026',
-    summary: 'TCP status, complete tariff suites and customer sync review',
+    summary: 'One-tap Cloud save, customer location checks and Tracker Plus',
     changes: [
-      'Three independent TCP traffic lights report Tariffs, Customers (including Cloud sync) and Partner profile.',
-      'All three real tariffs per suite are listed together, with an independent tick for each present tariff and a direct UW tariff source link.',
-      'Customer records can be compared between device and Cloud; conflict warnings open the existing review screen.',
-      'Partner status no longer continually rechecks after routine customer saves; updates are tucked into a compact history.'
+      'Tracker Plus is now shown as the middle Tracker tariff, with its live tariff number and verified tick.',
+      'Customer records can be filtered by device-only, Cloud-only or conflict; mobile, computer and Cloud indicators show what is actually verified.',
+      'An explicit Save to Cloud button uploads a local-only customer and reports success only after Cloud acknowledgement.',
+      'The Customer traffic light prioritises verified synchronisation of the currently open customer, keeping genuine conflicts visible.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -66,8 +66,10 @@
     var tariffState=tariff().status;
     var customerProblem=sync.conflicts>0 || sync.mode==='conflict' || sync.mode==='failed' ||
       cloud.connection==='failed' || cloud.connection==='disconnected';
-    var customersReady=cloud.connection==='verified' && sync.mode==='synced' &&
-      !sync.pending && !sync.localOnly && cloudOnlyCount()===0 && deviceOnlyCount()===0;
+    // The active customer matters most. Other deliberately local drafts do not
+    // prevent a verified, fully synchronised current customer from going green.
+    var customersReady=cloud.connection==='verified' && sync.currentSynced===true &&
+      sync.conflicts===0 && sync.mode!=='failed' && !sync.currentPending;
     return [
       {key:'tariff',letter:'T',name:'Tariffs',
         state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
@@ -129,7 +131,7 @@
     var state=tariff(), summary=state.summary||{};
     var specifications=[
       {label:'Fixed',key:'fixed',names:['Start','Fixed','Saver'],patterns:[/^Fixed Start(?:\s|$)/i,/^Fixed(?:\s+\d+)?$/i,/^Fixed Saver(?:\s|$)/i]},
-      {label:'Tracker',key:'tracker',names:['Start','Tracker','Saver'],patterns:[/^Tracker Start(?:\s|$)/i,/^Tracker(?:\s+\d+)?$/i,/^(?:Tracker Saver|Saver Tracker)(?:\s|$)/i]},
+      {label:'Tracker',key:'tracker',names:['Start','Plus','Saver'],patterns:[/^Tracker Start(?:\s|$)/i,/^Tracker Plus(?:\s|$)/i,/^(?:Tracker Saver|Saver Tracker)(?:\s|$)/i]},
       {label:'Variable',key:'variable',names:['Value','Gold','Double Gold'],patterns:[/^Value(?:\s|$)/i,/^Gold(?:\s|$)/i,/^Double Gold(?:\s|$)/i]},
       {label:'EV',key:'ev',names:['Value','Gold','Double Gold'],patterns:[/^EV Value(?:\s|$)/i,/^EV Gold(?:\s|$)/i,/^EV Double Gold(?:\s|$)/i]}
     ];
@@ -153,8 +155,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.59.1',date:'14 October 2026',summary:'Restored the Cloud Partner profile check'},
-      {version:'v2.59.0',date:'14 October 2026',summary:'Introduced a single App status & updates panel'}
+      {version:'v2.60.0',date:'14 October 2026',summary:'TCP status and complete tariff suites'},
+      {version:'v2.59.1',date:'14 October 2026',summary:'Restored the Cloud Partner profile check'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
@@ -190,8 +192,8 @@
       '<p class="ac-us-note">'+esc(demo?'Cloud connected':cloud.message || 'Cloud status not yet checked')+'</p>'+
       '<p class="ac-us-note">'+esc(explanation)+'</p>'+
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
-      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><strong>'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+'</strong></div>'+
-      '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><strong>'+esc(cloudOnly==null?'Not checked':cloudOnly)+'</strong></div>'+
+      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><button type="button" data-us-action="device-only">'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+' · View →</button></div>'+
+      '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><button type="button" data-us-action="cloud-only">'+esc(cloudOnly==null?'Not checked':cloudOnly)+' · View →</button></div>'+
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
       (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
@@ -296,6 +298,12 @@
         if(allCustomers){close();allCustomers.click();}
       }
       else if(a==='tariff')refreshTariff();
+      else if(a==='device-only' || a==='cloud-only'){
+        var browser=global.AppointmentCompanionConsolidated;
+        if(browser&&typeof browser.openCustomerBrowser==='function'){
+          close();browser.openCustomerBrowser({scope:a==='device-only'?'localOnly':'cloudOnly'});
+        }
+      }
       else if(a==='review-customers'){
         var engine=global.AppointmentCompanionConsolidated;
         if(engine && typeof engine.openCustomerBrowser==='function'){
@@ -375,12 +383,16 @@
       var currentMessage='';
       if(current&&String(current.customer_name||'').trim()){
         if(current.sync_state==='conflict'||current.conflict)currentMessage='Current customer: sync conflict';
-        else if(current.sync_state==='pending')currentMessage='Current customer: awaiting Cloud sync';
+        else if(current.sync_state==='pending'&&current.cloud_id)currentMessage='Current customer: awaiting Cloud sync';
+        else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: saved on this device only';
         else if(current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision))currentMessage='Current customer: synced to Cloud';
         else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: local draft (not sent to Cloud)';
         else currentMessage='Current customer: Cloud sync status not confirmed';
       }
-      var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision));
+      var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&
+      Number(current.cloud_synced_local_revision)===Number(current.local_revision)&&
+      Array.isArray(cloud.customerIds)&&cloud.customerIds.includes(String(current.cloud_id)));
+    var currentPending=!!(current&&String(current.customer_name||'').trim()&&!currentIsSynced);
       sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
         detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local profiles checked. Deliberate drafts may remain on this device.',
         count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,
@@ -388,7 +400,7 @@
         localOnly:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && !r.cloud_id;}).length,
         localIds:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
-        current:currentMessage,local:sync.local};
+        current:currentMessage,local:sync.local,currentSynced:currentIsSynced,currentPending:currentPending};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
     if(sequence===checkSeq)paint();
   }
