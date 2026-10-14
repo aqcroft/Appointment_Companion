@@ -68,8 +68,9 @@
       cloud.connection==='failed' || cloud.connection==='disconnected';
     // The active customer matters most. Other deliberately local drafts do not
     // prevent a verified, fully synchronised current customer from going green.
-    var customersReady=cloud.connection==='verified' && sync.currentSynced===true &&
-      sync.conflicts===0 && sync.mode!=='failed' && !sync.currentPending;
+    var customersReady=cloud.connection==='verified' && sync.currentRevisionSynced===true &&
+      Array.isArray(cloud.customerIds) && cloud.customerIds.includes(String(sync.currentCloudId||'')) &&
+      sync.conflicts===0 && sync.mode!=='failed' && !sync.currentConflict;
     return [
       {key:'tariff',letter:'T',name:'Tariffs',
         state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
@@ -389,9 +390,10 @@
         else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: local draft (not sent to Cloud)';
         else currentMessage='Current customer: Cloud sync status not confirmed';
       }
-      var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&
-      Number(current.cloud_synced_local_revision)===Number(current.local_revision)&&
-      Array.isArray(cloud.customerIds)&&cloud.customerIds.includes(String(current.cloud_id)));
+      var localRevisionSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&
+      Number(current.cloud_synced_local_revision)===Number(current.local_revision));
+    var currentIsSynced=localRevisionSynced && Array.isArray(cloud.customerIds) &&
+      cloud.customerIds.includes(String(current.cloud_id));
     var currentPending=!!(current&&String(current.customer_name||'').trim()&&!currentIsSynced);
       sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
         detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local profiles checked. Deliberate drafts may remain on this device.',
@@ -400,7 +402,9 @@
         localOnly:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && !r.cloud_id;}).length,
         localIds:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
-        current:currentMessage,local:sync.local,currentSynced:currentIsSynced,currentPending:currentPending};
+        current:currentMessage,local:sync.local,currentSynced:currentIsSynced,currentPending:currentPending,
+        currentCloudId:current&&current.cloud_id||'',currentRevisionSynced:localRevisionSynced,
+        currentConflict:!!(current&&(current.conflict||current.sync_state==='conflict'))};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
     if(sequence===checkSeq)paint();
   }
