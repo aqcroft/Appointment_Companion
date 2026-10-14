@@ -1,0 +1,44 @@
+name: Appointment Companion - Status v2.60.0 checks
+
+on:
+  pull_request:
+    paths:
+      - 'PWA/consolidated-v1/unified-status-v2.59.0.js'
+      - 'PWA/consolidated-v1/tariff-fetch-v1.js'
+      - 'PWA/consolidated-v1/consolidated-controller-v2.56.3.js'
+      - 'PWA/consolidated-v1/tests/status-v2.60.0.test.cjs'
+      - 'PWA/consolidated-v1/index.html'
+      - 'PWA/consolidated-v1/sw.js'
+      - 'PWA/consolidated-v1/manifest.webmanifest'
+      - '.github/workflows/status-v2600.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and manifest checks
+        run: |
+          set -euo pipefail
+          node --check PWA/consolidated-v1/unified-status-v2.59.0.js
+          node --check PWA/consolidated-v1/tariff-fetch-v1.js
+          node --check PWA/consolidated-v1/consolidated-controller-v2.56.3.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const manifest=JSON.parse(fs.readFileSync('PWA/consolidated-v1/manifest.webmanifest','utf8'));
+          const index=fs.readFileSync('PWA/consolidated-v1/index.html','utf8');
+          const sw=fs.readFileSync('PWA/consolidated-v1/sw.js','utf8');
+          if(!manifest.name.includes('v2.60.0') || !index.includes('v2.60.0') || !sw.includes('v2-60-0')) {
+            throw new Error('App, manifest and service-worker version metadata out of sync');
+          }
+          NODE
+      - name: Run status behaviour regression tests
+        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs
