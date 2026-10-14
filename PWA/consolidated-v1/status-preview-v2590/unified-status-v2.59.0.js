@@ -188,9 +188,9 @@
     return el;
   }
   function paint() {
+    if(trigger) {var t=tariff();trigger.dataset.tariff=t.status||'amber';trigger.title='App status & updates - tariff data '+stateLabel('tariff',t.status);trigger.setAttribute('aria-label',trigger.title);}
     var target=$('acUnifiedStatusContent');if(!target)return;
     target.innerHTML=appSection()+tariffSection()+cloudSection()+customerSection();
-    if(trigger) {var t=tariff();trigger.dataset.tariff=t.status||'amber';trigger.title='App status & updates - tariff data '+stateLabel('tariff',t.status);trigger.setAttribute('aria-label',trigger.title);}
   }
   function showMessage(msg){var e=$('acUnifiedStatusMessage');if(e)e.textContent=msg||'';}
   function onEsc(e){if(e.key==='Escape')close();}
@@ -279,7 +279,11 @@
     cloud.connection=clients.ok?'verified':'failed';
     cloud.message=clients.ok?'Companion login verified with Cloud.':'Cloud login could not be verified just now.';
     cloud.customerCount=clients.ok&&Array.isArray(clients.data.customers)?clients.data.customers.length:null;
-    var verified=p.ok?profileForAuth(p.data&&p.data.partner,auth):null;
+    var candidate=p.ok&&p.data?p.data.partner:null;
+    // The authenticated getPartnerProfile endpoint can return legacy records
+    // without a partner_id. Accept those only if no conflicting ID is present.
+    var returnedId=String(candidate&&(candidate.partner_id||candidate.companion_login_id)||'').trim().toLowerCase();
+    var verified=candidate&&String(candidate.name||'').trim()&&(!returnedId||returnedId===String(auth.partner_id).trim().toLowerCase())?candidate:null;
     cloud.profile=verified?'loaded':cached?'cached':'failed';
     cloud.profileName=verified?verified.name:cached?cached.name:'';
     cloud.error=(!clients.ok||!p.ok)?('Cloud checks: '+(!clients.ok?'connection '+(clients.error||'unavailable')+'; ':'')+(!p.ok?'profile '+(p.error||'unavailable'):'')).slice(0,220):'';
