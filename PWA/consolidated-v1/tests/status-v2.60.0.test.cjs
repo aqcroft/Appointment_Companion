@@ -48,7 +48,7 @@ function harness() {
   const code=fs.readFileSync(path.join(dir,'unified-status-v2.59.0.js'),'utf8');
   assert.ok(code.includes(seam), 'Unified status test seam should exist');
   const injected=code.replace(seam,
-    '  global.__statusTest={tariffSection,customerSection,dimensions,appSection,overallStatus,refreshCustomerSync, '+
+    '  global.__statusTest={tariffSection,customerSection,partnerSection,dimensions,signals,appSection,overallStatus,refreshCustomerSync, '+
     'setCloud:function(c){cloud=c;},setSync:function(s){sync=s;}};\n'+seam);
   vm.runInNewContext(injected,common,{filename:'unified-status-v2.59.0.js'});
   return {win,summary,summaries,status:win.__statusTest,changeSummary:data=>{
@@ -79,7 +79,7 @@ test('a missing tariff does not receive a false green tick',()=>{
   assert.match(html,/○ EV Double Gold/);
 });
 
-test('each of T, C, P, C has its own real health state',()=>{
+test('T, C, P each have independent traffic lights, with Cloud included under Customers',()=>{
   const h=harness();
   h.status.setCloud({
     connection:'verified',profile:'loaded',customerIds:['id1'],customerCount:1,
@@ -89,7 +89,11 @@ test('each of T, C, P, C has its own real health state',()=>{
     mode:'conflict',conflicts:1,pending:0,count:1,localOnly:0,localIds:['id1'],
     current:'Current customer: sync conflict',local:'Saved locally'
   });
-  assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,green,green,red');
+  assert.equal(h.status.dimensions().map(d=>d.letter).join(''),'TCP');
+  assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,red,green');
+  assert.equal((h.status.signals().match(/class="ac-us-signal"/g)||[]).length,3);
+  assert.match(h.status.customerSection(),/Cloud connection/);
+  assert.doesNotMatch(h.status.partnerSection(),/Cloud connection/);
   assert.equal(h.status.overallStatus().state,'red');
   const html=h.status.customerSection();
   assert.match(html,/Review 1 conflict/);
@@ -100,7 +104,7 @@ test('local-only drafts are amber, not conflicts, and cloud-only records can be 
   const h=harness();
   h.status.setCloud({connection:'verified',profile:'loaded',customerIds:['id1','id2'],customerCount:2});
   h.status.setSync({mode:'local',count:2,conflicts:0,pending:0,localOnly:1,localIds:['id1'],current:'',local:'Saved'});
-  assert.equal(h.status.dimensions()[3].state,'amber');
+  assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
   assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
   assert.match(html,/In Cloud only \(not on this device\)<\/span><strong>1<\/strong>/);
@@ -115,7 +119,7 @@ test('Cloud customer drafts are not falsely counted as queued uploads',async()=>
     currentRecord:()=>({customer_name:'Synthetic draft',cloud_id:'',cloud_creation_approved:false,sync_state:'pending'})
   };
   await h.status.refreshCustomerSync(0,true);
-  assert.equal(h.status.dimensions()[3].state,'amber');
+  assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
   assert.doesNotMatch(html,/Cloud-enabled profile\(s\) waiting to sync/);
   assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
@@ -127,4 +131,26 @@ test('update history begins collapsed and displays last three versions',()=>{
   assert.match(html,/Last 3 updates/);
   assert.match(html,/v2\.60\.0/);
   assert.doesNotMatch(html,/ac-us-update-history/);
+});
+
+test('modal content has exactly three T-C-P sections; updates are compact metadata',()=>{
+  const h=harness();
+  const sections=[h.status.tariffSection(),h.status.customerSection(),h.status.partnerSection()];
+  const html=h.status.appSection()+sections.join('');
+  assert.equal((html.match(/<section class="ac-us-section"/g)||[]).length,3);
+  assert.equal((h.status.appSection().match(/<section/g)||[]).length,0);
+  assert.deepEqual(sections.map(s=>s.match(/<h3[^>]*>[\s\S]*?(Tariffs|Customers|Partner)<\/h3>/)[1]),
+    ['Tariffs','Customers','Partner']);
+  assert.equal((html.match(/class="ac-us-signal big"/g)||[]).length,3);
+  assert.match(h.status.appSection(),/Last 3 updates/);
+});
+
+test('Cloud connection failures make Customers red, without adding a fourth indicator',()=>{
+  const h=harness();
+  h.status.setCloud({connection:'failed',profile:'loaded',customerIds:null,customerCount:null});
+  h.status.setSync({mode:'synced',count:1,conflicts:0,pending:0,localOnly:0,localIds:['id1']});
+  assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,red,green');
+  assert.equal(h.status.dimensions().map(d=>d.letter).join(''),'TCP');
+  assert.match(h.status.customerSection(),/Unavailable/);
+  assert.equal(h.status.overallStatus().state,'red');
 });
