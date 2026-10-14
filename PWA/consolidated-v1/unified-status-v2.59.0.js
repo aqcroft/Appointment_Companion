@@ -1,4 +1,4 @@
-/* Appointment Companion v2.59.2 - combined health, useful sync warnings and stable Cloud checks.
+/* Appointment Companion v2.60.0 - four status signals, complete tariff suites and safer conflict review.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
