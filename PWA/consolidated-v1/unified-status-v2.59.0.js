@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.2 - grouped navigation with unified TCP status.
+/* Appointment Companion v2.60.3 - compact TCP toolbar and partner profile improvements.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.60.2',
-    date: '14 October 2026',
-    summary: 'Simpler Companion menu with three clear sections',
+    version: 'v2.60.3',
+    date: '15 October 2026',
+    summary: 'Compact traffic-light status and improved Partner settings',
     changes: [
-      'The shared Companion menu now groups Customers & quotes, Account & app, and More.',
-      'Cloud customer browsing, saving, scenarios, quote links and account controls retain their existing actions.',
-      'App status & updates remains a single TCP status modal, and Cold Outreach remains a separate app.',
-      'No changes to tariff calculations, Cloud save rules, customer records or Partner identity.'
+      'The status button is now narrower, showing colour-coded T, C and P traffic lights in a square footprint.',
+      'The Companion menu has Back navigation between its three sections.',
+      'Partner settings validate UW links and add photo upload, clearer website and booking links, and login guidance.',
+      'Underlying full release and Cloud data remain available in App status & updates.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -92,8 +92,9 @@
     return cloud.customerIds.filter(function(id){return !localSet.has(id);}).length;
   }
   function signal(name, letter, status, large) {
+    var lamp = status==='green'?'🟢':status==='red'?'🔴':'🟠';
     return '<span class="ac-us-signal'+(large?' big':'')+'" data-state="'+status+'" title="'+esc(name+': '+status)+
-      '" role="img" aria-label="'+esc(name+': '+status)+'">'+esc(letter)+'</span>';
+      '" role="img" aria-label="'+esc(name+': '+status)+'">'+(large?esc(letter):'<span class="ac-us-light" aria-hidden="true">'+lamp+'</span><span class="ac-us-letter" aria-hidden="true">'+esc(letter)+'</span>')+'</span>';
   }
   function signals() {
     return dimensions().map(function(d){return signal(d.name,d.letter,d.state,false);}).join('');
@@ -215,14 +216,22 @@
     var st=document.createElement('style'); st.id='acUnifiedStatusCss';
     st.textContent = [
       '#acV22StatusBlock{display:none!important}', // old five-row menu status block
-      '#acUnifiedStatusTrigger{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:34px;min-width:49px;padding:3px 6px;border:1px solid #e4d6f4;border-radius:11px;background:#fff;color:#533587;font:700 10px/1 system-ui,sans-serif;cursor:pointer}',
-      '#acUnifiedStatusTrigger .ac-us-signals{display:flex;gap:3px;align-items:center;justify-content:center}',
+      '#acUnifiedStatusTrigger{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;height:34px;width:38px;min-height:34px;min-width:38px;max-width:38px;box-sizing:border-box;padding:2px 2px;border:1px solid #e4d6f4;border-radius:9px;background:#fff;color:#533587;font:800 9px/1 system-ui,sans-serif;cursor:pointer}',
+      '#acUnifiedStatusTrigger .ac-us-version-top{font-size:9px;line-height:10px;letter-spacing:-.25px;white-space:nowrap}',
+      '#acUnifiedStatusTrigger .ac-us-signals{display:flex;gap:0;align-items:center;justify-content:center;min-height:19px}',
+      '#acUnifiedStatusTrigger .ac-us-signal{display:flex;flex-direction:column;width:11px;height:19px;align-items:center;gap:0;border:0;border-radius:0;background:transparent;color:#594378;padding:0;font-size:8px;line-height:8px}',
+      '#acUnifiedStatusTrigger .ac-us-light{font-size:10px;line-height:11px;display:block;font-family:system-ui,sans-serif}',
+      '#acUnifiedStatusTrigger .ac-us-letter{font:800 8px/8px system-ui,sans-serif;display:block}',
       '.ac-us-signal{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font:800 9px/1 system-ui,sans-serif;background:#fff3db;color:#8d5608;border:1px solid #e4bc73;flex-shrink:0}',
       '.ac-us-signal[data-state="green"]{background:#def3e6;color:#136e3d;border-color:#82d2a3}',
       '.ac-us-signal[data-state="red"]{background:#ffe7e7;color:#a92e39;border-color:#eaa0a5}',
       '.ac-us-signal.big{width:22px;height:22px;font-size:12px;margin-right:4px}',
       '#acUnifiedStatusTrigger[data-overall="green"]{border-color:#a7d8b9}',
       '#acUnifiedStatusTrigger[data-overall="red"]{border-color:#e8adb2}',
+      '@media(max-width:430px){body>#acSharedToolstrip .ac-toolstrip-inner{gap:2px!important;width:100%!important;min-width:0!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-sep{display:none!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-toolbtn{min-width:29px!important;flex:0 1 34px!important;padding-left:2px!important;padding-right:2px!important}body>#acSharedToolstrip .ac-toolstrip-inner>.ac-toolbtn[aria-label="Companion menu"]{flex:0 0 34px!important;min-width:34px!important;margin-left:auto!important;position:sticky;right:0;z-index:3;background:#fffbe3!important}}',
+      '.ac-version-stack{flex:0 0 38px!important;min-width:38px!important;max-width:38px!important;min-height:34px!important;height:34px!important;overflow:visible!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}',
+      '.ac-toolstrip-inner{min-width:0!important}',
+      '.ac-toolstrip-inner .ac-sep{flex-shrink:1!important}',
       '#acUnifiedStatusTrigger:focus-visible,.ac-us-card button:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
       '#acUnifiedStatusModal{position:fixed;inset:0;z-index:17000;background:#201633a3;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}',
       '#acUnifiedStatusModal[hidden]{display:none!important}',
@@ -474,7 +483,7 @@
     css();
     version.style.display='none';if(rag)rag.style.display='none';
     trigger=document.createElement('button');trigger.id='acUnifiedStatusTrigger';trigger.type='button';
-    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version)+'</span>'+
+    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version.replace(/^(v\d+\.\d+)\.\d+$/, '$1'))+'</span>'+
       '<span class="ac-us-signals" aria-hidden="true">'+signals()+'</span>';
     stack.insertBefore(trigger,version);
     trigger.addEventListener('click',open);

@@ -142,6 +142,11 @@
       return post(Object.assign({ action: 'savePartnerProfile', partner: partner || {} }, authPayload(auth)));
     },
 
+    async uploadPartnerPhoto(auth, photo) {
+      // Authenticated Partner-only endpoint; never send the Admin password.
+      return post(Object.assign({ action: 'uploadPartnerPhoto', photo: photo || {} }, authPayload(auth)));
+    },
+
     async getPublicPartnerProfile(partnerId) {
       return post({ action: 'getPublicPartnerProfile', partner_id: String(partnerId || '').trim() });
     },

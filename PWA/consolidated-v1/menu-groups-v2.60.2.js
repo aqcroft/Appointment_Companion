@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.2 - shared, grouped Companion menu.
+/* Appointment Companion v2.60.3 - three-group menu with Back navigation.
    Reorders existing controls without cloning nodes or replacing their handlers.
    All three integrated tools use the same #cloudMenuPopover.
 */
@@ -70,13 +70,18 @@
     }
 
     var desired = [], recognised = new Set();
+    var back = document.getElementById('acMenuBack');
+    var rootButtons = document.getElementById('acMenuRootActions');
+    if (back) { desired.push(back); recognised.add(back); }
+    if (rootButtons) { desired.push(rootButtons); recognised.add(rootButtons); }
     GROUPS.forEach(function (group) {
       var head = heading(group);
       recognised.add(head);
+      head.setAttribute('data-ac-menu-group', group.id);
       desired.push(head);
       group.selectors.forEach(function (selector) {
         var node = findDirect(menu, selector);
-        if (node) { desired.push(node); recognised.add(node); }
+        if (node) { node.setAttribute('data-ac-menu-group', group.id); desired.push(node); recognised.add(node); }
       });
     });
 
@@ -87,6 +92,7 @@
     });
     var admin = findDirect(menu, '[data-cloud-action="admin"]');
     var insertAt = admin ? desired.indexOf(admin) : desired.length;
+    extras.forEach(function (node) { node.setAttribute('data-ac-menu-group', 'more'); });
     desired.splice.apply(desired, [insertAt, 0].concat(extras));
 
     // Keep buttons as DIRECT children: older modules use menu.insertBefore(...)
@@ -94,7 +100,20 @@
     desired.forEach(function (node, index) {
       if (menu.children[index] !== node) menu.insertBefore(node, menu.children[index] || null);
     });
+    // Keep the root first, then Back above the selected sub-menu.
+    if (rootButtons && menu.firstElementChild !== rootButtons) menu.insertBefore(rootButtons, menu.firstElementChild);
+    if (back && rootButtons && rootButtons.nextElementSibling !== back) menu.insertBefore(back, rootButtons.nextElementSibling);
+    if (!menu.dataset.acMenuView) menu.dataset.acMenuView = 'root';
     return true;
+  }
+
+  function setView(which) {
+    var menu = document.getElementById('cloudMenuPopover');
+    if (!menu) return;
+    if (!GROUPS.some(function (g) { return g.id === which; })) which = 'root';
+    menu.dataset.acMenuView = which;
+    var back = document.getElementById('acMenuBack');
+    if (back) back.setAttribute('aria-label', 'Back to main menu');
   }
 
   function install() {
@@ -110,15 +129,60 @@
         '#cloudMenuPopover .ac-menu-heading{padding:9px 7px 2px;margin-top:3px;border-top:1px solid rgba(122,66,200,.17);color:#6a5186;font:800 10px/1.3 system-ui,sans-serif;letter-spacing:.075em;text-transform:uppercase}',
         '#cloudMenuPopover .ac-menu-heading:first-child{padding-top:2px;margin-top:0;border-top:0}',
         '#cloudMenuPopover #cloudDeleteCurrent:not(:disabled){color:#903d45}',
-        '#cloudMenuPopover .cloud-menu-item:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}'
+        '#cloudMenuPopover .cloud-menu-item:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
+        '#cloudMenuPopover .ac-menu-root{display:grid;gap:7px}',
+        '#cloudMenuPopover .ac-menu-root button{width:100%;min-height:46px;text-align:left;justify-content:space-between;font-size:13px}',
+        '#cloudMenuPopover .ac-menu-back{width:100%;min-height:40px;justify-content:flex-start;text-align:left;font-weight:750}',
+        '#cloudMenuPopover[data-ac-menu-view="root"]> :not(.ac-menu-root){display:none!important}',
+        '#cloudMenuPopover[data-ac-menu-view="root"]>.ac-menu-root{display:grid!important}',
+        '#cloudMenuPopover[data-ac-menu-view]:not([data-ac-menu-view="root"])>.ac-menu-root{display:none!important}',
+        '#cloudMenuPopover[data-ac-menu-view]:not([data-ac-menu-view="root"])>.ac-menu-back{display:flex!important}',
+        '#cloudMenuPopover[data-ac-menu-view="customers"]>[data-ac-menu-group]:not([data-ac-menu-group="customers"]){display:none!important}',
+        '#cloudMenuPopover[data-ac-menu-view="account"]>[data-ac-menu-group]:not([data-ac-menu-group="account"]){display:none!important}',
+        '#cloudMenuPopover[data-ac-menu-view="more"]>[data-ac-menu-group]:not([data-ac-menu-group="more"]){display:none!important}'
       ].join('');
       document.head.appendChild(style);
     }
-    // Capture before the delegated click handler opens the popover. Also picks
-    // up links that have been injected by another module since first paint.
-    toggle.addEventListener('click', organise, true);
+    var root = document.getElementById('acMenuRootActions');
+    if (!root) {
+      root = document.createElement('div'); root.id = 'acMenuRootActions';
+      root.className = 'ac-menu-root';
+      GROUPS.forEach(function (group) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'pill cloud-menu-item';
+        btn.textContent = (group.id === 'customers' ? '👥 ' : group.id === 'account' ? '⚙️ ' : '📚 ') + group.title + '  ›';
+        btn.setAttribute('role','menuitem');
+        btn.setAttribute('aria-label','Open ' + group.title);
+        btn.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          organise(); setView(group.id);
+        });
+        root.appendChild(btn);
+      });
+      menu.insertBefore(root, menu.firstChild);
+    }
+    if (!document.getElementById('acMenuBack')) {
+      var back = document.createElement('button');
+      back.id = 'acMenuBack'; back.type = 'button'; back.className = 'pill cloud-menu-item ac-menu-back';
+      back.textContent = '‹  Back to menu';
+      back.setAttribute('role','menuitem');
+      back.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setView('root'); });
+      menu.insertBefore(back, root.nextSibling);
+    }
+    // The Companion menu is recreated by other modules only at bootstrap.
+    // Always reset to the three-choice root on a new open.
+    toggle.addEventListener('click', function () {
+      if (!menu.classList.contains('open')) setView('root');
+      organise();
+    }, true);
+    menu.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menu.dataset.acMenuView !== 'root') {
+        e.preventDefault(); e.stopPropagation(); setView('root');
+      }
+    });
     organise();
-    global.AppointmentCompanionMenuGroups = { refresh: organise };
+    setView('root');
+    global.AppointmentCompanionMenuGroups = { refresh: organise, openRoot: function () { setView('root'); } };
     return true;
   }
 
