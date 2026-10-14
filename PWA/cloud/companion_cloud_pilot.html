@@ -1848,6 +1848,7 @@ function saveLine(el, val) {
   el.classList.toggle('good', val > 0);
 }
 
+let partnerProfileLoadFailed = false;
 function openCard() {
   const r0 = compute();
 
@@ -1864,6 +1865,7 @@ function openCard() {
     return;
   }
   previewExtra = false; // reset preview each time the card opens
+  partnerProfileLoadFailed = false;
   renderCard(compute(0));
   $('shareGateMsg').classList.add('hidden');
   $('cardModal').classList.add('open');
@@ -1871,10 +1873,8 @@ function openCard() {
   // Do not make opening the summary wait on the network, but proactively
   // hydrate the authenticated Partner so branding is ready before sharing.
   if (!getPartner() && activePartnerAuth()) {
-    ensurePartnerProfileFromCloud().then(partner => {
-      if (partner && $('cardModal').classList.contains('open')) {
-        renderCard(compute(currentPreviewCount()));
-      }
+    ensurePartnerProfileFromCloud().then(() => {
+      if ($('cardModal').classList.contains('open')) renderCard(compute(currentPreviewCount()));
     });
   }
 }
@@ -2089,8 +2089,8 @@ function renderCard(r) {
     $('brandStrap').textContent = partner.strap || '';
   } else {
     const loadingCloudProfile = !!activePartnerAuth();
-    $('brandName').textContent = loadingCloudProfile ? 'Loading Partner details…' : 'Partner details not set';
-    $('brandRole').textContent = loadingCloudProfile ? 'Retrieving your Cloud profile' : 'Tap ⚙️ below the notes to add yours';
+    $('brandName').textContent = loadingCloudProfile ? (partnerProfileLoadFailed ? 'Partner details unavailable' : 'Loading Partner details…') : 'Partner details not set';
+    $('brandRole').textContent = loadingCloudProfile ? (partnerProfileLoadFailed ? 'Check ☰ → My profile or reconnect Cloud' : 'Retrieving your Cloud profile') : 'Tap ⚙️ below the notes to add yours';
     $('brandStrap').textContent = '';
   }
   const ctaLink = basketLink();
@@ -2404,7 +2404,21 @@ function continueShareViaWhatsApp() {
   const figure = '£' + Math.abs(Math.round(r.year1)).toLocaleString('en-GB');
   const greeting = nm ? `Here's that summary I mentioned, ${nm} 👀` : `Here's that summary I mentioned 👀`;
   const msg = `${greeting}\n\nLooks like ${figure} back in your pocket over the next 12 months.\n\nIf the numbers look good, just tap the green *Open your basket* button — add your personal details and UW sort the rest 👍\n\n${url}\n\nAny questions just shout!`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  const opened = window.open(whatsappUrl, '_blank');
+  // After waiting for Cloud, Chrome can revoke the original click permission.
+  // A normal link still works because the next tap is a fresh user gesture.
+  if (!opened) {
+    const notice = $('shareGateMsg');
+    notice.textContent = 'Chrome blocked the automatic WhatsApp window. ';
+    const link = document.createElement('a');
+    link.href = whatsappUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Tap here to open WhatsApp';
+    notice.appendChild(link);
+    notice.classList.remove('hidden');
+  }
 }
 function continueCopyShareLink() {
   const url = buildShareUrl();
@@ -3043,7 +3057,7 @@ async function ensurePartnerProfileFromCloud() {
   if (!activePartnerAuth()) return null;
   if (partnerHydrationPromise) return partnerHydrationPromise;
 
-  partnerHydrationPromise = (async () => {
+  const cloudRequest = (async () => {
     const bridge = await waitForPartnerBridge(1800);
     if (bridge) {
       try { await bridge.hydrate(); } catch (e) {}
@@ -3084,9 +3098,25 @@ async function ensurePartnerProfileFromCloud() {
     }
     return getPartner();
   })();
+  // Cloud may be slow, unreachable or have a stale trusted-device login.
+  // Never keep a customer share awaiting an unbounded fetch. A late response
+  // can still populate the verified Partner cache for the next attempt.
+  partnerHydrationPromise = new Promise(resolve => {
+    let finished = false;
+    const finish = value => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(value || getPartner());
+    };
+    const timer = setTimeout(() => finish(getPartner()), 8500);
+    cloudRequest.then(finish, () => finish(getPartner()));
+  });
 
   try {
-    return await partnerHydrationPromise;
+    const partner = await partnerHydrationPromise;
+    partnerProfileLoadFailed = !partner;
+    return partner;
   } finally {
     partnerHydrationPromise = null;
   }
@@ -3136,7 +3166,7 @@ async function requirePartnerSetup() {
     return true;
   }
   $('shareGateMsg').textContent = activePartnerAuth()
-    ? 'Your Partner profile could not be loaded from Cloud. Check ☰ → My profile, then try again.'
+    ? 'Your Partner profile did not load. Try ☰ → Connect / reconnect Cloud, then check My profile before sharing.'
     : 'Connect to Companion before sharing so the correct Partner details can be included.';
   $('shareGateMsg').classList.remove('hidden');
   return false;
