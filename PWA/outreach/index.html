@@ -37,11 +37,15 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 <body>
 <div class="app">
 <header>
-  <div class="brand"><div class="brand-lockup"><img class="brand-icon" src="./assets/icon.svg" alt="" width="44" height="44" /><div><h1>Cold Outreach</h1><div class="sub">UW Partner toolkit - Relationship follow-up</div></div></div><span class="pill">v1.1.0</span></div>
+  <div class="brand"><div class="brand-lockup"><img class="brand-icon" src="./assets/icon.svg" alt="" width="44" height="44" /><div><h1>Cold Outreach</h1><div class="sub">UW Partner toolkit - Relationship follow-up</div></div></div><span class="pill">v1.2.0</span></div>
   <div class="tabs">
     <button class="tab active" data-view="new">New prospect</button>
     <button class="tab" data-view="pipeline">Pipeline</button>
     <button class="tab" data-view="followups">Follow-ups</button>
+  </div>
+  <div id="outreachInstallBanner" style="display:none;margin-top:10px;padding:9px 10px;border:1px solid #c9b4ec;border-radius:12px;background:#f3ecff;align-items:center;justify-content:space-between;gap:8px">
+    <span style="font-size:12px;color:#493279">Install Cold Outreach as its own app</span>
+    <button class="btn small accent" type="button" id="outreachInstallButton">Install app</button>
   </div>
 </header>
 <main>
@@ -152,8 +156,8 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 </div>
 </section>
 <details class="card" style="margin-top:18px" id="aboutOutreach">
-  <summary style="cursor:pointer;font-weight:700">About Cold Outreach - v1.1.0</summary>
-  <p class="muted" style="margin-bottom:6px">14th Oct 2026 - Standalone app with its own ice-cube-and-UW icon, installation and offline-capable screen.</p>
+  <summary style="cursor:pointer;font-weight:700">About Cold Outreach - v1.2.0</summary>
+  <p class="muted" style="margin-bottom:6px">14th Oct 2026 - New in-app installation button when Chrome offers it, plus explicit app icon sizes for Android. Original CRM and settings are unchanged.</p>
   <p class="muted" style="margin:0 0 6px">Your existing CRM, screenshots, ChatGPT handoffs and connection settings are unchanged. An internet connection is still needed to save or retrieve CRM data.</p>
   <p class="muted" style="margin:0">Install from Chrome's browser menu (Install app / Add to Home screen) or Safari's Share menu (Add to Home Screen).</p>
 </details>
@@ -644,6 +648,30 @@ async function testBackend(){try{await crmPost({action:'health'});document.getEl
 ['profileLink','sourceLink','prospectNotes','newFiles'].forEach(id=>document.getElementById(id)?.addEventListener('change',unlockProspectSave));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',()=>unlockProspectSave()));
 window.addEventListener('DOMContentLoaded',loadBackendSettings);
+let outreachInstallPrompt = null;
+window.addEventListener('beforeinstallprompt',event=>{
+  event.preventDefault();
+  outreachInstallPrompt=event;
+  const banner=document.getElementById('outreachInstallBanner');
+  if(banner && !window.matchMedia('(display-mode: standalone)').matches)banner.style.display='flex';
+});
+document.getElementById('outreachInstallButton')?.addEventListener('click',async()=>{
+  if(!outreachInstallPrompt)return;
+  const prompt=outreachInstallPrompt;
+  outreachInstallPrompt=null;
+  document.getElementById('outreachInstallBanner').style.display='none';
+  try{
+    await prompt.prompt();
+    await prompt.userChoice;
+  }catch(error){
+    console.warn('Install prompt failed:',error);
+  }
+});
+window.addEventListener('appinstalled',()=>{
+  outreachInstallPrompt=null;
+  const banner=document.getElementById('outreachInstallBanner');
+  if(banner)banner.style.display='none';
+});
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js', {scope:'./'})
     .catch(error => console.warn('Cold Outreach offline shell not available:', error)));
