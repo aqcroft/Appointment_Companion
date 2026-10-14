@@ -8,9 +8,9 @@ This is a separate setup from the installable PWA. Until the steps below are com
 
 Open **Cold Outreach CRM v1** Google Sheet → **Extensions → Apps Script**.
 
-- Send the **Apps Script editor URL** (`https://script.google.com/home/projects/.../edit`) to the developer. This URL is **not** a credential.
-- The **Script ID has already been preconfigured** from the Apps Script editor URL you supplied, so no need to enter it again. The *Sheet ID* is different - do not confuse it with the script project.
-- In **Deploy → Manage deployments**, select the currently active Cold Outreach **Web app** and copy its **Deployment ID**. It is important to reuse the active deployment, not create a new one.
+- The **Script ID** is already preconfigured from the supplied Apps Script editor URL, so you do not need to enter it again.
+- The **existing web app Deployment ID** is also preconfigured from the value you supplied. No need to copy it again or create a GitHub variable for it.
+- After Google authorisation, the first read-only preflight will check whether this deployment really belongs to that script project. Nothing is deployed until that verification succeeds.
 - Confirm this is the Apps Script project that is actually serving the PWA's saved `/exec` backend connection.
 - Back up the live Apps Script project before initial synchronisation. Check for manual changes newer than GitHub's `Code.gs`. Do not blindly overwrite them.
 
@@ -27,20 +27,16 @@ Google's own CLI, `clasp`, manages Apps Script projects via the official Apps Sc
 
 **Important:** A `clasp` refresh token can give significant Apps Script access. GitHub Actions secrets do not make untrusted commits safe. Only trusted changes to `main` should ever run an authorised deployment workflow. Remove the secret and revoke its Google OAuth grant if access should be disabled.
 
-## 3. Identify the project and preserve the web-app URL
+## 3. Existing deployment - identifiers are already configured
 
-The script ID is already set in the GitHub workflow. In the repository, under **Settings → Secrets and variables → Actions → Variables**, add:
+The **Script ID and current Web App Deployment ID** are already present in the GitHub workflow. No further ID copying, GitHub deployment variable or new web-app URL is required.
 
-| Variable | Value |
-| --- | --- |
-| `OUTREACH_DEPLOYMENT_ID` | Deployment ID of the **current live web app** |
-| `OUTREACH_DEPLOY_AUTOMATIC` | `false` initially; enable only after a successful test |
+The only optional GitHub Actions variable is `OUTREACH_DEPLOY_AUTOMATIC`:
 
-The Script ID is already configured from this editor URL: `https://script.google.com/u/0/home/projects/1-Zsoj5dlXs6H4yuZa8vFLoZ5YlZmaZsCJgF9vKg9mlSW_NGoN7fRko7_/edit`.
+- Leave it **unset or `false`** initially. This disables deployment-on-push.
+- Set it to `true` **only after** the first manually authorised deployment has been tested successfully.
 
-These are *not* the private workspace key and are not the Google Sheets/Drive IDs. **Never change or share** the existing `CRM_WORKSPACE_KEY` script property.
-
-The workflow verifies that the deployment belongs to the identified script, pulls *all* of the live project's files, preserves the live manifest/other files, and updates only its `Code` script file before pushing. It then targets the **existing deployment ID** so that the PWA's backend `/exec` URL remains the same.
+The `CRM_WORKSPACE_KEY` script property is separate and should not be copied into GitHub or this chat. The workflow pulls the project's other code and manifest, replaces only the main `Code` script file, and updates the **existing** deployment ID rather than creating another published URL.
 
 ## 4. Test safely before enabling automatic deployment
 
@@ -51,7 +47,7 @@ The workflow verifies that the deployment belongs to the identified script, pull
 5. Test health, Pipeline, full prospect record, screenshot retrieval and a safe CRM edit in the PWA.
 6. If all tests pass, change GitHub variable `OUTREACH_DEPLOY_AUTOMATIC` to `true`. Thereafter an approved change to `PWA/outreach/backend/Code.gs` that lands on `main` triggers deployment automatically.
 
-The workflow is deliberately **fail-closed**: without the exact IDs, secret or automatic-deployment opt-in it cannot alter the live script. Main-branch changes are the deployment boundary, not unmerged branches or draft pull requests.
+The workflow is deliberately **fail-closed**: without the Google authorisation secret, it cannot access or alter the script. The first manual preflight checks the exact IDs before any deployment; automatic deployment requires a separate opt-in. Main-branch changes are the deployment boundary, not unmerged branches or draft pull requests.
 
 ## Operating routine once linked
 
@@ -65,5 +61,5 @@ The workflow is deliberately **fail-closed**: without the exact IDs, secret or a
 - A green GitHub code commit with no Actions deployment usually means `OUTREACH_DEPLOY_AUTOMATIC` remains `false` or the workflow has not been merged.
 - An authentication failure may require `clasp login` again and updating **only** the GitHub secret.
 - A Script ID error means the wrong project was linked; the script's ID is different from the CRM Google Sheet ID.
-- A missing deployment ID or mismatch fails before any remote changes.
+- A mismatch between the supplied deployment ID and the existing script project fails before any remote changes.
 - If GitHub succeeds but the PWA still serves older responses, check the existing deployment version and the PWA's saved `/exec` URL; do not make a new web-app deployment without a migration plan.
