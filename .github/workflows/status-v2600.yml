@@ -7,6 +7,7 @@ on:
       - 'PWA/consolidated-v1/menu-groups-v2.60.2.js'
       - 'PWA/consolidated-v1/partner-settings-ux-v2.60.3.js'
       - 'PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs'
+      - 'PWA/consolidated-v1/tests/menu-back-v2.60.3.test.cjs'
       - 'PWA/partner-profile-v1.js'
       - 'PWA/cloud-client-v1.js'
       - 'PWA/admin/index.html'
@@ -56,4 +57,4 @@ jobs:
           }
           NODE
       - name: Run tariff, status and customer sync behaviour tests
-        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs PWA/consolidated-v1/tests/customer-locations-v2.60.1.test.cjs PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs
+        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs PWA/consolidated-v1/tests/customer-locations-v2.60.1.test.cjs PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs PWA/consolidated-v1/tests/menu-back-v2.60.3.test.cjs
