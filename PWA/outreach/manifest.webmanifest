@@ -1,0 +1,20 @@
+{
+  "id": "/Appointment_Companion/PWA/outreach/",
+  "name": "Cold Outreach - UW Partner Companion",
+  "short_name": "Cold Outreach",
+  "description": "Relationship-first prospect capture, follow-ups and CRM handoffs for UW Partners.",
+  "lang": "en-GB",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#35016e",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
