@@ -1,4 +1,4 @@
-name: Appointment Companion - Status v2.60.0 checks
+name: Appointment Companion - Status v2.60.x checks
 
 on:
   pull_request:
@@ -36,9 +36,9 @@ jobs:
           const manifest=JSON.parse(fs.readFileSync('PWA/consolidated-v1/manifest.webmanifest','utf8'));
           const index=fs.readFileSync('PWA/consolidated-v1/index.html','utf8');
           const sw=fs.readFileSync('PWA/consolidated-v1/sw.js','utf8');
-          if(!manifest.name.includes('v2.60.0') || !index.includes('v2.60.0') || !sw.includes('v2-60-0')) {
+          if(!manifest.name.includes('v2.60.1') || !index.includes('v2.60.1') || !sw.includes('v2-60-1')) {
             throw new Error('App, manifest and service-worker version metadata out of sync');
           }
           NODE
-      - name: Run status behaviour regression tests
-        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs
+      - name: Run tariff, status and customer sync behaviour tests
+        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs PWA/consolidated-v1/tests/customer-locations-v2.60.1.test.cjs

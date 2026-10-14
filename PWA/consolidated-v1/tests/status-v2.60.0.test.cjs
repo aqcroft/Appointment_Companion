@@ -14,7 +14,7 @@ function fakeDocument() {
 }
 const names = [
   'Fixed Start 99','Fixed 99','Fixed Saver 99',
-  'Tracker Start 7','Tracker 7','Tracker Saver 7',
+  'Tracker Start 7','Tracker Plus 7','Tracker Saver 7',
   'Value','Gold','Double Gold',
   'EV Value','EV Gold','EV Double Gold'
 ];
@@ -57,13 +57,14 @@ function harness() {
   }};
 }
 
-test('tariff feed retains all 3 real names for each of 4 families',()=>{
+test('tariff feed retains all 3 real names including Tracker Plus for each of 4 families',()=>{
   const h=harness();
   for(const family of ['fixed','tracker','variable','ev'])
     assert.equal(h.summary[family+'Names'].length,3);
   const html=h.status.tariffSection();
   assert.equal((html.match(/class="ac-us-tariff present"/g)||[]).length,12);
   assert.match(html,/Fixed Saver 99/);
+  assert.match(html,/Tracker Plus 7/);
   assert.match(html,/Tracker Saver 7/);
   assert.match(html,/EV Double Gold/);
   assert.match(html,/Take me to the UW TIL/);
@@ -106,8 +107,8 @@ test('local-only drafts are amber, not conflicts, and cloud-only records can be 
   h.status.setSync({mode:'local',count:2,conflicts:0,pending:0,localOnly:1,localIds:['id1'],current:'',local:'Saved'});
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
-  assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
-  assert.match(html,/In Cloud only \(not on this device\)<\/span><strong>1<\/strong>/);
+  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
+  assert.match(html,/In Cloud only \(not on this device\)<\/span><button[^>]*>1 · View/);
   assert.doesNotMatch(html,/sync conflict\(s\) need attention/);
 });
 
@@ -122,14 +123,14 @@ test('Cloud customer drafts are not falsely counted as queued uploads',async()=>
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
   assert.doesNotMatch(html,/Cloud-enabled profile\(s\) waiting to sync/);
-  assert.match(html,/On device only \(not in Cloud\)<\/span><strong>1<\/strong>/);
+  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
 });
 
 test('update history begins collapsed and displays last three versions',()=>{
   const h=harness();
   const html=h.status.appSection();
   assert.match(html,/Last 3 updates/);
-  assert.match(html,/v2\.60\.0/);
+  assert.match(html,/v2\.60\.1/);
   assert.doesNotMatch(html,/ac-us-update-history/);
 });
 
@@ -153,4 +154,20 @@ test('Cloud connection failures make Customers red, without adding a fourth indi
   assert.equal(h.status.dimensions().map(d=>d.letter).join(''),'TCP');
   assert.match(h.status.customerSection(),/Unavailable/);
   assert.equal(h.status.overallStatus().state,'red');
+});
+
+
+test('Customer green prioritises current confirmed local plus Cloud record',()=>{
+  const h=harness();
+  h.status.setCloud({connection:'verified',profile:'loaded',
+    customerIds:['cloud-id'],customerCount:1});
+  h.status.setSync({mode:'synced',conflicts:0,pending:0,
+    localOnly:2,localIds:['cloud-id'],
+    currentCloudId:'cloud-id',currentRevisionSynced:true,currentConflict:false});
+  assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,green,green');
+  assert.equal(h.status.overallStatus().state,'green');
+  h.status.setCloud({connection:'verified',profile:'loaded',
+    customerIds:['different-id'],customerCount:1});
+  assert.equal(h.status.dimensions()[1].state,'amber',
+    'The Cloud must actually confirm the current customer ID');
 });
