@@ -8,13 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.59.0',
+    version: 'v2.59.1',
     date: '14 October 2026',
-    summary: 'One place for app updates, tariff health, Cloud and device status',
+    summary: 'Corrected Companion Cloud client for Partner profile checks',
     changes: [
-      'Tap the version and tariff light together to open one App status & updates modal.',
-      'Read tariff data, Cloud login, Partner profile and customer sync statuses separately.',
-      'Refresh the checks and reconnect directly from the same screen without extra menus.'
+      'Corrected the Cloud client loaded by Appointment Companion so Partner profile retrieval is available.',
+      'The unified status panel now checks the real Cloud service and profile instead of reporting a missing local API as an outage.',
+      'Local customer records, savings calculations and the one-tap status design are unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -268,7 +268,7 @@
     }
     var api=global.AppointmentCompanionCloud;
     if(!api||typeof api.listCustomers!=='function'||typeof api.getPartnerProfile!=='function'){
-      cloud.connection='failed';cloud.profile=cached?'cached':'failed';cloud.message='Cloud services are unavailable.';paint();return;
+      cloud.connection='failed';cloud.profile=cached?'cached':'failed';cloud.message='The Cloud connection component did not load correctly. Refresh Appointment Companion.';paint();return;
     }
     var checks=await Promise.all([
       timeout(api.listCustomers(auth),6500),
