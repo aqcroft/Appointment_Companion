@@ -65,6 +65,7 @@
     if (status==='loaded') return 'Loaded';
     if (status==='checking') return 'Checking…';
     if (status==='saved') return 'Login saved';
+    if (status==='local') return 'Local only';
     if (status==='cached') return 'Cached only';
     if (status==='disconnected') return 'Not connected';
     if (status==='failed') return 'Unavailable';
@@ -212,6 +213,7 @@
     if(demo){showMessage('Demo data - no live tariff request made.');return;}
     var api=global.AppointmentCompanionTariffsV242;
     if(!api||typeof api.refresh!=='function'){showMessage('Tariff refresh is currently unavailable.');return;}
+    if(!confirm('Refreshing tariff data reloads Appointment Companion. Save any unsaved work before continuing. Refresh now?'))return;
     showMessage('Refreshing tariff data…');
     try {Promise.resolve(api.refresh()).then(function(){paint();showMessage('Tariff refresh finished.');},function(){paint();showMessage('Could not refresh tariff data.');});}
     catch(_){showMessage('Could not refresh tariff data.');}
@@ -231,7 +233,7 @@
     if(!engine||typeof engine.list!=='function'){sync.mode='checking';sync.detail='Customer store unavailable';paint();return;}
     try{
       var rows=await engine.list();
-      if(sequence!==checkSeq || !$ (ID) || $(ID).hidden)return;
+      if(sequence!==checkSeq || !$(ID) || $(ID).hidden)return;
       rows=Array.isArray(rows)?rows:[];
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
       var pending=meaningful.filter(function(r){return r.sync_state==='pending'||r.sync_state==='pending_delete';});
@@ -245,7 +247,8 @@
         else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: local draft (not sent to Cloud)';
         else currentMessage='Current customer: Cloud sync status not confirmed';
       }
-      sync={mode:conflicts.length?'conflict':pending.length?'checking':'synced',
+      var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision));
+      sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
         detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local customer store checked. Individual drafts may remain local.',
         count:meaningful.length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
@@ -293,12 +296,12 @@
   }
   function install(){
     var version=document.querySelector('.ac-version-mini'),rag=$('acTariffHealth242');
-    if(!version || !rag)return false;
+    if(!version)return false;
     var stack=version.closest('.ac-version-stack');
-    if(!stack)return false;
+    if(!stack){stack=document.createElement('span');stack.className='ac-version-stack';version.parentNode.insertBefore(stack,version);stack.appendChild(version);}
     if($('acUnifiedStatusTrigger'))return true;
     css();
-    version.style.display='none';rag.style.display='none';
+    version.style.display='none';if(rag)rag.style.display='none';
     trigger=document.createElement('button');trigger.id='acUnifiedStatusTrigger';trigger.type='button';
     trigger.innerHTML='<span>'+esc(meta.version)+'</span><span class="ac-us-light" aria-hidden="true"></span>';
     stack.insertBefore(trigger,version);
