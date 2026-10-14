@@ -107,5 +107,5 @@ test('location browser includes explicit filters and prioritises device-only rec
   assert.match(controller,/var difference=priority\(a\)-priority\(b\)/);
   assert.match(controller,/data-local-upload/);
   assert.match(controller,/Save to Cloud/);
-  assert.match(controller,/remoteOnly\.map/);
+  assert.match(controller,/remoteVisible\.map/);
 });
