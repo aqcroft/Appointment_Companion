@@ -30,7 +30,7 @@ jobs:
     env:
       CLASPRC_JSON: ${{ secrets.OUTREACH_CLASPRC_JSON }}
       OUTREACH_SCRIPT_ID: '1-Zsoj5dlXs6H4yuZa8vFLoZ5YlZmaZsCJgF9vKg9mlSW_NGoN7fRko7_'
-      OUTREACH_DEPLOYMENT_ID: ${{ vars.OUTREACH_DEPLOYMENT_ID }}
+      OUTREACH_DEPLOYMENT_ID: 'AKfycbwNIZ3mN64tQKEqTv-8fMyqJjRuipXDI7w9-KomJU9X1_JeTeHxzhFjJbJeJbsq1q8_Uw'
       PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
           echo "Source SHA256 (current live HEAD): $(sha256sum "$TARGET_FILE" | cut -d' ' -f1)"
           echo "Source SHA256 (GitHub version): $(sha256sum "$GITHUB_WORKSPACE/PWA/outreach/backend/Code.gs" | cut -d' ' -f1)"
           # Confirm that deployment ID belongs to this exact project before touching anything.
-          clasp deployments > "$RUNNER_TEMP/outreach-deployments.txt"
+          clasp list-deployments > "$RUNNER_TEMP/outreach-deployments.txt"
           if ! grep -Fq -- "$OUTREACH_DEPLOYMENT_ID" "$RUNNER_TEMP/outreach-deployments.txt"; then
             echo "::error::Existing deployment ID is not associated with the supplied Script ID. Aborting."
             exit 1
