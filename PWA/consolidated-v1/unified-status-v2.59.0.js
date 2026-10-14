@@ -1,4 +1,4 @@
-/* Appointment Companion v2.59.0 - one top-left control and one App status & updates modal.
+/* Appointment Companion v2.60.0 - four status signals, complete tariff suites and safer conflict review.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,19 +8,22 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.59.1',
+    version: 'v2.60.0',
     date: '14 October 2026',
-    summary: 'Corrected Companion Cloud client for Partner profile checks',
+    summary: 'TCP status, complete tariff suites and customer sync review',
     changes: [
-      'Corrected the Cloud client loaded by Appointment Companion so Partner profile retrieval is available.',
-      'The unified status panel now checks the real Cloud service and profile instead of reporting a missing local API as an outage.',
-      'Local customer records, savings calculations and the one-tap status design are unchanged.'
+      'Three independent TCP traffic lights report Tariffs, Customers (including Cloud sync) and Partner profile.',
+      'All three real tariffs per suite are listed together, with an independent tick for each present tariff and a direct UW tariff source link.',
+      'Customer records can be compared between device and Cloud; conflict warnings open the existing review screen.',
+      'Partner status no longer continually rechecks after routine customer saves; updates are tucked into a compact history.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
-  var ID = 'acUnifiedStatusModal', trigger = null, checkSeq = 0, previousFocus = null, waitTimer = null;
-  var cloud = { connection: 'idle', profile: 'idle', message: '', profileName: '', customerCount: null, owner: '', error: '' };
-  var sync = { mode: 'checking', detail: 'Checking saved customer profiles…', count: null, pending: 0, conflicts: 0, current: '', local: 'Checking local save…' };
+  var ID = 'acUnifiedStatusModal', trigger = null, checkSeq = 0, previousFocus = null, waitTimer = null, updatesOpen = false;
+  var tariffSource = 'https://uw.co.uk/legal/terms-conditions/energy-tariff-information';
+  var cloud = { connection: 'idle', profile: 'idle', message: '', profileName: '', customerCount: null, customerIds: null, owner: '', error: '' };
+  var sync = { mode: 'checking', detail: 'Checking saved customer profiles…', count: null, pending: 0,
+    conflicts: 0, localOnly: 0, localIds: null, current: '', local: 'Checking local save…' };
   function $(id) { return document.getElementById(id); }
   function esc(value) { return String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function readable(when) {
@@ -59,6 +62,51 @@
     catch (_) { return {status:'amber',summary:{},error:'Tariff status could not be read'}; }
   }
   function tone(state) { return state==='green' || state==='verified' || state==='loaded' || state==='synced' ? 'good' : state==='red' || state==='failed' || state==='conflict' || state==='disconnected' ? 'bad' : 'warn'; }
+  function dimensions() {
+    var tariffState=tariff().status;
+    var customerProblem=sync.conflicts>0 || sync.mode==='conflict' || sync.mode==='failed' ||
+      cloud.connection==='failed' || cloud.connection==='disconnected';
+    var customersReady=cloud.connection==='verified' && sync.mode==='synced' &&
+      !sync.pending && !sync.localOnly && cloudOnlyCount()===0 && deviceOnlyCount()===0;
+    return [
+      {key:'tariff',letter:'T',name:'Tariffs',
+        state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
+      {key:'customer',letter:'C',name:'Customers and Cloud sync',
+        state:customerProblem?'red':customersReady?'green':'amber'},
+      {key:'partner',letter:'P',name:'Partner profile',
+        state:cloud.profile==='loaded'?'green':cloud.profile==='failed'?'red':'amber'}
+    ];
+  }
+  function deviceOnlyCount() {
+    if(!Array.isArray(sync.localIds))return null;
+    if(!Array.isArray(cloud.customerIds))return sync.localOnly;
+    var available=new Set(cloud.customerIds);
+    return sync.localOnly+sync.localIds.filter(function(id){return !available.has(id);}).length;
+  }
+  function cloudOnlyCount() {
+    if(!Array.isArray(cloud.customerIds) || !Array.isArray(sync.localIds)) return null;
+    var localSet=new Set(sync.localIds);
+    return cloud.customerIds.filter(function(id){return !localSet.has(id);}).length;
+  }
+  function signal(name, letter, status, large) {
+    return '<span class="ac-us-signal'+(large?' big':'')+'" data-state="'+status+'" title="'+esc(name+': '+status)+
+      '" role="img" aria-label="'+esc(name+': '+status)+'">'+esc(letter)+'</span>';
+  }
+  function signals() {
+    return dimensions().map(function(d){return signal(d.name,d.letter,d.state,false);}).join('');
+  }
+  function indicator(name) {
+    var d=dimensions().find(function(x){return x.key===name;});
+    return d ? signal(d.name,d.letter,d.state,true) : '';
+  }
+  function overallStatus() {
+    var states=dimensions();
+    var issue=states.find(function(d){return d.state==='red';});
+    if(issue)return {state:'red',label:issue.name+' needs attention'};
+    var pending=states.find(function(d){return d.state==='amber';});
+    if(pending)return {state:'amber',label:pending.name+' needs checking'};
+    return {state:'green',label:'Tariffs, Customers and Partner verified'};
+  }
   function stateLabel(kind, status) {
     if (kind==='tariff') return status==='green'?'Verified':status==='red'?'Attention needed':'Checking / cached';
     if (status==='verified') return 'Verified';
@@ -74,52 +122,90 @@
     return 'Needs checking';
   }
   function badge(kind, value) { return '<span class="ac-us-pill '+tone(value)+'">'+esc(stateLabel(kind,value))+'</span>'; }
-  function section(title, status, content, id) {
-    return '<section class="ac-us-section" aria-labelledby="'+id+'"><div class="ac-us-head"><h3 id="'+id+'">'+title+'</h3>'+status+'</div>'+content+'</section>';
+  function section(title, status, content, id, kind) {
+    return '<section class="ac-us-section" aria-labelledby="'+id+'"><div class="ac-us-head"><h3 id="'+id+'">'+indicator(kind)+esc(title)+'</h3>'+status+'</div>'+content+'</section>';
   }
   function tariffSection() {
-    var s=tariff(), x=s.summary||{}, rows = [
-      ['Fixed',x.fixed,x.fixedCode],['Tracker',x.tracker,x.trackerCode],
-      ['Variable',x.variable,x.variableCode],['EV',x.ev,x.evCode]
-    ].map(function(item){return '<div class="ac-us-detail"><span>'+esc(item[0])+'</span><strong>'+esc(item[1]||'Checking…')+'</strong>'+(item[2]?'<small>'+esc(item[2])+'</small>':'')+'</div>';}).join('');
-    return section('Tariff data',badge('tariff',s.status),'<div class="ac-us-rows">'+rows+'</div>'+
-      '<p class="ac-us-note">Last live verification: '+esc(readable(s.checkedAt))+
-      (s.error?' · '+esc(s.error):'')+'</p><button type="button" data-us-action="tariff">Refresh tariff data</button>','acUsTariff');
+    var state=tariff(), summary=state.summary||{};
+    var specifications=[
+      {label:'Fixed',key:'fixed',names:['Start','Fixed','Saver'],patterns:[/^Fixed Start(?:\s|$)/i,/^Fixed(?:\s+\d+)?$/i,/^Fixed Saver(?:\s|$)/i]},
+      {label:'Tracker',key:'tracker',names:['Start','Tracker','Saver'],patterns:[/^Tracker Start(?:\s|$)/i,/^Tracker(?:\s+\d+)?$/i,/^(?:Tracker Saver|Saver Tracker)(?:\s|$)/i]},
+      {label:'Variable',key:'variable',names:['Value','Gold','Double Gold'],patterns:[/^Value(?:\s|$)/i,/^Gold(?:\s|$)/i,/^Double Gold(?:\s|$)/i]},
+      {label:'EV',key:'ev',names:['Value','Gold','Double Gold'],patterns:[/^EV Value(?:\s|$)/i,/^EV Gold(?:\s|$)/i,/^EV Double Gold(?:\s|$)/i]}
+    ];
+    var rows=specifications.map(function(family){
+      var names=Array.isArray(summary[family.key+'Names'])?summary[family.key+'Names']:[];
+      var chips=family.patterns.map(function(pattern,index){
+        var matching=names.find(function(name){return pattern.test(name);});
+        var label=matching || (family.label+' '+family.names[index]);
+        return '<span class="ac-us-tariff'+(matching?' present':' absent')+'" title="'+esc(matching?'Present in verified tariff data':'Not confirmed in tariff data')+'">'+
+          (matching?'✓ ':'○ ')+esc(label)+'</span>';
+      }).join('');
+      if(!names.length)chips='<span class="ac-us-note">Tariff suite not yet confirmed</span>';
+      return '<div class="ac-us-detail ac-us-tariff-row"><span>'+esc(family.label)+'</span><div class="ac-us-tariff-list">'+chips+'</div></div>';
+    }).join('');
+    return section('Tariffs',badge('tariff',state.status),'<div class="ac-us-rows">'+rows+'</div>'+
+      '<p class="ac-us-note">Last live verification: '+esc(readable(state.checkedAt))+
+      (state.error?' · '+esc(state.error):'')+'</p>'+
+      '<div class="ac-us-actions"><button type="button" data-us-action="tariff">Refresh tariff data</button>'+
+      '<a href="'+tariffSource+'" target="_blank" rel="noopener noreferrer">Take me to the UW TIL ↗</a></div>','acUsTariff','tariff');
   }
   function appSection() {
-    return section('App version & latest updates','<span class="ac-us-version">'+esc(meta.version)+'</span>',
-      '<p class="ac-us-summary">'+esc(meta.summary)+'</p>'+
-      '<p class="ac-us-note">Released '+esc(meta.date)+(demo?' · Preview demonstration':'')+'</p>'+
-      '<ul class="ac-us-changes">'+meta.changes.map(function(change){return '<li>'+esc(change)+'</li>';}).join('')+'</ul>',
-      'acUsApp');
+    var history=[
+      {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.59.1',date:'14 October 2026',summary:'Restored the Cloud Partner profile check'},
+      {version:'v2.59.0',date:'14 October 2026',summary:'Introduced a single App status & updates panel'}
+    ];
+    return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
+      '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
+      (updatesOpen?'Hide updates ▴':'Last 3 updates ▾')+'</button></div>'+
+      (updatesOpen?'<div class="ac-us-update-history">'+history.map(function(item,index){
+        return '<div class="ac-us-update"><b>'+esc(item.version)+'</b> · '+esc(item.summary)+
+          '<small>'+esc(item.date)+'</small>'+
+          (index===0?'<ul>'+item.changes.map(function(change){return '<li>'+esc(change)+'</li>';}).join('')+'</ul>':'')+
+          '</div>';
+      }).join('')+'<a href="https://github.com/aqcroft/Appointment_Companion/commits/main/" target="_blank" rel="noopener noreferrer">View full change history ↗</a></div>':'')+'</div>';
   }
-  function cloudSection() {
-    var auth = demo ? {partner_id:'DEMO'} : ownAuth();
-    var connection=demo?'verified':cloud.connection, profile=demo?'loaded':cloud.profile;
-    var details = '<div class="ac-us-minirow"><span>Cloud connection</span>'+badge('cloud',connection)+'</div>'+
-      '<p class="ac-us-note">'+esc(demo?'Example connected session':cloud.message || (auth?'Checking saved login against Cloud…':'Connect to Companion to sync across devices.'))+'</p>'+
-      '<div class="ac-us-minirow"><span>Partner profile</span>'+badge('profile',profile)+'</div>'+
-      '<p class="ac-us-note">'+esc(demo?'Example Partner - all details are fictitious':cloud.profileName ? cloud.profileName +(profile==='cached'?' (verified local copy only)':'') : 'No verified Cloud profile loaded')+'</p>';
-    if (auth && !demo) details += '<p class="ac-us-note">Companion Partner ID: '+esc(auth.partner_id)+'</p>';
-    if (cloud.error && !demo) details += '<p class="ac-us-error">'+esc(cloud.error)+'</p>';
-    return section('Cloud & Partner identity','',details+
-      (demo?'':'<button type="button" data-us-action="connect">Connect / reconnect Cloud</button>'),'acUsCloud');
+  function partnerSection() {
+    var auth=demo?{partner_id:'DEMO'}:ownAuth();
+    var status=demo?'loaded':cloud.profile;
+    var details='<p class="ac-us-note">'+esc(demo?'Example Partner - fictional data':
+      cloud.profileName?cloud.profileName+(status==='cached'?' (cached on this device)':''):
+      'No verified Partner profile loaded')+'</p>';
+    if(auth && !demo)details+='<p class="ac-us-note">Companion Partner ID: '+esc(auth.partner_id)+'</p>';
+    if(!demo && status==='failed')details+='<p class="ac-us-error">Partner details could not be verified. Check the Companion login.</p>';
+    if(!demo)details+='<button type="button" data-us-action="connect">Connect / reconnect Cloud</button>';
+    return section('Partner',badge('profile',status),details,'acUsPartner','partner');
   }
   function customerSection() {
     var status=demo?'synced':sync.mode;
-    var customerCount = demo ? 3 : sync.count;
-    var explanation = demo ? '3 example customer profiles · all changes synced' : sync.detail;
-    var current = demo ? 'Example customer saved locally and synced' : sync.current;
-    var local = demo ? 'Example device · local save current' : sync.local;
-    return section('Customer profiles & this device',badge('customers',status),
+    var customerCount=demo?3:sync.count;
+    var explanation=demo?'Three example customer profiles available and synchronised':sync.detail;
+    var current=demo?'Example customer synced':sync.current;
+    var local=demo?'Saved locally':sync.local;
+    var cloudOnly=demo?0:cloudOnlyCount();
+    var cloudCount=demo?3:cloud.customerCount;
+    var connection=demo?'verified':cloud.connection;
+    var details='<div class="ac-us-minirow"><span>Cloud connection</span>'+badge('cloud',connection)+'</div>'+
+      '<p class="ac-us-note">'+esc(demo?'Cloud connected':cloud.message || 'Cloud status not yet checked')+'</p>'+
       '<p class="ac-us-note">'+esc(explanation)+'</p>'+
-      (customerCount == null?'':'<div class="ac-us-minirow"><span>Saved customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
+      (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
+      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><strong>'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+'</strong></div>'+
+      '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><strong>'+esc(cloudOnly==null?'Not checked':cloudOnly)+'</strong></div>'+
+      (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
-      (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention.</p>':'')+
-      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' profile(s) waiting to sync.</p>':'')+
-      '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>'+
-      (!demo && cloud.customerCount!==null?'<p class="ac-us-note">Customers available from Cloud: '+cloud.customerCount+'</p>':''),
-      'acUsCustomers');
+      (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
+      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-enabled profile(s) waiting to sync.</p>':'')+
+      (sync.conflicts && !demo?'<button type="button" data-us-action="review-customers">Review '+sync.conflicts+' conflict'+(sync.conflicts===1?'':'s')+' →</button>':'')+
+      (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
+      '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
+    var customerTraffic=dimensions().find(function(d){return d.key==='customer';}).state;
+    var customerBadge=demo?'synced':
+      sync.conflicts>0 || sync.mode==='conflict'?'conflict':
+      sync.mode==='failed' || cloud.connection==='failed'?'failed':
+      cloud.connection==='disconnected'?'disconnected':
+      customerTraffic==='green'?'synced':'checking';
+    return section('Customers',badge('customers',customerBadge),details,'acUsCustomers','customer');
   }
   function css() {
     if ($('acUnifiedStatusCss')) return;
@@ -127,9 +213,13 @@
     st.textContent = [
       '#acV22StatusBlock{display:none!important}', // old five-row menu status block
       '#acUnifiedStatusTrigger{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:34px;min-width:49px;padding:3px 6px;border:1px solid #e4d6f4;border-radius:11px;background:#fff;color:#533587;font:700 10px/1 system-ui,sans-serif;cursor:pointer}',
-      '#acUnifiedStatusTrigger .ac-us-light{width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px #d98a0022}',
-      '#acUnifiedStatusTrigger[data-tariff="green"] .ac-us-light{background:#1d9b50;box-shadow:0 0 0 2px #1d9b5022}',
-      '#acUnifiedStatusTrigger[data-tariff="red"] .ac-us-light{background:#c43b3b;box-shadow:0 0 0 2px #c43b3b22}',
+      '#acUnifiedStatusTrigger .ac-us-signals{display:flex;gap:3px;align-items:center;justify-content:center}',
+      '.ac-us-signal{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font:800 9px/1 system-ui,sans-serif;background:#fff3db;color:#8d5608;border:1px solid #e4bc73;flex-shrink:0}',
+      '.ac-us-signal[data-state="green"]{background:#def3e6;color:#136e3d;border-color:#82d2a3}',
+      '.ac-us-signal[data-state="red"]{background:#ffe7e7;color:#a92e39;border-color:#eaa0a5}',
+      '.ac-us-signal.big{width:22px;height:22px;font-size:12px;margin-right:4px}',
+      '#acUnifiedStatusTrigger[data-overall="green"]{border-color:#a7d8b9}',
+      '#acUnifiedStatusTrigger[data-overall="red"]{border-color:#e8adb2}',
       '#acUnifiedStatusTrigger:focus-visible,.ac-us-card button:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
       '#acUnifiedStatusModal{position:fixed;inset:0;z-index:17000;background:#201633a3;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}',
       '#acUnifiedStatusModal[hidden]{display:none!important}',
@@ -137,10 +227,11 @@
       '.ac-us-mainhead{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:10px}',
       '.ac-us-mainhead h2{font-size:18px;line-height:1.2;margin:0;color:#3b235d}',
       '.ac-us-mainhead p{margin:3px 0 0;color:#756884;font-size:11px}',
-      '.ac-us-close{font-size:20px;line-height:1!important;width:32px;padding:5px!important;flex:0 0 32px}',
+      '.ac-us-close{font-size:25px!important;line-height:1!important;width:32px!important;height:32px!important;min-height:32px!important;padding:0!important;flex:0 0 32px;border:0!important;box-shadow:none!important;background:transparent!important;border-radius:50%!important;color:#766485!important;margin:0!important}',
+      '.ac-us-close:hover{background:#f4eef9!important;color:#351d59!important}',
       '.ac-us-section{border-top:1px solid #e9e4f0;padding:12px 0 10px}',
       '.ac-us-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}',
-      '.ac-us-head h3{font-size:14px;line-height:1.2;margin:0;color:#321b51}',
+      '.ac-us-head h3{font-size:14px;line-height:1.2;margin:0;color:#321b51;display:flex;align-items:center;gap:6px}',
       '.ac-us-version{font-weight:850;color:#67439b;font-size:12px}',
       '.ac-us-pill{font-size:10px;font-weight:800;padding:4px 8px;border-radius:99px;white-space:nowrap;background:#fff2dd;color:#8d5608}',
       '.ac-us-pill.good{background:#e3f6e9;color:#167642}',
@@ -156,6 +247,24 @@
       '.ac-us-detail strong{margin-left:auto;text-align:right;font-weight:750}',
       '.ac-us-detail small{color:#8a8292}',
       '.ac-us-section button,.ac-us-foot button{min-height:36px;border:1px solid #dbceed;border-radius:9px;background:#fff;color:#56347f;font-weight:800;padding:7px 11px;font-size:12px;cursor:pointer;margin-top:7px}',
+      '.ac-us-head>span:last-child{display:flex;align-items:center;gap:4px}',
+      '.ac-us-minihead{display:inline-flex;align-items:center;gap:5px}',
+      '.ac-us-tariff-row{display:grid;grid-template-columns:65px minmax(0,1fr);gap:6px}',
+      '.ac-us-tariff-list{display:flex;flex-wrap:wrap;gap:4px 6px;justify-content:flex-end;text-align:right}',
+      '.ac-us-tariff{font-size:10px;border-radius:8px;padding:2px 4px;white-space:nowrap}',
+      '.ac-us-tariff.present{color:#157144;background:#edf8f0}',
+      '.ac-us-tariff.absent{color:#887f8c;background:#f2f0f5}',
+      '.ac-us-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+      '.ac-us-actions a{display:inline-flex;align-items:center;min-height:34px;border:1px solid #dbceed;border-radius:9px;background:#fff;color:#56347f;padding:5px 10px;font-size:12px;font-weight:800;text-decoration:none;margin-top:7px}',
+      '.ac-us-release{padding:5px 0 9px;border-bottom:1px solid #e9e4f0}',
+      '.ac-us-update-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;flex-wrap:wrap}',
+      '.ac-us-update-head strong{flex:1;min-width:0;font-weight:600}',
+      '.ac-us-update-head button{white-space:nowrap;font-size:11px;min-height:30px;margin:0}',
+      '.ac-us-update-history{font-size:11px;margin-top:8px}',
+      '.ac-us-update{padding:6px 0;border-top:1px solid #f0edf4}',
+      '.ac-us-update small{display:block;color:#8a8292;font-size:10px}',
+      '.ac-us-update ul{padding-left:18px;margin:5px 0}',
+      '.ac-us-update-history>a{display:inline-block;margin:7px 0;color:#624198}',
       '.ac-us-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid #e9e4f0}',
       '.ac-us-foot .primary{background:#7645b9;color:white;border-color:#7645b9}',
       '#acUnifiedStatusMessage{font-size:11px;min-height:15px;color:#705887}',
@@ -169,8 +278,8 @@
     var el=$(ID);if(el)return el;
     el=document.createElement('div');el.id=ID;el.hidden=true;
     el.innerHTML='<div class="ac-us-card" role="dialog" aria-modal="true" aria-labelledby="acUnifiedStatusHeading">'+
-      '<div class="ac-us-mainhead"><div><h2 id="acUnifiedStatusHeading">App status & updates</h2><p>Everything in one place'+(demo?' · <span class="ac-us-demo">DEMO DATA</span>':'')+'</p></div>'+
-      '<button type="button" class="ac-us-close" aria-label="Close status" data-us-action="close">×</button></div>'+
+      '<div class="ac-us-mainhead"><div><h2 id="acUnifiedStatusHeading">App status & updates</h2>'+(demo?'<p class="ac-us-demo">DEMO DATA</p>':'')+'</div>'+
+      '<button type="button" class="ac-us-close" aria-label="Close status" title="Close status" data-us-action="close">&times;</button></div>'+
       '<div id="acUnifiedStatusContent"></div>'+
       '<div class="ac-us-foot"><span id="acUnifiedStatusMessage" role="status" aria-live="polite"></span>'+
       '<div><button type="button" data-us-action="refresh">Refresh status</button> '+
@@ -181,16 +290,38 @@
       var a=action.getAttribute('data-us-action');
       if(a==='close')close();
       else if(a==='refresh')refreshAll();
+      else if(a==='updates'){updatesOpen=!updatesOpen;paint();}
+      else if(a==='all-customers'){
+        var allCustomers=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
+        if(allCustomers){close();allCustomers.click();}
+      }
       else if(a==='tariff')refreshTariff();
+      else if(a==='review-customers'){
+        var engine=global.AppointmentCompanionConsolidated;
+        if(engine && typeof engine.openCustomerBrowser==='function'){
+          close();engine.openCustomerBrowser({conflictsOnly:true});
+        } else {
+          var list=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
+          if(list){close();list.click();}
+          else showMessage('Open Customers on this device from the main menu to review the conflict.');
+        }
+      }
       else if(a==='connect') {close(); var b=$('cloudSettingsConnect')||document.querySelector('[data-cloud-action="settings"]');if(b)b.click();}
     });
     document.body.appendChild(el);
     return el;
   }
   function paint() {
-    if(trigger) {var t=tariff();trigger.dataset.tariff=t.status||'amber';trigger.title='App status & updates - tariff data '+stateLabel('tariff',t.status);trigger.setAttribute('aria-label',trigger.title);}
+    if(trigger){
+      var all=overallStatus();
+      trigger.dataset.overall=all.state;
+      var tray=trigger.querySelector('.ac-us-signals');
+      if(tray)tray.innerHTML=signals();
+      trigger.title='App status & updates - '+all.label;
+      trigger.setAttribute('aria-label',trigger.title);
+    }
     var target=$('acUnifiedStatusContent');if(!target)return;
-    target.innerHTML=appSection()+tariffSection()+cloudSection()+customerSection();
+    target.innerHTML=appSection()+tariffSection()+customerSection()+partnerSection();
   }
   function showMessage(msg){var e=$('acUnifiedStatusMessage');if(e)e.textContent=msg||'';}
   function onEsc(e){if(e.key==='Escape')close();}
@@ -225,18 +356,20 @@
         function(e){if(!finished){finished=true;clearTimeout(t);resolve({ok:false,error:String(e&&e.message||e)});}});
     });
   }
-  async function refreshCustomerSync(sequence) {
-    if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,current:'Example customer synced',local:'Saved locally'};paint();return;}
+  async function refreshCustomerSync(sequence, background) {
+    if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,localOnly:0,localIds:['demo1','demo2','demo3'],current:'Example customer synced',local:'Saved locally'};paint();return;}
     var engine=global.AppointmentCompanionConsolidated;
     var localHealth=$('cloudLocalState');
     sync.local=localHealth ? (localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy') : 'Local save status unavailable';
     if(!engine||typeof engine.list!=='function'){sync.mode='checking';sync.detail='Customer store unavailable';paint();return;}
     try{
       var rows=await engine.list();
-      if(sequence!==checkSeq || !$(ID) || $(ID).hidden)return;
+      if(sequence!==checkSeq || (!background && (!$(ID) || $(ID).hidden)))return;
       rows=Array.isArray(rows)?rows:[];
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
-      var pending=meaningful.filter(function(r){return r.sync_state==='pending'||r.sync_state==='pending_delete';});
+      // A draft is intentionally local until Save to Cloud is explicitly approved.
+      var pending=meaningful.filter(function(r){return (r.sync_state==='pending'||r.sync_state==='pending_delete') &&
+        (r.cloud_id || r.cloud_creation_approved || r.deleted);});
       var conflicts=meaningful.filter(function(r){return r.sync_state==='conflict'||r.conflict;});
       var current=typeof engine.currentRecord==='function'?engine.currentRecord():null;
       var currentMessage='';
@@ -249,17 +382,28 @@
       }
       var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision));
       sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
-        detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local customer store checked. Individual drafts may remain local.',
-        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
+        detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local profiles checked. Deliberate drafts may remain on this device.',
+        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,
+        pending:pending.length,conflicts:conflicts.length,
+        localOnly:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && !r.cloud_id;}).length,
+        localIds:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && r.cloud_id;})
+          .map(function(r){return String(r.cloud_id);}),
+        current:currentMessage,local:sync.local};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
-    if(sequence===checkSeq&&$(ID)&&!$(ID).hidden)paint();
+    if(sequence===checkSeq)paint();
   }
   async function refreshCloud(sequence) {
-    if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,error:''};paint();return;}
+    if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,customerIds:['demo1','demo2','demo3'],error:''};paint();return;}
     var auth=ownAuth();
     if(!auth){cloud={connection:'disconnected',profile:'failed',message:'Not signed in to Companion Cloud',profileName:'',customerCount:null,error:''};paint();return;}
     var cached=localPartner(auth);
-    cloud={connection:'checking',profile:'checking',message:'Checking Cloud with your saved Companion login…',profileName:cached?cached.name:'',customerCount:null,error:''};
+    // Retain an already verified same-user status whilst rechecking; never inherit
+    // somebody else's green result after changing Companion login.
+    var sameOwner=cloud.owner===String(auth.partner_id).trim().toLowerCase();
+    if(!(sameOwner && cloud.connection==='verified' && cloud.profile==='loaded')) {
+      cloud={connection:'checking',profile:'checking',message:'Checking Cloud with your saved Companion login…',
+        profileName:cached?cached.name:'',customerCount:null,error:'',owner:''};
+    }
     paint();
     if(global.__AC_LOCAL_ONLY){
       cloud.connection='saved';cloud.profile=cached?'cached':'failed';
@@ -275,10 +419,18 @@
       timeout(api.getPartnerProfile(auth),6500)
     ]);
     if(sequence!==checkSeq||!$(ID)||$(ID).hidden)return;
+    var latestAuth=ownAuth();
+    if(!latestAuth || latestAuth.partner_id!==auth.partner_id || latestAuth.workspace_key!==auth.workspace_key){
+      refreshAll();return;
+    }
+    cloud.owner=String(auth.partner_id).trim().toLowerCase();
     var clients=checks[0],p=checks[1];
     cloud.connection=clients.ok?'verified':'failed';
     cloud.message=clients.ok?'Companion login verified with Cloud.':'Cloud login could not be verified just now.';
     cloud.customerCount=clients.ok&&Array.isArray(clients.data.customers)?clients.data.customers.length:null;
+    cloud.customerIds=clients.ok&&Array.isArray(clients.data.customers)?
+      clients.data.customers.filter(function(r){return r&&r.customer_id;})
+        .map(function(r){return String(r.customer_id);}):null;
     var candidate=p.ok&&p.data?p.data.partner:null;
     // The authenticated getPartnerProfile endpoint can return legacy records
     // without a partner_id. Accept those only if no conflicting ID is present.
@@ -292,7 +444,6 @@
   function refreshAll(){
     if(!$(ID)||$(ID).hidden)return;
     var seq=++checkSeq;
-    cloud.connection='checking';cloud.profile='checking';sync.mode='checking';
     paint();showMessage(demo?'Preview uses fictional status values.':'Checking status…');
     Promise.all([refreshCloud(seq),refreshCustomerSync(seq)]).then(function(){
       if(seq===checkSeq&&$(ID)&&!$(ID).hidden){paint();showMessage(demo?'Demonstration only.':'Status checked.');}
@@ -307,7 +458,8 @@
     css();
     version.style.display='none';if(rag)rag.style.display='none';
     trigger=document.createElement('button');trigger.id='acUnifiedStatusTrigger';trigger.type='button';
-    trigger.innerHTML='<span>'+esc(meta.version)+'</span><span class="ac-us-light" aria-hidden="true"></span>';
+    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version)+'</span>'+
+      '<span class="ac-us-signals" aria-hidden="true">'+signals()+'</span>';
     stack.insertBefore(trigger,version);
     trigger.addEventListener('click',open);
     paint();
@@ -321,8 +473,28 @@
         if(settings)menu.insertBefore(b,settings);else menu.appendChild(b);
       }
     }
-    ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,function(){if(trigger){var t=tariff();trigger.dataset.tariff=t.status||'amber';}if($(ID)&&!$(ID).hidden)paint();});});
-    ['ac:cloud-authenticated','ac:cloud-disconnected','ac:cloud-sync-state-changed','ac:partner-profile-ready'].forEach(function(name){global.addEventListener(name,function(){if($(ID)&&!$(ID).hidden)refreshAll();});});
+    ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,paint);});
+    // Routine customer sync checks local records but never restarts remote Partner verification.
+    global.addEventListener('ac:cloud-sync-state-changed',function(){refreshCustomerSync(checkSeq,true);});
+    ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function(name){
+      global.addEventListener(name,function(){
+        // A new authenticated session, including changed credentials for the
+        // same Partner ID, must never inherit the previous session's green result.
+        cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'idle';
+        cloud.profile=name==='ac:cloud-disconnected'?'failed':'idle';
+        cloud.owner='';
+        cloud.customerIds=null;
+        cloud.customerCount=null;
+        if($(ID)&&!$(ID).hidden)refreshAll();
+        else paint();
+      });
+    });
+    global.addEventListener('ac:partner-profile-ready',function(){
+      var cached=localPartner(ownAuth());
+      if(cached && cloud.connection==='verified' && cloud.profile==='loaded')cloud.profileName=cached.name;
+      paint();
+    });
+    refreshCustomerSync(checkSeq,true);
     return true;
   }
   var tries=0,work=setInterval(function(){if(install()||++tries>240)clearInterval(work);},50);

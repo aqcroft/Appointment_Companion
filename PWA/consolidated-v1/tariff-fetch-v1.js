@@ -50,7 +50,7 @@
     var rs=rows(data);
     function detail(family) {
       var selected=rs.filter(function(r){return tariffFamily(r)===family;});
-      if(!selected.length) return {name:'Not supplied',code:''};
+      if(!selected.length) return {name:'Not supplied',code:'',names:[]};
       var names=unique(selected.map(function(r){return String(pick(r,['tariff_name','tariffName'])||'').trim();}));
       var preferred='';
       if(family==='fixed') preferred=names.filter(function(n){return /^Fixed Saver\b/i.test(n);})[0]||names[0]||'Fixed';
@@ -58,14 +58,16 @@
       else if(family==='ev') preferred=names.filter(function(n){return /^EV Value\b/i.test(n);})[0]||names[0]||'EV';
       else preferred=names.filter(function(n){return /^Value\b/i.test(n);})[0]||names[0]||'Variable';
       var codes=unique(selected.map(function(r){return String(pick(r,['source_ref','sourceRef'])||'').trim();})).sort();
-      return {name:preferred||'Not supplied',code:codes.join(', ')};
+      // Preserve individual tariff names as evidence for each independent tick.
+      // Existing summary fields remain unchanged for other Companion screens.
+      return {name:preferred||'Not supplied',code:codes.join(', '),names:names};
     }
     var fixed=detail('fixed'),tracker=detail('tracker'),variable=detail('variable'),ev=detail('ev');
     return {
-      fixed:fixed.name,fixedCode:fixed.code,
-      tracker:tracker.name,trackerCode:tracker.code,
-      variable:variable.name,variableCode:variable.code,
-      ev:ev.name,evCode:ev.code
+      fixed:fixed.name,fixedCode:fixed.code,fixedNames:fixed.names,
+      tracker:tracker.name,trackerCode:tracker.code,trackerNames:tracker.names,
+      variable:variable.name,variableCode:variable.code,variableNames:variable.names,
+      ev:ev.name,evCode:ev.code,evNames:ev.names
     };
   }
   function read() {
