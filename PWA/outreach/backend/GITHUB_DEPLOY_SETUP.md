@@ -14,40 +14,37 @@ Open **Cold Outreach CRM v1** Google Sheet → **Extensions → Apps Script**.
 - Confirm this is the Apps Script project that is actually serving the PWA's saved `/exec` backend connection.
 - Back up the live Apps Script project before initial synchronisation. Check for manual changes newer than GitHub's `Code.gs`. Do not blindly overwrite them.
 
-## 2. Reuse your existing PRISM / Companion Cloud clasp login
+## 2. Authorise the *sandbox* account without changing your main Google login
 
-**If you previously completed the setup for PRISM or Appointment Companion Cloud, do NOT reinstall Node, reinstall clasp or run `clasp login` again unless the existing authorisation has expired.** Both projects already have GitHub Actions deployment workflows using `clasp@3.4.1`. The same Google account's local clasp authorisation can be reused for Cold Outreach.
+**Cold Outreach runs on a different Google account from PRISM/Appointment Companion Cloud.** Your existing Node.js and clasp installations can be reused, but **the existing main-account OAuth token must NOT be used** for Cold Outreach unless that Google account genuinely has the necessary script permissions.
 
-On Windows, check for the credential file with PowerShell:
+1. Make sure the [Apps Script API setting](https://script.google.com/home/usersettings) is enabled **while signed in to the sandbox Google account**.
+2. In PowerShell on your existing Windows computer, run:
 
-```powershell
-Test-Path "$HOME\.clasprc.json"
-```
+   ```powershell
+   clasp login --user cold-outreach-sandbox
+   ```
 
-If that reports `True`, copy its contents to the clipboard **without printing it on screen**:
+   This creates a **named** clasp authorisation. When the Google sign-in window opens, choose the **sandbox Google account**, not your main account. The existing default PRISM/Companion login stays available separately.
 
-```powershell
-Get-Content "$HOME\.clasprc.json" -Raw | Set-Clipboard
-```
+3. Copy **only the named sandbox credentials** to the clipboard. Run this PowerShell block in the same terminal; it doesn't print the token or overwrite your `.clasprc.json`:
 
-Open [Cold Outreach repository Actions secrets](https://github.com/aqcroft/Appointment_Companion/settings/secrets/actions), select **New repository secret**, use the exact name `OUTREACH_CLASPRC_JSON`, and paste the clipboard directly into its **Secret** field. The value cannot be viewed later. **Do not paste any credential into ChatGPT, issues, commits, screenshots or shared documents.** The existing PRISM/Companion repository secret cannot be automatically read by this different repository.
+   ```powershell
+   $auth = Get-Content "$HOME\.clasprc.json" -Raw | ConvertFrom-Json
+   if (-not $auth.tokens.'cold-outreach-sandbox') { throw 'Sandbox clasp login was not found - check the selected Google account.' }
+   @{ tokens = @{ 'cold-outreach-sandbox' = $auth.tokens.'cold-outreach-sandbox' } } | ConvertTo-Json -Depth 20 -Compress | Set-Clipboard
+   ```
 
-If the file is missing or authorisation no longer works, follow the one-time setup below.
+4. Go to [GitHub repository Actions secrets](https://github.com/aqcroft/Appointment_Companion/settings/secrets/actions), click **New repository secret**:
+   - Name: `OUTREACH_CLASPRC_JSON`
+   - Secret: paste the clipboard contents directly into GitHub and save.
+5. **Never paste the credential, clipboard contents, OAuth refresh token or `.clasprc.json` here, in a GitHub issue, or into code.** GitHub's workflow now rejects credentials without the specifically named sandbox profile and rejects an auth file that contains additional named accounts.
 
-### Only if you have not previously authorised clasp
+Google's own `clasp` CLI supports multiple credentials via `--user` and stores them in a single local auth file. The extract command above copies *only* the sandbox's named credentials, limiting the exposure of your main-account token.
 
-### Initial authorisation instructions
+If `clasp` is not recognised, your previous install may not be on this computer. If it is recognised but Google refuses the sandbox login, check that the Apps Script API was enabled in the **sandbox account**, not just your main account.
 
-Google's own CLI, `clasp`, manages Apps Script projects via the official Apps Script API: https://developers.google.com/apps-script/guides/clasp
-
-1. The **Google Apps Script API is already enabled** for this account.
-2. On a trusted computer with Node.js 22+, install `clasp` only if missing: `npm install -g @google/clasp@3.4.1`.
-3. Run `clasp login` **only if there is no usable existing authorisation**, and authorise the Google account that owns the Cold Outreach Apps Script project.
-4. This creates a local `~/.clasprc.json` (on Windows, the equivalent file in the user's home directory). It contains OAuth credentials including a refresh token.
-5. In the existing GitHub repository **Settings → Secrets and variables → Actions → Secrets**, create **repository secret** `OUTREACH_CLASPRC_JSON` containing that file's *entire JSON contents*. **Never paste it into ChatGPT, issues, screenshots, source files or a commit.**
-6. Delete any incidental copies used when transferring this credential to GitHub, and protect your Google account and GitHub repository with two-factor authentication.
-
-**Important:** A `clasp` refresh token can give significant Apps Script access. GitHub Actions secrets do not make untrusted commits safe. Only trusted changes to `main` should ever run an authorised deployment workflow. Remove the secret and revoke its Google OAuth grant if access should be disabled.
+**Security note:** the sandbox token may still manage multiple Apps Script projects accessible to that sandbox Google account. Treat it as sensitive, protect GitHub account access, and review workflow changes before enabling deployments.
 
 ## 3. Existing deployment - identifiers are already configured
 
