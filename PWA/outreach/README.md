@@ -5,6 +5,7 @@
 The Outreach tool has its own independently installable PWA identity, icon and service worker. It is hosted as a separate application path alongside Appointment Companion; it is **not a separate GitHub repository** yet.
 
 ## Install on your phone
+- If a purple **Install app** button appears inside the app beneath the tabs, use that first. It launches Chrome's native prompt directly and may bypass its overlapping-app menu problem. It only appears when Chrome actually offers an install prompt.
 - Android (Chrome): open the launch URL, then use the browser menu > **Install app** (or **Add to Home screen**, depending on browser).
 - iPhone (Safari): open the URL, tap **Share** > **Add to Home Screen**.
 - Open it from the new **Cold Outreach** ice-cube-and-UW icon, without launching Appointment Companion first.
@@ -16,7 +17,7 @@ The Outreach tool has its own independently installable PWA identity, icon and s
 - The service worker caches only the local HTML/manifest/icon. It never handles external CRM requests or credentials.
 
 ## Releases
-- Version: **1.1.0** (14th Oct 2026).
+- Version: **1.2.0** (14th Oct 2026).
 - Release notes: [CHANGELOG.md](CHANGELOG.md).
 - When updating the app, increment the semantic version displayed in the HTML About section, update this changelog, and increment the service worker cache version. Keep the manifest `id`, scope, `start_url`, and current localStorage keys stable to avoid creating a second installed app or losing a device's existing settings.
 - Never widen the Cold Outreach service-worker scope outside `PWA/outreach/`; Appointment Companion must remain unaffected.
