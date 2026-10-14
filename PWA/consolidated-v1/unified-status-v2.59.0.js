@@ -208,9 +208,13 @@
     st.textContent = [
       '#acV22StatusBlock{display:none!important}', // old five-row menu status block
       '#acUnifiedStatusTrigger{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:34px;min-width:49px;padding:3px 6px;border:1px solid #e4d6f4;border-radius:11px;background:#fff;color:#533587;font:700 10px/1 system-ui,sans-serif;cursor:pointer}',
-      '#acUnifiedStatusTrigger .ac-us-light{width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px #d98a0022}',
-      '#acUnifiedStatusTrigger[data-overall="green"] .ac-us-light{background:#1d9b50;box-shadow:0 0 0 2px #1d9b5022}',
-      '#acUnifiedStatusTrigger[data-overall="red"] .ac-us-light{background:#c43b3b;box-shadow:0 0 0 2px #c43b3b22}',
+      '#acUnifiedStatusTrigger .ac-us-signals{display:flex;gap:3px;align-items:center;justify-content:center}',
+      '.ac-us-signal{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font:800 9px/1 system-ui,sans-serif;background:#fff3db;color:#8d5608;border:1px solid #e4bc73;flex-shrink:0}',
+      '.ac-us-signal[data-state="green"]{background:#def3e6;color:#136e3d;border-color:#82d2a3}',
+      '.ac-us-signal[data-state="red"]{background:#ffe7e7;color:#a92e39;border-color:#eaa0a5}',
+      '.ac-us-signal.big{width:22px;height:22px;font-size:12px;margin-right:4px}',
+      '#acUnifiedStatusTrigger[data-overall="green"]{border-color:#a7d8b9}',
+      '#acUnifiedStatusTrigger[data-overall="red"]{border-color:#e8adb2}',
       '#acUnifiedStatusTrigger:focus-visible,.ac-us-card button:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
       '#acUnifiedStatusModal{position:fixed;inset:0;z-index:17000;background:#201633a3;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}',
       '#acUnifiedStatusModal[hidden]{display:none!important}',
@@ -218,7 +222,8 @@
       '.ac-us-mainhead{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:10px}',
       '.ac-us-mainhead h2{font-size:18px;line-height:1.2;margin:0;color:#3b235d}',
       '.ac-us-mainhead p{margin:3px 0 0;color:#756884;font-size:11px}',
-      '.ac-us-close{font-size:20px;line-height:1!important;width:32px;padding:5px!important;flex:0 0 32px}',
+      '.ac-us-close{font-size:25px!important;line-height:1!important;width:32px!important;height:32px!important;min-height:32px!important;padding:0!important;flex:0 0 32px;border:0!important;box-shadow:none!important;background:transparent!important;border-radius:50%!important;color:#766485!important;margin:0!important}',
+      '.ac-us-close:hover{background:#f4eef9!important;color:#351d59!important}',
       '.ac-us-section{border-top:1px solid #e9e4f0;padding:12px 0 10px}',
       '.ac-us-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}',
       '.ac-us-head h3{font-size:14px;line-height:1.2;margin:0;color:#321b51}',
@@ -237,6 +242,23 @@
       '.ac-us-detail strong{margin-left:auto;text-align:right;font-weight:750}',
       '.ac-us-detail small{color:#8a8292}',
       '.ac-us-section button,.ac-us-foot button{min-height:36px;border:1px solid #dbceed;border-radius:9px;background:#fff;color:#56347f;font-weight:800;padding:7px 11px;font-size:12px;cursor:pointer;margin-top:7px}',
+      '.ac-us-head>span:last-child{display:flex;align-items:center;gap:4px}',
+      '.ac-us-minihead{display:inline-flex;align-items:center;gap:5px}',
+      '.ac-us-tariff-row{display:grid;grid-template-columns:65px minmax(0,1fr);gap:6px}',
+      '.ac-us-tariff-list{display:flex;flex-wrap:wrap;gap:4px 6px;justify-content:flex-end;text-align:right}',
+      '.ac-us-tariff{font-size:10px;border-radius:8px;padding:2px 4px;white-space:nowrap}',
+      '.ac-us-tariff.present{color:#157144;background:#edf8f0}',
+      '.ac-us-tariff.absent{color:#887f8c;background:#f2f0f5}',
+      '.ac-us-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+      '.ac-us-actions a{display:inline-flex;align-items:center;min-height:34px;border:1px solid #dbceed;border-radius:9px;background:#fff;color:#56347f;padding:5px 10px;font-size:12px;font-weight:800;text-decoration:none;margin-top:7px}',
+      '.ac-us-update-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px}',
+      '.ac-us-update-head strong{flex:1;min-width:0;font-weight:600}',
+      '.ac-us-update-head button{white-space:nowrap;font-size:11px;min-height:30px;margin:0}',
+      '.ac-us-update-history{font-size:11px;margin-top:8px}',
+      '.ac-us-update{padding:6px 0;border-top:1px solid #f0edf4}',
+      '.ac-us-update small{display:block;color:#8a8292;font-size:10px}',
+      '.ac-us-update ul{padding-left:18px;margin:5px 0}',
+      '.ac-us-update-history>a{display:inline-block;margin:7px 0;color:#624198}',
       '.ac-us-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid #e9e4f0}',
       '.ac-us-foot .primary{background:#7645b9;color:white;border-color:#7645b9}',
       '#acUnifiedStatusMessage{font-size:11px;min-height:15px;color:#705887}',
@@ -250,8 +272,8 @@
     var el=$(ID);if(el)return el;
     el=document.createElement('div');el.id=ID;el.hidden=true;
     el.innerHTML='<div class="ac-us-card" role="dialog" aria-modal="true" aria-labelledby="acUnifiedStatusHeading">'+
-      '<div class="ac-us-mainhead"><div><h2 id="acUnifiedStatusHeading">App status & updates</h2><p>Everything in one place'+(demo?' · <span class="ac-us-demo">DEMO DATA</span>':'')+'</p></div>'+
-      '<button type="button" class="ac-us-close" aria-label="Close status" data-us-action="close">×</button></div>'+
+      '<div class="ac-us-mainhead"><div><h2 id="acUnifiedStatusHeading">App status & updates</h2>'+(demo?'<p class="ac-us-demo">DEMO DATA</p>':'')+'</div>'+
+      '<button type="button" class="ac-us-close" aria-label="Close status" title="Close status" data-us-action="close">&times;</button></div>'+
       '<div id="acUnifiedStatusContent"></div>'+
       '<div class="ac-us-foot"><span id="acUnifiedStatusMessage" role="status" aria-live="polite"></span>'+
       '<div><button type="button" data-us-action="refresh">Refresh status</button> '+
