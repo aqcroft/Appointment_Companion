@@ -250,7 +250,7 @@
       var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision));
       sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
         detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local customer store checked. Individual drafts may remain local.',
-        count:meaningful.length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
+        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
     if(sequence===checkSeq&&$(ID)&&!$(ID).hidden)paint();
   }
