@@ -62,14 +62,22 @@
     return profileForActiveAuth(readJson(localStorage, CLOUD_CACHE_KEY));
   }
   function cleanSlug(value) {
-    var raw = clean(value);
-    var email = raw.match(/^([^@\s]+)@uw\.partners$/i);
-    if (email) raw = email[1];
-    return raw.replace(/^https?:\/\/(?:www\.)?uw\.partners\//i, '')
-      .replace(/\/(?:partner\/)?join\/?$/i, '')
-      .replace(/^\/+|\/+$/g, '')
-      .replace(/\s+/g, '');
+    var raw=clean(value);
+    var uwEmail=raw.match(/^([^@\s]+)@uw\.partners$/i);
+    if(uwEmail)raw=uwEmail[1];
+    raw=raw.replace(/^https?:\/\/(?:www\.)?uw\.partners\//i,'')
+      .replace(/\/(?:partner\/)?join\/?(?:[?#].*)?$/i,'').replace(/^\/+|\/+$/g,'');
+    return /^[a-z0-9][a-z0-9._-]*$/i.test(raw) ? raw.toLowerCase() : '';
   }
+  function secureOptionalUrl(value) {
+    var raw=clean(value);
+    if(!raw)return '';
+    try {
+      var parsed=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
+      return parsed.protocol==='https:' && parsed.hostname.includes('.') && !parsed.username && !parsed.password ? parsed.href : '';
+    } catch (_) {return '';}
+  }
+  function displayUrl(value) {return clean(value).replace(/^https?:\/\//i,'').replace(/\/$/,'');}
   function customerJoin(slug) { slug = cleanSlug(slug); return slug ? 'https://uw.partners/' + slug + '/join' : ''; }
   function partnerJoin(slug) { slug = cleanSlug(slug); return slug ? 'https://uw.partners/' + slug + '/partner/join' : ''; }
   function defaultEmail(slug) { slug = cleanSlug(slug); return slug ? slug + '@uw.partners' : ''; }
@@ -80,15 +88,15 @@
       partner_id: clean(profile.partner_id || profile.companion_login_id),
       name: clean(profile.name || profile.partner_name),
       mobile: clean(profile.mobile),
-      partner_slug: cleanSlug(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
+      partner_slug: cleanSlug(profile.partner_slug) || cleanSlug(profile.slug) || cleanSlug(profile.join) || cleanSlug(profile.join_url) || cleanSlug(profile.uw_link) || cleanSlug(profile.email),
       email: clean(profile.email) || defaultEmail(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link),
-      join: customerJoin(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
-      partner_join: partnerJoin(profile.partner_slug || profile.slug || profile.join || profile.join_url || profile.uw_link || profile.email),
+      join: customerJoin(cleanSlug(profile.partner_slug) || cleanSlug(profile.slug) || cleanSlug(profile.join) || cleanSlug(profile.join_url) || cleanSlug(profile.uw_link) || cleanSlug(profile.email)),
+      partner_join: partnerJoin(cleanSlug(profile.partner_slug) || cleanSlug(profile.slug) || cleanSlug(profile.join) || cleanSlug(profile.join_url) || cleanSlug(profile.uw_link) || cleanSlug(profile.email)),
       town: clean(profile.town),
       strap: clean(profile.strap),
       photo_url: clean(profile.photo_url || profile.photo),
-      booking_url: clean(profile.booking_url || profile.booking),
-      website_url: clean(profile.website_url || profile.website),
+      booking_url: secureOptionalUrl(profile.booking_url || profile.booking),
+      website_url: secureOptionalUrl(profile.website_url || profile.website),
       status: clean(profile.status || 'active'),
       updated_at: clean(profile.updated_at)
     };
@@ -196,8 +204,8 @@
       ppMobile: p.mobile,
       ppEmail: p.email,
       ppPhoto: p.photo_url,
-      ppBooking: p.booking_url,
-      ppWebsite: p.website_url
+      ppBooking: displayUrl(p.booking_url),
+      ppWebsite: displayUrl(p.website_url)
     };
     Object.keys(map).forEach(function (id) {
       var el = document.getElementById(id);
@@ -221,9 +229,10 @@
       mobile: clean((document.getElementById('ppMobile') || {}).value),
       email: clean((document.getElementById('ppEmail') || {}).value) || defaultEmail(slug),
       photo_url: clean((document.getElementById('ppPhoto') || {}).value),
-      booking_url: clean((document.getElementById('ppBooking') || {}).value),
-      website_url: clean((document.getElementById('ppWebsite') || {}).value)
+      booking_url: secureOptionalUrl((document.getElementById('ppBooking') || {}).value),
+      website_url: secureOptionalUrl((document.getElementById('ppWebsite') || {}).value)
     });
+    if (!slug) return null;
     writeLocal(next);
     return next;
   }
@@ -258,7 +267,7 @@
     if (syncing) return null;
     var auth = getAuth();
     if (!auth || typeof api.savePartnerProfile !== 'function') return null;
-    captureExtraFields();
+    if (!captureExtraFields()) return null;
     var profile = composeForSave();
     profile.partner_id = auth.partner_id;
     if (!profile.name || !profile.partner_slug) return null;
