@@ -199,10 +199,13 @@
       (sync.conflicts && !demo?'<button type="button" data-us-action="review-customers">Review '+sync.conflicts+' conflict'+(sync.conflicts===1?'':'s')+' →</button>':'')+
       (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
-    return section('Customers',badge('customers',
-      demo?'synced':dimensions().find(function(d){return d.key==='customer';}).state==='red'?'conflict':
-      dimensions().find(function(d){return d.key==='customer';}).state==='green'?'synced':'checking'),
-      details,'acUsCustomers','customer');
+    var customerTraffic=dimensions().find(function(d){return d.key==='customer';}).state;
+    var customerBadge=demo?'synced':
+      sync.conflicts>0 || sync.mode==='conflict'?'conflict':
+      sync.mode==='failed' || cloud.connection==='failed'?'failed':
+      cloud.connection==='disconnected'?'disconnected':
+      customerTraffic==='green'?'synced':'checking';
+    return section('Customers',badge('customers',customerBadge),details,'acUsCustomers','customer');
   }
   function css() {
     if ($('acUnifiedStatusCss')) return;
