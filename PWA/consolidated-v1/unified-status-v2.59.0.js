@@ -10,9 +10,9 @@
   var meta = Object.freeze({
     version: 'v2.60.0',
     date: '14 October 2026',
-    summary: 'Four-way status, complete tariff suites and customer sync review',
+    summary: 'TCP status, complete tariff suites and customer sync review',
     changes: [
-      'Separate T/C/P/C traffic lights report tariffs, Cloud connection, Partner profile and customer synchronisation.',
+      'Three independent TCP traffic lights report Tariffs, Customers (including Cloud sync) and Partner profile.',
       'All three real tariffs per suite are listed together, with an independent tick for each present tariff and a direct UW tariff source link.',
       'Customer records can be compared between device and Cloud; conflict warnings open the existing review screen.',
       'Partner status no longer continually rechecks after routine customer saves; updates are tucked into a compact history.'
@@ -64,15 +64,17 @@
   function tone(state) { return state==='green' || state==='verified' || state==='loaded' || state==='synced' ? 'good' : state==='red' || state==='failed' || state==='conflict' || state==='disconnected' ? 'bad' : 'warn'; }
   function dimensions() {
     var tariffState=tariff().status;
-    var customerState=sync.conflicts>0 || sync.mode==='conflict' || sync.mode==='failed'?'red':
-      sync.mode==='synced' && !sync.pending && !sync.localOnly && cloudOnlyCount()===0?'green':'amber';
+    var customerProblem=sync.conflicts>0 || sync.mode==='conflict' || sync.mode==='failed' ||
+      cloud.connection==='failed' || cloud.connection==='disconnected';
+    var customersReady=cloud.connection==='verified' && sync.mode==='synced' &&
+      !sync.pending && !sync.localOnly && cloudOnlyCount()===0 && deviceOnlyCount()===0;
     return [
-      {key:'tariff', letter:'T', name:'Tariff data', state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
-      {key:'cloud', letter:'C', name:'Cloud connection', state:cloud.connection==='verified'?'green':
-        ['failed','disconnected'].includes(cloud.connection)?'red':'amber'},
-      {key:'partner', letter:'P', name:'Partner profile', state:cloud.profile==='loaded'?'green':
-        cloud.profile==='failed'?'red':'amber'},
-      {key:'customer', letter:'C', name:'Customer profiles', state:customerState}
+      {key:'tariff',letter:'T',name:'Tariffs',
+        state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
+      {key:'customer',letter:'C',name:'Customers and Cloud sync',
+        state:customerProblem?'red':customersReady?'green':'amber'},
+      {key:'partner',letter:'P',name:'Partner profile',
+        state:cloud.profile==='loaded'?'green':cloud.profile==='failed'?'red':'amber'}
     ];
   }
   function deviceOnlyCount() {
@@ -98,15 +100,12 @@
     return d ? signal(d.name,d.letter,d.state,true) : '';
   }
   function overallStatus() {
-    var t=tariff().status;
-    if(sync.conflicts>0 || sync.mode==='conflict') return {state:'red',label:'Customer sync conflict needs attention'};
-    if(sync.mode==='failed') return {state:'red',label:'Customer status unavailable'};
-    if(t==='red') return {state:'red',label:'Tariff data needs attention'};
-    if(cloud.connection==='failed' || cloud.profile==='failed' || cloud.connection==='disconnected')
-      return {state:'red',label:'Cloud or Partner identity needs attention'};
-    if(t==='green' && cloud.connection==='verified' && cloud.profile==='loaded' &&
-       sync.mode==='synced' && sync.pending===0) return {state:'green',label:'All checks verified'};
-    return {state:'amber',label:'Some checks are pending or local-only'};
+    var states=dimensions();
+    var issue=states.find(function(d){return d.state==='red';});
+    if(issue)return {state:'red',label:issue.name+' needs attention'};
+    var pending=states.find(function(d){return d.state==='amber';});
+    if(pending)return {state:'amber',label:pending.name+' needs checking'};
+    return {state:'green',label:'Tariffs, Customers and Partner verified'};
   }
   function stateLabel(kind, status) {
     if (kind==='tariff') return status==='green'?'Verified':status==='red'?'Attention needed':'Checking / cached';
@@ -123,8 +122,8 @@
     return 'Needs checking';
   }
   function badge(kind, value) { return '<span class="ac-us-pill '+tone(value)+'">'+esc(stateLabel(kind,value))+'</span>'; }
-  function section(title, status, content, id) {
-    return '<section class="ac-us-section" aria-labelledby="'+id+'"><div class="ac-us-head"><h3 id="'+id+'">'+title+'</h3>'+status+'</div>'+content+'</section>';
+  function section(title, status, content, id, kind) {
+    return '<section class="ac-us-section" aria-labelledby="'+id+'"><div class="ac-us-head"><h3 id="'+id+'">'+indicator(kind)+esc(title)+'</h3>'+status+'</div>'+content+'</section>';
   }
   function tariffSection() {
     var state=tariff(), summary=state.summary||{};
@@ -145,11 +144,11 @@
       if(!names.length)chips='<span class="ac-us-note">Tariff suite not yet confirmed</span>';
       return '<div class="ac-us-detail ac-us-tariff-row"><span>'+esc(family.label)+'</span><div class="ac-us-tariff-list">'+chips+'</div></div>';
     }).join('');
-    return section('Tariff data',indicator('tariff')+badge('tariff',state.status),'<div class="ac-us-rows">'+rows+'</div>'+
+    return section('Tariffs',badge('tariff',state.status),'<div class="ac-us-rows">'+rows+'</div>'+
       '<p class="ac-us-note">Last live verification: '+esc(readable(state.checkedAt))+
       (state.error?' · '+esc(state.error):'')+'</p>'+
       '<div class="ac-us-actions"><button type="button" data-us-action="tariff">Refresh tariff data</button>'+
-      '<a href="'+tariffSource+'" target="_blank" rel="noopener noreferrer">Take me to the UW TIL ↗</a></div>','acUsTariff');
+      '<a href="'+tariffSource+'" target="_blank" rel="noopener noreferrer">Take me to the UW TIL ↗</a></div>','acUsTariff','tariff');
   }
   function appSection() {
     var history=[
@@ -157,8 +156,7 @@
       {version:'v2.59.1',date:'14 October 2026',summary:'Restored the Cloud Partner profile check'},
       {version:'v2.59.0',date:'14 October 2026',summary:'Introduced a single App status & updates panel'}
     ];
-    return section('App version & updates','<span class="ac-us-version">'+esc(meta.version)+'</span>',
-      '<div class="ac-us-update-head"><strong>'+esc(meta.summary)+'</strong>'+
+    return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
       (updatesOpen?'Hide updates ▴':'Last 3 updates ▾')+'</button></div>'+
       (updatesOpen?'<div class="ac-us-update-history">'+history.map(function(item,index){
@@ -166,20 +164,18 @@
           '<small>'+esc(item.date)+'</small>'+
           (index===0?'<ul>'+item.changes.map(function(change){return '<li>'+esc(change)+'</li>';}).join('')+'</ul>':'')+
           '</div>';
-      }).join('')+'<a href="https://github.com/aqcroft/Appointment_Companion/commits/main/" target="_blank" rel="noopener noreferrer">View full change history ↗</a></div>':''),
-      'acUsApp');
+      }).join('')+'<a href="https://github.com/aqcroft/Appointment_Companion/commits/main/" target="_blank" rel="noopener noreferrer">View full change history ↗</a></div>':'')+'</div>';
   }
-  function cloudSection() {
-    var auth = demo ? {partner_id:'DEMO'} : ownAuth();
-    var connection=demo?'verified':cloud.connection, profile=demo?'loaded':cloud.profile;
-    var details = '<div class="ac-us-minirow"><span>Cloud connection</span><div class="ac-us-minihead">'+indicator('cloud')+badge('cloud',connection)+'</div></div>'+
-      '<p class="ac-us-note">'+esc(demo?'Example connected session':cloud.message || (auth?'Checking saved login against Cloud…':'Connect to Companion to sync across devices.'))+'</p>'+
-      '<div class="ac-us-minirow"><span>Partner profile</span><div class="ac-us-minihead">'+indicator('partner')+badge('profile',profile)+'</div></div>'+
-      '<p class="ac-us-note">'+esc(demo?'Example Partner - all details are fictitious':cloud.profileName ? cloud.profileName +(profile==='cached'?' (verified local copy only)':'') : 'No verified Cloud profile loaded')+'</p>';
-    if (auth && !demo) details += '<p class="ac-us-note">Companion Partner ID: '+esc(auth.partner_id)+'</p>';
-    if (cloud.error && !demo) details += '<p class="ac-us-error">'+esc(cloud.error)+'</p>';
-    return section('Cloud & Partner identity','',details+
-      (demo?'':'<button type="button" data-us-action="connect">Connect / reconnect Cloud</button>'),'acUsCloud');
+  function partnerSection() {
+    var auth=demo?{partner_id:'DEMO'}:ownAuth();
+    var status=demo?'loaded':cloud.profile;
+    var details='<p class="ac-us-note">'+esc(demo?'Example Partner - fictional data':
+      cloud.profileName?cloud.profileName+(status==='cached'?' (cached on this device)':''):
+      'No verified Partner profile loaded')+'</p>';
+    if(auth && !demo)details+='<p class="ac-us-note">Companion Partner ID: '+esc(auth.partner_id)+'</p>';
+    if(!demo && status==='failed')details+='<p class="ac-us-error">Partner details could not be verified. Check the Companion login.</p>';
+    if(!demo)details+='<button type="button" data-us-action="connect">Connect / reconnect Cloud</button>';
+    return section('Partner',badge('profile',status),details,'acUsPartner','partner');
   }
   function customerSection() {
     var status=demo?'synced':sync.mode;
@@ -189,7 +185,10 @@
     var local=demo?'Saved locally':sync.local;
     var cloudOnly=demo?0:cloudOnlyCount();
     var cloudCount=demo?3:cloud.customerCount;
-    var details='<p class="ac-us-note">'+esc(explanation)+'</p>'+
+    var connection=demo?'verified':cloud.connection;
+    var details='<div class="ac-us-minirow"><span>Cloud connection</span>'+badge('cloud',connection)+'</div>'+
+      '<p class="ac-us-note">'+esc(demo?'Cloud connected':cloud.message || 'Cloud status not yet checked')+'</p>'+
+      '<p class="ac-us-note">'+esc(explanation)+'</p>'+
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
       '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><strong>'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+'</strong></div>'+
       '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><strong>'+esc(cloudOnly==null?'Not checked':cloudOnly)+'</strong></div>'+
@@ -200,7 +199,10 @@
       (sync.conflicts && !demo?'<button type="button" data-us-action="review-customers">Review '+sync.conflicts+' conflict'+(sync.conflicts===1?'':'s')+' →</button>':'')+
       (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
-    return section('Customer profiles & this device',indicator('customer')+badge('customers',status),details,'acUsCustomers');
+    return section('Customers',badge('customers',
+      demo?'synced':dimensions().find(function(d){return d.key==='customer';}).state==='red'?'conflict':
+      dimensions().find(function(d){return d.key==='customer';}).state==='green'?'synced':'checking'),
+      details,'acUsCustomers','customer');
   }
   function css() {
     if ($('acUnifiedStatusCss')) return;
@@ -226,7 +228,7 @@
       '.ac-us-close:hover{background:#f4eef9!important;color:#351d59!important}',
       '.ac-us-section{border-top:1px solid #e9e4f0;padding:12px 0 10px}',
       '.ac-us-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}',
-      '.ac-us-head h3{font-size:14px;line-height:1.2;margin:0;color:#321b51}',
+      '.ac-us-head h3{font-size:14px;line-height:1.2;margin:0;color:#321b51;display:flex;align-items:center;gap:6px}',
       '.ac-us-version{font-weight:850;color:#67439b;font-size:12px}',
       '.ac-us-pill{font-size:10px;font-weight:800;padding:4px 8px;border-radius:99px;white-space:nowrap;background:#fff2dd;color:#8d5608}',
       '.ac-us-pill.good{background:#e3f6e9;color:#167642}',
@@ -251,7 +253,8 @@
       '.ac-us-tariff.absent{color:#887f8c;background:#f2f0f5}',
       '.ac-us-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.ac-us-actions a{display:inline-flex;align-items:center;min-height:34px;border:1px solid #dbceed;border-radius:9px;background:#fff;color:#56347f;padding:5px 10px;font-size:12px;font-weight:800;text-decoration:none;margin-top:7px}',
-      '.ac-us-update-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px}',
+      '.ac-us-release{padding:5px 0 9px;border-bottom:1px solid #e9e4f0}',
+      '.ac-us-update-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;flex-wrap:wrap}',
       '.ac-us-update-head strong{flex:1;min-width:0;font-weight:600}',
       '.ac-us-update-head button{white-space:nowrap;font-size:11px;min-height:30px;margin:0}',
       '.ac-us-update-history{font-size:11px;margin-top:8px}',
@@ -315,7 +318,7 @@
       trigger.setAttribute('aria-label',trigger.title);
     }
     var target=$('acUnifiedStatusContent');if(!target)return;
-    target.innerHTML=appSection()+tariffSection()+cloudSection()+customerSection();
+    target.innerHTML=appSection()+tariffSection()+customerSection()+partnerSection();
   }
   function showMessage(msg){var e=$('acUnifiedStatusMessage');if(e)e.textContent=msg||'';}
   function onEsc(e){if(e.key==='Escape')close();}
