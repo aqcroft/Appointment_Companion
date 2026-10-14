@@ -14,7 +14,7 @@ function fakeDocument() {
 }
 const names = [
   'Fixed Start 99','Fixed 99','Fixed Saver 99',
-  'Tracker Start 7','Tracker 7','Tracker Saver 7',
+  'Tracker Start 7','Tracker Plus 7','Tracker Saver 7',
   'Value','Gold','Double Gold',
   'EV Value','EV Gold','EV Double Gold'
 ];
@@ -57,7 +57,7 @@ function harness() {
   }};
 }
 
-test('tariff feed retains all 3 real names for each of 4 families',()=>{
+test('tariff feed retains all 3 real names including Tracker Plus for each of 4 families',()=>{
   const h=harness();
   for(const family of ['fixed','tracker','variable','ev'])
     assert.equal(h.summary[family+'Names'].length,3);
