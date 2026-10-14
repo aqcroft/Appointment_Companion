@@ -9,7 +9,7 @@
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
     version: 'v2.60.3',
-    date: '14 October 2026',
+    date: '15 October 2026',
     summary: 'Compact traffic-light status and improved Partner settings',
     changes: [
       'The status button is now narrower, showing colour-coded T, C and P traffic lights in a square footprint.',
