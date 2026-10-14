@@ -472,12 +472,15 @@
     global.addEventListener('ac:cloud-sync-state-changed',function(){refreshCustomerSync(checkSeq,true);});
     ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function(name){
       global.addEventListener(name,function(){
+        // A new authenticated session, including changed credentials for the
+        // same Partner ID, must never inherit the previous session's green result.
+        cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'idle';
+        cloud.profile=name==='ac:cloud-disconnected'?'failed':'idle';
+        cloud.owner='';
+        cloud.customerIds=null;
+        cloud.customerCount=null;
         if($(ID)&&!$(ID).hidden)refreshAll();
-        else {
-          cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'idle';
-          cloud.profile=name==='ac:cloud-disconnected'?'failed':'idle';
-          paint();
-        }
+        else paint();
       });
     });
     global.addEventListener('ac:partner-profile-ready',function(){
