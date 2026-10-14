@@ -75,6 +75,12 @@
       {key:'customer', letter:'C', name:'Customer profiles', state:customerState}
     ];
   }
+  function deviceOnlyCount() {
+    if(!Array.isArray(sync.localIds))return null;
+    if(!Array.isArray(cloud.customerIds))return sync.localOnly;
+    var available=new Set(cloud.customerIds);
+    return sync.localOnly+sync.localIds.filter(function(id){return !available.has(id);}).length;
+  }
   function cloudOnlyCount() {
     if(!Array.isArray(cloud.customerIds) || !Array.isArray(sync.localIds)) return null;
     var localSet=new Set(sync.localIds);
@@ -123,10 +129,10 @@
   function tariffSection() {
     var state=tariff(), summary=state.summary||{};
     var specifications=[
-      {label:'Fixed',key:'fixed',names:['Start','Fixed','Saver'],patterns:[/^Fixed Start(?:\\s|$)/i,/^Fixed(?:\\s+\\d+)?$/i,/^Fixed Saver(?:\\s|$)/i]},
-      {label:'Tracker',key:'tracker',names:['Start','Tracker','Saver'],patterns:[/^Tracker Start(?:\\s|$)/i,/^Tracker(?:\\s+\\d+)?$/i,/^(?:Tracker Saver|Saver Tracker)(?:\\s|$)/i]},
-      {label:'Variable',key:'variable',names:['Value','Gold','Double Gold'],patterns:[/^Value(?:\\s|$)/i,/^Gold(?:\\s|$)/i,/^Double Gold(?:\\s|$)/i]},
-      {label:'EV',key:'ev',names:['Value','Gold','Double Gold'],patterns:[/^EV Value(?:\\s|$)/i,/^EV Gold(?:\\s|$)/i,/^EV Double Gold(?:\\s|$)/i]}
+      {label:'Fixed',key:'fixed',names:['Start','Fixed','Saver'],patterns:[/^Fixed Start(?:\s|$)/i,/^Fixed(?:\s+\d+)?$/i,/^Fixed Saver(?:\s|$)/i]},
+      {label:'Tracker',key:'tracker',names:['Start','Tracker','Saver'],patterns:[/^Tracker Start(?:\s|$)/i,/^Tracker(?:\s+\d+)?$/i,/^(?:Tracker Saver|Saver Tracker)(?:\s|$)/i]},
+      {label:'Variable',key:'variable',names:['Value','Gold','Double Gold'],patterns:[/^Value(?:\s|$)/i,/^Gold(?:\s|$)/i,/^Double Gold(?:\s|$)/i]},
+      {label:'EV',key:'ev',names:['Value','Gold','Double Gold'],patterns:[/^EV Value(?:\s|$)/i,/^EV Gold(?:\s|$)/i,/^EV Double Gold(?:\s|$)/i]}
     ];
     var rows=specifications.map(function(family){
       var names=Array.isArray(summary[family.key+'Names'])?summary[family.key+'Names']:[];
@@ -185,7 +191,7 @@
     var cloudCount=demo?3:cloud.customerCount;
     var details='<p class="ac-us-note">'+esc(explanation)+'</p>'+
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
-      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><strong>'+esc(demo?0:sync.localOnly)+'</strong></div>'+
+      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><strong>'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+'</strong></div>'+
       '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><strong>'+esc(cloudOnly==null?'Not checked':cloudOnly)+'</strong></div>'+
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
@@ -256,11 +262,21 @@
       var a=action.getAttribute('data-us-action');
       if(a==='close')close();
       else if(a==='refresh')refreshAll();
+      else if(a==='updates'){updatesOpen=!updatesOpen;paint();}
+      else if(a==='all-customers'){
+        var allCustomers=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
+        if(allCustomers){close();allCustomers.click();}
+      }
       else if(a==='tariff')refreshTariff();
       else if(a==='review-customers'){
-        var list=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
-        if(list){close();list.click();}
-        else showMessage('Open Customers on this device from the main menu to review the conflict.');
+        var engine=global.AppointmentCompanionConsolidated;
+        if(engine && typeof engine.openCustomerBrowser==='function'){
+          close();engine.openCustomerBrowser({conflictsOnly:true});
+        } else {
+          var list=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
+          if(list){close();list.click();}
+          else showMessage('Open Customers on this device from the main menu to review the conflict.');
+        }
       }
       else if(a==='connect') {close(); var b=$('cloudSettingsConnect')||document.querySelector('[data-cloud-action="settings"]');if(b)b.click();}
     });
@@ -271,6 +287,8 @@
     if(trigger){
       var all=overallStatus();
       trigger.dataset.overall=all.state;
+      var tray=trigger.querySelector('.ac-us-signals');
+      if(tray)tray.innerHTML=signals();
       trigger.title='App status & updates - '+all.label;
       trigger.setAttribute('aria-label',trigger.title);
     }
@@ -311,7 +329,7 @@
     });
   }
   async function refreshCustomerSync(sequence, background) {
-    if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,current:'Example customer synced',local:'Saved locally'};paint();return;}
+    if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,localOnly:0,localIds:['demo1','demo2','demo3'],current:'Example customer synced',local:'Saved locally'};paint();return;}
     var engine=global.AppointmentCompanionConsolidated;
     var localHealth=$('cloudLocalState');
     sync.local=localHealth ? (localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy') : 'Local save status unavailable';
@@ -336,13 +354,18 @@
       }
       var currentIsSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision));
       sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
-        detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local customer store checked. Individual drafts may remain local.',
-        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
+        detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local profiles checked. Deliberate drafts may remain on this device.',
+        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,
+        pending:pending.length,conflicts:conflicts.length,
+        localOnly:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && !r.cloud_id;}).length,
+        localIds:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && r.cloud_id;})
+          .map(function(r){return String(r.cloud_id);}),
+        current:currentMessage,local:sync.local};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
     if(sequence===checkSeq)paint();
   }
   async function refreshCloud(sequence) {
-    if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,error:''};paint();return;}
+    if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,customerIds:['demo1','demo2','demo3'],error:''};paint();return;}
     var auth=ownAuth();
     if(!auth){cloud={connection:'disconnected',profile:'failed',message:'Not signed in to Companion Cloud',profileName:'',customerCount:null,error:''};paint();return;}
     var cached=localPartner(auth);
@@ -377,6 +400,9 @@
     cloud.connection=clients.ok?'verified':'failed';
     cloud.message=clients.ok?'Companion login verified with Cloud.':'Cloud login could not be verified just now.';
     cloud.customerCount=clients.ok&&Array.isArray(clients.data.customers)?clients.data.customers.length:null;
+    cloud.customerIds=clients.ok&&Array.isArray(clients.data.customers)?
+      clients.data.customers.filter(function(r){return r&&r.customer_id;})
+        .map(function(r){return String(r.customer_id);}):null;
     var candidate=p.ok&&p.data?p.data.partner:null;
     // The authenticated getPartnerProfile endpoint can return legacy records
     // without a partner_id. Accept those only if no conflicting ID is present.
@@ -404,7 +430,8 @@
     css();
     version.style.display='none';if(rag)rag.style.display='none';
     trigger=document.createElement('button');trigger.id='acUnifiedStatusTrigger';trigger.type='button';
-    trigger.innerHTML='<span>'+esc(meta.version)+'</span><span class="ac-us-light" aria-hidden="true"></span>';
+    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version)+'</span>'+
+      '<span class="ac-us-signals" aria-hidden="true">'+signals()+'</span>';
     stack.insertBefore(trigger,version);
     trigger.addEventListener('click',open);
     paint();
@@ -421,7 +448,7 @@
     ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,paint);});
     // Routine customer sync checks local records but never restarts remote Partner verification.
     global.addEventListener('ac:cloud-sync-state-changed',function(){refreshCustomerSync(checkSeq,true);});
-    ['ac:cloud-authenticated','ac:cloud-disconnected','ac:partner-profile-ready'].forEach(function(name){
+    ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function(name){
       global.addEventListener(name,function(){
         if($(ID)&&!$(ID).hidden)refreshAll();
         else {
@@ -430,6 +457,11 @@
           paint();
         }
       });
+    });
+    global.addEventListener('ac:partner-profile-ready',function(){
+      var cached=localPartner(ownAuth());
+      if(cached && cloud.connection==='verified' && cloud.profile==='loaded')cloud.profileName=cached.name;
+      paint();
     });
     refreshCustomerSync(checkSeq,true);
     return true;
