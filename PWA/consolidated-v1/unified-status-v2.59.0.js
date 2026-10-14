@@ -1,4 +1,4 @@
-/* Appointment Companion v2.59.0 - one top-left control and one App status & updates modal.
+/* Appointment Companion v2.59.2 - combined health, useful sync warnings and stable Cloud checks.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,13 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.59.1',
+    version: 'v2.59.2',
     date: '14 October 2026',
-    summary: 'Corrected Companion Cloud client for Partner profile checks',
+    summary: 'Clearer overall status and customer sync warnings',
     changes: [
-      'Corrected the Cloud client loaded by Appointment Companion so Partner profile retrieval is available.',
-      'The unified status panel now checks the real Cloud service and profile instead of reporting a missing local API as an outage.',
-      'Local customer records, savings calculations and the one-tap status design are unchanged.'
+      'Top-left status reflects tariff, Cloud, Partner and customer synchronisation health - not tariffs alone.',
+      'Intentional local-only customer drafts are excluded from waiting-to-sync warnings; conflicts link to their review screen.',
+      'Routine customer sync no longer restarts Partner verification. Quote basket links and sharing are unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -59,6 +59,17 @@
     catch (_) { return {status:'amber',summary:{},error:'Tariff status could not be read'}; }
   }
   function tone(state) { return state==='green' || state==='verified' || state==='loaded' || state==='synced' ? 'good' : state==='red' || state==='failed' || state==='conflict' || state==='disconnected' ? 'bad' : 'warn'; }
+  function overallStatus() {
+    var t=tariff().status;
+    if(sync.conflicts>0 || sync.mode==='conflict') return {state:'red',label:'Customer sync conflict needs attention'};
+    if(sync.mode==='failed') return {state:'red',label:'Customer status unavailable'};
+    if(t==='red') return {state:'red',label:'Tariff data needs attention'};
+    if(cloud.connection==='failed' || cloud.profile==='failed' || cloud.connection==='disconnected')
+      return {state:'red',label:'Cloud or Partner identity needs attention'};
+    if(t==='green' && cloud.connection==='verified' && cloud.profile==='loaded' &&
+       sync.mode==='synced' && sync.pending===0) return {state:'green',label:'All checks verified'};
+    return {state:'amber',label:'Some checks are pending or local-only'};
+  }
   function stateLabel(kind, status) {
     if (kind==='tariff') return status==='green'?'Verified':status==='red'?'Attention needed':'Checking / cached';
     if (status==='verified') return 'Verified';
@@ -115,8 +126,8 @@
       '<p class="ac-us-note">'+esc(explanation)+'</p>'+
       (customerCount == null?'':'<div class="ac-us-minirow"><span>Saved customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
-      (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention.</p>':'')+
-      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' profile(s) waiting to sync.</p>':'')+
+      (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Changes on this device and in Cloud must be reviewed before choosing which to keep.</p><button type="button" data-us-action="review-customers">Review customer sync conflicts</button>':'')+
+      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-enabled profile(s) waiting to sync. Intentional local-only drafts are excluded.</p>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>'+
       (!demo && cloud.customerCount!==null?'<p class="ac-us-note">Customers available from Cloud: '+cloud.customerCount+'</p>':''),
       'acUsCustomers');
@@ -128,8 +139,8 @@
       '#acV22StatusBlock{display:none!important}', // old five-row menu status block
       '#acUnifiedStatusTrigger{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:34px;min-width:49px;padding:3px 6px;border:1px solid #e4d6f4;border-radius:11px;background:#fff;color:#533587;font:700 10px/1 system-ui,sans-serif;cursor:pointer}',
       '#acUnifiedStatusTrigger .ac-us-light{width:9px;height:9px;border-radius:50%;background:#d98a00;box-shadow:0 0 0 2px #d98a0022}',
-      '#acUnifiedStatusTrigger[data-tariff="green"] .ac-us-light{background:#1d9b50;box-shadow:0 0 0 2px #1d9b5022}',
-      '#acUnifiedStatusTrigger[data-tariff="red"] .ac-us-light{background:#c43b3b;box-shadow:0 0 0 2px #c43b3b22}',
+      '#acUnifiedStatusTrigger[data-overall="green"] .ac-us-light{background:#1d9b50;box-shadow:0 0 0 2px #1d9b5022}',
+      '#acUnifiedStatusTrigger[data-overall="red"] .ac-us-light{background:#c43b3b;box-shadow:0 0 0 2px #c43b3b22}',
       '#acUnifiedStatusTrigger:focus-visible,.ac-us-card button:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
       '#acUnifiedStatusModal{position:fixed;inset:0;z-index:17000;background:#201633a3;display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}',
       '#acUnifiedStatusModal[hidden]{display:none!important}',
@@ -182,13 +193,23 @@
       if(a==='close')close();
       else if(a==='refresh')refreshAll();
       else if(a==='tariff')refreshTariff();
+      else if(a==='review-customers'){
+        var list=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
+        if(list){close();list.click();}
+        else showMessage('Open Customers on this device from the main menu to review the conflict.');
+      }
       else if(a==='connect') {close(); var b=$('cloudSettingsConnect')||document.querySelector('[data-cloud-action="settings"]');if(b)b.click();}
     });
     document.body.appendChild(el);
     return el;
   }
   function paint() {
-    if(trigger) {var t=tariff();trigger.dataset.tariff=t.status||'amber';trigger.title='App status & updates - tariff data '+stateLabel('tariff',t.status);trigger.setAttribute('aria-label',trigger.title);}
+    if(trigger){
+      var all=overallStatus();
+      trigger.dataset.overall=all.state;
+      trigger.title='App status & updates - '+all.label;
+      trigger.setAttribute('aria-label',trigger.title);
+    }
     var target=$('acUnifiedStatusContent');if(!target)return;
     target.innerHTML=appSection()+tariffSection()+cloudSection()+customerSection();
   }
@@ -225,7 +246,7 @@
         function(e){if(!finished){finished=true;clearTimeout(t);resolve({ok:false,error:String(e&&e.message||e)});}});
     });
   }
-  async function refreshCustomerSync(sequence) {
+  async function refreshCustomerSync(sequence, background) {
     if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,current:'Example customer synced',local:'Saved locally'};paint();return;}
     var engine=global.AppointmentCompanionConsolidated;
     var localHealth=$('cloudLocalState');
@@ -233,10 +254,12 @@
     if(!engine||typeof engine.list!=='function'){sync.mode='checking';sync.detail='Customer store unavailable';paint();return;}
     try{
       var rows=await engine.list();
-      if(sequence!==checkSeq || !$(ID) || $(ID).hidden)return;
+      if(sequence!==checkSeq || (!background && (!$(ID) || $(ID).hidden)))return;
       rows=Array.isArray(rows)?rows:[];
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
-      var pending=meaningful.filter(function(r){return r.sync_state==='pending'||r.sync_state==='pending_delete';});
+      // A draft is intentionally local until Save to Cloud is explicitly approved.
+      var pending=meaningful.filter(function(r){return (r.sync_state==='pending'||r.sync_state==='pending_delete') &&
+        (r.cloud_id || r.cloud_creation_approved || r.deleted);});
       var conflicts=meaningful.filter(function(r){return r.sync_state==='conflict'||r.conflict;});
       var current=typeof engine.currentRecord==='function'?engine.currentRecord():null;
       var currentMessage='';
@@ -252,14 +275,20 @@
         detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local customer store checked. Individual drafts may remain local.',
         count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,pending:pending.length,conflicts:conflicts.length,current:currentMessage,local:sync.local};
     }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
-    if(sequence===checkSeq&&$(ID)&&!$(ID).hidden)paint();
+    if(sequence===checkSeq)paint();
   }
   async function refreshCloud(sequence) {
     if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,error:''};paint();return;}
     var auth=ownAuth();
     if(!auth){cloud={connection:'disconnected',profile:'failed',message:'Not signed in to Companion Cloud',profileName:'',customerCount:null,error:''};paint();return;}
     var cached=localPartner(auth);
-    cloud={connection:'checking',profile:'checking',message:'Checking Cloud with your saved Companion login…',profileName:cached?cached.name:'',customerCount:null,error:''};
+    // Retain an already verified same-user status whilst rechecking; never inherit
+    // somebody else's green result after changing Companion login.
+    var sameOwner=cloud.owner===String(auth.partner_id).trim().toLowerCase();
+    if(!(sameOwner && cloud.connection==='verified' && cloud.profile==='loaded')) {
+      cloud={connection:'checking',profile:'checking',message:'Checking Cloud with your saved Companion login…',
+        profileName:cached?cached.name:'',customerCount:null,error:'',owner:''};
+    }
     paint();
     if(global.__AC_LOCAL_ONLY){
       cloud.connection='saved';cloud.profile=cached?'cached':'failed';
@@ -275,6 +304,11 @@
       timeout(api.getPartnerProfile(auth),6500)
     ]);
     if(sequence!==checkSeq||!$(ID)||$(ID).hidden)return;
+    var latestAuth=ownAuth();
+    if(!latestAuth || latestAuth.partner_id!==auth.partner_id || latestAuth.workspace_key!==auth.workspace_key){
+      refreshAll();return;
+    }
+    cloud.owner=String(auth.partner_id).trim().toLowerCase();
     var clients=checks[0],p=checks[1];
     cloud.connection=clients.ok?'verified':'failed';
     cloud.message=clients.ok?'Companion login verified with Cloud.':'Cloud login could not be verified just now.';
@@ -292,7 +326,6 @@
   function refreshAll(){
     if(!$(ID)||$(ID).hidden)return;
     var seq=++checkSeq;
-    cloud.connection='checking';cloud.profile='checking';sync.mode='checking';
     paint();showMessage(demo?'Preview uses fictional status values.':'Checking status…');
     Promise.all([refreshCloud(seq),refreshCustomerSync(seq)]).then(function(){
       if(seq===checkSeq&&$(ID)&&!$(ID).hidden){paint();showMessage(demo?'Demonstration only.':'Status checked.');}
@@ -321,8 +354,20 @@
         if(settings)menu.insertBefore(b,settings);else menu.appendChild(b);
       }
     }
-    ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,function(){if(trigger){var t=tariff();trigger.dataset.tariff=t.status||'amber';}if($(ID)&&!$(ID).hidden)paint();});});
-    ['ac:cloud-authenticated','ac:cloud-disconnected','ac:cloud-sync-state-changed','ac:partner-profile-ready'].forEach(function(name){global.addEventListener(name,function(){if($(ID)&&!$(ID).hidden)refreshAll();});});
+    ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,paint);});
+    // Routine customer sync checks local records but never restarts remote Partner verification.
+    global.addEventListener('ac:cloud-sync-state-changed',function(){refreshCustomerSync(checkSeq,true);});
+    ['ac:cloud-authenticated','ac:cloud-disconnected','ac:partner-profile-ready'].forEach(function(name){
+      global.addEventListener(name,function(){
+        if($(ID)&&!$(ID).hidden)refreshAll();
+        else {
+          cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'idle';
+          cloud.profile=name==='ac:cloud-disconnected'?'failed':'idle';
+          paint();
+        }
+      });
+    });
+    refreshCustomerSync(checkSeq,true);
     return true;
   }
   var tries=0,work=setInterval(function(){if(install()||++tries>240)clearInterval(work);},50);
