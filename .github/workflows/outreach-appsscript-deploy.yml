@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 15
     env:
       CLASPRC_JSON: ${{ secrets.OUTREACH_CLASPRC_JSON }}
-      OUTREACH_SCRIPT_ID: ${{ vars.OUTREACH_SCRIPT_ID }}
+      OUTREACH_SCRIPT_ID: '1-Zsoj5dlXs6H4yuZa8vFLoZ5YlZmaZsCJgF9vKg9mlSW_NGoN7fRko7_'
       OUTREACH_DEPLOYMENT_ID: ${{ vars.OUTREACH_DEPLOYMENT_ID }}
       PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
     steps:
