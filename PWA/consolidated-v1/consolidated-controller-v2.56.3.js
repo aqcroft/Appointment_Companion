@@ -189,6 +189,12 @@
     var credentials=auth();
     if(!credentials)throw new Error('Please sign in to Companion Cloud first.');
     if(syncing)throw new Error('Cloud is already synchronising. Try again shortly.');
+    // Preserve any unsaved edits in the currently open customer form before
+    // reading the record to upload, including the saved quote basket URL.
+    if(currentId===localId){
+      clearTimeout(saveTimer);
+      await persist(false,false);
+    }
     var row=await store.get(localId);
     if(!row || row.deleted || !String(row.customer_name||'').trim())
       throw new Error('This customer record is missing or has no name.');
