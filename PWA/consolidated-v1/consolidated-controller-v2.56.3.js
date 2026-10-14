@@ -181,6 +181,61 @@
       cell('☁️',cloudState,cloudState==='yes'?(synced?'In Cloud and synchronised':'In Cloud; revision may still need syncing'):cloudState==='no'?'Not found in Cloud':'Cloud has not been checked')+
       '</span>';
   }
+  async function saveLocalToCloud(localId) {
+    if(LOCAL_ONLY)throw new Error('Cloud synchronisation is paused in local-only mode.');
+    if(!navigator.onLine)throw new Error('This device is offline. Work remains safely stored locally.');
+    if(!api || typeof api.saveCustomer!=='function' || typeof api.listCustomers!=='function')
+      throw new Error('Cloud save is currently unavailable.');
+    var credentials=auth();
+    if(!credentials)throw new Error('Please sign in to Companion Cloud first.');
+    if(syncing)throw new Error('Cloud is already synchronising. Try again shortly.');
+    var row=await store.get(localId);
+    if(!row || row.deleted || !String(row.customer_name||'').trim())
+      throw new Error('This customer record is missing or has no name.');
+    if(row.cloud_id || row.conflict)
+      throw new Error('This record is already linked to Cloud or needs conflict review.');
+    // No automatic creation: an existing Cloud customer with the same name
+    // must be reviewed to avoid accidentally creating duplicate records.
+    var listing=await api.listCustomers(credentials);
+    var normaliseName=function(value){return String(value||'').trim().toLocaleLowerCase('en-GB');};
+    var duplicate=(listing.customers||[]).find(function(remote){
+      return normaliseName(remote.customer_name)===normaliseName(row.customer_name);
+    });
+    if(duplicate)throw new Error('A customer with this name already exists in Cloud. Review the Cloud-only list before creating another.');
+    if(!global.confirm('Save '+row.customer_name+' to Companion Cloud? This will make the customer available to your other signed-in devices.'))return {message:'Cloud save cancelled. The customer remains safely on this device.'};
+    syncing=true;
+    try {
+      row=await store.get(localId);
+      if(!row || row.deleted || row.cloud_id || row.conflict)throw new Error('Customer record changed. Review it again.');
+      // Keep all existing customer state and the local revision. Only explicitly
+      // authorise this first Cloud creation after the user pressed Save to Cloud.
+      var approved=await store.put(Object.assign({},row,{cloud_creation_approved:true,sync_state:'pending'}),{keepRevision:true,keepSyncState:true});
+      if(currentId===localId)current=clone(approved);
+      var uploaded=await syncOne(approved,credentials);
+      if(!uploaded || !uploaded.cloud_id)throw new Error('Cloud did not confirm a customer ID.');
+      var server=await api.getCustomer(credentials,uploaded.cloud_id);
+      if(!server || !server.customer || String(server.customer.customer_id||'')!==String(uploaded.cloud_id))
+        return {message:'Cloud received the customer, but confirmation is still pending. The local copy is safe.'};
+      var stored=await store.get(localId);
+      if(currentId===localId){current=clone(stored);paint(current,false);}
+      return {message:isSynced(stored)?
+        '✓ '+stored.customer_name+' is saved on this device AND verified in Cloud.':
+        'Cloud has the customer. Further local edits are waiting to synchronise.'};
+    } catch(err) {
+      // A missing acknowledgement can conceal a successful Cloud creation.
+      // Do not allow blind automatic retries to create duplicate customers.
+      var latest=await store.get(localId);
+      if(latest && !latest.cloud_id && latest.cloud_creation_approved){
+        var safe=await store.put(Object.assign({},latest,{cloud_creation_approved:false,sync_state:'pending'}),{keepRevision:true,keepSyncState:true});
+        if(currentId===localId)current=clone(safe);
+      }
+      throw err;
+    } finally {
+      syncing=false;
+      try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
+      scheduleSync(400);
+    }
+  }
   async function customerBrowser(options) {
     var modal = $('localFirstCustomers');
     if (!modal) {
@@ -337,7 +392,7 @@
             '</span>' +
           '</button>' +
           '<span style="margin:auto 0">'+storageSignals(true,cloudPresent,exactlySynced)+'</span>'+
-          (onlyHere && !conflict && row.customer_name && !LOCAL_ONLY?
+          (onlyHere && !row.cloud_id && !conflict && row.customer_name && !LOCAL_ONLY?
             '<button type="button" class="btn-ghost" data-local-upload="'+escapeHtml(row.local_id)+'" style="font-size:11px;white-space:nowrap">☁️ Save to Cloud</button>':'')+
           (conflict && row.conflict ? '<details style="flex:1 0 100%;font-size:11px;line-height:1.5;padding:4px 6px"><summary style="cursor:pointer;font-weight:650">Compare device and Cloud versions before choosing</summary>'+
             '<div><b>This device:</b> '+escapeHtml(row.updated_at || 'Date unavailable')+
@@ -489,7 +544,7 @@
   }
   function intercept() { document.addEventListener('input', queuePersist, true); document.addEventListener('change', queuePersist, true); document.addEventListener('click', function (event) { var action = event.target.closest && event.target.closest('[data-cloud-action]'); if (!action) return; var kind = action.dataset.cloudAction; if (['save','save-as','all-customers','recent-customers','delete-current','new-customer'].indexOf(kind) < 0) return; event.preventDefault(); event.stopImmediatePropagation(); if(kind==='new-customer'){var menu=$('cloudMenuPopover');if(menu)menu.classList.remove('open');var toggle=$('cloudActionMenu');if(toggle){toggle.setAttribute('aria-expanded','false');toggle.title='Show actions';}} if (kind === 'save') persist(true, true); else if (kind === 'save-as') saveAsNew(); else if (kind === 'all-customers' || kind === 'recent-customers') customerBrowser(); else if (kind === 'new-customer') startNewCustomer(false); else if (currentId) markDeleted(currentId); }, true); document.addEventListener('click', function (event) { if (!event.target.closest || !event.target.closest('button,.cbchip') || event.target.closest('#cloudPilotCard,#conflictPanel,#localCustomerList')) return; setTimeout(function () { queuePersist(); }, 0); }, true); global.addEventListener('online', function () { scheduleSync(50); }); global.addEventListener('focus', function () { scheduleSync(100); }); global.addEventListener('ac:cloud-authenticated', function () { scheduleSync(50); }); }
   async function boot() { await store.migrate(); var rows = await store.list(); recentRows(rows); var row = currentId && await store.get(currentId); if (!row) { var oldCurrent = sessionStorage.getItem('apptCompanionLocalFirstCurrentV1'); if (oldCurrent) row = await store.get(oldCurrent); } if (row) await loadRecord(row, true); else await startNewCustomer(true); if (LOCAL_ONLY) { var banner = document.createElement('div'); banner.className = 'md-note'; banner.style.margin = '0 0 .7rem'; banner.innerHTML = '📵 <strong>Local-only mode</strong> — Cloud sync and Cloud-backed sharing are paused. Your appointment is safe on this device. <a href="../consolidated-v1/">Return to normal mode</a>.'; var wrap = document.querySelector('.wrap'); if (wrap) wrap.insertBefore(banner, wrap.firstChild); status('Local-only mode — working safely on this device.', 'good'); } intercept(); scheduleSync(700); setInterval(function () { scheduleSync(0); }, 45000); }
-  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, openCustomerBrowser: customerBrowser, scheduleSync: scheduleSync, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
+  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, openCustomerBrowser: customerBrowser, saveLocalToCloud: saveLocalToCloud, scheduleSync: scheduleSync, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
   global.AppointmentCompanionLocalFirst = global.AppointmentCompanionConsolidated;
   var attempts = 0, timer = setInterval(function () { if ($('cloudPilotCard') && $('customerRegion') && store && canonical && global.AppointmentCompanionCanonicalControls) { clearInterval(timer); boot().catch(function (error) { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Consolidated setup needs attention: ' + error.message, 'bad'); }); } else if (++attempts > 160) clearInterval(timer); }, 50);
 })(window);
