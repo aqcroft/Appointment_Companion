@@ -10,7 +10,7 @@
   var meta = Object.freeze({
     version: 'v2.59.1',
     date: '14 October 2026',
-    summary: 'Partner Cloud profile connection repaired',
+    summary: 'Corrected Companion Cloud client for Partner profile checks',
     changes: [
       'Corrected the Cloud client loaded by Appointment Companion so Partner profile retrieval is available.',
       'The unified status panel now checks the real Cloud service and profile instead of reporting a missing local API as an outage.',
@@ -268,7 +268,7 @@
     }
     var api=global.AppointmentCompanionCloud;
     if(!api||typeof api.listCustomers!=='function'||typeof api.getPartnerProfile!=='function'){
-      cloud.connection='failed';cloud.profile=cached?'cached':'failed';cloud.message='Cloud services are unavailable.';paint();return;
+      cloud.connection='failed';cloud.profile=cached?'cached':'failed';cloud.message='The Cloud connection component did not load correctly. Refresh Appointment Companion.';paint();return;
     }
     var checks=await Promise.all([
       timeout(api.listCustomers(auth),6500),
