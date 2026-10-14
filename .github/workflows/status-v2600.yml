@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'PWA/consolidated-v1/unified-status-v2.59.0.js'
+      - 'PWA/consolidated-v1/menu-groups-v2.60.2.js'
       - 'PWA/consolidated-v1/tariff-fetch-v1.js'
       - 'PWA/consolidated-v1/consolidated-controller-v2.56.3.js'
       - 'PWA/consolidated-v1/tests/status-v2.60.0.test.cjs'
@@ -29,6 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check PWA/consolidated-v1/unified-status-v2.59.0.js
+          node --check PWA/consolidated-v1/menu-groups-v2.60.2.js
           node --check PWA/consolidated-v1/tariff-fetch-v1.js
           node --check PWA/consolidated-v1/consolidated-controller-v2.56.3.js
           node - <<'NODE'
@@ -36,8 +38,12 @@ jobs:
           const manifest=JSON.parse(fs.readFileSync('PWA/consolidated-v1/manifest.webmanifest','utf8'));
           const index=fs.readFileSync('PWA/consolidated-v1/index.html','utf8');
           const sw=fs.readFileSync('PWA/consolidated-v1/sw.js','utf8');
-          if(!manifest.name.includes('v2.60.1') || !index.includes('v2.60.1') || !sw.includes('v2-60-1')) {
-            throw new Error('App, manifest and service-worker version metadata out of sync');
+          const match=manifest.name.match(/v(\d+)\.(\d+)\.(\d+)/);
+          if(!match) throw new Error('Cannot read the Companion version from manifest');
+          const appVersion=match[0];
+          const cacheVersion='v'+match[1]+'-'+match[2]+'-'+match[3];
+          if(!index.includes(appVersion) || !sw.includes(cacheVersion)) {
+            throw new Error('App, manifest and service-worker version metadata out of sync: '+appVersion);
           }
           NODE
       - name: Run tariff, status and customer sync behaviour tests
