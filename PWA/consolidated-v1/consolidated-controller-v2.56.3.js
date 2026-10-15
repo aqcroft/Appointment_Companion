@@ -186,6 +186,34 @@
       cell('☁️',cloudState,cloudState==='yes'?(synced?'Confirmed in Cloud and current revision synchronised':'Confirmed in Cloud; revision may still need syncing'):cloudState==='no'?'Not found in the checked Cloud account':'Cloud presence not verified')+
       '</span>';
   }
+  // Background Cloud reconciliation may be reading many customers. A manual
+  // upload must wait for that single in-flight pass, not fail immediately or
+  // open a second writer against the same device state.
+  var syncWaiters=[];
+  function releaseSync() {
+    syncing=false;
+    var waiters=syncWaiters.splice(0);
+    waiters.forEach(function(wake){wake();});
+  }
+  async function takeManualSyncTurn() {
+    var deadline=Date.now()+60000;
+    while(syncing){
+      await new Promise(function(resolve){
+        var finished=false,timeout=setTimeout(wake,Math.max(1,deadline-Date.now()));
+        function wake(){
+          if(finished)return;
+          finished=true;clearTimeout(timeout);
+          var ix=syncWaiters.indexOf(wake);if(ix>=0)syncWaiters.splice(ix,1);
+          resolve();
+        }
+        syncWaiters.push(wake);
+      });
+      if(syncing&&Date.now()>=deadline)
+        throw new Error('The ongoing Cloud check is taking longer than expected. Your customer remains safely on this device. Please try again shortly.');
+    }
+    // Reserve the single writer before any awaited local/database work.
+    syncing=true;
+  }
   async function saveLocalToCloud(localId) {
     if(LOCAL_ONLY)throw new Error('Cloud synchronisation is paused in local-only mode.');
     if(!navigator.onLine)throw new Error('This device is offline. Work remains safely stored locally.');
@@ -193,7 +221,8 @@
       throw new Error('Cloud save is currently unavailable.');
     var credentials=auth();
     if(!credentials)throw new Error('Please sign in to Companion Cloud first.');
-    if(syncing)throw new Error('Cloud is already synchronising. Try again shortly.');
+    await takeManualSyncTurn();
+    try {
     // Preserve any unsaved edits in the currently open customer form before
     // reading the record to upload, including the saved quote basket URL.
     if(currentId===localId){
@@ -214,7 +243,6 @@
     });
     if(duplicate)throw new Error('A customer with this name already exists in Cloud. Review the Cloud-only list before creating another.');
     if(!global.confirm('Save '+row.customer_name+' to Companion Cloud? This will make the customer available to your other signed-in devices.'))return {message:'Cloud save cancelled. The customer remains safely on this device.'};
-    syncing=true;
     try {
       row=await store.get(localId);
       if(!row || row.deleted || row.cloud_id || row.conflict)throw new Error('Customer record changed. Review it again.');
@@ -241,8 +269,9 @@
         if(currentId===localId)current=clone(safe);
       }
       throw err;
+    }
     } finally {
-      syncing=false;
+      releaseSync();
       try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
       scheduleSync(400);
     }
@@ -286,7 +315,9 @@
         if(upload){
           var localId=upload.getAttribute('data-local-upload');
           var feedback=$('localFirstCustomerFeedback');
-          if(feedback)feedback.textContent='Uploading to Cloud and verifying…';
+          if(feedback)feedback.textContent=syncing?
+            '⏳ A Cloud check is running. Your upload is queued and will continue when it finishes…':
+            'Uploading to Cloud and verifying…';
           upload.disabled=true;
           var message='';
           try{message=(await saveLocalToCloud(localId)).message;}
@@ -539,7 +570,7 @@
       status('Cloud unavailable — working locally. Your appointment is safe on this device.', '');
       scheduleSync(retryMs);
     } finally {
-      syncing = false;
+      releaseSync();
       try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
     }
   }
