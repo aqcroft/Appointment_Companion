@@ -1,3 +1,11 @@
+## v2.61.5 - 15 October 2026 - Recognisable shopping basket and calmer Cloud synchronisation
+
+- Replaced the wicker basket with a small custom shopping-basket SVG throughout Main, EV, Should I Fix and the customer submenu, avoiding mobile emoji rendering ambiguities.
+- Background Cloud reconciliation is now roughly every 15 minutes while the app is active, rather than every 45 seconds. Routine edits schedule a single check 90 seconds after the last change, and retry intervals start in minutes instead of seconds.
+- Focus, sign-in and returning online only ask for a new check when the last check is old; hidden/background pages do not start routine polling.
+- Initial startup may run an earlier one-off check. Explicit Save to Cloud still queues safely behind any check already under way, and a user-initiated Sync now can run immediately.
+- No deletion, Cloud record, confirmation, duplicate detection or tariff logic changed.
+
 ## v2.61.4 - 15 October 2026 - Safer mobile Cloud upload and prominent customer actions
 
 - Explicit Save to Cloud waits for a background synchronisation already running on this device instead of failing immediately with "Cloud is already synchronising". Only one writer is active at a time; a bounded wait produces a clear retry message if the background check remains busy.
