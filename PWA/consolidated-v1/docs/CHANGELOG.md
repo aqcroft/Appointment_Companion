@@ -1,3 +1,12 @@
+## v2.61.9 - 15 October 2026 - Customer-only shares and simpler Mobile details
+
+- Should I Fix `?public=1` pages now set customer shared-view mode before scripts run and exclude all Partner toolbar/menu/status scripts. This corrects public links showing the Partner-only TCP control.
+- EV Cloud-token (`?s=`), portable (`#p2=`) and `?public=1` public pages all suppress Partner-only navigation. Defensive checks also reject these controls if a public script is accidentally loaded in the future. Partners retain the full toolbar in their own views.
+- The original legacy standalone Mobile form retains its 1-5 selector. The consolidated appointment PWA hides the redundant SIM-count row because the Mobile tile already uses multi-tap selection.
+- Remove repetitive Go Essentials plan notes. Show only "Additional SIMs free for 3 months" for included Unlimited SIMs after the first included Unlimited SIM. Clear stale notes from excluded SIMs.
+- Put UW plan monthly price on the right of its price row, above the plan choices, leaving the UW label on the left. Pricing and bonus calculations remain unchanged.
+- Partner Earnings is a separate repository with no injected Companion shared toolbar; no changes to its share screens in this release.
+
 ## v2.61.8 - 15 October 2026 - Hide Mobile SIM count when deselected
 
 - When the Mobile tile is off or grey, hide its SIM-count badge entirely, even if the last selected setting was five SIMs.
