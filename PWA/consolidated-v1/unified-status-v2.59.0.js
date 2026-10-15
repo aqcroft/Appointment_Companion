@@ -8,17 +8,16 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.0',
+    version: 'v2.62.1',
     date: '15 October 2026',
-    summary: 'Quarterly kWh in Should I Fix',
+    summary: 'Simpler, one-level Companion menus',
     changes: [
-      'Should I Fix now reveals electricity and gas kWh per price-cap quarter beneath the tariff forecast, collapsed by default.',
-      'The usage rows share the existing quarter columns, including the narrow final October column, and only show selected fuels.',
-      'Price-cap forecast headings remain free of day counts. No changes to energy rates, forecast cost formulas or customer records.',
-      'Customer-facing Should I Fix and EV links still hide Partner-only controls.',
-      'Partners retain the same T/C/P control and menu when opening either tool from their Companion.',
-      'The redundant SIM-count row is hidden only in the multi-tap PWA, not the legacy standalone editor.',
-      'Additional Unlimited SIM notes are shortened and shown only where eligible; the UW price aligns right.'
+      'Restored one-click Customers & quotes and Account & app actions in a single dropdown.',
+      'More options expands within the menu instead of opening another submenu.',
+      'Positioned the menu beneath its hamburger button, with scrolling on small screens.',
+      'Applied the same menu organisation to the Partner EV and Should I Fix tools.',
+      'Reused existing customer and Cloud action handlers without changing their save logic.',
+      'Customer-facing shared links continue to hide Partner-only menus.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -160,8 +159,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.8',date:'15 October 2026',summary:'Hide SIM count when Mobile is off'},
-      {version:'v2.61.7',date:'15 October 2026',summary:'Fixed startup service tile update loop'}
+      {version:'v2.62.0',date:'15 October 2026',summary:'Quarterly kWh in Should I Fix'},
+      {version:'v2.61.9',date:'15 October 2026',summary:'Customer-facing EV sharing refinements'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
