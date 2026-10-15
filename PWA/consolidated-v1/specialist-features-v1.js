@@ -1,7 +1,7 @@
 /* Shared Companion toolbar + specialist shortcuts. VERSION is the master Appointment Companion suite release. */
 (function (global) {
   'use strict';
-  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
+  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || new URLSearchParams(location.search).get('public') === '1') return;
 
   var VERSION = 'v2.46.3';
   var TEAM = 'https://aqcroft.github.io/TeamTriumph/';
