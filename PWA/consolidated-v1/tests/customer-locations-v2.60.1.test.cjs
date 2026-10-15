@@ -19,7 +19,7 @@ function makeRow(){
     specialist_state:{},basket_url:'https://example.test/synthetic-basket',conflict:null};
 }
 function harness(options={}){
-  let row=makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0;
+  let row=makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0,timers=[];
   const cloudPeople=options.cloudPeople||[];
   const deviceStore={
     get:async id=>id===row.local_id?clone(row):null,
@@ -57,9 +57,9 @@ function harness(options={}){
   assert.notEqual(injected,controller,'Controller test seam must exist');
   vm.runInNewContext(injected,{window,document:doc,navigator:{onLine:true,userAgent:'Android Mobile'},
     sessionStorage:authStore,localStorage:authStore,
-    setInterval:()=>0,setTimeout:()=>0,clearTimeout:()=>{},
+    setInterval:()=>0,setTimeout:(fn,ms)=>{timers.push(ms);return timers.length;},clearTimeout:()=>{},
     CustomEvent:class{},console,Date,Set,Promise}, {filename:'consolidated-controller-v2.56.3.js'});
-  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed})};
+  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed}),timers};
 }
 
 test('explicit customer Save to Cloud needs acknowledgement and retrieval to report success',async()=>{
@@ -162,4 +162,21 @@ test('cancelled queued upload never authorises Cloud creation',async()=>{
   assert.match(result.message,/cancelled/);
   assert.equal(h.stats().saves,0);
   assert.equal(h.getRow().cloud_creation_approved,false);
+});
+
+test('background Cloud checks are now spaced out, while explicit action stays available',()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  engine.scheduleSync(20);
+  assert.equal(h.timers.at(-1),90000,'routine Cloud requests cannot poll every few seconds');
+  engine.scheduleSync(2800);
+  assert.equal(h.timers.at(-1),90000,'routine form edits are debounced');
+  engine.scheduleSync(12000,true);
+  assert.equal(h.timers.at(-1),12000,'one early startup or reconnection check remains possible');
+  engine.scheduleSync(180000);
+  assert.equal(h.timers.at(-1),180000,'longer backoff timing is respected');
+  assert.equal(typeof engine.syncNow,'function','users still have an explicit Cloud sync action');
+  assert.match(controller,/BACKGROUND_CHECK_MS\s*=\s*15\s*\*\s*60\s*\*\s*1000/);
+  assert.match(controller,/lastBackgroundCheckAt < LAST_CHECK_FRESH_MS/);
+  assert.match(controller,/document\.hidden\s*\|\|\s*!navigator\.onLine/);
+  assert.doesNotMatch(controller,/setInterval\(function \(\) \{ scheduleSync\(0\); \}, 45000\)/);
 });
