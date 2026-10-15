@@ -46,7 +46,7 @@ test('root shows three menu choices; submenu Back returns without losing actions
   const x=build(),menu=x.menu;
   assert.equal(menu.dataset.acMenuView,'root');
   const root=menu.querySelector('#acMenuRootActions'),back=menu.querySelector('#acMenuBack');
-  assert.equal(root.children.length,9); // two headings, four shortcuts, three submenus
+  assert.equal(root.children.length,10); // two headings, five shortcuts, three submenus
   root.querySelector('#acMenuSection-customers').click();
   assert.equal(menu.dataset.acMenuView,'customers');
   assert.ok(menu.children.includes(x.existing.Save));
@@ -72,15 +72,16 @@ test('reopening and dynamically added actions preserve original event-bound butt
   assert.equal(menu.querySelector('#acRelationshipFollowupLink'),null);
 });
 
-test('four visible quick actions trigger the original, single-source menu handlers',()=>{
+test('five visible quick actions trigger the original, single-source menu handlers',()=>{
   const x=build(),root=x.menu.querySelector('#acMenuRootActions');
   const actions=[
     ['new','New'],
     ['basket','Basket'],
     ['scenario','Scenario'],
-    ['customers','Cloud']
+    ['customers','Cloud'],
+    ['delete','Delete']
   ];
-  const ids=['acQuickAction-new','acQuickAction-basket','acQuickAction-scenario','acQuickAction-customers'];
+  const ids=['acQuickAction-new','acQuickAction-basket','acQuickAction-scenario','acQuickAction-customers','acQuickAction-delete'];
   assert.deepEqual(root.children.filter(n=>n.className.includes('ac-menu-shortcut')).map(n=>n.id),ids);
   for(let i=0;i<actions.length;i++){
     const [shortId,sourceKey]=actions[i],shortcut=root.querySelector('#acQuickAction-'+shortId);
@@ -91,7 +92,7 @@ test('four visible quick actions trigger the original, single-source menu handle
   }
   assert.equal(root.querySelector('#acQuickAction-customers').attributes['data-ac-quick-action'],'all-customers');
   assert.equal(x.existing.Save.clickCount||0,0,'Normal Save remains a toolbar/submenu action');
-  const originalButtons=['New','Basket','Scenario','Cloud'];
+  const originalButtons=['New','Basket','Scenario','Cloud','Delete'];
   originalButtons.forEach(key=>assert.equal(x.menu.children.filter(n=>n===x.existing[key]).length,1));
   x.window.AppointmentCompanionMenuGroups.refresh();
   assert.deepEqual(root.children.filter(n=>n.className.includes('ac-menu-shortcut')).map(n=>n.id),ids,'Refresh does not duplicate shortcuts');
