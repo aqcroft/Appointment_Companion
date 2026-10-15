@@ -1,4 +1,4 @@
-/* Appointment Companion v2.63.2 - actionable customer sync status and diagnostics.
+/* Appointment Companion v2.63.3 - safe handling of Cloud-deleted customer records.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.63.2',
+    version: 'v2.63.3',
     date: '15 October 2026',
-    summary: 'Manual Cloud sync and pending customer review',
+    summary: 'Safer customer sync when Cloud records are missing',
     changes: [
+      'Do not silently delete a device record because its Cloud counterpart is missing.',
+      'Present a conflict so the surviving local version can be reviewed.',
+      'Keeping a missing-Cloud customer preserves it as a device-only draft.',
+      'Restoring a missing-Cloud customer requires deliberate Save to Cloud.',
       'Sync customers now runs the actual customer Cloud synchronisation.',
       'View pending records to see which customers still need reconciliation.',
       'Report the most recent sync attempt, including an error when one occurs.',
@@ -180,6 +184,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.63.2',date:'15 October 2026',summary:'Manual Cloud sync and pending customer review'},
       {version:'v2.63.1',date:'15 October 2026',summary:'Accurate conflict reviews and meaningful customer saves'},
       {version:'v2.63.0',date:'15 October 2026',summary:'One-row customer header and confirmed-name saves'},
       {version:'v2.62.5',date:'15 October 2026',summary:'Responsive three-light status checks'},
