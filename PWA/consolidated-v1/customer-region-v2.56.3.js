@@ -116,6 +116,7 @@
       });
     });
     window.addEventListener('ac:customer-name-committed',paintNameGate);
+    window.addEventListener('ac:customer-working-restored',function(){paint();paintNameGate();});
     function expand(on) {
       editor.hidden = !on;
       button.setAttribute('aria-expanded', on ? 'true' : 'false');
