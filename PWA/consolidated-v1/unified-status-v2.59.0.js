@@ -1,4 +1,4 @@
-/* Appointment Companion v2.62.3 - clearer Should I Fix chart labels and fuel selection.
+/* Appointment Companion v2.62.4 - solid known Tracker quarter; dashed forecast.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.3',
+    version: 'v2.62.4',
     date: '15 October 2026',
-    summary: 'Clearer Should I Fix chart and fuel selection',
+    summary: 'Known Tracker rates now shown with a solid line',
     changes: [
-      'Chart key now shows the selected live Fixed and Tracker tariff series numbers where available.',
-      'Reordered the fuel buttons to Both, Electricity, Gas, with electricity first.',
-      'Manual fixed deals remain labelled Custom fixed; missing series numbers are not guessed.',
-      'No changes to tariff calculations, saved profiles or shared-link behaviour.'
+      'Should I Fix now shows the Tracker line solid orange for published October-December rates.',
+      'The Tracker line becomes dashed where January-onwards prices depend on forecast price caps.',
+      'Used the same known-to-forecast transition as the variable price-cap line.',
+      'No changes to calculations, tariff selection, customer profiles or sharing.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,6 +157,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.62.3',date:'15 October 2026',summary:'Live tariff versions in the chart key and electricity-first fuel buttons'},
       {version:'v2.62.2',date:'15 October 2026',summary:'Flat Partner menus across the tools'},
       {version:'v2.62.1',date:'15 October 2026',summary:'First version of simplified Companion menus'},
       {version:'v2.62.0',date:'15 October 2026',summary:'Quarterly kWh in Should I Fix'}
