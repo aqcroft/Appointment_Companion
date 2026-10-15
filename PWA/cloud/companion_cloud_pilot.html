@@ -1138,7 +1138,12 @@ function setHome(which) {
   $('bbFreeMonthsRow').classList.toggle('hidden', which !== 'homeowner');
   if (which !== 'homeowner') $('bbFreeMonthsToggle').checked = false;
   const boilerPill = $('boilerServicePill');
-  if (boilerPill) boilerPill.classList.toggle('hidden', which !== 'homeowner');
+  if (boilerPill) {
+    boilerPill.classList.remove('hidden');
+    boilerPill.disabled = which !== 'homeowner';
+    boilerPill.setAttribute('aria-disabled', boilerPill.disabled ? 'true' : 'false');
+    boilerPill.title = boilerPill.disabled ? 'Boiler Cover is available to homeowners only' : 'Add or remove Boiler Cover';
+  }
   if (which !== 'homeowner') {
     $('boilerCoverToggle').checked = false;
     state.boilerMode = null;
@@ -1159,17 +1164,21 @@ function setHome(which) {
 }
 $('pillHomeowner').addEventListener('click', () => setHome('homeowner'));
 $('pillTenant').addEventListener('click', () => setHome('tenant'));
-// A lead arrives via one route or the other, never both — so the two
-// referral toggles are mutually exclusive. Setting .checked in code doesn't
-// fire 'change', so there's no feedback loop here.
-$('referralToggle').addEventListener('change', () => {
-  if ($('referralToggle').checked) $('natLeagueToggle').checked = false;
+// Referral source is recorded for tenants too, even when no commission is payable.
+// Legacy checkbox IDs remain hidden for backwards compatibility with saved profiles.
+function selectReferralRoute(route) {
+  state.referralRoute = ['friend','connector','nationalLeague'].includes(route) ? route : 'none';
+  $('referralToggle').checked = state.referralRoute === 'friend';
+  $('natLeagueToggle').checked = state.referralRoute === 'nationalLeague';
+  document.querySelectorAll('[data-referral-route]').forEach(button =>
+    button.setAttribute('aria-pressed', button.dataset.referralRoute === state.referralRoute ? 'true':'false'));
   calc();
-});
-$('natLeagueToggle').addEventListener('change', () => {
-  if ($('natLeagueToggle').checked) $('referralToggle').checked = false;
-  calc();
-});
+}
+document.querySelectorAll('[data-referral-route]').forEach(button =>
+  button.addEventListener('click', () => selectReferralRoute(
+    state.referralRoute === button.dataset.referralRoute ? 'none' : button.dataset.referralRoute)));
+$('referralToggle').addEventListener('change', () => selectReferralRoute($('referralToggle').checked?'friend':'none'));
+$('natLeagueToggle').addEventListener('change', () => selectReferralRoute($('natLeagueToggle').checked?'nationalLeague':'none'));
 $('bbFreeMonthsToggle').addEventListener('change', calc);
 
 // Advanced Energy details - deliberately hidden until requested.
@@ -1454,7 +1463,9 @@ function mobileServiceContribution(includedSims) {
 }
 
 function mobileWelcomeBonusEligible(includedSims) {
-  return (includedSims || []).some(s => s && s.uwPlan === 'unlimitedMax');
+  // One SIM counts as ONE mobile Welcome Bonus service type, Essentials or
+  // Unlimited. Adding a second SIM never increases the Welcome Bonus count.
+  return (includedSims || []).length > 0;
 }
 
 /* ---------- boiler comparison mode ---------- */
@@ -1678,9 +1689,13 @@ function compute(previewSims = 0) {
   const welcome = CONFIG.welcomeBonus[welcomeServiceTypes] || 0;
   const referral = (count >= CONFIG.referral.minServices &&
                     state.homeowner === 'homeowner' &&
-                    $('referralToggle').checked) ? CONFIG.referral.amount : 0;
+                    state.referralRoute === 'friend') ? CONFIG.referral.amount : 0;
   const natLeague = (count >= CONFIG.nationalLeague.minServices &&
-                     $('natLeagueToggle').checked) ? CONFIG.nationalLeague.amount : 0;
+                     state.referralRoute === 'nationalLeague') ? CONFIG.nationalLeague.amount : 0;
+  // Mobile counts as two commission services ONLY for two Unlimited SIMs.
+  // Boiler Cover adds one qualifying service, but is homeowner-only.
+  const connector = (state.referralRoute === 'connector' && state.homeowner === 'homeowner')
+    ? (CONFIG.connectorCommission[count] || 0) : 0;
 
   // --- exit fees (split-energy fees now included — fixed from v1) ---
   let energyExit = $('splitEnergyToggle').checked
@@ -1699,7 +1714,7 @@ function compute(previewSims = 0) {
   // so "Year-one Savings on Services" + "Year-one Welcome Bonuses" always equals year1 exactly.
   const cashbackAnnualNet = cashbackNet * 12 + freeMonthsValue;
   const year1 = monthlySaving * 12
-              + welcome + referral + natLeague
+              + welcome + referral + natLeague + connector
               + bbFree
               + mobileFreeMonths
               + boilerCoverFree
@@ -1710,7 +1725,7 @@ function compute(previewSims = 0) {
   return { currentEnergy, uwEnergy, currentBb, uwBb, uwBbRaw, currentMob, uwMob,
            currentTotal, uwTotalBase, monthlySaving,
            spend, cbLow, cbMed, cbHigh, cbMonthly, freeMonthsValue,
-           count, welcomeServiceTypes, welcome, referral, natLeague, bbFree, mobileFreeMonths, additionalUnlimited,
+           count, welcomeServiceTypes, welcome, referral, natLeague, connector, referralRoute:state.referralRoute, bbFree, mobileFreeMonths, additionalUnlimited,
            exitFees, refunded, exitDeduction, year1, cbOn,
            mba, availableSlots, previewApplied, includedSimsCount, cashbackNet, maxPreview,
            currentBoilerCover, boilerCoverCost, boilerCoverFree, insuranceTotal,
@@ -2050,6 +2065,8 @@ function renderCard(r) {
   $('scReferral').textContent = '£' + r.referral;
   $('scNatLeagueRow').classList.toggle('hidden', r.natLeague === 0);
   $('scNatLeague').textContent = '£' + r.natLeague;
+  $('scConnectorRow').classList.toggle('hidden', r.connector === 0);
+  $('scConnector').textContent = '£' + r.connector;
   $('scCardFeeRow').classList.toggle('hidden', !r.cbOn);
   $('scCardFee').textContent = '+£' + r.freeMonthsValue;
   $('scCardFeeLabel').textContent = '💳 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ £' + CONFIG.cashback.cardFeeMonthly + ')';
@@ -2087,11 +2104,11 @@ function renderCard(r) {
   // Year-one Savings on Services + this Total = the hero figure, exactly.
   $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
   $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
-  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.mobileFreeMonths
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.connector + r.mobileFreeMonths
     + (r.cbOn ? r.freeMonthsValue : 0)
     + r.oneOff
     - r.exitDeduction;
-  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.natLeague + real.mobileFreeMonths
+  const benefitsTotalReal = real.bbFree + real.welcome + real.referral + real.natLeague + real.connector + real.mobileFreeMonths
     + (real.cbOn ? real.freeMonthsValue : 0)
     + real.oneOff
     - real.exitDeduction;
@@ -2230,7 +2247,8 @@ $('copyBtn').addEventListener('click', () => {
   lines.push('');
   lines.push('Year-one Welcome Bonuses:');
   if (r.referral) lines.push('  Referral bonus: £' + r.referral);
-  if (r.natLeague) lines.push('  National League voucher: £' + r.natLeague);
+  if (r.natLeague) lines.push('  Free club shirt (National League): £' + r.natLeague);
+  if (r.connector) lines.push('  Connector self-referral commission: £' + r.connector);
   if (r.bbFree) lines.push('  ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + '): £' + money(r.bbFree));
   if (r.mobileFreeMonths) {
     const simN = r.additionalUnlimited, simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
@@ -2251,7 +2269,7 @@ $('copyBtn').addEventListener('click', () => {
     const lbl = r.oneOffLabel || (r.oneOff > 0 ? 'One-off refund' : 'One-off charge');
     lines.push('  ' + lbl + ': ' + (r.oneOff > 0 ? '£' : '−£') + money(Math.abs(r.oneOff)));
   }
-  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.mobileFreeMonths + r.boilerCoverFree
+  const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.connector + r.mobileFreeMonths + r.boilerCoverFree
     + (r.cbOn ? r.freeMonthsValue : 0)
     + r.oneOff
     - r.exitDeduction;
@@ -2312,7 +2330,7 @@ function buildShareData() {
       cM: r.currentMob, uM: r.uwMob, md: mealDealCount,
       is: r.includedSimsCount,
       cT: r.currentTotal, uT: r.uwTotalBase, sM: r.monthlySaving,
-      ct: r.count, w: r.welcome, rf: r.referral, nl: r.natLeague, bf: Math.round(r.bbFree),
+      ct: r.count, w: r.welcome, rf: r.referral, nl: r.natLeague, cr:r.connector, rr:r.referralRoute, bf: Math.round(r.bbFree),
       mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
       ef: r.exitFees, ed: r.exitDeduction,
       cn: r.cashbackNet, fm: r.freeMonthsValue, cs: r.spend, cbt: state.cbTier,
