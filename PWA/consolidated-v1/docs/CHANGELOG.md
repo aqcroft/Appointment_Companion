@@ -1,3 +1,11 @@
+## v2.61.2 - 15 October 2026 - Mobile overlay, status badges and responsive Cloud browsing
+
+- The shared menu now uses the browser's top layer where supported, positioned directly beneath the top-toolbar hamburger even when the customer quick-drawer accordion is expanded.
+- The saved quote shortcut and its underlying submenu use a basket (🧺) rather than a shopping trolley.
+- Each local mobile, computer and Cloud presence appears as a single compact icon with an integrated colour-coded tick, cross or unknown mark. Other device storage is never guessed.
+- The combined device-and-Cloud customer browser opens immediately with live loading feedback, while retaining accurate verification and error states.
+- Existing saving, Cloud creation, conflict-resolution and customer records are unchanged. The Rich Buzz Sharpe discrepancy awaits confirmation of the laptop record.
+
 ## v2.61.1 - 15 October 2026 - Compact appointment quick actions
 
 - Main hamburger menu now shows four compact shortcut rows: New customer, Saved quote basket link, Save as new scenario and All Cloud customers.
