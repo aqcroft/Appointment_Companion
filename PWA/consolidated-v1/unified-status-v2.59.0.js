@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.3 - universal T/C/P status in Main, EV and Should I Fix.
+/* Appointment Companion v2.61.4 - queued Cloud uploads and visible delete shortcut.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.3',
+    version: 'v2.61.4',
     date: '15 October 2026',
-    summary: 'Shared menu and T/C/P status throughout integrated tools',
+    summary: 'Reliable manual Cloud saves and prominent customer actions',
     changes: [
-      'Opening the hamburger menu in EV and Should I Fix no longer navigates to Main Companion.',
-      'Four quick actions and three grouped submenus are available without abandoning the current tool.',
-      'The actual T/C/P status panel is available in all three integrated tools.',
-      'Status remains amber where a specialist cannot verify tariff or current customer data.'
+      'Manual Save to Cloud waits for in-progress background synchronisation instead of failing immediately.',
+      'Existing confirmation, duplicate-name checks and Cloud read-back remain in place.',
+      'Delete current customer is visible alongside the saved basket link, with confirmation required.',
+      'Cross-device records still need completed Cloud saving; local drafts are never uploaded automatically.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.2',date:'15 October 2026',summary:'Top-layer menu, compact location indicators and instant customer browser'},
-      {version:'v2.61.1',date:'15 October 2026',summary:'Four compact main-menu quick actions'}
+      {version:'v2.61.3',date:'15 October 2026',summary:'In-place specialist menus and universal TCP status'},
+      {version:'v2.61.2',date:'15 October 2026',summary:'Top-layer menu and faster customer browser'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
