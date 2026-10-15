@@ -18,12 +18,12 @@ class Element{
   remove(){if(!this.parentNode)return;const a=this.parentNode.children;a.splice(a.indexOf(this),1);this.parentNode=null;}
   setAttribute(k,v){this.attributes[k]=v;if(k==='data-ac-menu-group')this.dataset.acMenuGroup=v;}
   addEventListener(k,fn){(this.listeners[k]||=[]).push(fn);}
-  matches(selector){if(selector.startsWith('#'))return this.id===selector.slice(1);
+  matches(selector){if(selector===':popover-open')return !!this.popped;if(selector.startsWith('#'))return this.id===selector.slice(1);
     let m=selector.match(/^\[data-cloud-action="([^"]+)"\]$/);return !!m&&this.action===m[1];}
   querySelector(selector){if(selector==='.menu-ico + span')return {textContent:''};
     for(const n of this.children){if(n.matches(selector))return n;let nested=n.querySelector(selector);if(nested)return nested;}return null;}
 }
-function build(){
+function build(options={}){
   const root=new Element('document'),head=new Element('head'),menu=new Element('cloudMenuPopover'),toggle=new Element('cloudActionMenu');
   root.appendChild(head);root.appendChild(menu);root.appendChild(toggle);
   const actions=[['new-customer','New'],['delete-current','Delete'],['all-customers','Cloud'],['save','Save'],['save-as','Scenario'],['basket','Basket'],['partner','Profile'],['settings','Settings'],['admin','Admin']];
@@ -31,12 +31,16 @@ function build(){
   for(const id of ['acUnifiedMenuLink','acShareAppMenuButton','acGsMenu','acV22StatusBlock','acRelationshipFollowupLink'])menu.appendChild(new Element(id));
   const seek=(n,id)=>n.id===id?n:n.children.map(x=>seek(x,id)).find(Boolean);
   const document={documentElement:{classList:{contains:()=>false}},head,createElement:()=>new Element(),getElementById:id=>seek(root,id)};
-  let schedule;
+  let schedule,observeMenu;
   const window={innerWidth:390,innerHeight:840,addEventListener(){}};
-  class MutationObserver {observe(){} disconnect(){}}
+  if(options.popover){
+    menu.showPopover=()=>{menu.popped=true;menu.popoverShown=(menu.popoverShown||0)+1;};
+    menu.hidePopover=()=>{menu.popped=false;menu.popoverHidden=(menu.popoverHidden||0)+1;};
+  }
+  class MutationObserver {constructor(cb){this.cb=cb} observe(){observeMenu=this.cb} disconnect(){}}
   vm.runInNewContext(source,{window,document,MutationObserver,setInterval:fn=>{schedule=fn;return 1;},clearInterval:()=>{}});
   schedule();
-  return {window,document,menu,toggle,existing};
+  return {window,document,menu,toggle,existing,notify:()=>{if(observeMenu)observeMenu();}};
 }
 test('root shows three menu choices; submenu Back returns without losing actions',()=>{
   const x=build(),menu=x.menu;
@@ -91,4 +95,22 @@ test('four visible quick actions trigger the original, single-source menu handle
   originalButtons.forEach(key=>assert.equal(x.menu.children.filter(n=>n===x.existing[key]).length,1));
   x.window.AppointmentCompanionMenuGroups.refresh();
   assert.deepEqual(root.children.filter(n=>n.className.includes('ac-menu-shortcut')).map(n=>n.id),ids,'Refresh does not duplicate shortcuts');
+});
+
+test('menu becomes a true browser top-layer popover above an expanded accordion',()=>{
+  const h=build({popover:true}),menu=h.menu;
+  assert.equal(menu.attributes.popover,'manual');
+  assert.ok(menu.style.setProperty,'fixed-position styling is supported');
+  menu.className='cloud-menu-popover open';
+  h.notify();
+  assert.equal(menu.popoverShown,1,'Opening menu must call native showPopover');
+  assert.equal(menu.popped,true);
+  h.notify();
+  assert.equal(menu.popoverShown,1,'Repeated mutations must not reopen it');
+  menu.className='cloud-menu-popover';
+  h.notify();
+  assert.equal(menu.popoverHidden,1,'Closing menu hides the top-layer popover');
+  assert.equal(menu.popped,false);
+  const root=menu.querySelector('#acMenuRootActions');
+  assert.equal(root.querySelector('#acQuickAction-basket').children[0].textContent,'🧺');
 });
