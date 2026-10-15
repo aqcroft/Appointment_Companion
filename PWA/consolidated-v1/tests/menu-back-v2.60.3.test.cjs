@@ -13,6 +13,7 @@ class Element{
     const ix=ref?this.children.indexOf(ref):this.children.length;if(ix<0)throw Error('invalid insertBefore reference');
     this.children.splice(ix,0,n);n.parentNode=this;return n;}
   appendChild(n){return this.insertBefore(n,null);}
+  click(){this.clickCount=(this.clickCount||0)+1;for(const cb of (this.listeners.click||[]))cb({preventDefault(){},stopPropagation(){}});}
   remove(){if(!this.parentNode)return;const a=this.parentNode.children;a.splice(a.indexOf(this),1);this.parentNode=null;}
   setAttribute(k,v){this.attributes[k]=v;if(k==='data-ac-menu-group')this.dataset.acMenuGroup=v;}
   addEventListener(k,fn){(this.listeners[k]||=[]).push(fn);}
@@ -39,14 +40,14 @@ test('root shows three menu choices; submenu Back returns without losing actions
   const x=build(),menu=x.menu;
   assert.equal(menu.dataset.acMenuView,'root');
   const root=menu.querySelector('#acMenuRootActions'),back=menu.querySelector('#acMenuBack');
-  assert.equal(root.children.length,3);
-  root.children[0].listeners.click[0]({preventDefault(){},stopPropagation(){}});
+  assert.equal(root.children.length,9); // two headings, four shortcuts, three submenus
+  root.querySelector('#acMenuSection-customers').click();
   assert.equal(menu.dataset.acMenuView,'customers');
   assert.ok(menu.children.includes(x.existing.Save));
   assert.ok(menu.children.includes(x.existing.Delete));
   back.listeners.click[0]({preventDefault(){},stopPropagation(){}});
   assert.equal(menu.dataset.acMenuView,'root');
-  root.children[1].listeners.click[0]({preventDefault(){},stopPropagation(){}});
+  root.querySelector('#acMenuSection-account').click();
   assert.equal(menu.dataset.acMenuView,'account');
   menu.listeners.keydown[0]({key:'Escape',preventDefault(){},stopPropagation(){}});
   assert.equal(menu.dataset.acMenuView,'root');
@@ -63,4 +64,29 @@ test('reopening and dynamically added actions preserve original event-bound butt
   assert.equal(menu.children.filter(n=>n===save).length,1);
   assert.equal(menu.querySelector('#acV22StatusBlock'),null);
   assert.equal(menu.querySelector('#acRelationshipFollowupLink'),null);
+});
+
+test('four visible quick actions trigger the original, single-source menu handlers',()=>{
+  const x=build(),root=x.menu.querySelector('#acMenuRootActions');
+  const actions=[
+    ['new','New'],
+    ['basket','Basket'],
+    ['scenario','Scenario'],
+    ['customers','Cloud']
+  ];
+  const ids=['acQuickAction-new','acQuickAction-basket','acQuickAction-scenario','acQuickAction-customers'];
+  assert.deepEqual(root.children.filter(n=>n.className.includes('ac-menu-shortcut')).map(n=>n.id),ids);
+  for(let i=0;i<actions.length;i++){
+    const [shortId,sourceKey]=actions[i],shortcut=root.querySelector('#acQuickAction-'+shortId);
+    assert.ok(shortcut,shortId);
+    shortcut.click();
+    assert.equal(x.existing[sourceKey].clickCount,1,sourceKey);
+    assert.equal(x.menu.dataset.acMenuView,'root');
+  }
+  assert.equal(root.querySelector('#acQuickAction-customers').attributes['data-ac-quick-action'],'all-customers');
+  assert.equal(x.existing.Save.clickCount||0,0,'Normal Save remains a toolbar/submenu action');
+  const originalButtons=['New','Basket','Scenario','Cloud'];
+  originalButtons.forEach(key=>assert.equal(x.menu.children.filter(n=>n===x.existing[key]).length,1));
+  x.window.AppointmentCompanionMenuGroups.refresh();
+  assert.deepEqual(root.children.filter(n=>n.className.includes('ac-menu-shortcut')).map(n=>n.id),ids,'Refresh does not duplicate shortcuts');
 });
