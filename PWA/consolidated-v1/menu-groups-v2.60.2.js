@@ -238,7 +238,11 @@
           // .click() invokes the existing delegated Cloud/action handler,
           // including its checks for unsaved changes and Cloud connectivity.
           var source = findDirect(menu,'[data-cloud-action="' + quick.action + '"]');
-          if (source && !source.disabled) source.click();
+          if (!source || source.disabled) return;
+          menu.classList.remove('open');
+          toggle.setAttribute('aria-expanded','false');
+          toggle.title='Show actions';
+          source.click();
         });
         root.appendChild(btn);
       });
