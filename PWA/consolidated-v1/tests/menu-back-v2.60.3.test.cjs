@@ -3,7 +3,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','menu-groups-v2.60.2.js'),'utf8');
 class Element{
-  constructor(id='',action=''){this.id=id;this.action=action;this.children=[];this.parentNode=null;this.dataset={};this.listeners={};this.attributes={};this.style={};this.className='';this.textContent='';}
+  constructor(id='',action=''){this.id=id;this.action=action;this.children=[];this.parentNode=null;this.dataset={};this.listeners={};this.attributes={};this.style={setProperty(){}};this.className='';this.textContent='';}
+  getBoundingClientRect(){return {right:375,bottom:75};}
   get firstChild(){return this.children[0]||null;}
   get firstElementChild(){return this.firstChild;}
   get nextSibling(){if(!this.parentNode)return null;return this.parentNode.children[this.parentNode.children.indexOf(this)+1]||null;}
@@ -31,8 +32,9 @@ function build(){
   const seek=(n,id)=>n.id===id?n:n.children.map(x=>seek(x,id)).find(Boolean);
   const document={documentElement:{classList:{contains:()=>false}},head,createElement:()=>new Element(),getElementById:id=>seek(root,id)};
   let schedule;
-  const window={};
-  vm.runInNewContext(source,{window,document,setInterval:fn=>{schedule=fn;return 1;},clearInterval:()=>{}});
+  const window={innerWidth:390,innerHeight:840,addEventListener(){}};
+  class MutationObserver {observe(){} disconnect(){}}
+  vm.runInNewContext(source,{window,document,MutationObserver,setInterval:fn=>{schedule=fn;return 1;},clearInterval:()=>{}});
   schedule();
   return {window,document,menu,toggle,existing};
 }
