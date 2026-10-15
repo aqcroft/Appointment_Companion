@@ -1,4 +1,4 @@
-/* Local-first controller v2.63.1: explicit customer-name confirmation, stable local drafts, deliberate Cloud creation. */
+/* Local-first controller v2.63.2: explicit customer-name confirmation, stable local drafts, deliberate Cloud creation. */
 (function (global) {
   'use strict';
   if (document.documentElement.classList.contains('view-mode')) return;
@@ -12,6 +12,7 @@
   var EDIT_SYNC_DELAY_MS = 90 * 1000;
   var LAST_CHECK_FRESH_MS = 5 * 60 * 1000;
   var lastBackgroundCheckAt = 0;
+  var lastSyncReport={state:'not-run',attemptedAt:'',completedAt:'',attempted:0,failed:0,error:''};
   var $ = function (id) { return document.getElementById(id); };
   function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
   function auth() { try { var row = JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); if (!(row && row.partner_id && row.workspace_key)) row = JSON.parse(localStorage.getItem(DEVICE_AUTH_KEY) || 'null'); if (row && row.partner_id && row.workspace_key) { try { sessionStorage.setItem(AUTH_KEY, JSON.stringify(row)); } catch (_) {} return row; } return null; } catch (_) { return null; } }
@@ -404,7 +405,7 @@
         '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px">' +
           '<select id="localFirstCustomerScope" aria-label="Filter customer records by location" style="min-height:36px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px;font:inherit">' +
             '<option value="all">All customer records</option><option value="localOnly">On this device only</option>' +
-            '<option value="cloudOnly">In Cloud only</option><option value="conflicts">Sync conflicts</option></select>' +
+            '<option value="cloudOnly">In Cloud only</option><option value="pending">Pending Cloud sync</option><option value="conflicts">Sync conflicts</option></select>' +
           '<button type="button" class="btn-ghost" id="localFirstConflictToggle" data-local-filter-conflicts style="min-height:32px">Show conflicts only</button>' +
         '</div>' +
         '<p id="localFirstCustomerFeedback" role="status" aria-live="polite" style="font-size:12px;font-weight:600;min-height:18px;margin:5px 0;color:#28643e"></p>' +
@@ -466,7 +467,7 @@
     }
 
     var view=options && options.scope || options && options.conflictsOnly && 'conflicts' || 'all';
-    if(['all','localOnly','cloudOnly','conflicts'].indexOf(view)<0)view='all';
+    if(['all','localOnly','cloudOnly','pending','conflicts'].indexOf(view)<0)view='all';
     modal.dataset.customerScope=view;
     var sequence=++customerBrowserSequence;
     // Open the customer browser immediately, ahead of IndexedDB and Cloud
@@ -522,7 +523,9 @@
       var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
       var mode = String(sort && sort.value || 'recent');
       var visible = rows.filter(function (row) {
-        if (row.deleted && !(view==='conflicts' && (row.conflict||row.sync_state==='conflict'))) return false;
+        if (row.deleted && !(view==='conflicts' && (row.conflict||row.sync_state==='conflict')) && !(view==='pending' && row.sync_state==='pending_delete')) return false;
+        if(view==='pending' && !(row.sync_state==='pending'||row.sync_state==='pending_delete') )return false;
+        if(view==='pending' && !(row.cloud_id||row.cloud_creation_approved||row.deleted))return false;
         if(view==='conflicts' && !row.conflict && row.sync_state!=='conflict')return false;
         if(view==='localOnly' && row.cloud_id && (!cloudIdSet||cloudIdSet.has(String(row.cloud_id))))return false;
         if(view==='cloudOnly')return false;
@@ -559,6 +562,7 @@
                 '<strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(row.customer_name || 'Unnamed') + '</strong>' +
                 (isCloudDraft(row) ? '<span title="Saved on this device only. Tap Save to Cloud when ready." style="font-size:10px;white-space:nowrap;color:#785298">Draft</span>' : '') +
                 (row.deleted?'<span style="font-size:10px;color:#a35d0d">Deletion requested</span>':'') +
+                (view==='pending'?'<span style="font-size:10px;color:#96611b">Awaiting Cloud sync</span>':'') +
                 (conflict ? '<span title="Local and Cloud both changed" aria-label="Local and Cloud both changed" style="flex:0 0 auto;font-size:14px;line-height:1">⚠️</span>' : '') +
               '</span>' +
               '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
@@ -586,6 +590,7 @@
       }).join('');
       if(!wrap.innerHTML)wrap.innerHTML='<p class="sub">'+
         (view==='conflicts'?'No outstanding sync conflicts on this device.':
+        view==='pending'?'No Cloud-linked customer records currently awaiting sync.':
         view==='cloudOnly'?(cloudIdSet?'No Cloud-only records.':'Cloud not verified yet.'):
         view==='localOnly'?'No device-only profiles match the filter.':
         query?'No customers match that search.':'No saved customers on this device yet.')+'</p>';
@@ -642,6 +647,8 @@
     }
 
     syncing = true;
+    lastSyncReport={state:'running',attemptedAt:new Date().toISOString(),completedAt:'',attempted:0,failed:0,error:''};
+    try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
     lastBackgroundCheckAt = Date.now();
     var failures = 0;
     var firstError = '';
@@ -651,10 +658,12 @@
         if (rows[i].sync_state !== 'pending' && rows[i].sync_state !== 'pending_delete') continue;
         // An unfinished local draft must never create a permanent Cloud row.
         if (!rows[i].deleted && !rows[i].cloud_id && !rows[i].cloud_creation_approved) continue;
+        lastSyncReport.attempted++;
         try {
           await syncOne(rows[i], credentials);
         } catch (rowError) {
           failures++;
+          lastSyncReport.failed++;
           if (!firstError) firstError = String(rowError && rowError.message || rowError || 'Cloud sync failed');
         }
       }
@@ -670,6 +679,8 @@
       paint(current, false);
       recentRows(await store.list(true));
 
+      lastSyncReport.state=failures?'incomplete':'completed';
+      lastSyncReport.error=failures?firstError:'';
       if (failures) {
         retryMs = Math.min(Math.max(retryMs * 2, 120000), BACKGROUND_CHECK_MS);
         icon('cloudConnectionState', current && isSynced(current), current && isSynced(current) ? 'Current profile is synced; another local profile still needs Cloud attention' : 'Cloud sync is still catching up');
@@ -680,14 +691,17 @@
         if (current && isSynced(current)) status('Latest local revision synchronised to Cloud.', 'good');
       }
     } catch (error) {
+      lastSyncReport.state='failed';lastSyncReport.error=String(error&&error.message||error||'Cloud check failed');
       retryMs = Math.min(Math.max(retryMs * 2, 120000), BACKGROUND_CHECK_MS);
       icon('cloudConnectionState', false, 'Cloud unavailable; work remains safe locally');
       status('Cloud unavailable — working locally. Your appointment is safe on this device.', '');
       scheduleSync(retryMs);
     } finally {
+      lastSyncReport.completedAt=new Date().toISOString();
       releaseSync();
       try { global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed')); } catch (_) {}
     }
+    return clone(lastSyncReport);
   }
   function scheduleSync(delay, eager) {
     if (LOCAL_ONLY) return;
@@ -709,9 +723,10 @@
     scheduleSync(15000,true);
   }
   function syncNow() {
-    if(LOCAL_ONLY || !navigator.onLine)return;
+    if(LOCAL_ONLY)return {state:'paused',error:'Cloud is paused in local-only mode.'};
+    if(!navigator.onLine)return {state:'offline',error:'This device is offline.'};
     clearTimeout(syncTimer);syncTimer=null;
-    if(syncing){scheduleSync(EDIT_SYNC_DELAY_MS);return;}
+    if(syncing)return clone(lastSyncReport);
     return sync();
   }
   async function startNewCustomer(fromDelete) {
@@ -747,7 +762,7 @@
   }
   function intercept() { document.addEventListener('input', queuePersist, true); document.addEventListener('change', queuePersist, true); document.addEventListener('click', function (event) { var legacy=event.target.closest&&event.target.closest('#saveProfileBtn'); if(legacy){event.preventDefault();event.stopImmediatePropagation();confirmCustomerName();return;} var action = event.target.closest && event.target.closest('[data-cloud-action]'); if (!action) return; var kind = action.dataset.cloudAction; if (['save','save-as','all-customers','recent-customers','delete-current','new-customer'].indexOf(kind) < 0) return; event.preventDefault(); event.stopImmediatePropagation(); if(kind==='new-customer'||kind==='all-customers'||kind==='recent-customers'||kind==='save-as'||kind==='delete-current'||kind==='save'){var menu=$('cloudMenuPopover');if(menu)menu.classList.remove('open');var toggle=$('cloudActionMenu');if(toggle){toggle.setAttribute('aria-expanded','false');toggle.title='Show actions';}} if (kind === 'save') persist(true, true, true); else if (kind === 'save-as') saveAsNew(); else if (kind === 'all-customers' || kind === 'recent-customers') customerBrowser(); else if (kind === 'new-customer') startNewCustomer(false); else if (currentId) markDeleted(currentId); }, true); document.addEventListener('click', function (event) { if (!event.target.closest || !event.target.closest('button,.cbchip') || event.target.closest('#cloudPilotCard,#conflictPanel,#localCustomerList,#localFirstCustomers,#acUnifiedStatusModal,#cloudMenuPopover,#acUnifiedStatusTrigger,[data-cloud-action]')) return; setTimeout(function () { queuePersist(); }, 0); }, true); global.addEventListener('ac:cloud-sync-state-changed',function(){var browser=$('localFirstCustomers');if(browser&&browser.classList.contains('open')&&browser.dataset.customerScope==='conflicts')customerBrowser({scope:'conflicts'});}); global.addEventListener('online', function () { if(!document.hidden) scheduleSync(12000,true); }); global.addEventListener('focus', checkAfterResume); document.addEventListener('visibilitychange', checkAfterResume); global.addEventListener('ac:cloud-authenticated', function () { lastBackgroundCheckAt=0; if(!document.hidden) scheduleSync(12000,true); }); }
   async function boot() { await store.migrate(); var rows = await store.list(); recentRows(rows); var row = currentId && await store.get(currentId); if (!row) { var oldCurrent = sessionStorage.getItem('apptCompanionLocalFirstCurrentV1'); if (oldCurrent) row = await store.get(oldCurrent); } var scratch=row?null:takeWorking(); if (row) await loadRecord(row, true); else { await startNewCustomer(true); if(scratch){canonical.restore(scratch);editedSinceSwitch=true; setTimeout(function(){rememberWorking();try{global.dispatchEvent(new CustomEvent('ac:customer-working-restored'));}catch(_){}},100);}} if (LOCAL_ONLY) { var banner = document.createElement('div'); banner.className = 'md-note'; banner.style.margin = '0 0 .7rem'; banner.innerHTML = '📵 <strong>Local-only mode</strong> — Cloud sync and Cloud-backed sharing are paused. Your appointment is safe on this device. <a href="../consolidated-v1/">Return to normal mode</a>.'; var wrap = document.querySelector('.wrap'); if (wrap) wrap.insertBefore(banner, wrap.firstChild); status('Local-only mode — working safely on this device.', 'good'); } intercept(); document.documentElement.dataset.acLocalFirstReady='1'; scheduleSync(12000,true); setInterval(function () { if(!document.hidden && !syncing && Date.now()-lastBackgroundCheckAt>=BACKGROUND_CHECK_MS) scheduleSync(12000,true); }, BACKGROUND_CHECK_MS); }
-  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, openCustomerBrowser: customerBrowser, saveLocalToCloud: saveLocalToCloud, confirmCustomerName:confirmCustomerName, scheduleSync: scheduleSync, syncNow:syncNow, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
+  global.AppointmentCompanionConsolidated = { persist: persist, load: loadRecord, switchTo: switchToLocalId, list: function () { return store.list(); }, currentId: function () { return currentId; }, currentRecord: function () { return clone(current); }, openCustomerBrowser: customerBrowser, saveLocalToCloud: saveLocalToCloud, confirmCustomerName:confirmCustomerName, scheduleSync: scheduleSync, syncNow:syncNow, syncHealth:function(){return clone(lastSyncReport);}, sync: sync, persistSpecialist: async function (tool, state) { if (!currentId) return null; current = await store.updateSpecialist(currentId, tool, state); paint(current, false); scheduleSync(900); return clone(current); } };
   global.AppointmentCompanionLocalFirst = global.AppointmentCompanionConsolidated;
   var attempts = 0, timer = setInterval(function () { if ($('cloudPilotCard') && $('customerRegion') && store && canonical && global.AppointmentCompanionCanonicalControls) { clearInterval(timer); boot().catch(function (error) { icon('cloudLocalState', false, 'Local persistence needs attention'); status('Consolidated setup needs attention: ' + error.message, 'bad'); }); } else if (++attempts > 160) clearInterval(timer); }, 50);
 })(window);
