@@ -1,4 +1,4 @@
-/* Appointment Companion v2.63.1 - reliable sync reports and no-op revision guard.
+/* Appointment Companion v2.63.2 - actionable customer sync status and diagnostics.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.63.1',
+    version: 'v2.63.2',
     date: '15 October 2026',
-    summary: 'Accurate conflict reviews and meaningful customer saves',
+    summary: 'Manual Cloud sync and pending customer review',
     changes: [
+      'Sync customers now runs the actual customer Cloud synchronisation.',
+      'View pending records to see which customers still need reconciliation.',
+      'Report the most recent sync attempt, including an error when one occurs.',
+      'Pending is labelled Waiting to sync, not an indefinite Checking message.',
+      'The customer light turns green only when the latest revisions are verified.',
       'Opening menus and status no longer creates an unnecessary customer revision.',
       'Sync comparison ignores auto-generated capture timestamps.',
       'Deleted-record conflicts remain visible for deliberate review.',
@@ -29,6 +34,7 @@
   var ID = 'acUnifiedStatusModal', trigger = null, checkSeq = 0, previousFocus = null, waitTimer = null, updatesOpen = false;
   var cloudFlight=null,flightAuth=null,cloudNonce=0,localNonce=0,lastCloudCheckAt=0,lastVerifiedAt=0,queuedRefresh=null;
   var CLOUD_CHECK_INTERVAL=120000;
+  var manualCustomerSyncRunning=false;
   function sameAuth(a,b){return !!(a&&b&&String(a.partner_id)===String(b.partner_id)&&String(a.workspace_key)===String(b.workspace_key));}
   function modalVisible(){var el=$(ID);return !!(el&&!el.hidden);}
   function queueRefresh(delay,force){
@@ -132,6 +138,7 @@
     if (status==='verified') return 'Verified';
     if (status==='loaded') return 'Loaded';
     if (status==='checking') return 'Checking…';
+    if (status==='pending') return 'Waiting to sync';
     if (status==='saved') return 'Login saved';
     if (status==='local') return 'Local only';
     if (status==='cached') return 'Cached only';
@@ -173,6 +180,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.63.1',date:'15 October 2026',summary:'Accurate conflict reviews and meaningful customer saves'},
       {version:'v2.63.0',date:'15 October 2026',summary:'One-row customer header and confirmed-name saves'},
       {version:'v2.62.5',date:'15 October 2026',summary:'Responsive three-light status checks'},
       {version:'v2.62.4',date:'15 October 2026',summary:'Tracker solid for published quarter, dashed for forecast'},
@@ -211,6 +219,18 @@
     var cloudOnly=demo?0:cloudOnlyCount();
     var cloudCount=demo?3:cloud.customerCount;
     var connection=demo?'verified':cloud.connection;
+    var engine=global.AppointmentCompanionConsolidated;
+    var recentSync=!demo&&engine&&typeof engine.syncHealth==='function'?engine.syncHealth():null;
+    var syncNote='';
+    if(!demo&&recentSync){
+      if(recentSync.state==='running')syncNote='<p class="ac-us-note">Customer synchronisation is running. Please leave the app open.</p>';
+      else if(recentSync.completedAt){
+        syncNote='<p class="ac-us-note">Last customer sync: '+esc(readable(recentSync.completedAt))+
+          ' · '+esc(recentSync.state==='completed'?'Check finished':recentSync.state==='incomplete'?'Some updates failed':'Sync failed')+
+          ' ('+esc(recentSync.attempted||0)+' attempted, '+esc(recentSync.failed||0)+' failed).</p>'+
+          (recentSync.error?'<p class="ac-us-error">Reason: '+esc(String(recentSync.error).slice(0,250))+'</p>':'');
+      }
+    }
     var details='<div class="ac-us-minirow"><span>Cloud connection</span>'+badge('cloud',connection)+'</div>'+
       '<p class="ac-us-note">'+esc(demo?'Cloud connected':cloud.message || 'Cloud status not yet checked')+'</p>'+
       '<p class="ac-us-note">'+esc(explanation)+'</p>'+
@@ -220,16 +240,20 @@
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
       (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
-      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-enabled profile(s) waiting to sync.</p>':'')+
+      (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-linked profile(s) awaiting a confirmed sync.</p>':'')+
+      syncNote+
       (sync.conflicts && !demo?'<button type="button" data-us-action="review-customers">Review '+sync.conflicts+' conflict'+(sync.conflicts===1?'':'s')+' →</button>':'')+
+      (!sync.conflicts && sync.pending && !demo?'<button type="button" data-us-action="pending-customers">Review '+sync.pending+' pending →</button>':'')+
       (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
+      (!demo?'<button type="button" data-us-action="sync-customers"'+(manualCustomerSyncRunning?' disabled aria-disabled="true"':'')+'>'+
+        (manualCustomerSyncRunning?'Synchronising…':'Sync customers now')+'</button>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
     var customerTraffic=dimensions().find(function(d){return d.key==='customer';}).state;
     var customerBadge=demo?'synced':
       sync.conflicts>0 || sync.mode==='conflict'?'conflict':
       sync.mode==='failed' || cloud.connection==='failed'?'failed':
       cloud.connection==='disconnected'?'disconnected':
-      customerTraffic==='green'?'synced':'checking';
+      customerTraffic==='green'?'synced':sync.pending>0?'pending':'checking';
     return section('Customers',badge('customers',customerBadge),details,'acUsCustomers','customer');
   }
   function css() {
@@ -329,6 +353,13 @@
         if(allCustomers){close();allCustomers.click();}
       }
       else if(a==='tariff')refreshTariff();
+      else if(a==='sync-customers')syncCustomersNow();
+      else if(a==='pending-customers'){
+        var pendingBrowser=global.AppointmentCompanionConsolidated;
+        if(pendingBrowser&&typeof pendingBrowser.openCustomerBrowser==='function'){
+          close();pendingBrowser.openCustomerBrowser({scope:'pending'});
+        }
+      }
       else if(a==='device-only' || a==='cloud-only'){
         var browser=global.AppointmentCompanionConsolidated;
         if(browser&&typeof browser.openCustomerBrowser==='function'){
@@ -524,6 +555,35 @@
     })();
     try{return await cloudFlight;}
     finally{if(nonce===cloudNonce){cloudFlight=null;flightAuth=null;}}
+  }
+  async function syncCustomersNow(){
+    if(manualCustomerSyncRunning)return;
+    if(demo){showMessage('Preview - no live synchronisation attempted.');return;}
+    var engine=global.AppointmentCompanionConsolidated;
+    if(!engine||typeof engine.syncNow!=='function'){
+      showMessage('Customer sync is not ready. Reopen the Companion and try again.');return;
+    }
+    if(!navigator.onLine){showMessage('Offline. Local records are safe; reconnect to sync.');return;}
+    if(global.__AC_LOCAL_ONLY){showMessage('Local-only mode: Cloud sync is paused.');return;}
+    manualCustomerSyncRunning=true;
+    paint();showMessage('Synchronising Cloud-linked customers. Keep the app open…');
+    try {
+      var outcome=await engine.syncNow();
+      if(outcome&&outcome.state==='running'){
+        showMessage('A background customer sync is already running. Please wait for it to finish.');
+        return;
+      }
+      await refreshAll(true);
+      var reason=outcome&&outcome.error?String(outcome.error).slice(0,150):'';
+      if(sync.conflicts)showMessage('Sync checked. '+sync.conflicts+' conflict(s) need review. No automatic conflict resolution was applied.');
+      else if(sync.pending)showMessage('Sync checked. '+sync.pending+' profile(s) still pending.'+(reason?' '+reason:' Review pending for details.'));
+      else showMessage('Customer sync verified. No Cloud-linked profiles remain pending.');
+    } catch(err) {
+      showMessage('Could not complete customer sync: '+String(err&&err.message||err).slice(0,180));
+    } finally {
+      manualCustomerSyncRunning=false;
+      paint();
+    }
   }
   function refreshAll(force){
     var seq=++checkSeq;
