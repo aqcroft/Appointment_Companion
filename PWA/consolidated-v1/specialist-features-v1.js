@@ -145,7 +145,7 @@
     inner.appendChild(specialistButton('📚', 'Team Triumph Resources', function () { location.assign(TEAM); }));
     inner.appendChild(separator());
     inner.appendChild(specialistButton('☰', 'Companion menu', function () {
-      if (specialistMode) location.assign(new URL('./?open=menu', root).href); else clickMain('cloudActionMenu');
+      if (specialistMode) { var suite=global.AppointmentCompanionSpecialistMenu; if (suite && typeof suite.open==='function') suite.open(); } else clickMain('cloudActionMenu');
     }));
   }
 
@@ -197,14 +197,45 @@
     var open = new URL(location.href).searchParams.get('open');
     if (open && !document.documentElement.dataset.acOpenHandled) {
       document.documentElement.dataset.acOpenHandled = '1';
-      setTimeout(function () {
-        if (open === 'cloud') openCloudCredentials();
-        else {
-          var map = { customers:'cloudCustomerShortcut', save:'cloudSaveShortcut', share:'cloudShareShortcut', menu:'cloudActionMenu' };
-          var target = document.getElementById(map[open] || ''); if (target) target.click();
+      var tries=0;
+      var sensitive=['customers','save','all-customers','new-customer','basket','save-as','delete-current'];
+      function complete() {
+        try {
+          var url=new URL(location.href);
+          url.searchParams.delete('open');
+          history.replaceState(null,'',url.href);
+        } catch (_) {}
+      }
+      function runRequestedAction() {
+        // The consolidated controller attaches its safe save/switch intercept
+        // AFTER IndexedDB migration. Triggering beforehand would call the
+        // legacy Cloud handler and could open the wrong customer window.
+        if(sensitive.indexOf(open)>=0 &&
+           document.documentElement.dataset.acLocalFirstReady!=='1'){
+          if(++tries<125)return setTimeout(runRequestedAction,80);
+          var status=document.getElementById('cloudPilotStatus');
+          if(status)status.textContent='Customer controls are still starting. Please try again from the menu.';
+          return;
         }
-        try { var u = new URL(location.href); u.searchParams.delete('open'); history.replaceState(null, '', u.href); } catch (_) {}
-      }, 120);
+        if(open==='cloud'){complete();openCloudCredentials();return;}
+        var map={customers:'cloudCustomerShortcut',save:'cloudSaveShortcut',share:'cloudShareShortcut',
+          menu:'cloudActionMenu','all-customers':'cloudPilotLoad','new-customer':'[data-cloud-action="new-customer"]',
+          basket:'cloudBasketShortcut','save-as':'cloudPilotSaveAs','delete-current':'cloudDeleteCurrent',
+          partner:'[data-cloud-action="partner"]',settings:'[data-cloud-action="settings"]',
+          status:'acUnifiedStatusTrigger',help:'acGsMenu','share-app':'acShareAppMenuButton'};
+        var name=map[open]||'';
+        if(!name){complete();return;}
+        var target=name.charAt(0)==='['?document.querySelector(name):document.getElementById(name);
+        if(!target){
+          if(++tries<125)return setTimeout(runRequestedAction,80);
+          var warning=document.getElementById('cloudPilotStatus');
+          if(warning)warning.textContent='The requested Companion action is unavailable. Please open the menu and retry.';
+          return;
+        }
+        complete();
+        target.click();
+      }
+      setTimeout(runRequestedAction,120);
     }
     return true;
   }
