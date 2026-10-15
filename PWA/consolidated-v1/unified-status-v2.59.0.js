@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.9 - no Partner toolbar on customer shares, simpler Mobile details.
+/* Appointment Companion v2.62.0 - quarterly energy usage in Should I Fix.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,11 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.9',
+    version: 'v2.62.0',
     date: '15 October 2026',
-    summary: 'Standalone customer shares and tidier Mobile details',
+    summary: 'Quarterly kWh in Should I Fix',
     changes: [
-      'Customer-facing Should I Fix and EV links no longer load Partner-only menus, toolbar or status controls.',
+      'Should I Fix now reveals electricity and gas kWh per price-cap quarter beneath the tariff forecast, collapsed by default.',
+      'The usage rows share the existing quarter columns, including the narrow final October column, and only show selected fuels.',
+      'Price-cap forecast headings remain free of day counts. No changes to energy rates, forecast cost formulas or customer records.',
+      'Customer-facing Should I Fix and EV links still hide Partner-only controls.',
       'Partners retain the same T/C/P control and menu when opening either tool from their Companion.',
       'The redundant SIM-count row is hidden only in the multi-tap PWA, not the legacy standalone editor.',
       'Additional Unlimited SIM notes are shortened and shown only where eligible; the UW price aligns right.'
