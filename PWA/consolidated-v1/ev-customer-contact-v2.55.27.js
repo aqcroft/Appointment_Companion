@@ -4,18 +4,10 @@
   var params = new URL(location.href).searchParams;
   if (!document.documentElement.classList.contains('shared-view') && !params.has('s')) return;
 
-  var PROFILE = {
-    name: 'Adrian Croft',
-    role: 'UW Authorised Partner',
-    photo: 'https://raw.githubusercontent.com/aqcroft/UW_PET_GH_v2/main/Adrian_Croft.jpg',
-    whatsapp: 'https://wa.me/447787400800?text=' + encodeURIComponent("Hi Adrian, I've just used your EV summary and I'd like to know more"),
-    email: 'mailto:adrian.croft@uw.partners?subject=' + encodeURIComponent('EV summary') + '&body=' + encodeURIComponent("Hi Adrian, I've just used your EV summary and I'd like to know more"),
-    phone: 'tel:+447787400800',
-    booking: 'https://tidycal.com/aqcroft/uwpresent',
-    quote: 'https://uw.partners/adrian.croft/join',
-    site: 'https://aqcroft.com'
-  };
-  var WHATSAPP_ICON = '<svg viewBox="0 0 39 39" aria-hidden="true"><path fill="#00E676" d="M10.7 32.8l.6.3c2.5 1.5 5.3 2.2 8.1 2.2 8.8 0 16-7.2 16-16 0-4.2-1.7-8.3-4.7-11.3s-7-4.7-11.3-4.7c-8.8 0-16 7.2-15.9 16.1 0 3 .9 5.9 2.4 8.4l.4.6-1.6 5.9 6-1.5z"/><path fill="#fff" d="M32.4 6.4C29 2.9 24.3 1 19.5 1 9.3 1 1.1 9.3 1.2 19.4c0 3.2.9 6.3 2.4 9.1L1 38l9.7-2.5c2.7 1.5 5.7 2.2 8.7 2.2 10.1 0 18.3-8.3 18.3-18.4 0-4.9-1.9-9.5-5.3-12.9zM19.5 34.6c-2.7 0-5.4-.7-7.7-2.1l-.6-.3-5.8 1.5L6.9 28l-.4-.6c-4.4-7.1-2.3-16.5 4.9-20.9s16.5-2.3 20.9 4.9 2.3 16.5-4.9 20.9c-2.3 1.5-5.1 2.3-7.9 2.3zm8.8-11.1l-1.1-.5-2.6-1.2c-.3 0-.5.1-.7.2l-1.5 1.7c-.1.2-.3.3-.5.3-.2 0-.6-.2-.9-.4-1.5-.7-2.8-1.6-3.9-2.8-1-1.1-1.8-2.2-2.4-3.4-.2-.3 0-.6.2-.8l1-1.2c.2-.3.3-.7.2-1-.1-.5-1.3-3.2-1.6-3.8-.2-.3-.4-.4-.7-.5h-1.1c-.5.1-.9.3-1.3.7-1 .9-1.5 2.2-1.5 3.5 0 .8.2 1.6.5 2.3 1 2.2 2.5 4.1 4.3 5.8 2.2 2 4.8 3.4 7.7 4.1 1.1.3 2.4.2 3.4-.3 1-.5 1.8-1.3 2.2-2.3.2-.4.3-.9.4-1.4 0-.3-.1-.5-.4-.6z"/></svg>';
+  // No individual Partner is the fallback for another. Resolve the share owner in Cloud.
+  var PROFILE = {name:'Your UW Partner',role:'UW Authorised Partner',photo:'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2296%22%20height%3D%2296%22%20viewBox%3D%220%200%2096%2096%22%3E%3Ccircle%20cx%3D%2248%22%20cy%3D%2248%22%20r%3D%2248%22%20fill%3D%22%237a42c8%22%2F%3E%3Ctext%20x%3D%2248%22%20y%3D%2261%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-size%3D%2232%22%20font-family%3D%22Arial%22%3EUW%3C%2Ftext%3E%3C%2Fsvg%3E',whatsapp:'',email:'',phone:'',booking:'',quote:'',site:''};
+  global.__AC_EV_PARTNER_QUOTE = '';
+ var WHATSAPP_ICON = '<svg viewBox="0 0 39 39" aria-hidden="true"><path fill="#00E676" d="M10.7 32.8l.6.3c2.5 1.5 5.3 2.2 8.1 2.2 8.8 0 16-7.2 16-16 0-4.2-1.7-8.3-4.7-11.3s-7-4.7-11.3-4.7c-8.8 0-16 7.2-15.9 16.1 0 3 .9 5.9 2.4 8.4l.4.6-1.6 5.9 6-1.5z"/><path fill="#fff" d="M32.4 6.4C29 2.9 24.3 1 19.5 1 9.3 1 1.1 9.3 1.2 19.4c0 3.2.9 6.3 2.4 9.1L1 38l9.7-2.5c2.7 1.5 5.7 2.2 8.7 2.2 10.1 0 18.3-8.3 18.3-18.4 0-4.9-1.9-9.5-5.3-12.9zM19.5 34.6c-2.7 0-5.4-.7-7.7-2.1l-.6-.3-5.8 1.5L6.9 28l-.4-.6c-4.4-7.1-2.3-16.5 4.9-20.9s16.5-2.3 20.9 4.9 2.3 16.5-4.9 20.9c-2.3 1.5-5.1 2.3-7.9 2.3zm8.8-11.1l-1.1-.5-2.6-1.2c-.3 0-.5.1-.7.2l-1.5 1.7c-.1.2-.3.3-.5.3-.2 0-.6-.2-.9-.4-1.5-.7-2.8-1.6-3.9-2.8-1-1.1-1.8-2.2-2.4-3.4-.2-.3 0-.6.2-.8l1-1.2c.2-.3.3-.7.2-1-.1-.5-1.3-3.2-1.6-3.8-.2-.3-.4-.4-.7-.5h-1.1c-.5.1-.9.3-1.3.7-1 .9-1.5 2.2-1.5 3.5 0 .8.2 1.6.5 2.3 1 2.2 2.5 4.1 4.3 5.8 2.2 2 4.8 3.4 7.7 4.1 1.1.3 2.4.2 3.4-.3 1-.5 1.8-1.3 2.2-2.3.2-.4.3-.9.4-1.4 0-.3-.1-.5-.4-.6z"/></svg>';
 
   function safeHttps(value) {
     try { var u = new URL(String(value || '')); return u.protocol === 'https:' ? u.href : ''; }
@@ -46,7 +38,7 @@
       '.ac-ev-conversion{background:linear-gradient(135deg,#f3ecfc,#fff);border:1px solid rgba(122,66,200,.24);border-radius:16px;padding:17px 16px;margin:16px 0 0;text-align:center;color:#26164f}',
       '.ac-ev-conversion h2{margin:0 0 5px;font-size:18px;color:#26164f}.ac-ev-conversion p{margin:0;color:#6b6277;font-size:.86rem;font-weight:650}',
       '.ac-ev-cta{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:12px 14px;border-radius:11px;background:#7a42c8;color:#fff!important;text-decoration:none;font-weight:850;font-size:14px}',
-      '.ac-ev-cta svg{width:21px;height:21px}.ac-ev-cta.secondary{background:#fff;color:#26164f!important;border:1.5px solid rgba(122,66,200,.24)}',
+      '.ac-ev-profile [hidden],.ac-ev-conversion [hidden]{display:none!important}.ac-ev-cta svg{width:21px;height:21px}.ac-ev-cta.secondary{background:#fff;color:#26164f!important;border:1.5px solid rgba(122,66,200,.24)}',
       '.ac-ev-step{margin:11px 0 0!important;color:#4d5360!important;font-size:12px!important;line-height:1.48!important;font-weight:550!important;text-align:left}',
       '.ac-ev-clarifier{margin-top:10px!important;font-size:11px!important;line-height:1.45!important;text-align:left;color:#646c75!important}',
       '.ac-ev-partner{margin-top:12px;font-size:.76rem;color:#6b6277;font-weight:700}.ac-ev-partner a{color:#7a42c8;font-weight:850}',
@@ -214,8 +206,9 @@
     var wrap = document.createElement('div');
     wrap.id = 'acEvProfile';
     wrap.className = 'ac-ev-profile';
-    wrap.innerHTML = '<button class="ac-ev-profile-photo" type="button" id="acEvProfileToggle" aria-label="Contact Adrian"><img src="' + PROFILE.photo + '" alt="Adrian Croft"></button><div class="ac-ev-profile-card"><div class="ac-ev-profile-id"><img src="' + PROFILE.photo + '" alt=""><div><div class="ac-ev-profile-name">' + PROFILE.name + '</div><div class="ac-ev-profile-role">' + PROFILE.role + '</div></div></div><div class="ac-ev-contact-label">Contact Adrian</div><div class="ac-ev-contact-three"><a class="ac-ev-contact-route whatsapp" href="' + PROFILE.whatsapp + '" target="_blank" rel="noopener">' + WHATSAPP_ICON + '<span>WhatsApp</span></a><a class="ac-ev-contact-route" href="' + PROFILE.email + '">✉️ <span>Email</span></a><a class="ac-ev-contact-route" href="' + PROFILE.phone + '">📞 <span>Call</span></a></div><a class="ac-ev-profile-action" href="' + PROFILE.booking + '" target="_blank" rel="noopener">🗓️ <span>Book a chat</span></a><a class="ac-ev-profile-action quote" href="' + PROFILE.quote + '" target="_blank" rel="noopener">💷 <span>Get a UW quote</span></a><div class="ac-ev-profile-site"><a href="' + PROFILE.site + '" target="_blank" rel="noopener">AQCroft.com</a></div><div class="ac-ev-profile-closehint">Tap the photo again to close</div></div>';
+    wrap.innerHTML = '<button class="ac-ev-profile-photo" type="button" id="acEvProfileToggle" aria-label="Contact your UW Partner"><img src="' + PROFILE.photo + '" alt="Your UW Partner"></button><div class="ac-ev-profile-card"><div class="ac-ev-profile-id"><img src="' + PROFILE.photo + '" alt=""><div><div class="ac-ev-profile-name">' + PROFILE.name + '</div><div class="ac-ev-profile-role">' + PROFILE.role + '</div></div></div><div class="ac-ev-contact-label">Partner contact details loading…</div><div class="ac-ev-contact-three"><a class="ac-ev-contact-route whatsapp" href="' + PROFILE.whatsapp + '" target="_blank" rel="noopener">' + WHATSAPP_ICON + '<span>WhatsApp</span></a><a class="ac-ev-contact-route" href="' + PROFILE.email + '">✉️ <span>Email</span></a><a class="ac-ev-contact-route" href="' + PROFILE.phone + '">📞 <span>Call</span></a></div><a class="ac-ev-profile-action" href="' + PROFILE.booking + '" target="_blank" rel="noopener">🗓️ <span>Book a chat</span></a><a class="ac-ev-profile-action quote" href="' + PROFILE.quote + '" target="_blank" rel="noopener">💷 <span>Get a UW quote</span></a><div class="ac-ev-profile-site"><a href="' + PROFILE.site + '" target="_blank" rel="noopener">Partner website</a></div><div class="ac-ev-profile-closehint">Tap the photo again to close</div></div>';
     document.body.appendChild(wrap);
+    wrap.querySelectorAll('a').forEach(function(a){a.hidden=true;a.removeAttribute('href');});
     wrap.querySelector('#acEvProfileToggle').addEventListener('click', function (e) { e.stopPropagation(); wrap.classList.toggle('open'); });
     document.addEventListener('click', function (e) { if (wrap.classList.contains('open') && !wrap.contains(e.target)) wrap.classList.remove('open'); });
   }
@@ -237,13 +230,16 @@
     }
     var host=document.querySelector('.wrap')||document.body;
     var card=document.createElement('section');card.id='acEvConversion';card.className='ac-ev-conversion';
-    var b=basket(),target=b||PROFILE.quote;
+    var b=basket();
     card.innerHTML='<h2>Ready to explore UW?</h2>'+
       '<p>Take a look at your '+(b?'personalised UW basket':'UW quote options')+'.</p>'+
       '<button type="button" class="ac-ev-cta" id="acEvOpenBasket" style="border:0;width:100%;cursor:pointer">🛒 '+(b?'Go to my UW basket':'Explore a UW quote')+' →</button>'+
-      '<a class="ac-ev-cta secondary" href="'+PROFILE.whatsapp+'" target="_blank" rel="noopener">'+WHATSAPP_ICON+'<span>Any questions? WhatsApp Adrian</span></a>';
+      '<a class="ac-ev-cta secondary" href="'+PROFILE.whatsapp+'" target="_blank" rel="noopener">'+WHATSAPP_ICON+'<span>Any questions? WhatsApp your UW Partner</span></a>';
     host.appendChild(card);
-    card.querySelector('#acEvOpenBasket').addEventListener('click',function(){showBasket(target,this)});
+    var button=card.querySelector('#acEvOpenBasket');button.disabled=!(b||global.__AC_EV_PARTNER_QUOTE);
+    button.addEventListener('click',function(){var destination=b||global.__AC_EV_PARTNER_QUOTE;if(destination)showBasket(destination,this);});
+    var whatsapp=card.querySelector('a.ac-ev-cta.secondary');if(whatsapp){whatsapp.hidden=true;whatsapp.removeAttribute('href');}
+    global.dispatchEvent(new CustomEvent('ac:ev-contact-rebuilt'));
   }
   function showBasket(url,origin){
     var link=safeHttps(url);if(!link)return;

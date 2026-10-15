@@ -9,7 +9,7 @@
     try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; }
     catch (_) { return ''; }
   }
-  function creatorPartnerId() { try { var a = JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession') || 'null'); if (a && a.partner_id) return String(a.partner_id).trim(); } catch (_) {} try { var a2 = JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1') || 'null'); if (a2 && a2.partner_id) return String(a2.partner_id).trim(); } catch (_) {} try { var p = JSON.parse(localStorage.getItem('apptCompanionPartner') || 'null'); if (p && p.partner_id) return String(p.partner_id).trim(); } catch (_) {} return ''; }
+  function creatorPartnerId() { try { var a=JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession')||'null'); if(!(a&&a.partner_id&&a.workspace_key)) a=JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1')||'null'); return a&&a.partner_id&&a.workspace_key?String(a.partner_id).trim():''; } catch (_) { return ''; } }
   function envelope() { try { return bridge && bridge.receive ? bridge.receive() : null; } catch (_) { return null; } }
   function savedBasket() {
     var e = envelope(), c = e && e.extra && e.extra.customer;

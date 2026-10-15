@@ -1,3 +1,10 @@
+## v2.61.0 - 15 October 2026 - Verified Partner identity
+
+- Creating Partner's own photo, contact details and quote links are used across EV and Should I Fix shares.
+- Neutral contact placeholders replace unsafe fixed-person fallbacks.
+- Profile photos can be dragged, and forecast modal close controls remain accessible.
+- Preserves the v2.60.3 streamlined menu, compact status control, editable Partner settings and latest October forecast.
+
 ## v2.57.0 - 13th October 2026
 
 - Main Companion's EV and Should I Fix toolbar buttons now use delegated launch handlers, avoiding reliance on hidden, potentially stale Cloud-era shortcut elements after background re-renders.

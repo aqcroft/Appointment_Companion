@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.3 - compact TCP toolbar and partner profile improvements.
+/* Appointment Companion v2.61.0 - per-Partner identities and accessible modals.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.60.3',
+    version: 'v2.61.0',
     date: '15 October 2026',
-    summary: 'Compact traffic-light status and improved Partner settings',
+    summary: 'Correct Partner photos and contact details in EV and Should I Fix',
     changes: [
-      'The status button is now narrower, showing colour-coded T, C and P traffic lights in a square footprint.',
-      'The Companion menu has Back navigation between its three sections.',
-      'Partner settings validate UW links and add photo upload, clearer website and booking links, and login guidance.',
-      'Underlying full release and Cloud data remain available in App status & updates.'
+      'EV and Should I Fix now show the creating Partner, not another Partner\'s cached photo or contact links.',
+      'Personalised links carry the correct Partner ID; unverifiable links remain disabled.',
+      'Forecast modals appear above draggable floating profile photos.',
+      'The compact TCP control, grouped menu and Partner settings remain available.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.60.0',date:'14 October 2026',summary:'TCP status and complete tariff suites'},
-      {version:'v2.59.1',date:'14 October 2026',summary:'Restored the Cloud Partner profile check'}
+      {version:'v2.60.3',date:'15 October 2026',summary:'Compact TCP and improved Partner settings'},
+      {version:'v2.60.2',date:'14 October 2026',summary:'Grouped menu and Back navigation'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
