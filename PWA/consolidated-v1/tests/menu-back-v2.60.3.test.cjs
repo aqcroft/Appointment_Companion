@@ -113,5 +113,6 @@ test('menu becomes a true browser top-layer popover above an expanded accordion'
   assert.equal(menu.popoverHidden,1,'Closing menu hides the top-layer popover');
   assert.equal(menu.popped,false);
   const root=menu.querySelector('#acMenuRootActions');
-  assert.equal(root.querySelector('#acQuickAction-basket').children[0].textContent,'🧺');
+  assert.match(root.querySelector('#acQuickAction-basket').children[0].innerHTML,/viewBox="0 0 24 24"/);
+  assert.match(root.querySelector('#acQuickAction-basket').children[0].innerHTML,/FFE3B5/);
 });
