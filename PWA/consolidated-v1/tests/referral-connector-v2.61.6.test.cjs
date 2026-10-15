@@ -116,5 +116,6 @@ test('mobile tap cycle and vivid service states are implemented in shared servic
  assert.match(polish,/ac-mobile-state/);
  assert.doesNotMatch(polish,/stepper\.addEventListener/);
  for(const colour of ['#32B5D1','#3BBB75','#E44B9C','#F98A32','#9561D7'])assert.ok(polish.includes(colour),colour);
- assert.match(polish,/boiler\.disabled=!homeowner\|\|tenant/);
+ assert.match(polish,/var unavailable = !homeowner \|\| tenant/);
+ assert.match(polish,/if \(boiler\.classList\.contains\('ac-unavailable'\) !== unavailable\)/);
 });

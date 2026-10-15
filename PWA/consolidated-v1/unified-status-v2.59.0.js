@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.6 - referral sources, benefits, service colours and SIM cycling.
+/* Appointment Companion v2.61.7 - fixes startup observer loop in service tiles.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.6',
+    version: 'v2.61.7',
     date: '15 October 2026',
-    summary: 'Connector referral, £65 club shirt and clearer service selection',
+    summary: 'Fixed startup freeze caused by service tile updates',
     changes: [
-      'Referral source is one compact row using the supplied UW and Win Win icons plus a football shirt.',
-      'Homeowner Connector commission is £50/£125/£150 for two/three/four qualifying services; tenants earn £0 but retain the source.',
-      'Qualifying National League referrals add a £65 Free club shirt benefit for homeowners and tenants.',
-      'Selected service tiles use vivid colours; mobile cycles from one to five SIMs and then off, without losing per-SIM plan choices.'
+      'Fixed a startup freeze where an observer was repeatedly triggered by a no-op Boiler Cover class update.',
+      'Service tile updates now change CSS classes only when the actual state changes.',
+      'The referral routes, Connector commission, £65 shirt, colourful service tiles and mobile tap cycling remain available.',
+      'Customer records, Cloud sync and tariff calculations are unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.5',date:'15 October 2026',summary:'Shopping basket and fewer background Cloud checks'},
-      {version:'v2.61.4',date:'15 October 2026',summary:'Manual Cloud uploads wait for background checks'}
+      {version:'v2.61.6',date:'15 October 2026',summary:'Connector referral, £65 shirt and stronger service tiles'},
+      {version:'v2.61.5',date:'15 October 2026',summary:'Shopping basket and fewer background Cloud checks'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
