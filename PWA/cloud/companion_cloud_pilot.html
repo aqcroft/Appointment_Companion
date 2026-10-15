@@ -1506,8 +1506,8 @@ function compute(previewSims = 0) {
   const cb = CONFIG.cashback;
 
   // --- Boiler Cover ---
-  const boilerCoverCost = $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
-  const currentBoilerCover = $('boilerCoverToggle').checked && state.boilerMode === 'existing' ? numF('currentBoilerCoverMonthly') : 0;
+  const boilerCoverCost = state.homeowner === 'homeowner' && $('boilerCoverToggle').checked ? CONFIG.insurance.boilerCover : 0;
+  const currentBoilerCover = boilerCoverCost > 0 && state.boilerMode === 'existing' ? numF('currentBoilerCoverMonthly') : 0;
   const boilerCoverFree = 0;
   const insuranceTotal = boilerCoverCost;
   const insuranceCount = boilerCoverCost > 0 ? 1 : 0;
@@ -2674,6 +2674,7 @@ function restoreForm(saved) {
   });
 
   selectReferralRoute(state.referralRoute);
+  if (state.homeowner !== 'homeowner') $('boilerCoverToggle').checked = false;
   // conditional panels follow their (now-restored) toggles
   $('billCosts').classList.toggle('hidden', !$('useBillCosts').checked);
   $('energyCombinedNow').classList.toggle('hidden', $('splitEnergyToggle').checked);
