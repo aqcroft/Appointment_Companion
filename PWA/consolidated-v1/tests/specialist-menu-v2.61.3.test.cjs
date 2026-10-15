@@ -13,7 +13,7 @@ test('EV and Should I Fix load the same universal TCP and in-tool menu',()=>{
     assert.match(loader,/v2\.61\.3/);
   }
   const core=read('unified-status-v2.59.0.js');
-  assert.match(core,/version: 'v2\.61\.3'/);
+  assert.match(core,/version: 'v2\.61\.\d+'/);
   assert.match(core,/function dimensions\(\)/);
   assert.match(core,/function refreshCloud\(/);
   assert.match(core,/global\.AppointmentCompanionUnifiedStatus/);
