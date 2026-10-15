@@ -90,6 +90,8 @@ test(tool+': hamburger opens a popover without leaving the current tool',()=>{
   assert.equal(h.menu.popped,true);
   assert.equal(h.trigger.attrs['aria-expanded'],'true');
   assert.equal(h.menu.children[0].children.filter(x=>x.dataset.acSuiteAction==='section').length,3);
+  assert.ok(h.menu.children[0].children.some(x=>x.dataset.acSuiteAction==='delete-current'),'Delete is visible in specialist quick actions');
+  assert.ok(h.menu.children[0].children.some(x=>x.dataset.acSuiteAction==='basket'),'Saved basket link is visible in specialist quick actions');
   h.tapAction('section','customers');
   assert.equal(h.assigned.length,0);
   assert.ok(h.menu.children[0].children.some(x=>x.textContent==='Customers & quotes' || x.dataset.acSuiteAction==='all-customers'));
