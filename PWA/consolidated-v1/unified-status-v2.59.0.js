@@ -1,4 +1,4 @@
-/* Appointment Companion v2.62.0 - quarterly energy usage in Should I Fix.
+/* Appointment Companion v2.62.3 - clearer Should I Fix chart labels and fuel selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,17 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.2',
+    version: 'v2.62.3',
     date: '15 October 2026',
-    summary: 'One-level menus across all Partner tools',
+    summary: 'Clearer Should I Fix chart and fuel selection',
     changes: [
-      'Restored one-click Customers & quotes and Account & app actions in a single dropdown.',
-      'More options expands within the menu instead of opening another submenu.',
-      'Positioned the menu beneath its hamburger button, with scrolling on small screens.',
-      'Applied the same menu organisation to the Partner EV and Should I Fix tools.',
-      'Reused existing customer and Cloud action handlers without changing their save logic.',
-      'The More section includes a link to the separate Relationship follow-up app.',
-      'Customer-facing shared links continue to hide Partner-only menus.'
+      'Chart key now shows the selected live Fixed and Tracker tariff series numbers where available.',
+      'Reordered the fuel buttons to Both, Electricity, Gas, with electricity first.',
+      'Manual fixed deals remain labelled Custom fixed; missing series numbers are not guessed.',
+      'No changes to tariff calculations, saved profiles or shared-link behaviour.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -160,6 +157,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.62.2',date:'15 October 2026',summary:'Flat Partner menus across the tools'},
       {version:'v2.62.1',date:'15 October 2026',summary:'First version of simplified Companion menus'},
       {version:'v2.62.0',date:'15 October 2026',summary:'Quarterly kWh in Should I Fix'}
     ];
