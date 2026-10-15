@@ -80,7 +80,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261015-v2.61.5-calm-cloud-basket';
+      var version = '20261015-v2.61.6-referral-service';
       var params = new URL(location.href).searchParams;
       var shared = params.has('s');
       var portableShared = /^p2=/.test(location.hash.slice(1));
@@ -102,7 +102,7 @@
       var response = await fetch('../../v16c-ev.html?v=' + version);
       if (!response.ok) throw new Error('EV donor returned HTTP ' + response.status);
       var html = await response.text();
-      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.61.5</title>');
+      html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>EV Companion v2.61.6</title>');
       // The original donor welcome has three oversized stacked emojis. Set a
       // single neutral icon even when a slow Cloud lookup has not finished.
       html = html.replace('<div class="personal-splash-icon">🚙  🔌  🏠</div>', '<div class="personal-splash-icon">🚗</div>');
