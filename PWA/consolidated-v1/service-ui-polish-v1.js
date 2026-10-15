@@ -267,6 +267,9 @@
       #canonicalEnergyPanel .canonical-choice button.on, #canonicalEnergyPanel #useSplitEstimate:not(:disabled) { background:var(--ac-energy-strong)!important; border-color:var(--ac-energy-strong)!important; color:#fff!important; }
       #canonicalEnergyPanel > .canonical-choice[aria-label="Energy fuel"] { display:none!important; }
       #canonicalMobilePanel { display:none!important; }
+      /* The main PWA cycles SIM count on the Mobile tile; the legacy standalone
+         form keeps its own number selector so it stays usable independently. */
+      #mobileCard #simCountPills {display:none!important;}
 
       @media(max-width:420px) {
         #servicesCard > .pills { gap:4px!important; }
