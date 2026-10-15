@@ -145,7 +145,7 @@
     inner.appendChild(specialistButton('📚', 'Team Triumph Resources', function () { location.assign(TEAM); }));
     inner.appendChild(separator());
     inner.appendChild(specialistButton('☰', 'Companion menu', function () {
-      if (specialistMode) location.assign(new URL('./?open=menu', root).href); else clickMain('cloudActionMenu');
+      if (specialistMode) { var suite=global.AppointmentCompanionSpecialistMenu; if (suite && typeof suite.open==='function') suite.open(); } else clickMain('cloudActionMenu');
     }));
   }
 
@@ -200,8 +200,14 @@
       setTimeout(function () {
         if (open === 'cloud') openCloudCredentials();
         else {
-          var map = { customers:'cloudCustomerShortcut', save:'cloudSaveShortcut', share:'cloudShareShortcut', menu:'cloudActionMenu' };
-          var target = document.getElementById(map[open] || ''); if (target) target.click();
+          var map = { customers:'cloudCustomerShortcut', save:'cloudSaveShortcut', share:'cloudShareShortcut',
+            menu:'cloudActionMenu', 'all-customers':'cloudPilotLoad', 'new-customer':'[data-cloud-action="new-customer"]',
+            basket:'cloudBasketShortcut', 'save-as':'cloudPilotSaveAs', 'delete-current':'cloudDeleteCurrent',
+            partner:'[data-cloud-action="partner"]', settings:'[data-cloud-action="settings"]',
+            status:'acUnifiedStatusTrigger', help:'acGsMenu', 'share-app':'acShareAppMenuButton' };
+          var name=map[open]||'';
+          var target=name.charAt(0)==='['?document.querySelector(name):document.getElementById(name);
+          if(target)target.click();
         }
         try { var u = new URL(location.href); u.searchParams.delete('open'); history.replaceState(null, '', u.href); } catch (_) {}
       }, 120);
