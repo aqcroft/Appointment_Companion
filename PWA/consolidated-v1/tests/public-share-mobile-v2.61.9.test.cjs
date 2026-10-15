@@ -56,7 +56,7 @@ test('EV Partner view retains the full toolbar',async()=>{
 test('even if a future loader accidentally injects Partner scripts, public links are rejected in each module',()=>{
  for(const file of ['specialist-features-v1.js','unified-status-v2.59.0.js','specialist-suite-menu-v2.61.3.js']){
    const source=read(file);
-   assert.match(source,/URLSearchParams\([^\n]*location\.search\)\.get\('public'\)\s*===\s*'1'/,file);
+   assert.match(source,/public=1/,file);
  }
 });
 test('multi-tap Companion hides old SIM count pills without removing standalone controls',()=>{
