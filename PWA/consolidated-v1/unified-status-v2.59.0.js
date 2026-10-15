@@ -1,4 +1,4 @@
-/* Appointment Companion v2.62.4 - solid known Tracker quarter; dashed forecast.
+/* Appointment Companion v2.62.5 - responsive T/C/P verification across tools.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,16 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.4',
+    version: 'v2.62.5',
     date: '15 October 2026',
-    summary: 'Known Tracker rates now shown with a solid line',
+    summary: 'Faster, more reliable three-light status checks',
     changes: [
-      'Should I Fix now shows the Tracker line solid orange for published October-December rates.',
-      'The Tracker line becomes dashed where January-onwards prices depend on forecast price caps.',
-      'Used the same known-to-forecast transition as the variable price-cap line.',
-      'No changes to calculations, tariff selection, customer profiles or sharing.'
+      'Check Cloud customers and Partner identity automatically on launch and after reconnecting.',
+      'Reconcile the customer indicator again after the remote customer list arrives.',
+      'Allow healthy Cloud status with no active customer or deliberately local drafts.',
+      'Read local customer health consistently across Companion, EV and Should I Fix.',
+      'Enable live tariff verification in the Should I Fix toolstrip.',
+      'Preserve amber for outstanding checks and red for genuine failures.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -166,6 +168,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.62.4',date:'15 October 2026',summary:'Tracker solid for published quarter, dashed for forecast'},
       {version:'v2.62.3',date:'15 October 2026',summary:'Live tariff versions in the chart key and electricity-first fuel buttons'},
       {version:'v2.62.2',date:'15 October 2026',summary:'Flat Partner menus across the tools'},
       {version:'v2.62.1',date:'15 October 2026',summary:'First version of simplified Companion menus'},
@@ -312,7 +315,7 @@
       var action=e.target.closest('[data-us-action]');if(!action)return;
       var a=action.getAttribute('data-us-action');
       if(a==='close')close();
-      else if(a==='refresh')refreshAll();
+      else if(a==='refresh')refreshAll(true);
       else if(a==='updates'){updatesOpen=!updatesOpen;paint();}
       else if(a==='all-customers'){
         var allCustomers=$('cloudCustomerShortcut')||document.querySelector('[data-cloud-action="all-customers"]');
@@ -361,12 +364,12 @@
     paint();showMessage('');
     var closeBtn=document.querySelector('#'+ID+' [data-us-action="close"]');
     if(closeBtn)closeBtn.focus();
-    refreshAll();
+    refreshAll(false);
   }
   function close(){
     var m=$(ID);if(m)m.hidden=true;
     document.removeEventListener('keydown',onEsc);
-    checkSeq++;
+    // Let background checks finish even when the status window closes.
     if(previousFocus&&previousFocus.isConnected)previousFocus.focus();
   }
   function refreshTariff(){
@@ -553,29 +556,42 @@
       }
     }
     ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,paint);});
-    // Routine customer sync checks local records but never restarts remote Partner verification.
-    global.addEventListener('ac:cloud-sync-state-changed',function(){refreshCustomerSync(checkSeq,true);});
+    global.addEventListener('ac:cloud-sync-state-changed',function(){
+      refreshCustomerSync(checkSeq,true).then(function(){
+        if(sync.currentRevisionSynced&&sync.currentCloudId&&
+          Array.isArray(cloud.customerIds)&&!cloud.customerIds.includes(String(sync.currentCloudId))&&
+          Date.now()-lastCloudCheckAt>12000)queueRefresh(700,true);
+      });
+    });
+    global.addEventListener('ac:customer-switched',function(){refreshCustomerSync(checkSeq,true);});
     ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function(name){
       global.addEventListener(name,function(){
-        // A new authenticated session, including changed credentials for the
-        // same Partner ID, must never inherit the previous session's green result.
-        cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'idle';
-        cloud.profile=name==='ac:cloud-disconnected'?'failed':'idle';
-        cloud.owner='';
-        cloud.customerIds=null;
-        cloud.customerCount=null;
-        if($(ID)&&!$(ID).hidden)refreshAll();
-        else paint();
+        ++cloudNonce;cloudFlight=null;flightAuth=null;lastCloudCheckAt=0;lastVerifiedAt=0;
+        cloud.connection=name==='ac:cloud-disconnected'?'disconnected':'checking';
+        cloud.profile=name==='ac:cloud-disconnected'?'failed':'checking';
+        cloud.owner='';cloud.customerIds=null;cloud.customerCount=null;
+        if(name==='ac:cloud-authenticated')queueRefresh(300,true);
+        paint();
       });
     });
     global.addEventListener('ac:partner-profile-ready',function(){
       var cached=localPartner(ownAuth());
-      if(cached && cloud.connection==='verified' && cloud.profile==='loaded')cloud.profileName=cached.name;
+      if(cached&&cloud.connection==='verified'&&cloud.profile==='loaded')cloud.profileName=cached.name;
       paint();
     });
+    global.addEventListener('online',function(){queueRefresh(300,true);});
+    global.addEventListener('offline',function(){
+      ++cloudNonce;cloudFlight=null;flightAuth=null;
+      cloud.connection='disconnected';cloud.message='Device offline. Cloud verification unavailable.';paint();
+    });
+    global.addEventListener('focus',function(){refreshAll(false);});
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)refreshAll(false);});
+    setInterval(function(){if(!document.hidden)refreshAll(false);},180000);
     refreshCustomerSync(checkSeq,true);
+    checkSpecialistTariffs();
+    queueRefresh(400,false);
     return true;
   }
   var tries=0,work=setInterval(function(){if(install()||++tries>240)clearInterval(work);},50);
-  global.AppointmentCompanionUnifiedStatus={open:open,refresh:refreshAll,version:meta.version};
+  global.AppointmentCompanionUnifiedStatus={open:open,refresh:function(){return refreshAll(true);},version:meta.version};
 })(window);
