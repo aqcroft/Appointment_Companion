@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Should I Fix? v2.61.0</title>
+  <title>Should I Fix? v2.61.3</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
   <style>body{font-family:system-ui;background:#fffbe3;color:#26164f;margin:0;display:grid;place-items:center;min-height:100vh}.msg{padding:24px;text-align:center}</style>
@@ -13,7 +13,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261015-v2.61.0-partner-identity';
+      var version = '20261015-v2.61.3-suite-nav';
       var response = await fetch('../../cloud-test/should-i-fix-pilot-v2.html?v=' + version);
       if (!response.ok) throw new Error('Should I Fix donor returned HTTP ' + response.status);
       var html = await response.text();
@@ -23,7 +23,7 @@
       html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>Should I Fix? v2.61.0</title>');
       html = html.replace(/<\/body>/i, '<script src="../../cloud-client-v1.js?v=' + version + '"><\/script><script src="../fix-share-gate-v1.js?v=' + version + '"><\/script><script src="../public-partner-branding-v1.js?v=' + version + '"><\/script><script src="../specialist-context-nav-v1.js?v=' + version + '"><\/script><script src="../specialist-features-v1.js?v=' + version + '"><\/script><script src="../spring-clean-v2.57.0.js?v=' + version + '"><\/script><script src="../release-v2.3.js?v=' + version + '"><\/script><script src="../release-v2.4.js?v=' + version + '"><\/script><script src="../release-v2.41.js?v=' + version + '"><\/script><script src="../release-v2.42.js?v=' + version + '"><\/script><script src="../release-v2.44.js?v=' + version + '"><\/script><script src="../release-v2.45.js?v=' + version + '"><\/script><script src="../release-v2.45.2.js?v=' + version + '"><\/script><script src="../release-v2.45.3.js?v=' + version + '"><\/script><script src="../release-v2.45.4.js?v=' + version + '"><\/script><script src="../release-v2.45.5.js?v=' + version + '"><\/script><script src="../release-v2.45.6.js?v=' + version + '"><\/script><script src="../release-v2.45.7.js?v=' + version + '"><\/script><script src="../release-v2.45.8.js?v=' + version + '"><\/script><script src="../release-v2.45.9.js?v=' + version + '"><\/script><script src="../release-v2.45.10.js?v=' + version + '"><\/script><script src="../release-v2.45.11.js?v=' + version + '"><\/script><script src="../release-v2.45.12.js?v=' + version + '"><\/script><script src="../release-v2.45.13.js?v=' + version + '"><\/script><script src="../release-v2.45.14.js?v=' + version + '"><\/script><script src="../release-v2.45.15.js?v=' + version + '"><\/script><script src="../release-v2.45.16.js?v=' + version + '"><\/script><script src="../release-v2.46.0.js?v=' + version + '"><\/script><script src="../release-v2.46.1.js?v=' + version + '"><\/script><script src="../release-v2.46.2.js?v=' + version + '"><\/script><script src="../release-v2.46.3.js?v=' + version + '"><\/script><script src="../release-v2.52.0.js?v=' + version + '"><\/script><script src="../release-v2.53.0.js?v=' + version + '"><\/script><script src="../release-v2.54.0.js?v=' + version + '"><\/script><script src="../release-v2.54.1.js?v=' + version + '"><\/script><script src="../release-v2.54.2.js?v=' + version + '"><\/script></body>');
       html = html.replace(/<\/body>/i, '<script src="../release-v2.55.20.js?v=' + version + '"><\/script></body>');
-      html = html.replace(/<\/body>/i, '<script src="../release-v2.57.0.js?v=' + version + '"><\/script></body>');
+      html = html.replace(/<\/body>/i, '<script src="../release-v2.57.0.js?v=' + version + '"><\/script><script src="../unified-status-v2.59.0.js?v=' + version + '"><\/script><script src="../specialist-suite-menu-v2.61.3.js?v=' + version + '"><\/script></body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
       document.getElementById('loader').textContent = '❌ Should I Fix could not load: ' + ((error && error.message) || String(error));
