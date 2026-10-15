@@ -5,6 +5,11 @@ on:
     paths:
       - 'PWA/consolidated-v1/unified-status-v2.59.0.js'
       - 'PWA/consolidated-v1/menu-groups-v2.60.2.js'
+      - 'PWA/consolidated-v1/specialist-suite-menu-v2.61.3.js'
+      - 'PWA/consolidated-v1/specialist-features-v1.js'
+      - 'PWA/consolidated-v1/ev/index.html'
+      - 'PWA/consolidated-v1/should-i-fix/index.html'
+      - 'PWA/consolidated-v1/tests/specialist-menu-v2.61.3.test.cjs'
       - 'PWA/consolidated-v1/partner-settings-ux-v2.60.3.js'
       - 'PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs'
       - 'PWA/consolidated-v1/tests/menu-back-v2.60.3.test.cjs'
@@ -38,6 +43,8 @@ jobs:
           set -euo pipefail
           node --check PWA/consolidated-v1/unified-status-v2.59.0.js
           node --check PWA/consolidated-v1/menu-groups-v2.60.2.js
+          node --check PWA/consolidated-v1/specialist-suite-menu-v2.61.3.js
+          node --check PWA/consolidated-v1/specialist-features-v1.js
           node --check PWA/consolidated-v1/partner-settings-ux-v2.60.3.js
           node --check PWA/partner-profile-v1.js
           node --check PWA/cloud-client-v1.js
@@ -57,4 +64,4 @@ jobs:
           }
           NODE
       - name: Run tariff, status and customer sync behaviour tests
-        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs PWA/consolidated-v1/tests/customer-locations-v2.60.1.test.cjs PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs PWA/consolidated-v1/tests/menu-back-v2.60.3.test.cjs
+        run: node --test PWA/consolidated-v1/tests/status-v2.60.0.test.cjs PWA/consolidated-v1/tests/customer-locations-v2.60.1.test.cjs PWA/consolidated-v1/tests/profile-menu-v2.60.3.test.cjs PWA/consolidated-v1/tests/menu-back-v2.60.3.test.cjs PWA/consolidated-v1/tests/specialist-menu-v2.61.3.test.cjs
