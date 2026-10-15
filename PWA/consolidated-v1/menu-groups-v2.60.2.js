@@ -9,9 +9,11 @@
 
   // Main-menu shortcuts reuse the existing menu items and their click handlers.
   // Never duplicate their save/load/quote-link logic.
+  var SHOPPING_BASKET_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#A76518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5h18L19.2 20H4.8L3 10.5Z" fill="#FFE3B5"/><path d="M7 10.5 10 4m7 6.5L14 4"/><path d="M7.5 14h9m-9 3h9m-8-4 1 5m6-5-1 5"/></svg>';
+
   var QUICK_ACTIONS = [
     { id:'new', emoji:'📄', label:'New customer', action:'new-customer' },
-    { id:'basket', emoji:'🧺', label:'Saved quote basket link', action:'basket' },
+    { id:'basket', emoji:'shopping-basket', label:'Saved quote basket link', action:'basket' },
     { id:'scenario', emoji:'💾', label:'Save as new scenario', action:'save-as' },
     { id:'customers', emoji:'☁️', label:'All Cloud customers', action:'all-customers' },
     { id:'delete', emoji:'🗑️', label:'Delete current customer', action:'delete-current' }
@@ -233,7 +235,8 @@
         btn.setAttribute('data-ac-quick-action',quick.action);
         var icon = document.createElement('span');
         icon.className = 'menu-ico';
-        icon.textContent = quick.emoji;
+        if (quick.emoji === 'shopping-basket') icon.innerHTML = SHOPPING_BASKET_SVG;
+        else icon.textContent = quick.emoji;
         var name = document.createElement('span');
         name.textContent = quick.label;
         btn.appendChild(icon); btn.appendChild(name);
