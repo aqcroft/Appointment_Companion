@@ -1,4 +1,4 @@
-/* Appointment Companion v2.63.0 - compact name/region and customer-name save gate.
+/* Appointment Companion v2.63.1 - reliable sync reports and no-op revision guard.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.63.0',
+    version: 'v2.63.1',
     date: '15 October 2026',
-    summary: 'One-row customer header and confirmed-name saves',
+    summary: 'Accurate conflict reviews and meaningful customer saves',
     changes: [
+      'Opening menus and status no longer creates an unnecessary customer revision.',
+      'Sync comparison ignores auto-generated capture timestamps.',
+      'Deleted-record conflicts remain visible for deliberate review.',
+      'Local save status distinguishes unfinished drafts from active saves.',
+      'Conflict review refreshes after background Cloud checks.',
       'Customer name and electricity region now share a compact 70/30 row.',
       'A small tick confirms a finished name and saves one local customer record.',
       'Background form saves preserve the confirmed customer name rather than temporary typing.',
@@ -168,6 +173,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.63.0',date:'15 October 2026',summary:'One-row customer header and confirmed-name saves'},
       {version:'v2.62.5',date:'15 October 2026',summary:'Responsive three-light status checks'},
       {version:'v2.62.4',date:'15 October 2026',summary:'Tracker solid for published quarter, dashed for forecast'},
       {version:'v2.62.3',date:'15 October 2026',summary:'Live tariff versions in the chart key and electricity-first fuel buttons'},
@@ -398,7 +404,13 @@
     }
     var engine=global.AppointmentCompanionConsolidated,store=global.AppointmentCompanionLocalStore;
     var localHealth=$('cloudLocalState');
-    var localLabel=localHealth?(localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy'):'Local save status unavailable';
+    var localHint=localHealth?String(localHealth.title||''):'';
+    var localLabel=!localHealth?'Local save status unavailable':
+      /Saving this local revision/i.test(localHint)?'Saving latest changes…':
+      /Local persistence needs attention/i.test(localHint)?'Local save needs attention':
+      /Unsaved working draft/i.test(localHint)?'New customer not saved yet':
+      /Customer record saved on this device/i.test(localHint)?'Current customer saved on this device':
+      localHint||'Local save status unavailable';
     // Include tombstones so pending Cloud deletions cannot be hidden by the default list filter.
     var list=store&&typeof store.list==='function'?function(){return store.list(true); }:
       engine&&typeof engine.list==='function'?engine.list.bind(engine):null;
@@ -439,7 +451,7 @@
         count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
         localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id;}).length,
-        localIds:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&r.cloud_id;})
+        localIds:meaningful.filter(function(r){return r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
         current:currentMessage,local:localLabel,currentSynced:currentSynced,
         currentCloudId:current&&current.cloud_id||'',currentRevisionSynced:revisionSynced,
