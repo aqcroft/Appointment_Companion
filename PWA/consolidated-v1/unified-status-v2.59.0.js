@@ -398,8 +398,9 @@
     var engine=global.AppointmentCompanionConsolidated,store=global.AppointmentCompanionLocalStore;
     var localHealth=$('cloudLocalState');
     var localLabel=localHealth?(localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy'):'Local save status unavailable';
-    var list=engine&&typeof engine.list==='function'?engine.list.bind(engine):
-      store&&typeof store.list==='function'?store.list.bind(store):null;
+    // Include tombstones so pending Cloud deletions cannot be hidden by the default list filter.
+    var list=store&&typeof store.list==='function'?function(){return store.list(true); }:
+      engine&&typeof engine.list==='function'?engine.list.bind(engine):null;
     if(!list){sync.mode='checking';sync.checked=false;sync.detail='Local customer store not ready';sync.local=localLabel;paint();return;}
     try{
       var rows=await list();
@@ -470,8 +471,9 @@
     }
     // Reuse an in-progress check and avoid excessive identical Apps Script calls.
     if(cloudFlight&&sameAuth(flightAuth,auth))return cloudFlight;
-    if(!force&&cloud.owner===owner&&cloud.connection==='verified'&&cloud.profile==='loaded'&&
-       Date.now()-lastCloudCheckAt<CLOUD_CHECK_INTERVAL){paint();return;}
+    var recentVerified=cloud.connection==='verified'&&cloud.profile==='loaded';
+    var cooldown=recentVerified?CLOUD_CHECK_INTERVAL:20000;
+    if(!force&&cloud.owner===owner&&lastCloudCheckAt&&Date.now()-lastCloudCheckAt<cooldown){paint();return;}
     if(cloudFlight){++cloudNonce;cloudFlight=null;flightAuth=null;}
     var sameOwner=cloud.owner===owner&&lastVerifiedAt>0;
     if(!sameOwner){
