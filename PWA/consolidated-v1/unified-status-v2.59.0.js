@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.0 - per-Partner identities and accessible modals.
+/* Appointment Companion v2.61.1 - four one-tap main-menu shortcuts.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.0',
+    version: 'v2.61.1',
     date: '15 October 2026',
-    summary: 'Correct Partner photos and contact details in EV and Should I Fix',
+    summary: 'Four appointment-ready main-menu shortcuts',
     changes: [
-      'EV and Should I Fix now show the creating Partner, not another Partner\'s cached photo or contact links.',
-      'Personalised links carry the correct Partner ID; unverifiable links remain disabled.',
-      'Forecast modals appear above draggable floating profile photos.',
-      'The compact TCP control, grouped menu and Partner settings remain available.'
+      'The main menu shows New customer, Saved quote basket link, Save as new scenario and All Cloud customers.',
+      'Shortcuts call the same existing actions, including the full Cloud customer list - not just recent customers.',
+      'The three submenu sections, Back navigation, compact TCP control and Partner settings remain available.',
+      'No customer data, tariff maths, save logic or Partner identity handling changed.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.60.3',date:'15 October 2026',summary:'Compact TCP and improved Partner settings'},
-      {version:'v2.60.2',date:'14 October 2026',summary:'Grouped menu and Back navigation'}
+      {version:'v2.61.0',date:'15 October 2026',summary:'Verified Partner identity and modal access'},
+      {version:'v2.60.3',date:'15 October 2026',summary:'Compact TCP and improved Partner settings'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+

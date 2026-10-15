@@ -1,4 +1,4 @@
-/* Appointment Companion v2.60.3 - three-group menu with Back navigation.
+/* Appointment Companion v2.61.1 - quick-action rows plus three grouped submenus with Back.
    Reorders existing controls without cloning nodes or replacing their handlers.
    All three integrated tools use the same #cloudMenuPopover.
 */
@@ -6,6 +6,15 @@
   'use strict';
   if (document.documentElement.classList.contains('view-mode') ||
       document.documentElement.classList.contains('shared-view')) return;
+
+  // Main-menu shortcuts reuse the existing menu items and their click handlers.
+  // Never duplicate their save/load/quote-link logic.
+  var QUICK_ACTIONS = [
+    { id:'new', emoji:'📄', label:'New customer', action:'new-customer' },
+    { id:'basket', emoji:'🛒', label:'Saved quote basket link', action:'basket' },
+    { id:'scenario', emoji:'💾', label:'Save as new scenario', action:'save-as' },
+    { id:'customers', emoji:'☁️', label:'All Cloud customers', action:'all-customers' }
+  ];
 
   var GROUPS = [
     { id: 'customers', title: 'Customers & quotes', selectors: [
@@ -130,8 +139,11 @@
         '#cloudMenuPopover .ac-menu-heading:first-child{padding-top:2px;margin-top:0;border-top:0}',
         '#cloudMenuPopover #cloudDeleteCurrent:not(:disabled){color:#903d45}',
         '#cloudMenuPopover .cloud-menu-item:focus-visible{outline:3px solid #a88bd9;outline-offset:2px}',
-        '#cloudMenuPopover .ac-menu-root{display:grid;gap:7px}',
-        '#cloudMenuPopover .ac-menu-root button{width:100%;min-height:46px;text-align:left;justify-content:space-between;font-size:13px}',
+        '#cloudMenuPopover .ac-menu-root{display:grid;gap:4px}',
+        '#cloudMenuPopover .ac-menu-root button{display:flex;align-items:center;width:100%;min-height:40px;padding:7px 10px;text-align:left;justify-content:flex-start;font-size:12.5px;line-height:1.25}',
+        '#cloudMenuPopover .ac-menu-root-heading{padding:5px 6px 1px;margin-top:1px;color:#6a5186;font:800 10px/1.2 system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase}',
+        '#cloudMenuPopover .ac-menu-group-link{font-weight:750}',
+        '#cloudMenuPopover .ac-menu-shortcut{font-weight:650}',
         '#cloudMenuPopover .ac-menu-back{width:100%;min-height:40px;justify-content:flex-start;text-align:left;font-weight:750}',
         '#cloudMenuPopover[data-ac-menu-view="root"]> :not(.ac-menu-root){display:none!important}',
         '#cloudMenuPopover[data-ac-menu-view="root"]>.ac-menu-root{display:grid!important}',
@@ -147,9 +159,42 @@
     if (!root) {
       root = document.createElement('div'); root.id = 'acMenuRootActions';
       root.className = 'ac-menu-root';
+      function label(text) {
+        var caption = document.createElement('div');
+        caption.className = 'ac-menu-root-heading';
+        caption.textContent = text;
+        root.appendChild(caption);
+      }
+      label('Quick actions');
+      QUICK_ACTIONS.forEach(function (quick) {
+        var btn = document.createElement('button');
+        btn.id = 'acQuickAction-' + quick.id;
+        btn.type = 'button';
+        btn.className = 'pill cloud-menu-item ac-menu-shortcut';
+        btn.setAttribute('role','menuitem');
+        btn.setAttribute('aria-label',quick.label);
+        btn.setAttribute('data-ac-quick-action',quick.action);
+        var icon = document.createElement('span');
+        icon.className = 'menu-ico';
+        icon.textContent = quick.emoji;
+        var name = document.createElement('span');
+        name.textContent = quick.label;
+        btn.appendChild(icon); btn.appendChild(name);
+        btn.addEventListener('click',function (e) {
+          e.preventDefault(); e.stopPropagation();
+          // The source menu item is kept directly in #cloudMenuPopover.
+          // .click() invokes the existing delegated Cloud/action handler,
+          // including its checks for unsaved changes and Cloud connectivity.
+          var source = findDirect(menu,'[data-cloud-action="' + quick.action + '"]');
+          if (source && !source.disabled) source.click();
+        });
+        root.appendChild(btn);
+      });
+      label('More options');
       GROUPS.forEach(function (group) {
         var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'pill cloud-menu-item';
+        btn.id = 'acMenuSection-' + group.id;
+        btn.type = 'button'; btn.className = 'pill cloud-menu-item ac-menu-group-link';
         btn.textContent = (group.id === 'customers' ? '👥 ' : group.id === 'account' ? '⚙️ ' : '📚 ') + group.title + '  ›';
         btn.setAttribute('role','menuitem');
         btn.setAttribute('aria-label','Open ' + group.title);

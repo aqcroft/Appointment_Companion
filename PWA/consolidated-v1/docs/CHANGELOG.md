@@ -1,3 +1,10 @@
+## v2.61.1 - 15 October 2026 - Compact appointment quick actions
+
+- Main hamburger menu now shows four compact shortcut rows: New customer, Saved quote basket link, Save as new scenario and All Cloud customers.
+- Each shortcut dispatches to its existing source action; All Cloud customers opens the full Cloud list rather than the 12 recent customers.
+- Preserve Customers & quotes, Account & app and More submenus, including Back navigation.
+- Compact toolbar still shows v2.61; full v2.61.1 release in status. No tariff, Cloud sync or identity changes.
+
 ## v2.61.0 - 15 October 2026 - Verified Partner identity
 
 - Creating Partner's own photo, contact details and quote links are used across EV and Should I Fix shares.
