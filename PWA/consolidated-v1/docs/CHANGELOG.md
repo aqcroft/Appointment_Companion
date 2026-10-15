@@ -2,7 +2,7 @@
 
 - Replaced the wicker basket with a small custom shopping-basket SVG throughout Main, EV, Should I Fix and the customer submenu, avoiding mobile emoji rendering ambiguities.
 - Background Cloud reconciliation is now roughly every 15 minutes while the app is active, rather than every 45 seconds. Routine edits schedule a single check 90 seconds after the last change, and retry intervals start in minutes instead of seconds.
-- Focus, sign-in and returning online only ask for a new check when the last check is old; hidden/background pages do not start routine polling.
+- Routine focus and returning to the app are throttled to a five-minute freshness window. New Partner sign-ins and genuine online reconnections still request a timely one-off check. Hidden/background pages do not start routine polling.
 - Initial startup may run an earlier one-off check. Explicit Save to Cloud still queues safely behind any check already under way, and a user-initiated Sync now can run immediately.
 - No deletion, Cloud record, confirmation, duplicate detection or tariff logic changed.
 
