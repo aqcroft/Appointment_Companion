@@ -8,7 +8,7 @@
   'use strict';
   var path=global.location.pathname;
   if(!/\/consolidated-v1\/(?:ev|should-i-fix)\//.test(path))return;
-  if(new URLSearchParams(global.location.search).get('public') === '1' ||
+  if(/(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || '')) ||
      document.documentElement.classList.contains('view-mode') ||
      document.documentElement.classList.contains('shared-view') ||
      document.documentElement.classList.contains('ac-customer-shared'))return;
