@@ -1,4 +1,4 @@
-/* Appointment Companion v2.62.5 - responsive T/C/P verification across tools.
+/* Appointment Companion v2.63.0 - compact name/region and customer-name save gate.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,16 +8,16 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.5',
+    version: 'v2.63.0',
     date: '15 October 2026',
-    summary: 'Faster, more reliable three-light status checks',
+    summary: 'One-row customer header and confirmed-name saves',
     changes: [
-      'Check Cloud customers and Partner identity automatically on launch and after reconnecting.',
-      'Reconcile the customer indicator again after the remote customer list arrives.',
-      'Allow healthy Cloud status with no active customer or deliberately local drafts.',
-      'Read local customer health consistently across Companion, EV and Should I Fix.',
-      'Enable live tariff verification in the Should I Fix toolstrip.',
-      'Preserve amber for outstanding checks and red for genuine failures.'
+      'Customer name and electricity region now share a compact 70/30 row.',
+      'A small tick confirms a finished name and saves one local customer record.',
+      'Background form saves preserve the confirmed customer name rather than temporary typing.',
+      'Save to Cloud explicitly confirms the name; unsaved new names no longer create local customer copies.',
+      'Old Save / Update now uses the single consolidated local store rather than a second legacy list.',
+      'Existing records are never automatically deleted or merged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -168,6 +168,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.62.5',date:'15 October 2026',summary:'Responsive three-light status checks'},
       {version:'v2.62.4',date:'15 October 2026',summary:'Tracker solid for published quarter, dashed for forecast'},
       {version:'v2.62.3',date:'15 October 2026',summary:'Live tariff versions in the chart key and electricity-first fuel buttons'},
       {version:'v2.62.2',date:'15 October 2026',summary:'Flat Partner menus across the tools'},
