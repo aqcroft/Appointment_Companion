@@ -1,3 +1,10 @@
+## v2.61.7 - 15 October 2026 - Emergency startup freeze hotfix
+
+- Fix a MutationObserver loop in the Boiler Cover service tile introduced by v2.61.6. The status-sync routine was rewriting the observed class attribute even when nothing changed, potentially monopolising the browser's microtask queue and hanging the PWA before use.
+- Boiler availability, CSS class and accessibility attributes now update only when actually needed.
+- A regression test simulates repeated observer notifications for homeowner and tenant states and verifies that the watched class mutations settle.
+- Referral options, Connector commission, £65 shirt value, vivid service colours, mobile SIM cycling and customer/Cloud records remain otherwise unchanged.
+
 ## v2.61.6 - 15 October 2026 - Connector referrals, club shirt and clearer service tiles
 
 - Replace two independent referral switches with one compact, mutually exclusive row for Referral (supplied Win Win artwork), Connector self-referral (supplied UW icon) and National League (football shirt).
