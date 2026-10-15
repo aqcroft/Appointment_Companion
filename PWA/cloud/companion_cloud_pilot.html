@@ -649,7 +649,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
   <div class="card hidden" id="mobileCard">
     <h2>📱 Mobile</h2>
     <div class="field">
-      <div class="pills" id="simCountPills" style="display:none" aria-hidden="true">
+      <div class="pills" id="simCountPills">
         <button class="pill" type="button" data-count="1">1</button>
         <button class="pill" type="button" data-count="2">2</button>
         <button class="pill" type="button" data-count="3">3</button>
@@ -1623,7 +1623,10 @@ function compute(previewSims = 0) {
     });
     // excluded SIMs: blank price display
     Object.keys(state.sims).forEach(key => {
-      if (!state.sims[key].include) { const el = $('uwCost_' + key); if (el) el.textContent = '0'; }
+      if (!state.sims[key].include) {
+        const el = $('uwCost_' + key); if (el) el.textContent = '0';
+        const note = $('plannote_' + key); if (note) note.textContent = '';
+      }
     });
   }
   // Card-preview meal deal SIMs: £0 current, Essentials rate UW
