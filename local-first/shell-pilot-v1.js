@@ -1728,7 +1728,8 @@
     $c('cloudSettingsReload').addEventListener('click', () => {
       closeSettingsModal();
       if (window.__AC_LOCAL_FIRST && window.AppointmentCompanionLocalFirst) {
-        window.AppointmentCompanionLocalFirst.scheduleSync(0);
+        if (window.AppointmentCompanionLocalFirst.syncNow) window.AppointmentCompanionLocalFirst.syncNow();
+        else window.AppointmentCompanionLocalFirst.scheduleSync(0);
         setStatus('Checking this device against Cloud in the background…');
       } else reloadCurrent();
     });
