@@ -175,6 +175,8 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .sim-compare .side { padding:0.6rem; height:100%; }
 .sim-compare .field:last-child { margin-bottom:0; }
 .sim-compare .tag { font-size:10px; margin-bottom:0.45rem; }
+.sim-compare .sim-uw-price-row {display:flex;justify-content:space-between;align-items:center;gap:5px;width:100%;}
+.sim-compare .sim-uw-amount {margin-left:auto;text-align:right;white-space:nowrap;font-weight:800;}
 .planpills { display: flex; gap: 6px; }
 @media (max-width:520px) {
   .sim { padding:0.6rem; }
@@ -1067,8 +1069,8 @@ const CONFIG = {
       previewPlan: 'essentialMax'
     },
     plans: {
-      unlimitedMax: { label: "Go Unlimited", qualifyingUnits: 1, monthly: 13, freeMonths: 3, note: "Go Unlimited £13/m. Additional Unlimited SIMs are free for the first 3 months (shown as a year-one benefit)." },
-      essentialMax: { label: "Go Essentials", qualifyingUnits: 1, monthly: 6, note: "Go Essentials £6/m." }
+      unlimitedMax: { label: "Go Unlimited", qualifyingUnits: 1, monthly: 13, freeMonths: 3, note: "Additional SIMs free for 3 months" },
+      essentialMax: { label: "Go Essentials", qualifyingUnits: 1, monthly: 6, note: "" }
     }
   }
 };
@@ -1391,7 +1393,7 @@ function buildSims() {
           '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
         '</div>' +
         '<div class="side uw">' +
-          '<span class="tag">UW - £<span id="uwCost_' + key + '">0</span>/m</span>' +
+          '<span class="tag sim-uw-price-row"><span>UW</span><span class="sim-uw-amount">£<span id="uwCost_' + key + '">0</span>/m</span></span>' +
           '<div class="planpills" data-sim="' + key + '">' +
             '<button class="pill" type="button" data-plan="unlimitedMax">' + CONFIG.mobile.plans.unlimitedMax.label + '</button>' +
             '<button class="pill" type="button" data-plan="essentialMax">' + CONFIG.mobile.plans.essentialMax.label + '</button>' +
@@ -1604,7 +1606,9 @@ function compute(previewSims = 0) {
     const included = Object.entries(state.sims).filter(([, s]) => s.include);
     realSims = included.map(([, s]) => s);
     const prices = priceSims(included.map(([, s]) => s));
+    let unlimitedSeen = 0;
     included.forEach(([key, s], idx) => {
+      if (s.uwPlan === 'unlimitedMax') unlimitedSeen += 1;
       currentMob += s.monthlyCost;
       mobExit += s.exitFee;
       const cost = prices[idx];
@@ -1612,11 +1616,17 @@ function compute(previewSims = 0) {
       const el = $('uwCost_' + key);
       if (el) el.textContent = (cost % 1 !== 0) ? cost.toFixed(2) : cost;
       const note = $('plannote_' + key);
-      if (note) note.textContent = CONFIG.mobile.plans[s.uwPlan] ? CONFIG.mobile.plans[s.uwPlan].note : '';
+      // The first Unlimited SIM is full price. Only subsequent included
+      // Unlimited SIMs qualify for the first-three-months benefit.
+      if (note) note.textContent = s.uwPlan === 'unlimitedMax' && unlimitedSeen > 1
+        ? CONFIG.mobile.plans.unlimitedMax.note : '';
     });
     // excluded SIMs: blank price display
     Object.keys(state.sims).forEach(key => {
-      if (!state.sims[key].include) { const el = $('uwCost_' + key); if (el) el.textContent = '0'; }
+      if (!state.sims[key].include) {
+        const el = $('uwCost_' + key); if (el) el.textContent = '0';
+        const note = $('plannote_' + key); if (note) note.textContent = '';
+      }
     });
   }
   // Card-preview meal deal SIMs: £0 current, Essentials rate UW

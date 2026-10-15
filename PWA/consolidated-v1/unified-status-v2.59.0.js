@@ -1,21 +1,21 @@
-/* Appointment Companion v2.61.8 - Mobile off-state hides stale SIM count.
+/* Appointment Companion v2.61.9 - no Partner toolbar on customer shares, simpler Mobile details.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
 */
 (function (global) {
   'use strict';
-  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
+  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.8',
+    version: 'v2.61.9',
     date: '15 October 2026',
-    summary: 'Mobile tile no longer shows SIM count when switched off',
+    summary: 'Standalone customer shares and tidier Mobile details',
     changes: [
-      'Mobile now hides its SIM count when the service is deselected, even if five SIMs were previously selected.',
-      'The count reappears when Mobile is selected again and correctly shows the current number.',
-      'The startup freeze hotfix and referral calculations are preserved.',
-      'No customer records, saved SIM tariff selections or Cloud data are altered.'
+      'Customer-facing Should I Fix and EV links no longer load Partner-only menus, toolbar or status controls.',
+      'Partners retain the same T/C/P control and menu when opening either tool from their Companion.',
+      'The redundant SIM-count row is hidden only in the multi-tap PWA, not the legacy standalone editor.',
+      'Additional Unlimited SIM notes are shortened and shown only where eligible; the UW price aligns right.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.7',date:'15 October 2026',summary:'Fixed startup service tile update loop'},
-      {version:'v2.61.6',date:'15 October 2026',summary:'Connector referral, £65 shirt and stronger service tiles'}
+      {version:'v2.61.8',date:'15 October 2026',summary:'Hide SIM count when Mobile is off'},
+      {version:'v2.61.7',date:'15 October 2026',summary:'Fixed startup service tile update loop'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
