@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.1 - quick-action rows plus three grouped submenus with Back.
+/* Appointment Companion v2.61.2 - top-layer menu, compact shortcuts, Back navigation.
    Reorders existing controls without cloning nodes or replacing their handlers.
    All three integrated tools use the same #cloudMenuPopover.
 */
@@ -11,7 +11,7 @@
   // Never duplicate their save/load/quote-link logic.
   var QUICK_ACTIONS = [
     { id:'new', emoji:'📄', label:'New customer', action:'new-customer' },
-    { id:'basket', emoji:'🛒', label:'Saved quote basket link', action:'basket' },
+    { id:'basket', emoji:'🧺', label:'Saved quote basket link', action:'basket' },
     { id:'scenario', emoji:'💾', label:'Save as new scenario', action:'save-as' },
     { id:'customers', emoji:'☁️', label:'All Cloud customers', action:'all-customers' }
   ];
@@ -125,16 +125,68 @@
     if (back) back.setAttribute('aria-label', 'Back to main menu');
   }
 
+  // The menu remains a child of cloudPilotCard so delegated action handlers
+  // continue to work, but a native popover elevates it into the browser's
+  // top layer. Accordion height and stacking contexts can no longer push it
+  // down or cover it.
+  function menuTopLayer(menu, toggle) {
+    if (!menu || !toggle || menu.dataset.acTopLayerReady === '1') return;
+    menu.dataset.acTopLayerReady = '1';
+    if (typeof menu.showPopover !== 'function' || typeof menu.hidePopover !== 'function') {
+      // Fallback for older webviews: use fixed positioning even without top layer.
+      menu.dataset.acTopLayerFallback = '1';
+    } else {
+      menu.setAttribute('popover', 'manual');
+    }
+    function position() {
+      var anchor=toggle.getBoundingClientRect();
+      var width=Math.min(340,Math.max(200,window.innerWidth - 24));
+      var right=Math.min(Math.max(8,Math.round(window.innerWidth - anchor.right)),Math.max(8,window.innerWidth-width-8));
+      var top=Math.max(6,Math.min(window.innerHeight-52,Math.round(anchor.bottom+6)));
+      var css=menu.style;
+      css.setProperty('position','fixed','important');
+      css.setProperty('inset','auto','important');
+      css.setProperty('top',top+'px','important');
+      css.setProperty('right',right+'px','important');
+      css.setProperty('left','auto','important');
+      css.setProperty('bottom','auto','important');
+      css.setProperty('margin','0','important');
+      css.setProperty('width','min(340px, calc(100vw - 24px))','important');
+      css.setProperty('max-height','calc(100dvh - '+Math.round(top+12)+'px)','important');
+      css.setProperty('overflow-y','auto','important');
+      css.setProperty('z-index','2147483000','important');
+    }
+    function sync() {
+      var open=menu.classList.contains('open');
+      position();
+      if (menu.dataset.acTopLayerFallback==='1') return;
+      try {
+        if (open && !menu.matches(':popover-open')) menu.showPopover();
+        else if (!open && menu.matches(':popover-open')) menu.hidePopover();
+      } catch (_) {
+        // Do not interrupt the underlying menu if a webview rejects popovers.
+        menu.dataset.acTopLayerFallback='1';
+      }
+    }
+    var observer=new MutationObserver(sync);
+    observer.observe(menu,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',function(){if(menu.classList.contains('open'))position();},{passive:true});
+    window.addEventListener('scroll',function(){if(menu.classList.contains('open'))position();},{passive:true});
+    sync();
+  }
+
   function install() {
     var menu = document.getElementById('cloudMenuPopover');
     var toggle = document.getElementById('cloudActionMenu');
     if (!menu || !toggle) return false;
+    menuTopLayer(menu,toggle);
 
     if (!document.getElementById('acMenuGroupingCss')) {
       var style = document.createElement('style');
       style.id = 'acMenuGroupingCss';
       style.textContent = [
         '#cloudPilotCard #cloudMenuPopover{max-height:min(76dvh,650px);overflow-y:auto;overscroll-behavior:contain}',
+        '#cloudPilotCard #cloudMenuPopover:popover-open{display:grid!important;overscroll-behavior:contain}',
         '#cloudMenuPopover .ac-menu-heading{padding:9px 7px 2px;margin-top:3px;border-top:1px solid rgba(122,66,200,.17);color:#6a5186;font:800 10px/1.3 system-ui,sans-serif;letter-spacing:.075em;text-transform:uppercase}',
         '#cloudMenuPopover .ac-menu-heading:first-child{padding-top:2px;margin-top:0;border-top:0}',
         '#cloudMenuPopover #cloudDeleteCurrent:not(:disabled){color:#903d45}',
@@ -186,7 +238,11 @@
           // .click() invokes the existing delegated Cloud/action handler,
           // including its checks for unsaved changes and Cloud connectivity.
           var source = findDirect(menu,'[data-cloud-action="' + quick.action + '"]');
-          if (source && !source.disabled) source.click();
+          if (!source || source.disabled) return;
+          menu.classList.remove('open');
+          toggle.setAttribute('aria-expanded','false');
+          toggle.title='Show actions';
+          source.click();
         });
         root.appendChild(btn);
       });

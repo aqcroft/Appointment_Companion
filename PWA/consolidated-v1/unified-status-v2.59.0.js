@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.1 - four one-tap main-menu shortcuts.
+/* Appointment Companion v2.61.2 - top-layer menu, compact location icons and progressive browser.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.1',
+    version: 'v2.61.2',
     date: '15 October 2026',
-    summary: 'Four appointment-ready main-menu shortcuts',
+    summary: 'Menu layering, location icons and faster customer browsing',
     changes: [
-      'The main menu shows New customer, Saved quote basket link, Save as new scenario and All Cloud customers.',
-      'Shortcuts call the same existing actions, including the full Cloud customer list - not just recent customers.',
-      'The three submenu sections, Back navigation, compact TCP control and Partner settings remain available.',
-      'No customer data, tariff maths, save logic or Partner identity handling changed.'
+      'The hamburger menu opens above expanded accordions and closes before opening customer windows.',
+      'Each mobile, computer and Cloud location has a compact overlaid green tick, red cross or unknown indicator.',
+      'Customer browser opens immediately while local and Cloud records are checked in the background.',
+      'The saved quote menu now uses a basket icon; customer data and sync rules are unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.0',date:'15 October 2026',summary:'Verified Partner identity and modal access'},
-      {version:'v2.60.3',date:'15 October 2026',summary:'Compact TCP and improved Partner settings'}
+      {version:'v2.61.1',date:'15 October 2026',summary:'Four compact main-menu quick actions'},
+      {version:'v2.61.0',date:'15 October 2026',summary:'Verified Partner identity and modal access'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+

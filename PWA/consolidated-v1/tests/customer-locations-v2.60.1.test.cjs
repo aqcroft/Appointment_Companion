@@ -95,9 +95,12 @@ test('same-name Cloud match stops accidental duplicate creation',async()=>{
 test('mobile/laptop/Cloud columns never claim another device is verified',()=>{
   const h=harness(),html=h.window.__controllerTest.storageSignals(true,'yes',true);
   assert.match(html,/📱/);assert.match(html,/💻/);assert.match(html,/☁️/);
-  assert.match(html,/Other computer is not verified/);
-  assert.match(html,/In Cloud and synchronised/);
-  assert.equal((html.match(/<b style=/g)||[]).length,3);
+  assert.match(html,/Another computer cannot be checked/);
+  assert.match(html,/Confirmed in Cloud and current revision synchronised/);
+  assert.equal((html.match(/class="ac-location-cell"/g)||[]).length,3);
+  assert.equal((html.match(/border-radius:50%/g)||[]).length,3);
+  assert.doesNotMatch(html,/<\/span><b style=/);
+  assert.match(html,/aria-label/);
 });
 
 test('location browser includes explicit filters and prioritises device-only records',()=>{
@@ -108,4 +111,20 @@ test('location browser includes explicit filters and prioritises device-only rec
   assert.match(controller,/data-local-upload/);
   assert.match(controller,/Save to Cloud/);
   assert.match(controller,/remoteVisible\.map/);
+});
+
+test('the combined customer browser opens before awaiting its Cloud fetch',()=>{
+  const start=controller.indexOf('  async function customerBrowser(options) {');
+  const end=controller.indexOf('  async function markDeleted',start);
+  assert.ok(start>=0&&end>start);
+  const body=controller.slice(start,end);
+  const openAt=body.indexOf("modal.classList.add('open');");
+  const localAt=body.indexOf('await store.list(true)');
+  const cloudAt=body.indexOf('await api.listCustomers(credentials)');
+  const busyAt=body.indexOf("modal.setAttribute('aria-busy','true')");
+  assert.ok(openAt>=0&&busyAt>=0&&openAt<localAt&&localAt<cloudAt,
+    'Modal and busy indicator must appear before local and Cloud I/O');
+  assert.match(body,/Loading customers…/);
+  assert.match(body,/modal.removeAttribute\('aria-busy'\)/);
+  assert.match(body,/if\(sequence!==customerBrowserSequence\)return/);
 });
