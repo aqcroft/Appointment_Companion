@@ -13,7 +13,7 @@ test('EV and Should I Fix load the same universal TCP and in-tool menu',()=>{
     assert.match(loader,/v2\.61\.3/);
   }
   const core=read('unified-status-v2.59.0.js');
-  assert.match(core,/version: 'v2\.61\.3'/);
+  assert.match(core,/version: 'v2\.61\.\d+'/);
   assert.match(core,/function dimensions\(\)/);
   assert.match(core,/function refreshCloud\(/);
   assert.match(core,/global\.AppointmentCompanionUnifiedStatus/);
@@ -90,6 +90,8 @@ test(tool+': hamburger opens a popover without leaving the current tool',()=>{
   assert.equal(h.menu.popped,true);
   assert.equal(h.trigger.attrs['aria-expanded'],'true');
   assert.equal(h.menu.children[0].children.filter(x=>x.dataset.acSuiteAction==='section').length,3);
+  assert.ok(h.menu.children[0].children.some(x=>x.dataset.acSuiteAction==='delete-current'),'Delete is visible in specialist quick actions');
+  assert.ok(h.menu.children[0].children.some(x=>x.dataset.acSuiteAction==='basket'),'Saved basket link is visible in specialist quick actions');
   h.tapAction('section','customers');
   assert.equal(h.assigned.length,0);
   assert.ok(h.menu.children[0].children.some(x=>x.textContent==='Customers & quotes' || x.dataset.acSuiteAction==='all-customers'));

@@ -13,7 +13,8 @@
     { id:'new', emoji:'📄', label:'New customer', action:'new-customer' },
     { id:'basket', emoji:'🧺', label:'Saved quote basket link', action:'basket' },
     { id:'scenario', emoji:'💾', label:'Save as new scenario', action:'save-as' },
-    { id:'customers', emoji:'☁️', label:'All Cloud customers', action:'all-customers' }
+    { id:'customers', emoji:'☁️', label:'All Cloud customers', action:'all-customers' },
+    { id:'delete', emoji:'🗑️', label:'Delete current customer', action:'delete-current' }
   ];
 
   var GROUPS = [
@@ -113,6 +114,9 @@
     if (rootButtons && menu.firstElementChild !== rootButtons) menu.insertBefore(rootButtons, menu.firstElementChild);
     if (back && rootButtons && rootButtons.nextElementSibling !== back) menu.insertBefore(back, rootButtons.nextElementSibling);
     if (!menu.dataset.acMenuView) menu.dataset.acMenuView = 'root';
+    var deleteBtn=document.getElementById('acQuickAction-delete');
+    var sourceDelete=findDirect(menu,'[data-cloud-action="delete-current"]');
+    if (deleteBtn) { deleteBtn.disabled=!sourceDelete||sourceDelete.disabled; deleteBtn.title=deleteBtn.disabled?'Select a named customer before deleting':'Delete current customer (confirmation required)'; }
     return true;
   }
 
@@ -196,6 +200,7 @@
         '#cloudMenuPopover .ac-menu-root-heading{padding:5px 6px 1px;margin-top:1px;color:#6a5186;font:800 10px/1.2 system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase}',
         '#cloudMenuPopover .ac-menu-group-link{font-weight:750}',
         '#cloudMenuPopover .ac-menu-shortcut{font-weight:650}',
+        '#cloudMenuPopover #acQuickAction-delete:not(:disabled){color:#903d45}',
         '#cloudMenuPopover .ac-menu-back{width:100%;min-height:40px;justify-content:flex-start;text-align:left;font-weight:750}',
         '#cloudMenuPopover[data-ac-menu-view="root"]> :not(.ac-menu-root){display:none!important}',
         '#cloudMenuPopover[data-ac-menu-view="root"]>.ac-menu-root{display:grid!important}',

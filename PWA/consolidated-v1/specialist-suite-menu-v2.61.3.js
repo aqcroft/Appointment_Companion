@@ -18,7 +18,8 @@
     {label:'New customer',icon:'📄',action:'new-customer'},
     {label:'Saved quote basket link',icon:'🧺',action:'basket'},
     {label:'Save as new scenario',icon:'💾',action:'save-as'},
-    {label:'All Cloud customers',icon:'☁️',action:'all-customers'}
+    {label:'All Cloud customers',icon:'☁️',action:'all-customers'},
+    {label:'Delete current customer',icon:'🗑️',action:'delete-current'}
   ];
   var GROUPS=[
     {id:'customers',title:'Customers & quotes',icon:'👥',items:[
@@ -49,6 +50,7 @@
       '#acSpecialistSuiteMenu .ac-suite-icon{width:24px;text-align:center;font-size:17px;flex:0 0 24px}',
       '#acSpecialistSuiteMenu .ac-suite-chevron{margin-left:auto;font-size:18px;color:#7b638d}',
       '#acSpecialistSuiteMenu .ac-suite-back{background:#f8f4fd;color:#6c4b94}',
+      '#acSpecialistSuiteMenu .ac-suite-action[data-ac-suite-action="delete-current"]{color:#903d45}',
       '#acSpecialistSuiteMenu .ac-suite-note{margin:8px 4px 4px;font:500 11px/1.35 system-ui;color:#76698a}'
     ].join('');
     document.head.appendChild(s);

@@ -1,3 +1,11 @@
+## v2.61.4 - 15 October 2026 - Safer mobile Cloud upload and prominent customer actions
+
+- Explicit Save to Cloud waits for a background synchronisation already running on this device instead of failing immediately with "Cloud is already synchronising". Only one writer is active at a time; a bounded wait produces a clear retry message if the background check remains busy.
+- Existing Cloud confirmation, duplicate-name checks, record verification and failed-acknowledgement safeguards are preserved. No local-only draft is uploaded automatically.
+- Customer browser displays a queued-upload message when a background Cloud check is still running.
+- Main Quick Actions now include Delete current customer (with the existing confirmation). Saved quote basket link remains prominent in the same menu. These actions are visible in EV and Should I Fix too.
+- The laptop/mobile mismatch still requires verifying both devices use the same Companion Partner ID and Cloud credentials.
+
 ## v2.61.2 - 15 October 2026 - Mobile overlay, status badges and responsive Cloud browsing
 
 - The shared menu now uses the browser's top layer where supported, positioned directly beneath the top-toolbar hamburger even when the customer quick-drawer accordion is expanded.
