@@ -417,14 +417,22 @@
     var cashback = document.querySelector('#servicesCard [data-pseudo-service="cashback"]');
     var mobileCell = mobile && mobile.closest('.ac-mobile-cell');
 
-    if (pills) pills.classList.remove('ac-four-visible');
-    if(boiler){
-      var tenant=$('pillTenant')&&$('pillTenant').classList.contains('on');
-      var homeowner=$('pillHomeowner')&&$('pillHomeowner').classList.contains('on');
-      boiler.classList.remove('hidden');
-      boiler.disabled=!homeowner||tenant;
-      boiler.classList.toggle('ac-unavailable',boiler.disabled);
-      boiler.setAttribute('aria-disabled',boiler.disabled?'true':'false');
+    if (pills && pills.classList.contains('ac-four-visible')) pills.classList.remove('ac-four-visible');
+    if (boiler) {
+      var tenant = $('pillTenant') && $('pillTenant').classList.contains('on');
+      var homeowner = $('pillHomeowner') && $('pillHomeowner').classList.contains('on');
+      var unavailable = !homeowner || tenant;
+      // MutationObserver below watches this same tile's class attribute.
+      // Writing a no-op classList.remove/toggle still queues an attribute
+      // mutation in browsers, creating a never-ending observer microtask loop.
+      // Only make a DOM change when the actual state needs to change.
+      if (boiler.classList.contains('hidden')) boiler.classList.remove('hidden');
+      if (boiler.disabled !== unavailable) boiler.disabled = unavailable;
+      if (boiler.classList.contains('ac-unavailable') !== unavailable)
+        boiler.classList.toggle('ac-unavailable', unavailable);
+      var ariaDisabled = unavailable ? 'true' : 'false';
+      if (boiler.getAttribute('aria-disabled') !== ariaDisabled)
+        boiler.setAttribute('aria-disabled', ariaDisabled);
     }
 
     var fuel = canonicalFuel();
