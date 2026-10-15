@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.5 - shopping basket and calmer background Cloud checks.
+/* Appointment Companion v2.61.6 - referral sources, benefits, service colours and SIM cycling.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.5',
+    version: 'v2.61.6',
     date: '15 October 2026',
-    summary: 'Shopping basket and quieter background Cloud checks',
+    summary: 'Connector referral, £65 club shirt and clearer service selection',
     changes: [
-      'The saved quote action uses a recognisable shopping-basket icon, not a trolley or wicker basket.',
-      'Routine Cloud polling now runs approximately every 15 minutes while in use, not every 45 seconds.',
-      'Rapid appointment edits are batched; focus checks are throttled and failed checks back off more gently.',
-      'Local saving remains immediate and explicit Sync now and Save to Cloud retain priority.'
+      'Referral source is one compact row using the supplied UW and Win Win icons plus a football shirt.',
+      'Homeowner Connector commission is £50/£125/£150 for two/three/four qualifying services; tenants earn £0 but retain the source.',
+      'Qualifying National League referrals add a £65 Free club shirt benefit for homeowners and tenants.',
+      'Selected service tiles use vivid colours; mobile cycles from one to five SIMs and then off, without losing per-SIM plan choices.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.4',date:'15 October 2026',summary:'Manual Cloud uploads wait for background checks'},
-      {version:'v2.61.3',date:'15 October 2026',summary:'In-place specialist menus and universal TCP status'}
+      {version:'v2.61.5',date:'15 October 2026',summary:'Shopping basket and fewer background Cloud checks'},
+      {version:'v2.61.4',date:'15 October 2026',summary:'Manual Cloud uploads wait for background checks'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
