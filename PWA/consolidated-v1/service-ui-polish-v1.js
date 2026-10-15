@@ -1,7 +1,7 @@
 /* Compact service selector for Appointment Companion.
    - Five icon-first service tiles in one row.
    - Energy cycles: Off -> Dual fuel -> Electricity -> Gas -> Off.
-   - Mobile defaults to one SIM and uses an inline - / count / + stepper.
+   - Mobile tap-cycles: Off -> 1 -> 2 -> 3 -> 4 -> 5 SIMs -> Off.
    - Cashback Card is a pseudo-service: selected by default but never counted as a qualifying service.
 */
 (function (global) {
@@ -74,7 +74,7 @@
       }
       #servicesCard .on .ac-service-ghost,
       #servicesCard [data-pseudo-service="cashback"].on .ac-service-ghost {
-        opacity:.52;
+        opacity:.85;
         filter:none;
       }
 
@@ -101,9 +101,9 @@
         background:rgba(223,243,246,.45)!important;
       }
       #servicesCard [data-service="energy"].on {
-        background:var(--ac-energy-soft)!important;
-        border-color:var(--ac-energy-strong)!important;
-        color:#163C43!important;
+        background:#32B5D1!important;
+        border:2.5px solid #08748B!important;
+        color:#fff!important;
         box-shadow:inset 0 0 0 1px rgba(25,127,144,.16);
       }
       #servicesCard [data-service="broadband"] {
@@ -111,9 +111,9 @@
         background:rgba(221,245,233,.48)!important;
       }
       #servicesCard [data-service="broadband"].on {
-        background:var(--ac-broadband-soft)!important;
-        border-color:var(--ac-broadband-strong)!important;
-        color:#174C37!important;
+        background:#3BBB75!important;
+        border:2.5px solid #177548!important;
+        color:#fff!important;
         box-shadow:inset 0 0 0 1px rgba(37,127,89,.14);
       }
       #servicesCard [data-service="mobile"] {
@@ -121,9 +121,9 @@
         background:rgba(249,221,234,.5)!important;
       }
       #servicesCard [data-service="mobile"].on {
-        background:var(--ac-mobile-soft)!important;
-        border-color:var(--ac-mobile-strong)!important;
-        color:#642343!important;
+        background:#E44B9C!important;
+        border:2.5px solid #9E1C65!important;
+        color:#fff!important;
         box-shadow:inset 0 0 0 1px rgba(173,62,120,.14);
       }
       #servicesCard [data-service="boiler"] {
@@ -131,9 +131,9 @@
         background:rgba(255,226,206,.52)!important;
       }
       #servicesCard [data-service="boiler"].on {
-        background:var(--ac-insurance-soft)!important;
-        border-color:var(--ac-insurance-strong)!important;
-        color:#74320C!important;
+        background:#F98A32!important;
+        border:2.5px solid #AE4B07!important;
+        color:#fff!important;
         box-shadow:inset 0 0 0 1px rgba(201,90,23,.14);
       }
       #servicesCard [data-pseudo-service="cashback"] {
@@ -141,9 +141,9 @@
         background:rgba(232,223,248,.55)!important;
       }
       #servicesCard [data-pseudo-service="cashback"].on {
-        background:var(--ac-cashback-soft)!important;
-        border-color:var(--ac-cashback-strong)!important;
-        color:#402D6A!important;
+        background:#9561D7!important;
+        border:2.5px solid #5E2D9E!important;
+        color:#fff!important;
         box-shadow:inset 0 0 0 1px rgba(103,72,168,.15);
       }
 
@@ -152,7 +152,21 @@
         display:flex;
         min-width:0;
       }
-      #servicesCard .ac-mobile-cell > [data-service="mobile"] { padding-bottom:27px!important; }
+      #servicesCard .ac-mobile-cell > [data-service="mobile"] {padding-bottom:23px!important;}
+      #servicesCard [data-service="boiler"]:disabled,
+      #servicesCard [data-service="boiler"].ac-unavailable {
+        background:#E9E8ED!important;border:2px solid #C7C5D0!important;
+        color:#898592!important;filter:grayscale(1);opacity:.56;cursor:not-allowed!important;
+        box-shadow:none!important;
+      }
+      #servicesCard .ac-mobile-state{
+        position:absolute;left:4px;right:4px;bottom:4px;border-radius:999px;
+        background:#fff;color:#97255B;font:900 10px/17px system-ui,sans-serif;
+        text-align:center;pointer-events:none;
+      }
+      #servicesCard [data-service].on .ac-service-ghost,
+      #servicesCard [data-pseudo-service].on .ac-service-ghost {filter:saturate(1.5) drop-shadow(0 1px 2px rgba(0,0,0,.14));}
+      #servicesCard [data-service="energy"].on .ac-energy-state{background:#fff;color:#06657A;}
       #servicesCard .ac-mobile-stepper {
         position:absolute;
         left:4px;
@@ -345,27 +359,30 @@
     button.title = 'Mobile SIMs';
     button.setAttribute('aria-label', 'Mobile SIMs');
 
-    var stepper = document.createElement('div');
-    stepper.className = 'ac-mobile-stepper';
-    stepper.setAttribute('aria-label', 'Number of mobile SIMs');
-    stepper.innerHTML = '<button type="button" data-ac-sim-step="-1" aria-label="Remove one SIM">−</button><span class="ac-mobile-count" data-ac-mobile-count>1</span><button type="button" data-ac-sim-step="1" aria-label="Add one SIM">+</button>';
-    cell.appendChild(stepper);
+    var badge=document.createElement('span');
+    badge.className='ac-mobile-state';
+    badge.setAttribute('data-ac-mobile-state','');
+    badge.textContent='1 SIM';
+    button.appendChild(badge);
 
-    stepper.addEventListener('click', function (event) {
-      var control = event.target.closest('[data-ac-sim-step]');
-      if (!control) return;
+    button.addEventListener('click',function(event){
+      if(!button.classList.contains('on')){
+        // Let the existing controller activate Mobile, then start at one SIM.
+        setTimeout(function(){setSims(1);sync();},0);
+        return;
+      }
+      var count=canonicalSims();
+      if(count>=5){
+        // At five, the next tap switches Mobile off via the original handler.
+        setTimeout(sync,0);
+        return;
+      }
+      // Intermediate taps change the number, WITHOUT toggling Mobile off.
       event.preventDefault();
-      event.stopPropagation();
       event.stopImmediatePropagation();
-      if (!button.classList.contains('on')) return;
-      setSims(canonicalSims() + Number(control.dataset.acSimStep || 0));
-    }, true);
-
-    button.addEventListener('click', function () {
-      var wasOff = !button.classList.contains('on');
-      if (wasOff) setTimeout(function () { setSims(1); sync(); }, 0);
-      else setTimeout(sync, 0);
-    }, true);
+      setSims(count+1);
+      setTimeout(sync,0);
+    },true);
   }
 
   function enhanceCashback() {
@@ -400,7 +417,15 @@
     var cashback = document.querySelector('#servicesCard [data-pseudo-service="cashback"]');
     var mobileCell = mobile && mobile.closest('.ac-mobile-cell');
 
-    if (pills) pills.classList.toggle('ac-four-visible', !!(boiler && boiler.classList.contains('hidden')));
+    if (pills) pills.classList.remove('ac-four-visible');
+    if(boiler){
+      var tenant=$('pillTenant')&&$('pillTenant').classList.contains('on');
+      var homeowner=$('pillHomeowner')&&$('pillHomeowner').classList.contains('on');
+      boiler.classList.remove('hidden');
+      boiler.disabled=!homeowner||tenant;
+      boiler.classList.toggle('ac-unavailable',boiler.disabled);
+      boiler.setAttribute('aria-disabled',boiler.disabled?'true':'false');
+    }
 
     var fuel = canonicalFuel();
     var energyIcon = fuel === 'electricity' ? '⚡' : fuel === 'gas' ? '🔥' : '⚡🔥';
@@ -421,8 +446,8 @@
     });
 
     var sims = canonicalSims();
-    var count = mobileCell && mobileCell.querySelector('[data-ac-mobile-count]');
-    if (count) count.textContent = String(sims);
+    var count = mobileCell && mobileCell.querySelector('[data-ac-mobile-state]');
+    if (count) count.textContent = sims + (sims===1?' SIM':' SIMs');
     if (mobileCell) mobileCell.classList.toggle('ac-on', !!(mobile && mobile.classList.contains('on')));
     if (mobile) {
       var mobileOn = mobile.classList.contains('on');

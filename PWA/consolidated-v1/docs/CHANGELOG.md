@@ -1,3 +1,14 @@
+## v2.61.6 - 15 October 2026 - Connector referrals, club shirt and clearer service tiles
+
+- Replace two independent referral switches with one compact, mutually exclusive row for Referral (supplied Win Win artwork), Connector self-referral (supplied UW icon) and National League (football shirt).
+- Referral source is retained for tenants even when referral reward or Connector commission is £0. Connector commission for homeowners is £50/£125/£150 for 2/3/4 qualifying services, including homeowner-only Boiler Cover.
+- Qualifying National League referrals give a free club shirt (value £65) for both homeowners and tenants. Add £65 to the first-year benefits/hero figure, shared card and copied figures.
+- Energy discount and Connector service counts may include two Unlimited SIMs as two mobile services. Welcome Bonus always counts the mobile service type once, including an Essentials SIM.
+- Boiler Cover tile stays greyed out for tenants, and tenant cover is excluded by the calculation itself even when restoring an older saved record.
+- Selected service tiles now use much richer family colours; repeat taps on the mobile tile cycle 1 to 5 SIMs and then off. Existing detailed SIM plan controls remain available.
+- Source-route state and Connector commission are preserved in saved profiles and packed shared summaries.
+- Customer records, Cloud save/authentication, tariff maths and service price data are otherwise unchanged.
+
 ## v2.61.5 - 15 October 2026 - Recognisable shopping basket and calmer Cloud synchronisation
 
 - Replaced the wicker basket with a small custom shopping-basket SVG throughout Main, EV, Should I Fix and the customer submenu, avoiding mobile emoji rendering ambiguities.
