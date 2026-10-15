@@ -87,6 +87,11 @@
     ].join('');
     document.head.appendChild(style);
     nameRegionRow.appendChild(box);
+    // The old donor Save / Update control no longer creates a parallel legacy
+    // localStorage copy in the consolidated app; label its actual action clearly.
+    var legacySave=document.getElementById('saveProfileBtn');
+    if(legacySave){legacySave.textContent='💾 Save locally';legacySave.title='Confirm this customer name and save the current record locally';}
+
 
     function paint() {
       var option = select.options[select.selectedIndex];
