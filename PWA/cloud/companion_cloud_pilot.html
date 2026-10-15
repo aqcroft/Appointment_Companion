@@ -403,10 +403,10 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
     <div class="ac-referral-row" role="group" aria-label="Referral source">
       <button type="button" class="ac-referral-choice" data-referral-route="friend" aria-pressed="false" title="Refer a Friend - homeowners only">
-        <span class="ac-referral-art" aria-hidden="true"><img src="winwin-referral.webp" alt=""></span><span>Referral</span>
+        <span class="ac-referral-art" aria-hidden="true"><img src="../cloud/winwin-referral.webp" alt=""></span><span>Referral</span>
       </button>
       <button type="button" class="ac-referral-choice" data-referral-route="connector" aria-pressed="false" title="Connector self-referral - homeowners only">
-        <span class="ac-referral-art" aria-hidden="true"><img src="uw-connector.webp" alt=""></span><span>Connector</span>
+        <span class="ac-referral-art" aria-hidden="true"><img src="../cloud/uw-connector.webp" alt=""></span><span>Connector</span>
       </button>
       <button type="button" class="ac-referral-choice" data-referral-route="nationalLeague" aria-pressed="false" title="National League - free club shirt for homeowners and tenants">
         <span class="ac-referral-art ac-shirt" aria-hidden="true">👕</span><span>National League</span>
@@ -939,7 +939,7 @@ label.active-tier { color:var(--purple); font-weight:700; }
         </details>
 
         <div class="sc-line sumrow" style="margin-top:0.5rem;">
-          <span class="k">Year-one Welcome Bonuses</span>
+          <span class="k">Year-one bonuses &amp; benefits</span>
           <span class="v" id="scBenefitsTotal">£0</span>
         </div>
 
@@ -2245,7 +2245,7 @@ $('copyBtn').addEventListener('click', () => {
   const cfTotalSaveNet = r.monthlySaving + (r.cbOn ? r.cashbackNet : 0);
   lines.push('  Total £' + money(cfTotalSaveNet) + '/m x 12 = Year-one Savings on Services: £' + money(cfTotalSaveNet * 12));
   lines.push('');
-  lines.push('Year-one Welcome Bonuses:');
+  lines.push('Year-one bonuses & benefits:');
   if (r.referral) lines.push('  Referral bonus: £' + r.referral);
   if (r.natLeague) lines.push('  Free club shirt (National League): £' + r.natLeague);
   if (r.connector) lines.push('  Connector self-referral commission: £' + r.connector);
