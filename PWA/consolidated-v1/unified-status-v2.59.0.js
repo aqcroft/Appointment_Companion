@@ -446,62 +446,87 @@
     }
     if(sequence===checkSeq&&requestId===localNonce)paint();
   }
-  async function refreshCloud(sequence) {
+  async function refreshCloud(sequence, force) {
     if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,customerIds:['demo1','demo2','demo3'],error:''};paint();return;}
     var auth=ownAuth();
-    if(!auth){cloud={connection:'disconnected',profile:'failed',message:'Not signed in to Companion Cloud',profileName:'',customerCount:null,error:''};paint();return;}
-    var cached=localPartner(auth);
-    // Retain an already verified same-user status whilst rechecking; never inherit
-    // somebody else's green result after changing Companion login.
-    var sameOwner=cloud.owner===String(auth.partner_id).trim().toLowerCase();
-    if(!(sameOwner && cloud.connection==='verified' && cloud.profile==='loaded')) {
-      cloud={connection:'checking',profile:'checking',message:'Checking Cloud with your saved Companion login…',
-        profileName:cached?cached.name:'',customerCount:null,error:'',owner:''};
+    if(!auth){
+      ++cloudNonce;cloudFlight=null;flightAuth=null;lastCloudCheckAt=0;lastVerifiedAt=0;
+      cloud={connection:'disconnected',profile:'failed',message:'Not signed in to Companion Cloud',profileName:'',customerCount:null,customerIds:null,error:'',owner:''};
+      paint();return;
     }
-    paint();
+    var cached=localPartner(auth),owner=String(auth.partner_id).trim().toLowerCase();
     if(global.__AC_LOCAL_ONLY){
-      cloud.connection='saved';cloud.profile=cached?'cached':'failed';
-      cloud.message='Local-only mode: Cloud verification paused on this device.';
+      cloud.connection='saved';cloud.profile=cached?'cached':'checking';cloud.profileName=cached?cached.name:'';
+      cloud.customerIds=null;cloud.owner='';cloud.message='Local-only mode: remote verification paused on this device.';
       paint();return;
     }
     var api=global.AppointmentCompanionCloud;
     if(!api||typeof api.listCustomers!=='function'||typeof api.getPartnerProfile!=='function'){
-      cloud.connection='failed';cloud.profile=cached?'cached':'failed';cloud.message='The Cloud connection component did not load correctly. Refresh Appointment Companion.';paint();return;
+      cloud.connection='failed';cloud.profile=cached?'cached':'failed';
+      cloud.customerIds=null;cloud.message='Cloud connection component unavailable. Refresh the Companion.';paint();return;
     }
-    var checks=await Promise.all([
-      timeout(api.listCustomers(auth),6500),
-      timeout(api.getPartnerProfile(auth),6500)
-    ]);
-    if(sequence!==checkSeq||!$(ID)||$(ID).hidden)return;
-    var latestAuth=ownAuth();
-    if(!latestAuth || latestAuth.partner_id!==auth.partner_id || latestAuth.workspace_key!==auth.workspace_key){
-      refreshAll();return;
+    // Reuse an in-progress check and avoid excessive identical Apps Script calls.
+    if(cloudFlight&&sameAuth(flightAuth,auth))return cloudFlight;
+    if(!force&&cloud.owner===owner&&cloud.connection==='verified'&&cloud.profile==='loaded'&&
+       Date.now()-lastCloudCheckAt<CLOUD_CHECK_INTERVAL){paint();return;}
+    if(cloudFlight){++cloudNonce;cloudFlight=null;flightAuth=null;}
+    var sameOwner=cloud.owner===owner&&lastVerifiedAt>0;
+    if(!sameOwner){
+      cloud={connection:'checking',profile:'checking',message:'Verifying Cloud and Partner account…',
+        profileName:cached?cached.name:'',customerCount:null,customerIds:null,error:'',owner:''};
+      paint();
     }
-    cloud.owner=String(auth.partner_id).trim().toLowerCase();
-    var clients=checks[0],p=checks[1];
-    cloud.connection=clients.ok?'verified':'failed';
-    cloud.message=clients.ok?'Companion login verified with Cloud.':'Cloud login could not be verified just now.';
-    cloud.customerCount=clients.ok&&Array.isArray(clients.data.customers)?clients.data.customers.length:null;
-    cloud.customerIds=clients.ok&&Array.isArray(clients.data.customers)?
-      clients.data.customers.filter(function(r){return r&&r.customer_id;})
-        .map(function(r){return String(r.customer_id);}):null;
-    var candidate=p.ok&&p.data?p.data.partner:null;
-    // The authenticated getPartnerProfile endpoint can return legacy records
-    // without a partner_id. Accept those only if no conflicting ID is present.
-    var returnedId=String(candidate&&(candidate.partner_id||candidate.companion_login_id)||'').trim().toLowerCase();
-    var verified=candidate&&String(candidate.name||'').trim()&&(!returnedId||returnedId===String(auth.partner_id).trim().toLowerCase())?candidate:null;
-    cloud.profile=verified?'loaded':cached?'cached':'failed';
-    cloud.profileName=verified?verified.name:cached?cached.name:'';
-    cloud.error=(!clients.ok||!p.ok)?('Cloud checks: '+(!clients.ok?'connection '+(clients.error||'unavailable')+'; ':'')+(!p.ok?'profile '+(p.error||'unavailable'):'')).slice(0,220):'';
-    paint();
+    var nonce=++cloudNonce;
+    lastCloudCheckAt=Date.now();
+    flightAuth=auth;
+    cloudFlight=(async function(){
+      var checks=await Promise.all([
+        timeout(api.listCustomers(auth),12000),
+        timeout(api.getPartnerProfile(auth),12000)
+      ]);
+      if(nonce!==cloudNonce)return;
+      var latest=ownAuth();
+      if(!sameAuth(latest,auth)){queueRefresh(300,true);return;}
+      var clients=checks[0],p=checks[1],listOk=clients.ok&&clients.data&&Array.isArray(clients.data.customers);
+      var candidate=p.ok&&p.data?p.data.partner:null;
+      var returnedId=String(candidate&&(candidate.partner_id||candidate.companion_login_id)||'').trim().toLowerCase();
+      var verified=!!(candidate&&String(candidate.name||'').trim()&&(!returnedId||returnedId===owner));
+      cloud.owner=owner;
+      cloud.connection=listOk?'verified':'failed';
+      cloud.message=listOk?'Companion login and customer list verified with Cloud.':'Cloud customer list could not be verified just now.';
+      cloud.customerCount=listOk?clients.data.customers.length:null;
+      cloud.customerIds=listOk?clients.data.customers.filter(function(r){return r&&r.customer_id;}).map(function(r){return String(r.customer_id);}):null;
+      cloud.profile=verified?'loaded':returnedId&&returnedId!==owner?'failed':cached?'cached':'failed';
+      cloud.profileName=verified?candidate.name:cached?cached.name:'';
+      cloud.error=(!clients.ok||!p.ok)?('Cloud checks: '+(!clients.ok?'connection '+(clients.error||'unavailable')+'; ':'')+(!p.ok?'profile '+(p.error||'unavailable'):'')).slice(0,220):'';
+      if(listOk&&verified)lastVerifiedAt=Date.now();
+      paint();
+      // Local state may have been checked before the verified Cloud IDs arrived.
+      await refreshCustomerSync(checkSeq,true);
+    })();
+    try{return await cloudFlight;}
+    finally{if(nonce===cloudNonce){cloudFlight=null;flightAuth=null;}}
   }
-  function refreshAll(){
-    if(!$(ID)||$(ID).hidden)return;
+  function refreshAll(force){
     var seq=++checkSeq;
-    paint();showMessage(demo?'Preview uses fictional status values.':'Checking status…');
-    Promise.all([refreshCloud(seq),refreshCustomerSync(seq)]).then(function(){
-      if(seq===checkSeq&&$(ID)&&!$(ID).hidden){paint();showMessage(demo?'Demonstration only.':'Status checked.');}
+    paint();
+    if(modalVisible())showMessage(demo?'Preview uses fictional status values.':'Checking status…');
+    return Promise.all([refreshCloud(seq,!!force),refreshCustomerSync(seq,true)]).then(function(){
+      if(seq===checkSeq){
+        paint();
+        if(modalVisible())showMessage(demo?'Demonstration only.':'Status checked.');
+      }
     });
+  }
+  function checkSpecialistTariffs(){
+    if(demo||!String(global.location.pathname||'').includes('/should-i-fix/'))return;
+    var api=global.AppointmentCompanionTariffsV242;
+    if(!api||typeof api.state!=='function'||!api.feed)return;
+    try {
+      // The chart runs in a separate-origin iframe, and cannot verify this
+      // page's top-left tariff indicator without a separate parent check.
+      if(api.state().status==='checking')global.fetch(api.feed,{cache:'no-store'}).catch(function(){paint();});
+    }catch(_){paint();}
   }
   function install(){
     var version=document.querySelector('.ac-version-mini'),rag=$('acTariffHealth242');
