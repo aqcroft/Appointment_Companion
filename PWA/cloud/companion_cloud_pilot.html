@@ -1006,16 +1006,16 @@ const CONFIG = {
   // carried inside every shared link). No hardcoded personal fallback.
 
   // Current welcome bonus is based on qualifying SERVICE TYPES, not the raw
-  // energy-tariff/service count. Mobile contributes one welcome-bonus service
-  // type only when at least one included SIM is Go Unlimited. Go Essentials
-  // can still improve energy/service qualification without increasing this bonus.
+  // energy-tariff/service count. Any included mobile SIM contributes ONE
+  // welcome-bonus service type. Two Unlimited SIMs can count twice towards
+  // Connector service count, but never twice towards the Welcome Bonus.
   welcomeBonus: { 0: 0, 1: 0, 2: 50, 3: 150, 4: 250 },
 
   // £50 referral credit: requires 2+ services AND homeowner AND referred.
   // Tenants CAN be referred (toggle stays usable) — they just don't get the £50.
   referral: { amount: 50, minServices: 2, homeownerOnly: true },
 
-  // £50 National League club-shop voucher: referred via a National League club.
+  // £65 National League free shirt benefit: via participating club.
   // Unlike the standard referral, this is open to homeowners AND tenants.
   nationalLeague: { amount: 65, minServices: 2, homeownerOnly: false },
   connectorCommission: { 2: 50, 3: 125, 4: 150 },
@@ -1543,8 +1543,8 @@ function compute(previewSims = 0) {
 
   const mobilePresent = includedSimsCount + previewApplied > 0;
 
-  // Welcome bonus follows SERVICE TYPES. Essentials SIMs can improve the
-  // energy tariff but do not add a Mobile welcome-bonus service type.
+  // Welcome Bonus follows service TYPES: any one included SIM contributes
+  // a single mobile service type, including Essentials.
   const welcomeServiceTypes = Math.min(
     (state.services.energy ? 1 : 0) +
     (state.services.broadband ? 1 : 0) +
@@ -2521,6 +2521,8 @@ function resetForm() {
   $('spendDisplay').textContent = CONFIG.cashback.slider.default;
   state.services = { energy: false, broadband: false, mobile: false };
   state.homeowner = null;
+  state.referralRoute = 'none';
+  document.querySelectorAll('[data-referral-route]').forEach(b => b.setAttribute('aria-pressed','false'));
   state.simCount = 0;
   state.sims = {};
   state.includeCashback = true;
@@ -2529,7 +2531,11 @@ function resetForm() {
   const boilerCurrentSide = $('currentBoilerCoverMonthly') && $('currentBoilerCoverMonthly').closest('.side');
   if (boilerCurrentSide) boilerCurrentSide.classList.remove('hidden');
   if ($('boilerModeHint')) $('boilerModeHint').textContent = 'Choose whether the customer already pays for cover, or whether UW Boiler Cover is being added as a new service.';
-  if ($('boilerServicePill')) $('boilerServicePill').classList.add('hidden');
+  if ($('boilerServicePill')) {
+    $('boilerServicePill').classList.remove('hidden');
+    $('boilerServicePill').disabled = true;
+    $('boilerServicePill').setAttribute('aria-disabled','true');
+  }
   ['servicesCard','insuranceCard','manualAdjustCard','cashbackCard'].forEach(id => $(id).classList.add('hidden'));
   ['energyCard','broadbandCard','mobileCard','billCosts','energySplitNow'].forEach(id => $(id).classList.add('hidden'));
   state.splitGas = true; state.splitElec = true;
@@ -2630,6 +2636,9 @@ function restoreForm(saved) {
   const s = saved.state;
   state.services = Object.assign({ energy:false, broadband:false, mobile:false }, s.services || {});
   state.homeowner = (s.homeowner != null) ? s.homeowner : null;
+  state.referralRoute = ['friend','connector','nationalLeague'].includes(s.referralRoute)
+    ? s.referralRoute
+    : (saved.inputs.natLeagueToggle ? 'nationalLeague' : saved.inputs.referralToggle ? 'friend' : 'none');
   state.simCount = s.simCount || 0;
   state.sims = s.sims || {};
   state.includeCashback = (s.includeCashback !== undefined) ? s.includeCashback : true;
@@ -2657,12 +2666,14 @@ function restoreForm(saved) {
 
   // all input values + checkbox states
   Object.keys(saved.inputs).forEach(id => {
+    if (id === 'referralToggle' || id === 'natLeagueToggle') return;
     const el = $(id);
     if (!el || el.type === 'file') return;
     if (el.type === 'checkbox') el.checked = !!saved.inputs[id];
     else el.value = saved.inputs[id];
   });
 
+  selectReferralRoute(state.referralRoute);
   // conditional panels follow their (now-restored) toggles
   $('billCosts').classList.toggle('hidden', !$('useBillCosts').checked);
   $('energyCombinedNow').classList.toggle('hidden', $('splitEnergyToggle').checked);
@@ -2676,7 +2687,9 @@ function restoreForm(saved) {
     const boilerOn = $('boilerCoverToggle').checked && state.homeowner === 'homeowner';
     const boilerPill = $('boilerServicePill');
     if (boilerPill) {
-      boilerPill.classList.toggle('hidden', state.homeowner !== 'homeowner');
+      boilerPill.classList.remove('hidden');
+      boilerPill.disabled = state.homeowner !== 'homeowner';
+      boilerPill.setAttribute('aria-disabled', boilerPill.disabled ? 'true':'false');
       boilerPill.classList.toggle('on', boilerOn);
     }
     $('insuranceCard').classList.toggle('hidden', !boilerOn);
@@ -3391,6 +3404,8 @@ function renderShared(d) {
   $('scReferral').textContent = '\u00a3' + money(rf);
   $('scNatLeagueRow').classList.toggle('hidden', nl === 0);
   $('scNatLeague').textContent = '\u00a3' + money(nl);
+  $('scConnectorRow').classList.toggle('hidden', g('cr') === 0);
+  $('scConnector').textContent = '\u00a3' + money(g('cr'));
   $('scBbFreeRow').classList.toggle('hidden', bf === 0);
   $('scBbFree').textContent = '\u00a3' + money(bf);
   $('scBbFreeLabel').textContent = '\ud83d\udedc ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ \u00a3' + Math.round(g('uBr')) + ')';
@@ -3436,7 +3451,7 @@ function renderShared(d) {
     }
     $('scExitMsg').innerHTML = msg;
   }
-  const benefitsTotal = bf + w + rf + nl + mf + bcf + (cbOn ? fm : 0) + oo - ed;
+  const benefitsTotal = bf + w + rf + nl + g('cr') + mf + bcf + (cbOn ? fm : 0) + oo - ed;
   $('scBenefitsTotal').textContent = fmtV(benefitsTotal);
   $('scBenefitsTotal').classList.toggle('good', benefitsTotal > 0);
   $('scBenefitsTotal').classList.toggle('bad', benefitsTotal < 0);
