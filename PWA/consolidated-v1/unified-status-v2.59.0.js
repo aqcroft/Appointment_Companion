@@ -8,15 +8,16 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.62.1',
+    version: 'v2.62.2',
     date: '15 October 2026',
-    summary: 'Simpler, one-level Companion menus',
+    summary: 'One-level menus across all Partner tools',
     changes: [
       'Restored one-click Customers & quotes and Account & app actions in a single dropdown.',
       'More options expands within the menu instead of opening another submenu.',
       'Positioned the menu beneath its hamburger button, with scrolling on small screens.',
       'Applied the same menu organisation to the Partner EV and Should I Fix tools.',
       'Reused existing customer and Cloud action handlers without changing their save logic.',
+      'The More section includes a link to the separate Relationship follow-up app.',
       'Customer-facing shared links continue to hide Partner-only menus.'
     ]
   });
@@ -159,8 +160,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.62.0',date:'15 October 2026',summary:'Quarterly kWh in Should I Fix'},
-      {version:'v2.61.9',date:'15 October 2026',summary:'Customer-facing EV sharing refinements'}
+      {version:'v2.62.1',date:'15 October 2026',summary:'First version of simplified Companion menus'},
+      {version:'v2.62.0',date:'15 October 2026',summary:'Quarterly kWh in Should I Fix'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
