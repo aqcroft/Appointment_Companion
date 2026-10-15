@@ -329,8 +329,29 @@
     if(['all','localOnly','cloudOnly','conflicts'].indexOf(view)<0)view='all';
     modal.dataset.customerScope=view;
     var sequence=++customerBrowserSequence;
-    var rows=await store.list(true);
+    // Open the customer browser immediately, ahead of IndexedDB and Cloud
+    // requests. Users see instant feedback even when Cloud takes seconds.
+    modal.classList.add('open');
+    modal.setAttribute('aria-busy','true');
+    var note=$('localFirstCustomersNote');
+    var list=$('localFirstCustomerRows');
+    var scopeOnOpen=$('localFirstCustomerScope');
+    if(scopeOnOpen)scopeOnOpen.value=view;
+    if(note)note.textContent='Checking customer records on this device and in Cloud…';
+    if(list)list.innerHTML='<p class="sub" role="status" aria-live="polite" style="padding:12px 4px">⏳ Loading customers…</p>';
+    var rows;
+    try {
+      rows=await store.list(true);
+    } catch (err) {
+      if(sequence!==customerBrowserSequence)return;
+      if(note)note.textContent='Could not read the customers on this device.';
+      if(list)list.textContent='Customer records could not be loaded. Close and reopen to retry. Nothing has been deleted.';
+      modal.removeAttribute('aria-busy');
+      return;
+    }
+    if(sequence!==customerBrowserSequence)return;
     recentRows(rows);
+    if(note)note.textContent='Found '+rows.filter(function(r){return !r.deleted;}).length+' record(s) on this device. Checking Cloud…';
     var cloudRows=null,cloudError='',credentials=auth();
     if(!LOCAL_ONLY && credentials && api && typeof api.listCustomers==='function' && navigator.onLine){
       try{var result=await api.listCustomers(credentials);cloudRows=Array.isArray(result&&result.customers)?result.customers:[];}
@@ -432,7 +453,7 @@
     if (search) search.oninput = renderRows;
     if (sort) sort.onchange = renderRows;
     renderRows();
-    modal.classList.add('open');
+    modal.removeAttribute('aria-busy');
   }
   async function markDeleted(localId) { var row = await store.get(localId); if (!row || !global.confirm('Delete ' + (row.customer_name || 'this customer') + '? Cloud deletion will finish after reconnecting.')) return; await store.put(Object.assign({}, row, { deleted: true, tombstone: true, deletion_requested_at: new Date().toISOString(), sync_state: 'pending_delete' })); if (localId === currentId) await startNewCustomer(true); scheduleSync(50); status('Removed from this device. Linked Cloud deletion is pending acknowledgement.', ''); }
   async function resolveConflict(localId, choice) {
