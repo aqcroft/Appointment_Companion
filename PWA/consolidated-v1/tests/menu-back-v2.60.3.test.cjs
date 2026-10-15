@@ -9,7 +9,7 @@ class Element{
   get firstElementChild(){return this.firstChild;}
   get nextSibling(){if(!this.parentNode)return null;return this.parentNode.children[this.parentNode.children.indexOf(this)+1]||null;}
   get nextElementSibling(){return this.nextSibling;}
-  get classList(){return {contains:n=>this.className.split(/\s+/).includes(n)};}
+  get classList(){return {contains:n=>this.className.split(/\s+/).includes(n),remove:n=>{this.className=this.className.split(/\s+/).filter(c=>c!==n).join(' ');},add:n=>{if(!this.className.split(/\s+/).includes(n))this.className+=' '+n;}};}
   insertBefore(n,ref){if(n.parentNode){const old=n.parentNode.children;const ix=old.indexOf(n);if(ix>=0)old.splice(ix,1);}
     const ix=ref?this.children.indexOf(ref):this.children.length;if(ix<0)throw Error('invalid insertBefore reference');
     this.children.splice(ix,0,n);n.parentNode=this;return n;}
