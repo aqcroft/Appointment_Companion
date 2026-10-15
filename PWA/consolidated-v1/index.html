@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Appointment Companion v2.62.0</title>
+  <title>Appointment Companion v2.62.1</title>
   <meta name="description" content="Appointment Companion local-first PWA">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#7a42c8">
@@ -16,7 +16,7 @@
   <script>
   (async function () {
     try {
-      var version = '20261015-v2.62.0-quarterly-kwh';
+      var version = '20261015-v2.62.1-flat-menu';
       var localOnly = new URL(location.href).searchParams.get('local') === '1';
       var sharedView = /^d=/.test(location.hash.slice(1));
       var response = await fetch('../cloud/companion_cloud_pilot.html?v=' + version);
@@ -127,7 +127,7 @@
         '<script src="../consolidated-v1/earnings-shortcut-v2.42.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/getting-started-v2.58.0.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/unified-status-v2.59.0.js?v=' + version + '"><\/script>' +
-        '<script src="../consolidated-v1/menu-groups-v2.60.2.js?v=' + version + '"><\/script>' +
+        '<script src="../consolidated-v1/menu-flat-v2.62.1.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/partner-settings-ux-v2.60.3.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
