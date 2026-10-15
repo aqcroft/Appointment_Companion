@@ -1,4 +1,4 @@
-/* Local-first controller v2.63.2: explicit customer-name confirmation, stable local drafts, deliberate Cloud creation. */
+/* Local-first controller v2.63.3: explicit customer-name confirmation, stable local drafts, deliberate Cloud creation. */
 (function (global) {
   'use strict';
   if (document.documentElement.classList.contains('view-mode')) return;
@@ -453,6 +453,7 @@
           var cloudDeleted=!!(rowToReview.conflict.cloud && rowToReview.conflict.cloud.deleted);
           var explanation=keepDevice?
             rowToReview.deleted?'Confirm deleting this customer from Cloud? Your existing deletion request will be completed.':
+            cloudDeleted?'This customer is no longer in Cloud. Keep the saved device version as a local draft? You can then choose Save to Cloud after checking for duplicates.':
             'Keep the version saved on this device? Once Cloud sync completes, it will replace the Cloud version.':
             cloudDeleted?
             'Cloud says this customer was deleted. Using Cloud will remove the copy on this device.':
@@ -515,7 +516,7 @@
     var conflictToggle=$('localFirstConflictToggle');
     if(conflictToggle){
       conflictToggle.textContent=view==='conflicts'?'Show all customers':'Show conflicts only';
-      var conflictCount=rows.filter(function(row){return !row.deleted && (row.conflict||row.sync_state==='conflict');}).length;
+      var conflictCount=rows.filter(function(row){return row.conflict||row.sync_state==='conflict';}).length;
       conflictToggle.hidden=!conflictCount && view!=='conflicts';
     }
 
@@ -576,7 +577,7 @@
               '<br>Basket link: '+(row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl?'saved':'not set')+'</div>'+
             '<div><b>Cloud:</b> '+escapeHtml(row.conflict.cloud && row.conflict.cloud.updated_at || 'Date unavailable')+
               '<br>Basket link: '+(row.conflict.cloud && row.conflict.cloud.basket_url?'saved':'not set')+'</div></details>' : '')+
-          (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">'+(row.deleted?'Confirm deletion':'Keep mine')+'</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">'+(row.deleted?'Restore from Cloud':'Use Cloud')+'</button>' : '') +
+          (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">'+(row.deleted?'Confirm deletion':row.conflict&&row.conflict.cloud&&row.conflict.cloud.deleted?'Keep local draft':'Keep mine')+'</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">'+(row.deleted?'Restore from Cloud':'Use Cloud')+'</button>' : '') +
           (row.deleted?'':'<button type="button" class="btn-ghost" style="padding:6px 7px;min-width:34px" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>') +
         '</div>';
       }).join('');
@@ -605,6 +606,17 @@
   async function resolveConflict(localId, choice) {
     var row = await store.get(localId); if (!row || !row.conflict) return; var conflict = row.conflict, history = (row.conflict_history || []).concat([{ resolved_at: new Date().toISOString(), choice: choice, conflict: clone(conflict) }]).slice(-5);
     if (choice === 'cloud') { if (conflict.cloud && conflict.cloud.deleted) { await store.remove(localId); if (currentId === localId) await startNewCustomer(true); return; } var remote = conflict.cloud || {}; var appt = appointment(remote); row = await store.put(Object.assign({}, row, { deleted:false,tombstone:false,deletion_requested_at:'', customer_name: remote.customer_name || row.customer_name, appointment_state: appt || row.appointment_state, specialist_state: remote.ev_state || remote.ev_state_json ? Object.assign({}, row.specialist_state, { ev: remote.ev_state || remote.ev_state_json }) : row.specialist_state, cloud_customer: remote, base_cloud_revision: remoteVersion(remote), base_cloud_snapshot: remote, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', conflict: null, conflict_history: history }), { keepRevision: true, keepSyncState: true }); }
+    else if(conflict.cloud&&conflict.cloud.deleted&&!row.deleted){
+      // Cloud deleted this ID. Preserve the surviving local copy without creating
+      // a new Cloud record automatically (which could duplicate a renamed customer).
+      // The user can deliberately use Save to Cloud, with its duplicate-name check.
+      row=await store.put(Object.assign({},row,{
+        cloud_id:'',cloud_creation_approved:false,cloud_customer:null,
+        base_cloud_revision:'',base_cloud_snapshot:null,
+        cloud_synced_local_revision:0,sync_state:'draft',
+        conflict:null,conflict_history:history
+      }),{keepRevision:true,keepSyncState:true});
+    }
     else row = await store.put(Object.assign({}, row, { base_cloud_revision: remoteVersion(conflict.cloud), base_cloud_snapshot: conflict.cloud, conflict: null, conflict_history: history, sync_state: row.deleted?'pending_delete':'pending' }), { keepRevision: true, keepSyncState: true });
     if (currentId === localId) await loadRecord(row, true); scheduleSync(50);
   }
@@ -635,7 +647,7 @@
   async function hydrate(credentials) {
     var listing = await api.listCustomers(credentials), metas = Array.isArray(listing.customers) ? listing.customers : [], ids = {}, locals = await store.list(true); metas.forEach(function (meta) { if (meta.customer_id) ids[String(meta.customer_id)] = true; });
     for (var i = 0; i < metas.length; i++) { var meta = metas[i], local = await store.findCloud(meta.customer_id); if (local && local.deleted) continue; var changed = !local || remoteVersion(meta) && remoteVersion(meta) !== local.base_cloud_revision; if (changed) { var full = (await api.getCustomer(credentials, meta.customer_id)).customer; if (!full) continue; if (local && Number(local.local_revision) !== Number(local.cloud_synced_local_revision) && !equivalent(local, full)) await conflict(local, full); else if (local) await adoptRemote(local, full); else { var appt = appointment(full); await store.put({ cloud_id: full.customer_id, customer_name: full.customer_name || '', appointment_state: appt, specialist_state: comparableRemote(full).specialist_state, basket_url: full.basket_url || appt && appt.canonical && appt.canonical.basketUrl || '', cloud_customer: full, local_revision: 0, cloud_synced_local_revision: 0, base_cloud_revision: remoteVersion(full), base_cloud_snapshot: full, sync_state: 'synced' }, { keepRevision: true, keepSyncState: true }); } } }
-    for (var j = 0; j < locals.length; j++) { var row = locals[j]; if (row.cloud_id && !ids[row.cloud_id]) { if (isSynced(row)) await store.remove(row.local_id); else if (!row.deleted) await conflict(row, { deleted: true, customer_id: row.cloud_id }); } }
+    for (var j = 0; j < locals.length; j++) { var row = locals[j]; if (row.cloud_id && !ids[row.cloud_id] && !row.deleted && !row.conflict) await conflict(row, { deleted: true, customer_id: row.cloud_id }); }
   }
   async function sync() {
     if (LOCAL_ONLY || syncing || !navigator.onLine || !api) return;
