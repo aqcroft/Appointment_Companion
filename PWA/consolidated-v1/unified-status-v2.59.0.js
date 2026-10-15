@@ -5,7 +5,7 @@
 */
 (function (global) {
   'use strict';
-  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || new URLSearchParams(location.search).get('public') === '1') return;
+  if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
     version: 'v2.61.9',
