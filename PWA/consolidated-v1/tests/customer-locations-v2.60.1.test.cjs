@@ -19,7 +19,7 @@ function makeRow(){
     specialist_state:{},basket_url:'https://example.test/synthetic-basket',conflict:null};
 }
 function harness(options={}){
-  let row=makeRow(),saves=0,reads=0,confirmed=0,puts=0;
+  let row=makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0;
   const cloudPeople=options.cloudPeople||[];
   const deviceStore={
     get:async id=>id===row.local_id?clone(row):null,
@@ -29,7 +29,7 @@ function harness(options={}){
     findCloud:async()=>null
   };
   const service={
-    listCustomers:async()=>({customers:cloudPeople}),
+    listCustomers:async()=>{listed++;return options.listCustomers?options.listCustomers(listed):{customers:cloudPeople};},
     saveCustomer:async(_auth,payload)=>{
       saves++;assert.equal(payload.customer_name,'Synthetic Alice');
       return {customer:{customer_id:'cloud-001',customer_name:'Synthetic Alice',
@@ -59,7 +59,7 @@ function harness(options={}){
     sessionStorage:authStore,localStorage:authStore,
     setInterval:()=>0,setTimeout:()=>0,clearTimeout:()=>{},
     CustomEvent:class{},console,Date,Set,Promise}, {filename:'consolidated-controller-v2.56.3.js'});
-  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts})};
+  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed})};
 }
 
 test('explicit customer Save to Cloud needs acknowledgement and retrieval to report success',async()=>{
@@ -127,4 +127,39 @@ test('the combined customer browser opens before awaiting its Cloud fetch',()=>{
   assert.match(body,/Loading customers…/);
   assert.match(body,/modal.removeAttribute\('aria-busy'\)/);
   assert.match(body,/if\(sequence!==customerBrowserSequence\)return/);
+});
+
+test('manual mobile upload waits for in-flight automatic sync then saves exactly once',async()=>{
+  let releaseBackground;
+  const backgroundGate=new Promise(resolve=>{releaseBackground=resolve;});
+  const h=harness({listCustomers:async n=>n===1?backgroundGate:{customers:[]}});
+  const syncJob=h.window.AppointmentCompanionConsolidated.sync();
+  for(let i=0;i<12&&h.stats().listed===0;i++)await Promise.resolve();
+  assert.equal(h.stats().listed,1,'background reconciliation should have reached its Cloud listing');
+  const manual=h.window.AppointmentCompanionConsolidated.saveLocalToCloud('local-001');
+  for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(h.stats().saves,0,'manual save waits without creating a competing Cloud write');
+  assert.equal(h.stats().confirmed,0,'confirmation should wait for the active Cloud check');
+  releaseBackground({customers:[]});
+  await syncJob;
+  const result=await manual;
+  assert.match(result.message,/saved on this device AND verified in Cloud/);
+  assert.equal(h.stats().saves,1);
+  assert.equal(h.stats().confirmed,1);
+  assert.equal(h.getRow().sync_state,'synced');
+  assert.equal(h.getRow().cloud_creation_approved,true);
+});
+test('cancelled queued upload never authorises Cloud creation',async()=>{
+  let finish;
+  const gate=new Promise(resolve=>finish=resolve);
+  const h=harness({confirm:false,listCustomers:async n=>n===1?gate:{customers:[]}});
+  const background=h.window.AppointmentCompanionConsolidated.sync();
+  for(let i=0;i<12&&h.stats().listed===0;i++)await Promise.resolve();
+  const manual=h.window.AppointmentCompanionConsolidated.saveLocalToCloud('local-001');
+  finish({customers:[]});
+  await background;
+  const result=await manual;
+  assert.match(result.message,/cancelled/);
+  assert.equal(h.stats().saves,0);
+  assert.equal(h.getRow().cloud_creation_approved,false);
 });
