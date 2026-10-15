@@ -1,0 +1,36 @@
+name: Appointment Companion - Partner identity v2.61.0
+
+on:
+  pull_request:
+    paths:
+      - 'PWA/consolidated-v1/public-partner-branding-v1.js'
+      - 'PWA/cloud-test/should-i-fix-pilot-v2.html'
+      - 'PWA/consolidated-v1/ev-customer-contact-v2.55.27.js'
+      - 'PWA/consolidated-v1/ev-share-adapter-v2.55.3.js'
+      - 'PWA/consolidated-v1/fix-share-gate-v1.js'
+      - 'PWA/consolidated-v1/ev/index.html'
+      - 'PWA/consolidated-v1/should-i-fix/index.html'
+      - 'PWA/consolidated-v1/tests/partner-identity-v2.61.0.test.cjs'
+      - '.github/workflows/partner-identity-v2610.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check syntax of all modified JavaScript files
+        run: |
+          node --check PWA/consolidated-v1/public-partner-branding-v1.js
+          node --check PWA/consolidated-v1/ev-customer-contact-v2.55.27.js
+          node --check PWA/consolidated-v1/ev-share-adapter-v2.55.3.js
+          node --check PWA/consolidated-v1/fix-share-gate-v1.js
+      - name: Test partner identity, contact links and modal layering
+        run: node --test PWA/consolidated-v1/tests/partner-identity-v2.61.0.test.cjs
