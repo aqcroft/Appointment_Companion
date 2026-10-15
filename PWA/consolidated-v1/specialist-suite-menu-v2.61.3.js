@@ -14,9 +14,10 @@
   var menu=null,trigger=null,view='root';
   var home=new URL('../',global.location.href);
 
+  var SHOPPING_BASKET_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#A76518" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5h18L19.2 20H4.8L3 10.5Z" fill="#FFE3B5"/><path d="M7 10.5 10 4m7 6.5L14 4"/><path d="M7.5 14h9m-9 3h9m-8-4 1 5m6-5-1 5"/></svg>';
   var QUICK=[
     {label:'New customer',icon:'📄',action:'new-customer'},
-    {label:'Saved quote basket link',icon:'🧺',action:'basket'},
+    {label:'Saved quote basket link',icon:'shopping-basket',action:'basket'},
     {label:'Save as new scenario',icon:'💾',action:'save-as'},
     {label:'All Cloud customers',icon:'☁️',action:'all-customers'},
     {label:'Delete current customer',icon:'🗑️',action:'delete-current'}
@@ -25,7 +26,7 @@
     {id:'customers',title:'Customers & quotes',icon:'👥',items:[
       ['☁️','All Cloud customers','all-customers'],['📄','New customer','new-customer'],
       ['💾','Save to Cloud','save'],['💾','Save as new scenario','save-as'],
-      ['🧺','Saved quote basket link','basket'],['🗑️','Delete current customer','delete-current']
+      ['shopping-basket','Saved quote basket link','basket'],['🗑️','Delete current customer','delete-current']
     ]},
     {id:'account',title:'Account & app',icon:'⚙️',items:[
       ['👤','My profile','partner'],['🔎','App status & updates','status'],
@@ -60,7 +61,9 @@
     var b=document.createElement('button');b.type='button';b.className='ac-suite-action';
     b.dataset.acSuiteAction=action;
     if(section)b.dataset.acSuiteSection=section;
-    var graphic=document.createElement('span');graphic.className='ac-suite-icon';graphic.textContent=icon;
+    var graphic=document.createElement('span');graphic.className='ac-suite-icon';
+    if(icon==='shopping-basket')graphic.innerHTML=SHOPPING_BASKET_SVG;
+    else graphic.textContent=icon;
     var text=document.createElement('span');text.textContent=label;
     b.append(graphic,text);
     if(section){var arrow=document.createElement('span');arrow.className='ac-suite-chevron';arrow.setAttribute('aria-hidden','true');arrow.textContent='›';b.appendChild(arrow);}
