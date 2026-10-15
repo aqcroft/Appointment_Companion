@@ -170,15 +170,20 @@
   }
   function storageSignals(presentHere, cloudState, synced) {
     var mobile=isMobileDevice();
-    function cell(icon,state,label) {
-      var colour=state==='yes'?'#167642':state==='no'?'#bd3640':'#86798d';
-      var glyph=state==='yes'?'✓':state==='no'?'✕':'?';
-      return '<span title="'+escapeHtml(label)+'" aria-label="'+escapeHtml(label)+'" style="display:inline-flex;align-items:center;gap:2px;white-space:nowrap"><span aria-hidden="true">'+icon+'</span><b style="color:'+colour+'">'+glyph+'</b></span>';
+    // A single, compact status badge per location, not an icon followed by a
+    // separate tick/cross. Other devices remain UNKNOWN, never assumed absent.
+    function cell(emoji,state,label) {
+      var tint=state==='yes'?'#168447':state==='no'?'#bc3545':'#8e819b';
+      var glyph=state==='yes'?'✓':state==='no'?'×':'?';
+      return '<span class="ac-location-cell" title="'+escapeHtml(label)+'" aria-label="'+escapeHtml(label)+
+        '" role="img" style="position:relative;display:inline-flex;width:25px;height:26px;flex:0 0 25px;align-items:flex-start;justify-content:center;vertical-align:middle">'+
+        '<span aria-hidden="true" style="font-size:17px;line-height:23px">'+emoji+'</span>'+
+        '<span aria-hidden="true" style="position:absolute;right:0;bottom:0;display:flex;align-items:center;justify-content:center;width:13px;height:13px;box-sizing:border-box;border:1.5px solid white;border-radius:50%;background:'+tint+';color:#fff;font:900 10px/1 system-ui,sans-serif">'+glyph+'</span></span>';
     }
-    return '<span class="ac-location-status" style="display:inline-flex;gap:7px;align-items:center;font-size:12px" role="group" aria-label="Record locations">'+
-      cell('📱',mobile?(presentHere?'yes':'no'):'unknown',mobile?'Local record on this mobile':'Other mobile is not verified')+
-      cell('💻',!mobile?(presentHere?'yes':'no'):'unknown',!mobile?'Local record on this computer':'Other computer is not verified')+
-      cell('☁️',cloudState,cloudState==='yes'?(synced?'In Cloud and synchronised':'In Cloud; revision may still need syncing'):cloudState==='no'?'Not found in Cloud':'Cloud has not been checked')+
+    return '<span class="ac-location-status" style="display:inline-flex;gap:3px;align-items:center;white-space:nowrap;line-height:1" role="group" aria-label="Record locations">'+
+      cell('📱',mobile?(presentHere?'yes':'no'):'unknown',mobile?'Local record on this mobile':'Another mobile cannot be checked from this device')+
+      cell('💻',!mobile?(presentHere?'yes':'no'):'unknown',!mobile?'Local record on this computer':'Another computer cannot be checked from this device')+
+      cell('☁️',cloudState,cloudState==='yes'?(synced?'Confirmed in Cloud and current revision synchronised':'Confirmed in Cloud; revision may still need syncing'):cloudState==='no'?'Not found in the checked Cloud account':'Cloud presence not verified')+
       '</span>';
   }
   async function saveLocalToCloud(localId) {
