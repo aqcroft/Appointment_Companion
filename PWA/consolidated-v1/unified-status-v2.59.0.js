@@ -20,6 +20,14 @@
   });
   global.AppointmentCompanionRelease = meta;
   var ID = 'acUnifiedStatusModal', trigger = null, checkSeq = 0, previousFocus = null, waitTimer = null, updatesOpen = false;
+  var cloudFlight=null,flightAuth=null,cloudNonce=0,localNonce=0,lastCloudCheckAt=0,lastVerifiedAt=0,queuedRefresh=null;
+  var CLOUD_CHECK_INTERVAL=120000;
+  function sameAuth(a,b){return !!(a&&b&&String(a.partner_id)===String(b.partner_id)&&String(a.workspace_key)===String(b.workspace_key));}
+  function modalVisible(){var el=$(ID);return !!(el&&!el.hidden);}
+  function queueRefresh(delay,force){
+    clearTimeout(queuedRefresh);
+    queuedRefresh=setTimeout(function(){refreshAll(!!force);},delay||0);
+  }
   var tariffSource = 'https://uw.co.uk/legal/terms-conditions/energy-tariff-information';
   var cloud = { connection: 'idle', profile: 'idle', message: '', profileName: '', customerCount: null, customerIds: null, owner: '', error: '' };
   var sync = { mode: 'checking', detail: 'Checking saved customer profiles…', count: null, pending: 0,
@@ -66,11 +74,12 @@
     var tariffState=tariff().status;
     var customerProblem=sync.conflicts>0 || sync.mode==='conflict' || sync.mode==='failed' ||
       cloud.connection==='failed' || cloud.connection==='disconnected';
-    // The active customer matters most. Other deliberately local drafts do not
-    // prevent a verified, fully synchronised current customer from going green.
-    var customersReady=cloud.connection==='verified' && sync.currentRevisionSynced===true &&
-      Array.isArray(cloud.customerIds) && cloud.customerIds.includes(String(sync.currentCloudId||'')) &&
-      sync.conflicts===0 && sync.mode!=='failed' && !sync.currentConflict;
+    // A blank current customer or intentionally local draft is not a Cloud failure.
+    // A Cloud-backed current customer must really be synchronised.
+    var currentNeedsAttention=!!(sync.currentNeedsCloud && !sync.currentSynced);
+    var customersReady=cloud.connection==='verified' && sync.checked===true &&
+      Array.isArray(cloud.customerIds) && sync.pending===0 && sync.conflicts===0 &&
+      !sync.currentConflict && !currentNeedsAttention;
     return [
       {key:'tariff',letter:'T',name:'Tariffs',
         state:tariffState==='green'?'green':tariffState==='red'?'red':'amber'},
@@ -377,47 +386,65 @@
     });
   }
   async function refreshCustomerSync(sequence, background) {
-    if(demo){sync={mode:'synced',detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,localOnly:0,localIds:['demo1','demo2','demo3'],current:'Example customer synced',local:'Saved locally'};paint();return;}
-    var engine=global.AppointmentCompanionConsolidated;
+    var requestId=++localNonce;
+    if(demo){
+      sync={mode:'synced',checked:true,detail:'Three example customers synchronised',count:3,pending:0,conflicts:0,localOnly:0,
+        localIds:['demo1','demo2','demo3'],current:'Example customer synced',local:'Saved locally'};
+      paint();return;
+    }
+    var engine=global.AppointmentCompanionConsolidated,store=global.AppointmentCompanionLocalStore;
     var localHealth=$('cloudLocalState');
-    sync.local=localHealth ? (localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy') : 'Local save status unavailable';
-    if(!engine||typeof engine.list!=='function'){sync.mode='checking';sync.detail='Customer store unavailable';paint();return;}
+    var localLabel=localHealth?(localHealth.classList.contains('warn')?'Saving latest changes…':'Local save indicator healthy'):'Local save status unavailable';
+    var list=engine&&typeof engine.list==='function'?engine.list.bind(engine):
+      store&&typeof store.list==='function'?store.list.bind(store):null;
+    if(!list){sync.mode='checking';sync.checked=false;sync.detail='Local customer store not ready';sync.local=localLabel;paint();return;}
     try{
-      var rows=await engine.list();
-      if(sequence!==checkSeq || (!background && (!$(ID) || $(ID).hidden)))return;
+      var rows=await list();
+      if(sequence!==checkSeq||requestId!==localNonce)return;
       rows=Array.isArray(rows)?rows:[];
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
-      // A draft is intentionally local until Save to Cloud is explicitly approved.
       var pending=meaningful.filter(function(r){return (r.sync_state==='pending'||r.sync_state==='pending_delete') &&
-        (r.cloud_id || r.cloud_creation_approved || r.deleted);});
+        (r.cloud_id||r.cloud_creation_approved||r.deleted);});
       var conflicts=meaningful.filter(function(r){return r.sync_state==='conflict'||r.conflict;});
-      var current=typeof engine.currentRecord==='function'?engine.currentRecord():null;
-      var currentMessage='';
-      if(current&&String(current.customer_name||'').trim()){
-        if(current.sync_state==='conflict'||current.conflict)currentMessage='Current customer: sync conflict';
-        else if(current.sync_state==='pending'&&current.cloud_id)currentMessage='Current customer: awaiting Cloud sync';
-        else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: saved on this device only';
-        else if(current.cloud_id&&current.sync_state==='synced'&&Number(current.cloud_synced_local_revision)===Number(current.local_revision))currentMessage='Current customer: synced to Cloud';
-        else if(!current.cloud_id&&!current.cloud_creation_approved)currentMessage='Current customer: local draft (not sent to Cloud)';
-        else currentMessage='Current customer: Cloud sync status not confirmed';
+      var current=engine&&typeof engine.currentRecord==='function'?engine.currentRecord():null;
+      if(!current){
+        var selected='';
+        try{selected=String(sessionStorage.getItem('apptCompanionConsolidatedCurrentV1')||'');}catch(_){}
+        if(selected)current=rows.find(function(r){return String(r.local_id)===selected;})||null;
       }
-      var localRevisionSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&
-      Number(current.cloud_synced_local_revision)===Number(current.local_revision));
-    var currentIsSynced=localRevisionSynced && Array.isArray(cloud.customerIds) &&
-      cloud.customerIds.includes(String(current.cloud_id));
-    var currentPending=!!(current&&String(current.customer_name||'').trim()&&!currentIsSynced);
-      sync={mode:conflicts.length?'conflict':pending.length?'checking':currentIsSynced?'synced':'local',
-        detail:conflicts.length?'Some customers have Cloud sync conflicts':pending.length?'Some customers are waiting to sync':'Local profiles checked. Deliberate drafts may remain on this device.',
-        count:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim();}).length,
+      var named=!!(current&&String(current.customer_name||'').trim());
+      var currentNeedsCloud=!!(named&&(current.cloud_id||current.cloud_creation_approved||current.deleted));
+      var revisionSynced=!!(current&&current.cloud_id&&current.sync_state==='synced'&&
+        Number(current.cloud_synced_local_revision)===Number(current.local_revision));
+      var currentSynced=!!(revisionSynced&&Array.isArray(cloud.customerIds)&&cloud.customerIds.includes(String(current.cloud_id)));
+      var currentMessage='';
+      if(named){
+        if(current.sync_state==='conflict'||current.conflict)currentMessage='Current customer: sync conflict';
+        else if(currentNeedsCloud&&!currentSynced)currentMessage='Current customer: awaiting Cloud verification or sync';
+        else if(currentSynced)currentMessage='Current customer: synced to Cloud';
+        else currentMessage='Current customer: intentionally saved on this device';
+      }
+      sync={
+        mode:conflicts.length?'conflict':pending.length?'checking':currentNeedsCloud&&!currentSynced?'checking':'synced',
+        checked:true,
+        detail:conflicts.length?'Some customers have Cloud sync conflicts':
+          pending.length?'Some customers are waiting to sync':
+          currentNeedsCloud&&!currentSynced?'Current customer awaiting Cloud sync or verification':
+          'Local records checked. Intentionally local drafts do not require Cloud sync.',
+        count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
-        localOnly:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && !r.cloud_id;}).length,
-        localIds:meaningful.filter(function(r){return !r.deleted && !r.tombstone && String(r.customer_name||'').trim() && r.cloud_id;})
+        localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id;}).length,
+        localIds:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
-        current:currentMessage,local:sync.local,currentSynced:currentIsSynced,currentPending:currentPending,
-        currentCloudId:current&&current.cloud_id||'',currentRevisionSynced:localRevisionSynced,
-        currentConflict:!!(current&&(current.conflict||current.sync_state==='conflict'))};
-    }catch(e){sync.mode='failed';sync.detail='Could not read saved customer profiles';}
-    if(sequence===checkSeq)paint();
+        current:currentMessage,local:localLabel,currentSynced:currentSynced,
+        currentCloudId:current&&current.cloud_id||'',currentRevisionSynced:revisionSynced,
+        currentNeedsCloud:currentNeedsCloud,currentConflict:!!(current&&(current.conflict||current.sync_state==='conflict'))
+      };
+    }catch(e){
+      if(sequence!==checkSeq||requestId!==localNonce)return;
+      sync.mode='failed';sync.checked=false;sync.detail='Could not read saved customer profiles';
+    }
+    if(sequence===checkSeq&&requestId===localNonce)paint();
   }
   async function refreshCloud(sequence) {
     if(demo){cloud={connection:'verified',profile:'loaded',message:'Example login verified',profileName:'Demo Partner',customerCount:3,customerIds:['demo1','demo2','demo3'],error:''};paint();return;}
