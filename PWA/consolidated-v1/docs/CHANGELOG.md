@@ -1,3 +1,10 @@
+## v2.61.8 - 15 October 2026 - Hide Mobile SIM count when deselected
+
+- When the Mobile tile is off or grey, hide its SIM-count badge entirely, even if the last selected setting was five SIMs.
+- Restore the correct 1-5 SIM count when Mobile is selected, preserving the multi-tap journey and any underlying SIM details.
+- A targeted DOM behaviour test covers switching between five SIMs, off, and one SIM while keeping the v2.61.7 observer-loop hotfix in place.
+- This is a display-only change; customer, Cloud and tariff data remain untouched.
+
 ## v2.61.7 - 15 October 2026 - Emergency startup freeze hotfix
 
 - Fix a MutationObserver loop in the Boiler Cover service tile introduced by v2.61.6. The status-sync routine was rewriting the observed class attribute even when nothing changed, potentially monopolising the browser's microtask queue and hanging the PWA before use.

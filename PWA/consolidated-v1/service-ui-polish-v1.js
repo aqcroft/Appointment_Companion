@@ -164,6 +164,7 @@
         background:#fff;color:#97255B;font:900 10px/17px system-ui,sans-serif;
         text-align:center;pointer-events:none;
       }
+      #servicesCard .ac-mobile-state[hidden]{display:none!important;}
       #servicesCard [data-service].on .ac-service-ghost,
       #servicesCard [data-pseudo-service].on .ac-service-ghost {filter:saturate(1.5) drop-shadow(0 1px 2px rgba(0,0,0,.14));}
       #servicesCard [data-service="energy"].on .ac-energy-state{background:#fff;color:#06657A;}
@@ -362,7 +363,9 @@
     var badge=document.createElement('span');
     badge.className='ac-mobile-state';
     badge.setAttribute('data-ac-mobile-state','');
-    badge.textContent='1 SIM';
+    // Keep the count invisible until the underlying Mobile tile is selected.
+    badge.hidden=true;
+    badge.textContent='';
     button.appendChild(badge);
 
     button.addEventListener('click',function(event){
@@ -454,11 +457,18 @@
     });
 
     var sims = canonicalSims();
+    var mobileOn = !!(mobile && mobile.classList.contains('on'));
     var count = mobileCell && mobileCell.querySelector('[data-ac-mobile-state]');
-    if (count) count.textContent = sims + (sims===1?' SIM':' SIMs');
-    if (mobileCell) mobileCell.classList.toggle('ac-on', !!(mobile && mobile.classList.contains('on')));
+    if (count) {
+      // canonicalSims() can retain the last selected number after Mobile is
+      // switched off. Never advertise 5 SIMs on a grey, unselected tile.
+      var label = mobileOn ? sims + (sims===1 ? ' SIM' : ' SIMs') : '';
+      if (count.textContent !== label) count.textContent = label;
+      if (count.hidden === mobileOn) count.hidden = !mobileOn;
+    }
+    if (mobileCell && mobileCell.classList.contains('ac-on') !== mobileOn)
+      mobileCell.classList.toggle('ac-on', mobileOn);
     if (mobile) {
-      var mobileOn = mobile.classList.contains('on');
       mobile.setAttribute('aria-pressed', mobileOn ? 'true' : 'false');
       mobile.setAttribute('aria-label', mobileOn ? 'Mobile SIMs - ' + sims + ' selected' : 'Mobile SIMs - off');
     }

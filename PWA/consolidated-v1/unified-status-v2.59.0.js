@@ -1,4 +1,4 @@
-/* Appointment Companion v2.61.7 - fixes startup observer loop in service tiles.
+/* Appointment Companion v2.61.8 - Mobile off-state hides stale SIM count.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.61.7',
+    version: 'v2.61.8',
     date: '15 October 2026',
-    summary: 'Fixed startup freeze caused by service tile updates',
+    summary: 'Mobile tile no longer shows SIM count when switched off',
     changes: [
-      'Fixed a startup freeze where an observer was repeatedly triggered by a no-op Boiler Cover class update.',
-      'Service tile updates now change CSS classes only when the actual state changes.',
-      'The referral routes, Connector commission, £65 shirt, colourful service tiles and mobile tap cycling remain available.',
-      'Customer records, Cloud sync and tariff calculations are unchanged.'
+      'Mobile now hides its SIM count when the service is deselected, even if five SIMs were previously selected.',
+      'The count reappears when Mobile is selected again and correctly shows the current number.',
+      'The startup freeze hotfix and referral calculations are preserved.',
+      'No customer records, saved SIM tariff selections or Cloud data are altered.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -157,8 +157,8 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
-      {version:'v2.61.6',date:'15 October 2026',summary:'Connector referral, £65 shirt and stronger service tiles'},
-      {version:'v2.61.5',date:'15 October 2026',summary:'Shopping basket and fewer background Cloud checks'}
+      {version:'v2.61.7',date:'15 October 2026',summary:'Fixed startup service tile update loop'},
+      {version:'v2.61.6',date:'15 October 2026',summary:'Connector referral, £65 shirt and stronger service tiles'}
     ];
     return '<div class="ac-us-release"><div class="ac-us-update-head"><span class="ac-us-version">'+esc(meta.version)+'</span><strong>'+esc(meta.summary)+'</strong>'+
       '<button type="button" data-us-action="updates" aria-expanded="'+(updatesOpen?'true':'false')+'">'+
