@@ -8,30 +8,17 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.63.3',
-    date: '15 October 2026',
-    summary: 'Safer customer sync when Cloud records are missing',
+    version: 'v2.64.0',
+    date: '16 October 2026',
+    summary: 'More reliable SIMs, Cloud saving and menus',
     changes: [
-      'Do not silently delete a device record because its Cloud counterpart is missing.',
-      'Present a conflict so the surviving local version can be reviewed.',
-      'Keeping a missing-Cloud customer preserves it as a device-only draft.',
-      'Restoring a missing-Cloud customer requires deliberate Save to Cloud.',
-      'Sync customers now runs the actual customer Cloud synchronisation.',
-      'View pending records to see which customers still need reconciliation.',
-      'Report the most recent sync attempt, including an error when one occurs.',
-      'Pending is labelled Waiting to sync, not an indefinite Checking message.',
-      'The customer light turns green only when the latest revisions are verified.',
-      'Opening menus and status no longer creates an unnecessary customer revision.',
-      'Sync comparison ignores auto-generated capture timestamps.',
-      'Deleted-record conflicts remain visible for deliberate review.',
-      'Local save status distinguishes unfinished drafts from active saves.',
-      'Conflict review refreshes after background Cloud checks.',
-      'Customer name and electricity region now share a compact 70/30 row.',
-      'A small tick confirms a finished name and saves one local customer record.',
-      'Background form saves preserve the confirmed customer name rather than temporary typing.',
-      'Save to Cloud explicitly confirms the name; unsaved new names no longer create local customer copies.',
-      'Old Save / Update now uses the single consolidated local store rather than a second legacy list.',
-      'Existing records are never automatically deleted or merged.'
+      'Desktop menu stays aligned beneath its toolbar hamburger rather than opening at the top left.',
+      'Existing saved customer names show a green tick; edits still need confirmation.',
+      'Customers status now distinguishes waiting to sync from checking and offers Save current customer to Cloud when appropriate.',
+      'Newly synchronised Cloud customer IDs are verified without waiting for the next long polling interval.',
+      'National League referral shirt now precedes Connector.',
+      'Mobile SIM count has direct plus/minus adjustment, and temporarily inactive SIM values and UW plans are preserved.',
+      'Inactive SIM details never count towards energy or mobile savings calculations.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -184,6 +171,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.63.3',date:'15 October 2026',summary:'Safe handling of deleted Cloud records and stable customer sync'},
       {version:'v2.63.2',date:'15 October 2026',summary:'Manual Cloud sync and pending customer review'},
       {version:'v2.63.1',date:'15 October 2026',summary:'Accurate conflict reviews and meaningful customer saves'},
       {version:'v2.63.0',date:'15 October 2026',summary:'One-row customer header and confirmed-name saves'},
