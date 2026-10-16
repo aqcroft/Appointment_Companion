@@ -1,4 +1,4 @@
-/* Appointment Companion v2.62.2 - one-level, partner-only main menu.
+/* Appointment Companion v2.64.0 - right-anchored one-level, partner-only main menu.
    Reorders ORIGINAL Cloud action buttons. Never clone, replace, or recreate
    their event handlers. More expands in place; no submenu navigation.
 */
@@ -136,14 +136,17 @@
     if(!menu||!toggle)return;
     var box=toggle.getBoundingClientRect();
     var width=Math.min(340,global.innerWidth-16);
+    // Anchor the desktop menu beneath the hamburger at the RIGHT edge of
+    // the toolstrip; on narrow devices clamp within the viewport.
     var left=Math.max(8,Math.min(global.innerWidth-width-8,box.right-width));
+    var right=Math.max(8,Math.round(global.innerWidth-left-width));
     var top=Math.max(6,Math.min(global.innerHeight-52,box.bottom+6));
     var st=menu.style;
     st.setProperty('position','fixed','important');
     st.setProperty('inset','auto','important');
     st.setProperty('top',Math.round(top)+'px','important');
-    st.setProperty('left',Math.round(left)+'px','important');
-    st.setProperty('right','auto','important');
+    st.setProperty('left',global.innerWidth>=700?'auto':Math.round(left)+'px','important');
+    st.setProperty('right',global.innerWidth>=700?right+'px':'auto','important');
     st.setProperty('bottom','auto','important');
     st.setProperty('margin','0','important');
     st.setProperty('width','min(340px, calc(100vw - 16px))','important');
@@ -159,6 +162,7 @@
     try{
       if(open&&!menu.matches(':popover-open'))menu.showPopover();
       else if(!open&&menu.matches(':popover-open'))menu.hidePopover();
+      if(open)position(); // Re-apply AFTER popover enters the top layer.
     }catch(e){menu.removeAttribute('popover');}
   }
   function css(){
@@ -200,6 +204,7 @@
       if(more){more.setAttribute('aria-expanded','false');more.querySelector('.ac-flat-more-arrow').textContent='⌄';}
       organise();
       Promise.resolve().then(sync);
+      global.requestAnimationFrame(function(){if(menu.classList.contains('open'))position();});
     },true);
     watcher=new MutationObserver(sync);
     watcher.observe(menu,{attributes:true,attributeFilter:['class']});
