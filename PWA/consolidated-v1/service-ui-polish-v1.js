@@ -183,6 +183,9 @@
         z-index:3;
       }
       #servicesCard .ac-mobile-cell.ac-on .ac-mobile-stepper { display:grid; }
+      #servicesCard .ac-mobile-cell.ac-on .ac-mobile-state {display:none!important}
+      #servicesCard .ac-mobile-stepper button:disabled{opacity:.3;cursor:default}
+      #servicesCard .ac-mobile-stepper button:focus-visible{outline:2px solid #8B2E61;outline-offset:-2px}
       #servicesCard .ac-mobile-stepper button {
         border:0;
         background:transparent;
@@ -371,7 +374,47 @@
     badge.textContent='';
     button.appendChild(badge);
 
+    // Explicit minus/plus controls make a mistaken third SIM reversible in one tap,
+    // instead of cycling 3 -> 4 -> 5 -> off -> 1 -> 2.
+    var stepper=document.createElement('div');
+    stepper.className='ac-mobile-stepper';
+    stepper.setAttribute('role','group');
+    stepper.setAttribute('aria-label','Adjust number of mobile SIMs');
+    var less=document.createElement('button');
+    less.type='button';less.textContent='−';less.title='One fewer SIM';
+    less.setAttribute('aria-label','One fewer mobile SIM');
+    var number=document.createElement('span');
+    number.className='ac-mobile-count';number.textContent='1 SIM';
+    var more=document.createElement('button');
+    more.type='button';more.textContent='+';more.title='One more SIM';
+    more.setAttribute('aria-label','One more mobile SIM');
+    stepper.appendChild(less);stepper.appendChild(number);stepper.appendChild(more);
+    cell.appendChild(stepper);
+    less.addEventListener('click',function(event){
+      event.preventDefault();event.stopPropagation();
+      var count=canonicalSims();
+      if(count>1)setSims(count-1);
+      else{
+        // Use the original service toggle for 1 -> 0, but do not run
+        // the usual tile click-to-increment handler.
+        button.dataset.acTurnOff='1';
+        button.click();
+      }
+      setTimeout(sync,0);
+    });
+    more.addEventListener('click',function(event){
+      event.preventDefault();event.stopPropagation();
+      var count=canonicalSims();
+      if(count<5)setSims(count+1);
+      setTimeout(sync,0);
+    });
+
     button.addEventListener('click',function(event){
+      if(button.dataset.acTurnOff==='1'){
+        delete button.dataset.acTurnOff;
+        setTimeout(sync,0);
+        return; // Let the original handler turn Mobile off.
+      }
       if(!button.classList.contains('on')){
         // Let the existing controller activate Mobile, then start at one SIM.
         setTimeout(function(){setSims(1);sync();},0);
@@ -461,6 +504,12 @@
 
     var sims = canonicalSims();
     var mobileOn = !!(mobile && mobile.classList.contains('on'));
+    if(mobileCell){
+      var stepCount=mobileCell.querySelector('.ac-mobile-count');
+      if(stepCount)stepCount.textContent=sims+(sims===1?' SIM':' SIMs');
+      var stepButtons=mobileCell.querySelectorAll('.ac-mobile-stepper button');
+      if(stepButtons.length===2){stepButtons[0].disabled=!mobileOn;stepButtons[1].disabled=!mobileOn||sims>=5;}
+    }
     var count = mobileCell && mobileCell.querySelector('[data-ac-mobile-state]');
     if (count) {
       // canonicalSims() can retain the last selected number after Mobile is
