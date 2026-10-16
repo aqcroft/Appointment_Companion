@@ -1,4 +1,4 @@
-/* Appointment Companion v2.63.3 - safe handling of Cloud-deleted customer records.
+/* Appointment Companion v2.64.0 - actionable customer Cloud status and safe push.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -38,7 +38,7 @@
   var ID = 'acUnifiedStatusModal', trigger = null, checkSeq = 0, previousFocus = null, waitTimer = null, updatesOpen = false;
   var cloudFlight=null,flightAuth=null,cloudNonce=0,localNonce=0,lastCloudCheckAt=0,lastVerifiedAt=0,queuedRefresh=null;
   var CLOUD_CHECK_INTERVAL=120000;
-  var manualCustomerSyncRunning=false;
+  var manualCustomerSyncRunning=false,manualCloudSaveRunning=false;
   function sameAuth(a,b){return !!(a&&b&&String(a.partner_id)===String(b.partner_id)&&String(a.workspace_key)===String(b.workspace_key));}
   function modalVisible(){var el=$(ID);return !!(el&&!el.hidden);}
   function queueRefresh(delay,force){
@@ -220,6 +220,7 @@
     var customerCount=demo?3:sync.count;
     var explanation=demo?'Three example customer profiles available and synchronised':sync.detail;
     var current=demo?'Example customer synced':sync.current;
+    var canSaveCurrent=!demo&&!manualCloudSaveRunning&&!!sync.currentIsLocalDraft&&!!sync.currentLocalId;
     var local=demo?'Saved locally':sync.local;
     var cloudOnly=demo?0:cloudOnlyCount();
     var cloudCount=demo?3:cloud.customerCount;
@@ -250,6 +251,8 @@
       (sync.conflicts && !demo?'<button type="button" data-us-action="review-customers">Review '+sync.conflicts+' conflict'+(sync.conflicts===1?'':'s')+' →</button>':'')+
       (!sync.conflicts && sync.pending && !demo?'<button type="button" data-us-action="pending-customers">Review '+sync.pending+' pending →</button>':'')+
       (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
+      (canSaveCurrent && engine && typeof engine.saveLocalToCloud==='function'?
+        '<button type="button" data-us-action="save-current-cloud">☁️ Save current customer to Cloud</button>':'')+
       (!demo?'<button type="button" data-us-action="sync-customers"'+(manualCustomerSyncRunning?' disabled aria-disabled="true"':'')+'>'+
         (manualCustomerSyncRunning?'Synchronising…':'Sync customers now')+'</button>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
@@ -359,6 +362,7 @@
       }
       else if(a==='tariff')refreshTariff();
       else if(a==='sync-customers')syncCustomersNow();
+      else if(a==='save-current-cloud')saveCurrentToCloud();
       else if(a==='pending-customers'){
         var pendingBrowser=global.AppointmentCompanionConsolidated;
         if(pendingBrowser&&typeof pendingBrowser.openCustomerBrowser==='function'){
@@ -478,7 +482,7 @@
         else currentMessage='Current customer: intentionally saved on this device';
       }
       sync={
-        mode:conflicts.length?'conflict':pending.length?'checking':currentNeedsCloud&&!currentSynced?'checking':'synced',
+        mode:conflicts.length?'conflict':pending.length?'pending':currentNeedsCloud&&!currentSynced?'pending':'synced',
         checked:true,
         detail:conflicts.length?'Some customers have Cloud sync conflicts':
           pending.length?'Some customers are waiting to sync':
@@ -490,6 +494,8 @@
         localIds:meaningful.filter(function(r){return r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
         current:currentMessage,local:localLabel,currentSynced:currentSynced,
+        currentLocalId:current&&current.local_id||'',
+        currentIsLocalDraft:!!(named&&!current.cloud_id&&!current.cloud_creation_approved&&!current.deleted),
         currentCloudId:current&&current.cloud_id||'',currentRevisionSynced:revisionSynced,
         currentNeedsCloud:currentNeedsCloud,currentConflict:!!(current&&(current.conflict||current.sync_state==='conflict'))
       };
@@ -560,6 +566,23 @@
     })();
     try{return await cloudFlight;}
     finally{if(nonce===cloudNonce){cloudFlight=null;flightAuth=null;}}
+  }
+  async function saveCurrentToCloud(){
+    if(manualCloudSaveRunning||demo)return;
+    var engine=global.AppointmentCompanionConsolidated,id=sync.currentLocalId;
+    if(!engine||typeof engine.saveLocalToCloud!=='function'||!id){showMessage('Open a named, saved customer first.');return;}
+    if(!navigator.onLine||global.__AC_LOCAL_ONLY){showMessage('Cloud is offline or paused; the customer remains on this device.');return;}
+    manualCloudSaveRunning=true;paint();showMessage('Checking the Cloud for existing customers before saving…');
+    try {
+      // The controller performs the duplicate-name check and obtains confirmation.
+      var result=await engine.saveLocalToCloud(id);
+      await refreshAll(true);
+      showMessage(result&&result.message?String(result.message):
+        'Cloud save requested. Please check the current customer and sync status.');
+    }catch(error){
+      await refreshAll(true);
+      showMessage('Cloud save not completed: '+String(error&&error.message||error).slice(0,250));
+    }finally{manualCloudSaveRunning=false;paint();}
   }
   async function syncCustomersNow(){
     if(manualCustomerSyncRunning)return;
@@ -638,12 +661,16 @@
     ['checking','changed','error','verified'].forEach(function(name){global.addEventListener('ac:tariffs:'+name,paint);});
     global.addEventListener('ac:cloud-sync-state-changed',function(){
       refreshCustomerSync(checkSeq,true).then(function(){
+        // A newly uploaded record can be synced locally before the Cloud ID list
+        // refreshes. Verify immediately instead of leaving C amber for minutes.
         if(sync.currentRevisionSynced&&sync.currentCloudId&&
-          Array.isArray(cloud.customerIds)&&!cloud.customerIds.includes(String(sync.currentCloudId))&&
-          Date.now()-lastCloudCheckAt>12000)queueRefresh(700,true);
+          Array.isArray(cloud.customerIds)&&!cloud.customerIds.includes(String(sync.currentCloudId))){
+          queueRefresh(Math.max(600,1600-(Date.now()-lastCloudCheckAt)),true);
+        }
       });
     });
     global.addEventListener('ac:customer-switched',function(){refreshCustomerSync(checkSeq,true);});
+    global.addEventListener('ac:customer-name-committed',function(){refreshCustomerSync(checkSeq,true);});
     ['ac:cloud-authenticated','ac:cloud-disconnected'].forEach(function(name){
       global.addEventListener(name,function(){
         ++cloudNonce;cloudFlight=null;flightAuth=null;lastCloudCheckAt=0;lastVerifiedAt=0;
