@@ -1,4 +1,4 @@
-/* Appointment Companion v2.63.0 - 70/30 customer name and region, explicit name confirmation. */
+/* Appointment Companion v2.64.0 - show a green saved-name tick for existing customers. */
 (function () {
   'use strict';
   if (document.documentElement.classList.contains('view-mode')) return;
@@ -73,7 +73,9 @@
       '.ac-customer-name-region #customerName{box-sizing:border-box;width:100%;min-width:0;padding-right:34px}',
       '.ac-name-confirm[hidden]{display:none!important}',
       '.ac-name-confirm{position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:1;height:28px;min-width:28px;border:1px solid #74b895;border-radius:8px;background:#e9f9f0;color:#137242;font:900 17px/1 system-ui;cursor:pointer;padding:0}',
-      '.ac-name-confirm:disabled{opacity:.5;cursor:wait}',
+      '.ac-name-confirm:disabled{opacity:1;cursor:default}',
+      '.ac-name-confirm.is-confirmed{background:#ddf5e6;border-color:#73b895;color:#137242}',
+      '.ac-name-confirm:not(.is-confirmed){background:#fff8e5;border-color:#e0ba62;color:#946100}',
       '.ac-customer-region{position:relative;min-width:0;margin:0;z-index:10}',
       '.ac-region-chip{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:42px;border:1px solid #ddd4ec;border-radius:11px;background:#faf7ff;color:#5d4293;padding:8px 20px 8px 8px;font:750 12px/1.25 system-ui;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.ac-region-chip::after{content:"✎";font-size:13px;opacity:.75;margin-left:3px}',
@@ -104,7 +106,14 @@
       var api=window.AppointmentCompanionConsolidated;
       var saved=api&&typeof api.currentRecord==='function'?api.currentRecord():null;
       var storedName=String(saved&&saved.customer_name||'').trim();
-      nameConfirm.hidden=!String(name.value||'').trim() || String(name.value||'').trim()===storedName;
+      var typed=String(name.value||'').trim();
+      var confirmed=!!typed&&typed===storedName;
+      nameConfirm.hidden=!typed;
+      nameConfirm.classList.toggle('is-confirmed',confirmed);
+      nameConfirm.disabled=confirmed;
+      nameConfirm.title=confirmed?'Customer name saved locally':
+        'Confirm this customer name and save it locally';
+      nameConfirm.setAttribute('aria-label',nameConfirm.title);
     }
     name.addEventListener('input',paintNameGate);
     nameConfirm.addEventListener('click',function(){
