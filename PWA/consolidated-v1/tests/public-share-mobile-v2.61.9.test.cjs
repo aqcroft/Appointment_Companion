@@ -87,10 +87,15 @@ test('extra Unlimited months note appears only on subsequent Unlimited SIMs',()=
  assert.deepEqual(notes(['essentialMax','unlimitedMax','unlimitedMax']),['','','Additional SIMs free for 3 months']);
  assert.deepEqual(notes(['unlimitedMax','essentialMax']),['','']);
 });
-test('UW price sits on right of heading, not repeated in plan notes',()=>{
- assert.match(donor,/class="tag sim-uw-price-row"/);
- assert.match(donor,/class="sim-uw-amount"/);
- assert.match(donor,/justify-content:space-between/);
+test('each UW SIM price moves above its selected tariff button, never beside the UW heading',()=>{
+ assert.match(donor,/class="planpills" data-sim=".*?data-selected-plan=".*?sim\.uwPlan/);
+ assert.match(donor,/class="sim-uw-amount"[^>]*>£<span id="uwCost_/);
+ assert.match(donor,/group\.dataset\.selectedPlan = b\.dataset\.plan/);
+ assert.match(donor,/grid-template-rows:18px auto/);
+ assert.match(donor,/\[data-selected-plan="essentialMax"\] \.sim-uw-amount \{grid-column:2;\}/);
+ assert.match(donor,/\.sim-compare \.planpills \[data-plan="unlimitedMax"\] \{grid-row:2;grid-column:1;\}/);
+ assert.match(donor,/\.sim-compare \.planpills \[data-plan="essentialMax"\] \{grid-row:2;grid-column:2;\}/);
+ assert.doesNotMatch(donor,/sim-uw-price-row/);
  assert.doesNotMatch(donor,/Go Essentials £6\/m\./);
  assert.doesNotMatch(donor,/Go Unlimited £13\/m\. Additional Unlimited/);
 });

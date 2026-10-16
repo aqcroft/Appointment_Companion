@@ -175,8 +175,11 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
 .sim-compare .side { padding:0.6rem; height:100%; }
 .sim-compare .field:last-child { margin-bottom:0; }
 .sim-compare .tag { font-size:10px; margin-bottom:0.45rem; }
-.sim-compare .sim-uw-price-row {display:flex;justify-content:space-between;align-items:center;gap:5px;width:100%;}
-.sim-compare .sim-uw-amount {margin-left:auto;text-align:right;white-space:nowrap;font-weight:800;}
+.sim-compare .planpills {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:18px auto;column-gap:6px;row-gap:4px;}
+.sim-compare .planpills .sim-uw-amount {grid-row:1;grid-column:1;justify-self:center;align-self:center;white-space:nowrap;font-weight:800;font-size:11px;line-height:1.1;color:var(--purple);}
+.sim-compare .planpills[data-selected-plan="essentialMax"] .sim-uw-amount {grid-column:2;}
+.sim-compare .planpills [data-plan="unlimitedMax"] {grid-row:2;grid-column:1;}
+.sim-compare .planpills [data-plan="essentialMax"] {grid-row:2;grid-column:2;}
 .planpills { display: flex; gap: 6px; }
 @media (max-width:520px) {
   .sim { padding:0.6rem; }
@@ -186,7 +189,7 @@ input.warn { border-color: #b08000; box-shadow: 0 0 0 3px rgba(176,128,0,0.12); 
   .sim-compare input[type="number"] { padding:10px 8px; font-size:16px; }
   .sim-compare .money::before { left:8px; }
   .sim-compare .money input { padding-left:20px; }
-  .sim-compare .planpills { display:grid; grid-template-columns:1fr; gap:4px; }
+  .sim-compare .planpills { grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
   .sim-compare .planpills .pill { min-height:36px; padding:5px 4px; font-size:10.5px; }
 }
 
@@ -1397,8 +1400,9 @@ function buildSims() {
           '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
         '</div>' +
         '<div class="side uw">' +
-          '<span class="tag sim-uw-price-row"><span>UW</span><span class="sim-uw-amount">£<span id="uwCost_' + key + '">0</span>/m</span></span>' +
-          '<div class="planpills" data-sim="' + key + '">' +
+          '<span class="tag">UW</span>' +
+          '<div class="planpills" data-sim="' + key + '" data-selected-plan="' + sim.uwPlan + '">' +
+            '<span class="sim-uw-amount" aria-label="Selected UW monthly cost">£<span id="uwCost_' + key + '">0</span>/m</span>' +
             '<button class="pill" type="button" data-plan="unlimitedMax">' + CONFIG.mobile.plans.unlimitedMax.label + '</button>' +
             '<button class="pill" type="button" data-plan="essentialMax">' + CONFIG.mobile.plans.essentialMax.label + '</button>' +
           '</div>' +
@@ -1422,6 +1426,7 @@ function buildSims() {
           }
         }
         state.sims[key].uwPlan = b.dataset.plan;
+        group.dataset.selectedPlan = b.dataset.plan; // move the same calculated price above the active button
         group.querySelectorAll('.pill').forEach(x => x.classList.remove('on'));
         b.classList.add('on');
         calc();

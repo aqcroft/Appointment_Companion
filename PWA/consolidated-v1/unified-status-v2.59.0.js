@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.2 - correct current EV regression event fixture.
+/* Appointment Companion v2.64.3 - associate each mobile SIM price with its selected plan.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,15 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.2',
+    version: 'v2.64.3',
     date: '16 October 2026',
-    summary: 'Reliable EV shared-header regression verification',
+    summary: 'Mobile SIM prices above the selected tariff',
     changes: [
-      'Avoid an EV shared-header JavaScript error when the settings control moves outside the title row.',
-      'Use a realistic EV comparison event fixture in automated browser verification.',
-      'Keep legacy EV test workflows available manually, rather than running them on unrelated commits.',
-      'Use one current automated EV shared-link browser test on relevant EV changes.',
-      'Update Companion, EV, Should I Fix and PWA manifest versions consistently; calculations are unchanged.'
+      'Place each SIM monthly price directly above its selected Go Unlimited or Go Essentials button.',
+      'Move the price between tariff columns immediately on selection, without repeating or recalculating the displayed amount.',
+      'Keep both tariff buttons side by side on phones and desktop, with reserved price-row height.',
+      'Customer profiles, Cloud saving, tariff prices and savings calculations remain unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -169,6 +168,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.2',date:'16 October 2026',summary:'Reliable EV shared-header regression verification'},
       {version:'v2.64.1',date:'16 October 2026',summary:'Fix shared EV header and consolidate legacy CI'},
       {version:'v2.64.0',date:'16 October 2026',summary:'More reliable SIMs, Cloud saving and menus'},
       {version:'v2.63.3',date:'15 October 2026',summary:'Safe handling of deleted Cloud records and stable customer sync'},
