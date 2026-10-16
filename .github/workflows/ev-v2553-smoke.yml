@@ -1,8 +1,9 @@
 name: EV v2.55.3 modes and sharing smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-modes-share-fallback-v2.55.3]
   workflow_dispatch:
+
 jobs:
   smoke:
     runs-on: ubuntu-latest

@@ -1,16 +1,9 @@
 name: East Midlands default and specialist handoff v2.56.3
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'PWA/consolidated-v1/customer-region-v2.56.3.js'
-      - 'PWA/consolidated-v1/consolidated-controller-v2.56.3.js'
-      - 'PWA/consolidated-v1/should-i-fix/index.html'
-      - 'PWA/consolidated-v1/ev/index.html'
-      - 'PWA/consolidated-v1/index.html'
-      - 'PWA/consolidated-v1/tests/region-default-v2.56.3.test.cjs'
-      - '.github/workflows/region-default-v2563.yml'
   workflow_dispatch:
+
 jobs:
   region_handoff:
     name: Browser test - Main, EV and Should I Fix

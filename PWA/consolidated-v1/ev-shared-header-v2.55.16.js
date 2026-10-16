@@ -99,8 +99,11 @@
    info.setAttribute('aria-expanded','false');mini.insertBefore(info,mini.firstChild);
   }
   var gear=$('acV250Gear');
-  if(mini.parentElement!==title|| (gear&&mini.nextElementSibling!==gear)){
-   title.insertBefore(mini,gear||null);
+  // A newer EV layout may put the settings gear outside the title row.
+  // insertBefore must never receive an anchor owned by another parent.
+  var gearInTitle=!!(gear&&gear.parentElement===title);
+  if(mini.parentElement!==title || (gearInTitle&&mini.nextElementSibling!==gear)){
+   title.insertBefore(mini,gearInTitle?gear:null);
   }
   if(gear){gear.title='Your figures & settings';gear.setAttribute('aria-label','Open your figures and settings')}
   var label=doc.querySelector('#acV2482Vat .ac-v2482-vat-title');

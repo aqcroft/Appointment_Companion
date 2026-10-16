@@ -1,8 +1,9 @@
 name: EV v2.55.10 prospective petrol placement smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-prospective-fuel-v25510-20261009]
   workflow_dispatch:
+
 jobs:
   customer:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.0 - actionable customer Cloud status and safe push.
+/* Appointment Companion v2.64.1 - EV shared header safety and streamlined checks.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,17 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.0',
+    version: 'v2.64.1',
     date: '16 October 2026',
-    summary: 'More reliable SIMs, Cloud saving and menus',
+    summary: 'EV shared-link stability and less noisy automated tests',
     changes: [
-      'Desktop menu stays aligned beneath its toolbar hamburger rather than opening at the top left.',
-      'Existing saved customer names show a green tick; edits still need confirmation.',
-      'Customers status now distinguishes waiting to sync from checking and offers Save current customer to Cloud when appropriate.',
-      'Newly synchronised Cloud customer IDs are verified without waiting for the next long polling interval.',
-      'National League referral shirt now precedes Connector.',
-      'Mobile SIM count has direct plus/minus adjustment, and temporarily inactive SIM values and UW plans are preserved.',
-      'Inactive SIM details never count towards energy or mobile savings calculations.'
+      'Avoid an EV shared-header JavaScript error when the settings control moves outside the title row.',
+      'Keep legacy EV test workflows available manually, rather than running them on unrelated commits.',
+      'Use one current automated EV shared-link browser test on relevant EV changes.',
+      'Update Companion, EV, Should I Fix and PWA manifest versions consistently; calculations are unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -171,6 +168,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.0',date:'16 October 2026',summary:'More reliable SIMs, Cloud saving and menus'},
       {version:'v2.63.3',date:'15 October 2026',summary:'Safe handling of deleted Cloud records and stable customer sync'},
       {version:'v2.63.2',date:'15 October 2026',summary:'Manual Cloud sync and pending customer review'},
       {version:'v2.63.1',date:'15 October 2026',summary:'Accurate conflict reviews and meaningful customer saves'},

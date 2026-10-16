@@ -1,8 +1,9 @@
 name: EV v2.55.8 compact customer layout smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, test/ev-v2558-compatible-v2559-20261009]
   workflow_dispatch:
+
 jobs:
   customer:
     runs-on: ubuntu-latest

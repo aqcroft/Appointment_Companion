@@ -1,20 +1,7 @@
 name: Main navigation and EV rate disclosure v2.57.0
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'PWA/consolidated-v1/index.html'
-      - 'PWA/consolidated-v1/ev/index.html'
-      - 'PWA/consolidated-v1/should-i-fix/index.html'
-      - 'PWA/consolidated-v1/spring-clean-v2.57.0.js'
-      - 'PWA/consolidated-v1/specialist-launcher-v2.57.0.js'
-      - 'PWA/consolidated-v1/ev-tap-rates-v2.57.0.js'
-      - 'PWA/consolidated-v1/share-app-v2.57.0.js'
-      - 'PWA/consolidated-v1/release-v2.57.0.js'
-      - 'PWA/consolidated-v1/sw.js'
-      - 'PWA/consolidated-v1/tests/navigation-rates-share-v2.57.0.test.cjs'
-      - 'PWA/consolidated-v1/tests/navigation-idle-v2.57.0.playwright.cjs'
-      - '.github/workflows/navigation-rates-share-v2570.yml'
   workflow_dispatch:
 
 jobs:

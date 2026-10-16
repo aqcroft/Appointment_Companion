@@ -1,21 +1,9 @@
 name: Local-first and EV safe autosave v2.56.2
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'PWA/consolidated-v1/consolidated-controller-v2.56.0.js'
-      - 'PWA/consolidated-v1/local-customer-store-v2.js'
-      - 'PWA/consolidated-v1/ev-bridge-v2.56.1.js'
-      - 'PWA/consolidated-v1/ev-bridge-v2.56.2.js'
-      - 'PWA/consolidated-v1/spring-clean-v2.js'
-      - 'PWA/consolidated-v1/tests/cloud-first-save-v2.56.0.test.cjs'
-      - 'PWA/consolidated-v1/tests/ev-autosave-v2.56.1.test.cjs'
-      - 'PWA/consolidated-v1/tests/ev-autosave-v2.56.2.test.cjs'
-      - 'PWA/consolidated-v1/ev/index.html'
-      - 'PWA/consolidated-v1/index.html'
-      - 'local-first/shell-pilot-v1.js'
-      - '.github/workflows/cloud-first-save-v2561.yml'
   workflow_dispatch:
+
 jobs:
   local_first_save:
     name: No premature Cloud profiles; EV autosave remains silent

@@ -1,8 +1,9 @@
 name: EV v2.55.9 VAT above hero smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-vat-rate-row-v2559-20261009]
   workflow_dispatch:
+
 jobs:
   customer:
     runs-on: ubuntu-latest

@@ -1,0 +1,35 @@
+name: EV current shared-link regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'PWA/consolidated-v1/ev/index.html'
+      - 'PWA/consolidated-v1/ev-shared-header-v2.55.16.js'
+      - 'tests/ev-current-shared.test.cjs'
+      - '.github/workflows/ev-current-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ev-current-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  shared-ev:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check EV shared header syntax
+        run: node --check PWA/consolidated-v1/ev-shared-header-v2.55.16.js
+      - name: Install Chromium test runner
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Test EV shared views and header refresh
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ev-current-server.log 2>&1 &
+          sleep 2
+          timeout 145s node tests/ev-current-shared.test.cjs

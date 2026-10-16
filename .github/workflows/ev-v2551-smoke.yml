@@ -1,8 +1,9 @@
 name: EV v2.55.1 share browser test
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-shared-button-and-main-menu-20261009]
   workflow_dispatch:
+
 jobs:
   smoke:
     runs-on: ubuntu-latest

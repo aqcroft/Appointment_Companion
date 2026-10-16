@@ -1,8 +1,9 @@
 name: EV v2.55.5 E7 allowance and fuel mode smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-e7-allowance-and-mode-polish-v2555-20261009]
   workflow_dispatch:
+
 jobs:
   smoke:
     runs-on: ubuntu-latest

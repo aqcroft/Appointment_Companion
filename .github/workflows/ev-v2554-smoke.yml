@@ -1,8 +1,9 @@
 name: EV v2.55.4 hero and settings smoke
+# Legacy regression retained for manual review only.
+# Automatic EV checking has moved to ev-current-regression.yml.
 on:
-  push:
-    branches: [main, fix/ev-hero-settings-v2554-20261009]
   workflow_dispatch:
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
