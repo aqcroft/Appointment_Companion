@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.1 - EV shared header safety and streamlined checks.
+/* Appointment Companion v2.64.2 - correct current EV regression event fixture.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,11 +8,12 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.1',
+    version: 'v2.64.2',
     date: '16 October 2026',
-    summary: 'EV shared-link stability and less noisy automated tests',
+    summary: 'Reliable EV shared-header regression verification',
     changes: [
       'Avoid an EV shared-header JavaScript error when the settings control moves outside the title row.',
+      'Use a realistic EV comparison event fixture in automated browser verification.',
       'Keep legacy EV test workflows available manually, rather than running them on unrelated commits.',
       'Use one current automated EV shared-link browser test on relevant EV changes.',
       'Update Companion, EV, Should I Fix and PWA manifest versions consistently; calculations are unchanged.'
@@ -168,6 +169,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.1',date:'16 October 2026',summary:'Fix shared EV header and consolidate legacy CI'},
       {version:'v2.64.0',date:'16 October 2026',summary:'More reliable SIMs, Cloud saving and menus'},
       {version:'v2.63.3',date:'15 October 2026',summary:'Safe handling of deleted Cloud records and stable customer sync'},
       {version:'v2.63.2',date:'15 October 2026',summary:'Manual Cloud sync and pending customer review'},

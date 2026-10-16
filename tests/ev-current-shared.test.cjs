@@ -25,7 +25,8 @@ async function verify(browser,cloud){
    const night=document.getElementById('acMeterNight');
    // Reproduce the detached-gear case that used to throw NotFoundError.
    if(header&&title&&gear&&gear.parentElement===title)header.appendChild(gear);
-   document.dispatchEvent(new Event('ac:ev-comparison'));
+   // The real calculator supplies comparison details with this event.
+   document.dispatchEvent(new CustomEvent('ac:ev-comparison',{detail:window.__AC_EV_TRADEOFF||{meter:{}}}));
    return {title:!!title,gear:!!gear,day:day&&day.value,night:night&&night.value,opened:document.documentElement.classList.contains('shared-started')};
   });
   await page.waitForTimeout(2500);
