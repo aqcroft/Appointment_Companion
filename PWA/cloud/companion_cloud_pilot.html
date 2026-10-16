@@ -407,11 +407,11 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <button type="button" class="ac-referral-choice" data-referral-route="friend" aria-pressed="false" title="Refer a Friend - homeowners only">
         <span class="ac-referral-art" aria-hidden="true"><img src="../cloud/winwin-referral.webp" alt=""></span><span>Referral</span>
       </button>
-      <button type="button" class="ac-referral-choice" data-referral-route="connector" aria-pressed="false" title="Connector self-referral - homeowners only">
-        <span class="ac-referral-art" aria-hidden="true"><img src="../cloud/uw-connector.webp" alt=""></span><span>Connector</span>
-      </button>
       <button type="button" class="ac-referral-choice" data-referral-route="nationalLeague" aria-pressed="false" title="National League - free club shirt for homeowners and tenants">
         <span class="ac-referral-art ac-shirt" aria-hidden="true">👕</span><span>National League</span>
+      </button>
+      <button type="button" class="ac-referral-choice" data-referral-route="connector" aria-pressed="false" title="Connector self-referral - homeowners only">
+        <span class="ac-referral-art" aria-hidden="true"><img src="../cloud/uw-connector.webp" alt=""></span><span>Connector</span>
       </button>
     </div>
     <input type="checkbox" id="referralToggle" class="hidden" tabindex="-1" aria-hidden="true">
@@ -1086,7 +1086,8 @@ const state = {
   homeowner: null,           // 'homeowner' | 'tenant' | null
   referralRoute: 'none',     // none | friend | connector | nationalLeague
   simCount: 0,
-  sims: {},                  // sim1..simN: {name, monthlyCost, exitFee, include, uwPlan}
+  sims: {},                  // Active SIMs only: used for calculations.
+  simDrafts: {},             // Parked SIM values, excluded from calculations until reactivated.
   includeCashback: true,
   cbTier: 'med',
   dhpPlan: null,
@@ -1372,7 +1373,10 @@ document.querySelectorAll('#simCountPills .pill').forEach(btn => {
 function buildSims() {
   const list = $('simList');
   list.innerHTML = '';
-  const prev = state.sims;
+  // Keep all values when someone temporarily reduces their SIM count.
+  // Only state.sims (the active range) is read by price and savings calculations.
+  state.simDrafts = { ...(state.simDrafts || {}), ...(state.sims || {}) };
+  const prev = state.simDrafts;
   state.sims = {};
   for (let i = 1; i <= state.simCount; i++) {
     const key = 'sim' + i;
@@ -2535,6 +2539,7 @@ function resetForm() {
   document.querySelectorAll('[data-referral-route]').forEach(b => b.setAttribute('aria-pressed','false'));
   state.simCount = 0;
   state.sims = {};
+  state.simDrafts = {};
   state.includeCashback = true;
   state.boilerMode = null;
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
@@ -2651,6 +2656,7 @@ function restoreForm(saved) {
     : (saved.inputs.natLeagueToggle ? 'nationalLeague' : saved.inputs.referralToggle ? 'friend' : 'none');
   state.simCount = s.simCount || 0;
   state.sims = s.sims || {};
+  state.simDrafts = s.simDrafts || {};
   state.includeCashback = (s.includeCashback !== undefined) ? s.includeCashback : true;
   state.cbTier = s.cbTier || 'med';
   state.dhpPlan = (s.dhpPlan != null) ? s.dhpPlan : null;
