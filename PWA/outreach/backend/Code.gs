@@ -21,6 +21,8 @@ function doPost(e) {
     if (action === 'markAction') return json(markAction(body));
     if (action === 'listProspects') return json(listProspects());
     if (action === 'getProspectOutput') return json(getProspectOutput(body));
+    if (action === 'getProspectRecord') return json(getProspectRecord(body));
+    if (action === 'updateProspectRecord') return json(updateProspectRecord(body));
     if (action === 'updateDraft') return json(updateDraft(body));
     if (action === 'addEvidence') return json(addEvidence(body));
     return json({ok:false,error:'Unknown action'});
@@ -507,6 +509,143 @@ function getProspectOutput(body) {
       capture_id:String(get('Last capture ID') || '')
     }
   };
+}
+
+
+/**
+ * Full detail is loaded only when a prospect is opened.  Pipeline and Follow-ups
+ * continue to use the lightweight list endpoint and existing action contracts.
+ * The original Google Sheet and Drive evidence are the single source of truth.
+ */
+function getProspectRecord(body) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const row = resolveProspectRow(sheet, headers, body);
+  if (!row) throw new Error('This prospect could not be found in the CRM.');
+
+  const vals = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const get = h => headers[h] ? vals[headers[h] - 1] : '';
+  const name = String(get('Name') || '');
+  const historySheet = ss.getSheetByName(HISTORY_SHEET);
+  const historyLast = historySheet.getLastRow();
+  const entries = historyLast >= 2
+    ? historySheet.getRange(2, 1, historyLast - 1, 10).getValues() : [];
+  const drafts = {public_comment:'',connection_instruction:'',first_dm:''};
+  const history = [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const h = entries[i];
+    if (String(h[0] || '').trim().toLowerCase() !== name.trim().toLowerCase()) continue;
+    const type = String(h[3] || '');
+    const content = String(h[4] || '');
+    if (type === 'Suggested public comment - Draft' && !drafts.public_comment) drafts.public_comment = content;
+    if (type === 'Connection request instruction - Draft' && !drafts.connection_instruction) drafts.connection_instruction = content;
+    if (type === 'Suggested first DM - Draft' && !drafts.first_dm) drafts.first_dm = content;
+    if (history.length < 100) {
+      const when = h[1] instanceof Date
+        ? Utilities.formatDate(h[1], Session.getScriptTimeZone() || 'Europe/London', 'yyyy-MM-dd HH:mm')
+        : String(h[1] || '');
+      history.push({
+        date:when, direction:String(h[2] || ''), type:type,
+        summary:content, file_url:String(h[5] || ''),
+        next_action:String(h[7] || ''), status:String(h[8] || ''),
+        notes:String(h[9] || '')
+      });
+    }
+  }
+
+  const folderUrl = String(get('Prospect folder') || '');
+  let evidence = [];
+  let evidenceError = '';
+  const folderMatch = folderUrl.match(/\/folders\/([^/?#]+)/);
+  if (folderMatch) {
+    try {
+      evidence = listImageFiles(DriveApp.getFolderById(folderMatch[1]));
+    } catch (err) {
+      evidenceError = 'Screenshot list unavailable. Use the prospect Drive folder link.';
+    }
+  }
+
+  return {ok:true,prospect:{
+    row:row, name:name, profile_url:String(get('LinkedIn profile') || ''),
+    source_post:String(get('Source post') || ''), source:String(get('Source') || ''),
+    track:String(get('Track') || ''), relationship:String(get('Relationship') || ''),
+    notes:String(get('Notes') || ''), situation:String(get('Situation') || ''),
+    why_relevant:String(get('Why relevant') || ''),
+    target_role:String(get('Target role') || ''), job_preferences:String(get('Job preferences') || ''),
+    recommended_approach:String(get('Recommended approach') || ''),
+    analysis_summary:String(get('Analysis summary') || ''),
+    status:String(get('Status') || ''), next_action:String(get('Next action') || ''),
+    followup_date:dateIso(get('Follow-up date')),
+    folder_url:folderUrl,
+    comment_sent:!!get('Comment sent'), connection_sent:!!get('Connection sent'),
+    connected:!!get('Connected'), first_dm_sent:!!get('First UW DM sent'),
+    public_comment:drafts.public_comment,
+    connection_instruction:drafts.connection_instruction,
+    first_dm:drafts.first_dm, draft_status:String(get('Draft status') || ''),
+    capture_id:String(get('Last capture ID') || ''),
+    evidence:evidence, evidence_error:evidenceError, history:history
+  }};
+}
+
+/** Explicit edits from the prospect record. Existing outreach and evidence are preserved. */
+function updateProspectRecord(body) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(PROSPECTS_SHEET);
+  const headers = ensureProspectHeaders(sheet);
+  const row = resolveProspectRow(sheet, headers, body);
+  if (!row) throw new Error('This prospect could not be found in the CRM.');
+  const updates = {};
+  if (Object.prototype.hasOwnProperty.call(body, 'notes'))
+    updates['Notes'] = String(body.notes || '').trim().slice(0, 12000);
+  if (Object.prototype.hasOwnProperty.call(body, 'status'))
+    updates['Status'] = String(body.status || '').trim().slice(0, 200);
+  if (Object.prototype.hasOwnProperty.call(body, 'next_action'))
+    updates['Next action'] = String(body.next_action || '').trim().slice(0, 2000);
+  if (Object.prototype.hasOwnProperty.call(body, 'followup_date')) {
+    const value = String(body.followup_date || '').trim();
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value))
+      throw new Error('Follow-up date must be YYYY-MM-DD.');
+    if (value) {
+      const date = new Date(value + 'T12:00:00');
+      if (isNaN(date.getTime()) || dateIso(date) !== value)
+        throw new Error('Invalid follow-up date.');
+      updates['Follow-up date'] = date;
+    } else {
+      updates['Follow-up date'] = '';
+    }
+  }
+  if (!Object.keys(updates).length) throw new Error('No record changes supplied.');
+  const before = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const changed = Object.keys(updates).filter(k => {
+    if (!headers[k]) return false;
+    const current = before[headers[k] - 1];
+    return k === 'Follow-up date'
+      ? dateIso(current) !== (updates[k] ? dateIso(updates[k]) : '')
+      : String(current || '') !== String(updates[k] || '');
+  });
+  if (!changed.length) return {ok:true,changed:false};
+  const selected = {};
+  changed.forEach(k => selected[k] = updates[k]);
+  writeByHeaders(sheet, headers, row, selected);
+  appendHistory(ss, {
+    prospect:String(before[headers['Name'] - 1] || ''),
+    date:new Date(), direction:'Internal', type:'Prospect record updated',
+    summary:'Updated: ' + changed.join(', '), file:'', linkedin:String(body.profile_url || ''),
+    next:String(updates['Next action'] || ''), status:String(updates['Status'] || ''), notes:''
+  });
+  return {ok:true,changed:true,fields:changed};
+}
+
+function resolveProspectRow(sheet, headers, body) {
+  const capture = String(body.capture_id || '').trim();
+  const last = sheet.getLastRow();
+  if (capture && headers['Last capture ID'] && last >= 2) {
+    const hit = sheet.getRange(2, headers['Last capture ID'], last - 1, 1)
+      .createTextFinder(capture).matchEntireCell(true).findNext();
+    if (hit) return hit.getRow();
+  }
+  return findProspectRow(sheet, headers, String(body.profile_url || '').trim(), String(body.prospect_name || '').trim());
 }
 
 function latestDraftsForProspect(ss, name) {
