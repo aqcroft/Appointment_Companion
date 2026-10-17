@@ -1,3 +1,8 @@
+## v2.65.2 - 17 October 2026 - Guard the actual customer sharing flow
+
+- The personalised Should I Fix basket-share gate clones the original button, so the first live-tariff safeguard was insufficient. The actual gate now checks live tariff verification before opening and again after the optional basket step, alongside the existing Partner identity checks.
+- Add regression coverage for this real sharing path, not just the original button. Refresh the app and service-worker cache version to ensure installed PWAs receive the fix.
+
 ## v2.65.1 - 17 October 2026 - Verify Should I Fix tariffs before displaying savings
 
 - The customer and Partner calculators no longer display or share savings computed from older embedded fallback rates when the live UW tariff service is unavailable.
