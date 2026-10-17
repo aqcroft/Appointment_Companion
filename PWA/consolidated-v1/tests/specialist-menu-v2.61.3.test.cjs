@@ -110,7 +110,7 @@ test(tool+': customer editing navigates only AFTER explicitly choosing an action
 }
 test('unknown Partner/Cloud/Customer status cannot be implicitly shown green',()=>{
   const status=read('unified-status-v2.59.0.js');
-  assert.match(status,/if\(!engine\|\|typeof engine\.list!=='function'\)/);
+  assert.match(status,/cloud\.connection==='verified' && sync\.checked===true/);
   assert.match(status,/state:tariffState==='green'\?'green':tariffState==='red'\?'red':'amber'/);
   assert.match(status,/cloud\.profile==='loaded'\?'green'/);
 });
