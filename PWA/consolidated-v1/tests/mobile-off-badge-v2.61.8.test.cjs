@@ -17,7 +17,7 @@ function classes(names=[]){
 function fixture(initialOn=false,initialSims=5){
  let sims=initialSims,active=initialOn;
  const badge={hidden:true,textContent:''};
- const mobileCell={classList:classes([]),querySelector:selector=>selector==='[data-ac-mobile-state]'?badge:null};
+ const mobileCell={classList:classes([]),querySelector:selector=>selector==='[data-ac-mobile-state]'?badge:null,querySelectorAll:()=>[]};
  const mobile={
    classList:{contains:name=>name==='on'?active:false},
    closest:selector=>selector==='.ac-mobile-cell'?mobileCell:null,
