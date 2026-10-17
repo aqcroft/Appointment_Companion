@@ -9,7 +9,6 @@
     try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; }
     catch (_) { return ''; }
   }
-  function creatorPartnerId() { try { var a=JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession')||'null'); if(!(a&&a.partner_id&&a.workspace_key)) a=JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1')||'null'); return a&&a.partner_id&&a.workspace_key?String(a.partner_id).trim():''; } catch (_) { return ''; } }
   function envelope() { try { return bridge && bridge.receive ? bridge.receive() : null; } catch (_) { return null; } }
   function savedBasket() {
     var e = envelope(), c = e && e.extra && e.extra.customer;
@@ -45,15 +44,15 @@
     return out;
   }
 
-  function basePublicUrl() {
+  function basePublicUrl(verifiedPartnerId) {
     var u = new URL(location.origin + location.pathname);
     u.searchParams.set('public', '1');
-    var pid = creatorPartnerId(); if (pid) u.searchParams.set('pid', pid);
+    u.searchParams.set('pid', verifiedPartnerId);
     return u;
   }
 
-  function buildUrl(doc, win, basketUrl) {
-    var u = basePublicUrl();
+  function buildUrl(doc, win, basketUrl, verifiedPartnerId) {
+    var u = basePublicUrl(verifiedPartnerId);
     var s = scenario(doc, win);
     Object.keys(s).forEach(function (key) {
       if ((key === 'e' && s.f === 'gas') || (key === 'g' && s.f === 'elec') || (key === 'eh' && s.eh === '0') || (key === 't' && s.t === 'saver')) return;
@@ -81,7 +80,10 @@
   }
   async function shareResult(doc, win, basketUrl) {
     var name = cleanName((doc.getElementById('sifCustomerName') || {}).value);
-    var url = buildUrl(doc, win, basketUrl);
+    var identity = global.AppointmentCompanionShareIdentity;
+    if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
+    var verifiedPartnerId = await identity.resolve();
+    var url = buildUrl(doc, win, basketUrl, verifiedPartnerId);
     var text = name ? 'Hi ' + name + ' - here is the energy comparison we looked at.' : 'Here is the energy comparison we looked at.';
     if (navigator.share) {
       try { await navigator.share({ title: 'Your Should I Fix? comparison', text: text, url: url }); toast(doc, 'Personalised result shared'); return; }
@@ -132,7 +134,8 @@
     fresh.addEventListener('click', async function () {
       var choice = await chooseBasket();
       if (!choice || choice.cancelled) return;
-      await shareResult(doc, win, choice.basket);
+      try { await shareResult(doc, win, choice.basket); }
+      catch (error) { global.alert((error && error.message) || 'Partner verification failed. No link was shared.'); }
     });
     return true;
   }
