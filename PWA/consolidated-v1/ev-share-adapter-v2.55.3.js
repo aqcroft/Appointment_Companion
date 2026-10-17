@@ -59,11 +59,11 @@
       var name = String(c.customerName || row && row.customer_name || launch.extra && launch.extra.customer && launch.extra.customer.customer_name || '').trim();
       if (!name) { name = String(global.prompt('Who is this EV summary for?', '') || '').trim(); if (!name) throw new Error('Add the customer name before sharing.'); }
       var first = firstName(name);
-      var choice = await chooseBasket(basketCandidate(row, c));
-      if (!choice || choice.cancelled) return;
       var identity = global.AppointmentCompanionShareIdentity;
       if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
       var verifiedPartnerId = await identity.resolve();
+      var choice = await chooseBasket(basketCandidate(row, c));
+      if (!choice || choice.cancelled) return;
       var e = c.energy || {};
       var snapshot = { schema_version: 1, view_type: 'ev', partner_id: verifiedPartnerId, customer_name: name, electricityUsageTotalKwh: e.electricityUsageTotalKwh != null ? e.electricityUsageTotalKwh : num('houseKwh'), electricityProfile: e.electricityProfile || 'standard', electricityUsageDayKwh: e.electricityUsageDayKwh, electricityUsageNightKwh: e.electricityUsageNightKwh, ev_state: state() };
       if (choice.basket) snapshot.basket_url = choice.basket;
