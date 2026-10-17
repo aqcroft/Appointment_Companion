@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.5 - refreshed Should I Fix forecasts and scenarios.
+/* Appointment Companion v2.64.6 - streamlined Should I Fix forecast scenarios.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,13 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.5',
+    version: 'v2.64.6',
     date: '17 October 2026',
-    summary: 'Should I Fix forecast refreshed to 25%',
+    summary: 'Simpler Should I Fix scenario buttons',
     changes: [
-      'January 2027 default forecast updated from MSE to +25%, with April +2.2% and July -9.8%.',
-      'Added a +30% January scenario in the Should I Fix and EV comparison controls.',
-      'Updated the forecast source panel and refreshed the embedded calculator cache.'
+      'Should I Fix now offers four January price-cap scenarios: 0%, 15%, 25% and 30%.',
+      'The published MSE forecast of +25% remains selected by default.',
+      'The same four buttons are available in the EV comparison within Should I Fix; calculator and PWA caches refreshed.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -167,6 +167,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.5',date:'17 October 2026',summary:'Should I Fix MSE forecast refreshed to 25%'},
       {version:'v2.64.4',date:'17 October 2026',summary:'Verified Partner details in shared tools'},
       {version:'v2.64.2',date:'16 October 2026',summary:'Reliable EV shared-header regression verification'},
       {version:'v2.64.1',date:'16 October 2026',summary:'Fix shared EV header and consolidate legacy CI'},
