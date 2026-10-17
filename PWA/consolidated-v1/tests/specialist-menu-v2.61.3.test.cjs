@@ -9,11 +9,11 @@ test('EV and Should I Fix load the same universal TCP and in-tool menu',()=>{
   for(const name of ['ev','should-i-fix']){
     const loader=read(name+'/index.html');
     assert.match(loader,/unified-status-v2\.59\.0\.js/);
-    assert.match(loader,/specialist-suite-menu-v2\.61\.3\.js/);
-    assert.match(loader,/v2\.61\.3/);
+    assert.match(loader,/specialist-suite-menu-v2\.62\.2\.js/);
+    assert.match(loader,/v2\.64\.4/);
   }
   const core=read('unified-status-v2.59.0.js');
-  assert.match(core,/version: 'v2\.61\.\d+'/);
+  assert.match(core,/version: 'v2\.64\.4'/);
   assert.match(core,/function dimensions\(\)/);
   assert.match(core,/function refreshCloud\(/);
   assert.match(core,/global\.AppointmentCompanionUnifiedStatus/);
