@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.6 - streamlined Should I Fix forecast scenarios.
+/* Appointment Companion v2.65.0 - approved live forecast feed for Should I Fix.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,13 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.6',
+    version: 'v2.65.0',
     date: '17 October 2026',
-    summary: 'Simpler Should I Fix scenario buttons',
+    summary: 'Approved MSE forecast feed and review workflow',
     changes: [
-      'Should I Fix now offers four January price-cap scenarios: 0%, 15%, 25% and 30%.',
-      'The published MSE forecast of +25% remains selected by default.',
-      'The same four buttons are available in the EV comparison within Should I Fix; calculator and PWA caches refreshed.'
+      'Should I Fix now reads one approved forecast file for its calculations, MSE source table and default scenario.',
+      'Forecast updates are proposed by Friday GitHub checks and require manual pull request approval.',
+      'Future default customer links follow approved forecasts, whilst explicitly chosen scenarios remain fixed.',
+      'The built-in +25% snapshot is retained if the forecast feed is unavailable.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -167,6 +168,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.6',date:'17 October 2026',summary:'Four forecast scenarios: 0%, 15%, 25% and 30%'},
       {version:'v2.64.5',date:'17 October 2026',summary:'Should I Fix MSE forecast refreshed to 25%'},
       {version:'v2.64.4',date:'17 October 2026',summary:'Verified Partner details in shared tools'},
       {version:'v2.64.2',date:'16 October 2026',summary:'Reliable EV shared-header regression verification'},
