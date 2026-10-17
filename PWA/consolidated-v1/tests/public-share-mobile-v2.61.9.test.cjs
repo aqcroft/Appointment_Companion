@@ -38,7 +38,7 @@ test('Should I Fix ?public=1 is standalone, branded, and lacks Partner menu, too
 test('Should I Fix Partner view retains the full toolbar and TCP',async()=>{
  const html=await loader('should-i-fix','https://example.test/PWA/consolidated-v1/should-i-fix/');
  assert.match(html,/specialist-features-v1\.js/);
- assert.match(html,/specialist-suite-menu-v2\.61\.3\.js/);
+ assert.match(html,/specialist-suite-menu-v2\.62\.2\.js/);
  assert.match(html,/unified-status-v2\.59\.0\.js/);
 });
 test('EV public, Cloud token and portable links are all protected',async()=>{
