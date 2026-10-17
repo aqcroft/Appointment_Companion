@@ -1,3 +1,11 @@
+## v2.64.4 - 17 October 2026 - Verified UW Partner IDs in shared tools
+
+- Should I Fix and EV shares must verify the creating Partner's authenticated UW-issued ID and corresponding public Cloud profile before producing a recipient link.
+- Newly generated portable EV links include the verified Partner ID; previously sent portable links remain readable.
+- Partner Earnings launched from Companion validates the signed-in Partner ID. Inside the separate Earnings Tool, sharing and sharing with a friend re-check that the public Partner profile resolves before distributing a link.
+- If the device still holds a legacy generated `p_...` ID or the profile lookup fails, sharing stops with a clear reconnect/check-profile message rather than giving customers an unbranded or incorrect profile.
+- No customer ownership migration, profile writes, tariff calculations or customer data changes.
+
 ## v2.61.9 - 15 October 2026 - Customer-only shares and simpler Mobile details
 
 - Should I Fix `?public=1` pages now set customer shared-view mode before scripts run and exclude all Partner toolbar/menu/status scripts. This corrects public links showing the Partner-only TCP control.
