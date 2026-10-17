@@ -78,11 +78,8 @@
       catch (e) { reject(e); }
     });
   }
-  async function shareResult(doc, win, basketUrl) {
+  async function shareResult(doc, win, basketUrl, verifiedPartnerId) {
     var name = cleanName((doc.getElementById('sifCustomerName') || {}).value);
-    var identity = global.AppointmentCompanionShareIdentity;
-    if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
-    var verifiedPartnerId = await identity.resolve();
     var url = buildUrl(doc, win, basketUrl, verifiedPartnerId);
     var text = name ? 'Hi ' + name + ' - here is the energy comparison we looked at.' : 'Here is the energy comparison we looked at.';
     if (navigator.share) {
@@ -132,10 +129,14 @@
     if (old.dataset.acBasketGate === '1') return true;
     var fresh = old.cloneNode(true); fresh.dataset.acBasketGate = '1'; old.parentNode.replaceChild(fresh, old);
     fresh.addEventListener('click', async function () {
-      var choice = await chooseBasket();
-      if (!choice || choice.cancelled) return;
-      try { await shareResult(doc, win, choice.basket); }
-      catch (error) { global.alert((error && error.message) || 'Partner verification failed. No link was shared.'); }
+      try {
+        var identity = global.AppointmentCompanionShareIdentity;
+        if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
+        var verifiedPartnerId = await identity.resolve();
+        var choice = await chooseBasket();
+        if (!choice || choice.cancelled) return;
+        await shareResult(doc, win, choice.basket, verifiedPartnerId);
+      } catch (error) { global.alert((error && error.message) || 'Partner verification failed. No link was shared.'); }
     });
     return true;
   }
