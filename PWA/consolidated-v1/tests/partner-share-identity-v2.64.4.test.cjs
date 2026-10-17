@@ -69,3 +69,12 @@ test('public routes skip authenticated share gate and active app surfaces share 
   assert.match(read('ev/index.html'),/partner-share-identity-v2\.64\.4\.js/);
   assert.match(read('sw.js'),/partner-share-identity-v2\.64\.4\.js/);
 });
+
+test('actual Should I Fix basket share gate enforces live tariff verification before and after basket choice',()=>{
+  const gate=read('fix-share-gate-v1.js');
+  const matches=gate.match(/doc\.body\.dataset\.tariffDataStatus !== 'verified'/g)||[];
+  assert.equal(matches.length,2,'both entry and post-basket checks are required');
+  assert.match(gate,/var verifiedPartnerId = await identity\.resolve\(\)/);
+  const donor=fs.readFileSync(path.resolve(root,'../cloud-test/should-i-fix-pilot-v2.html'),'utf8');
+  assert.match(donor,/doc\.body\.dataset\.tariffDataStatus!=='verified'/);
+});
