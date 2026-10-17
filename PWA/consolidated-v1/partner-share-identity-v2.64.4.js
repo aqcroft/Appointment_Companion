@@ -35,7 +35,7 @@
     try { publicResult = await api.getPublicPartnerProfile(id); }
     catch (error) { throw new Error('Your public Partner contact details could not be loaded. Check your Cloud profile and connection before sharing.'); }
     if (!matchingProfile(publicResult, id)) throw new Error('Your public Partner profile does not match the signed-in UW Partner ID. Please check My profile before sharing.');
-    return id;
+    return clean(publicResult.partner.partner_id);
   }
   global.AppointmentCompanionShareIdentity = { resolve: resolve, currentAuth: currentAuth, legacyId: legacyId };
 })(window);
