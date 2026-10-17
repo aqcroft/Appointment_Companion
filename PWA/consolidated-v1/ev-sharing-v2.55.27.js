@@ -288,12 +288,12 @@ function showCopyableLink(link){
 }
 async function shareCurrent(){
   try{
-    var choice=await chooseShareOptions();
-    if(!choice||choice.cancelled)return;
-    if($('shareCustomerName'))$('shareCustomerName').value=choice.name;
     var identity=window.AppointmentCompanionShareIdentity;
     if(!identity||typeof identity.resolve!=='function')throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
     var verifiedPartnerId=await identity.resolve();
+    var choice=await chooseShareOptions();
+    if(!choice||choice.cancelled)return;
+    if($('shareCustomerName'))$('shareCustomerName').value=choice.name;
     var link=makeLink(choice.name,choice.basket,verifiedPartnerId);
     if(!link){showToast('Could not create the customer link');return}
     // Windows browsers may expose Web Share but leave its promise pending.
