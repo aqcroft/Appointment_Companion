@@ -57,9 +57,13 @@ test('Companion Earnings launch is gated on verified owner',()=>{
   assert.match(s,/var partnerId = await identity\.resolve\(\)/);
   assert.match(s,/window\.location\.assign\(earningsUrl\(partnerId\)\)/);
 });
-test('public routes skip the authenticated share gate and all app surfaces bump to v2.64.4',()=>{
-  for(const name of ['index.html','should-i-fix/index.html','ev/index.html','manifest.webmanifest','unified-status-v2.59.0.js','sw.js'])
-    assert.match(read(name),/v2[.\-]64[.\-]4/i,name);
+test('public routes skip authenticated share gate and active app surfaces share the release version',()=>{
+  const match=read('unified-status-v2.59.0.js').match(/version: '(v\d+\.\d+\.\d+)'/);
+  assert.ok(match,'release metadata must declare the app version');
+  const version=match[1];
+  for(const name of ['index.html','should-i-fix/index.html','manifest.webmanifest'])
+    assert.ok(read(name).includes(version),name+' should display '+version);
+  assert.ok(read('sw.js').includes(version.replace(/\./g,'-')),'service worker cache should use the release version');
   assert.match(read('should-i-fix/index.html'), /\(publicView \? '' :/);
   assert.match(read('should-i-fix/index.html'), /partner-share-identity-v2\.64\.4\.js/);
   assert.match(read('ev/index.html'),/partner-share-identity-v2\.64\.4\.js/);
