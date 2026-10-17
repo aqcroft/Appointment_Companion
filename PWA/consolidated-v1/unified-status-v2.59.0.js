@@ -1,4 +1,4 @@
-/* Appointment Companion v2.65.0 - approved live forecast feed for Should I Fix.
+/* Appointment Companion v2.65.1 - verified live tariffs required for Should I Fix savings.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,16 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.65.0',
+    version: 'v2.65.1',
     date: '17 October 2026',
-    summary: 'Approved MSE forecast feed and review workflow',
+    summary: 'Should I Fix now prevents unverified or outdated tariff savings',
     changes: [
       'Should I Fix now reads one approved forecast file for its calculations, MSE source table and default scenario.',
       'Forecast updates are proposed by Friday GitHub checks and require manual pull request approval.',
       'Future default customer links follow approved forecasts, whilst explicitly chosen scenarios remain fixed.',
-      'The built-in +25% snapshot is retained if the forecast feed is unavailable.'
+      'The built-in +25% snapshot is retained if the forecast feed is unavailable.',
+      'Should I Fix savings are only shown when live UW fixed tariff rates are verified. Failed checks can be retried.',
+      'Personalised customer sharing stops when current tariff rates have not been verified.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
