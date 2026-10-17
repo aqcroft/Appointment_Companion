@@ -130,11 +130,21 @@
     var fresh = old.cloneNode(true); fresh.dataset.acBasketGate = '1'; old.parentNode.replaceChild(fresh, old);
     fresh.addEventListener('click', async function () {
       try {
+        // The donor share button is cloned above, so verify the live tariff state here too.
+        // Never distribute a personalised result based on the embedded fallback rates.
+        if (doc.body.dataset.tariffDataStatus !== 'verified') {
+          toast(doc, 'Current UW tariff rates not verified - retry before sharing');
+          return;
+        }
         var identity = global.AppointmentCompanionShareIdentity;
         if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
         var verifiedPartnerId = await identity.resolve();
         var choice = await chooseBasket();
         if (!choice || choice.cancelled) return;
+        if (doc.body.dataset.tariffDataStatus !== 'verified') {
+          toast(doc, 'UW tariff verification was lost. Retry before sharing');
+          return;
+        }
         await shareResult(doc, win, choice.basket, verifiedPartnerId);
       } catch (error) { global.alert((error && error.message) || 'Partner verification failed. No link was shared.'); }
     });
