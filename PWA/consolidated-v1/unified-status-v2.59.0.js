@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.4 - verified UW Partner identity for customer shares.
+/* Appointment Companion v2.64.5 - refreshed Should I Fix forecasts and scenarios.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.4',
+    version: 'v2.64.5',
     date: '17 October 2026',
-    summary: 'Verified Partner details in shared tools',
+    summary: 'Should I Fix forecast refreshed to 25%',
     changes: [
-      'Should I Fix, EV and Partner Earnings now verify the signed-in UW Partner ID before preparing customer links.',
-      'EV portable links also carry the verified Partner ID so recipient contact details can load.',
-      'Old device login IDs cannot silently create unbranded shares; the Partner is prompted to reconnect using their UW ID.',
-      'Customer records, tariffs, prices and calculations remain unchanged.'
+      'January 2027 default forecast updated from MSE to +25%, with April +2.2% and July -9.8%.',
+      'Added a +30% January scenario in the Should I Fix and EV comparison controls.',
+      'Updated the forecast source panel and refreshed the embedded calculator cache.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
@@ -168,6 +167,7 @@
   function appSection() {
     var history=[
       {version:meta.version,date:meta.date,summary:meta.summary,changes:meta.changes},
+      {version:'v2.64.4',date:'17 October 2026',summary:'Verified Partner details in shared tools'},
       {version:'v2.64.2',date:'16 October 2026',summary:'Reliable EV shared-header regression verification'},
       {version:'v2.64.1',date:'16 October 2026',summary:'Fix shared EV header and consolidate legacy CI'},
       {version:'v2.64.0',date:'16 October 2026',summary:'More reliable SIMs, Cloud saving and menus'},
