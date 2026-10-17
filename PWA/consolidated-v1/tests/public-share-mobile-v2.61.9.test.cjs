@@ -25,7 +25,7 @@ async function loader(tool,url){
  return written;
 }
 function noPartnerToolbar(html,subject){
- for(const file of ['specialist-features-v1.js','spring-clean-v2.57.0.js','release-v2.3.js','unified-status-v2.59.0.js','specialist-suite-menu-v2.61.3.js'])
+ for(const file of ['specialist-features-v1.js','spring-clean-v2.57.0.js','release-v2.3.js','unified-status-v2.59.0.js','specialist-suite-menu-v2.62.2.js'])
    assert.equal(html.includes(file),false,subject+' should not load '+file);
  assert.match(html,/classList\.add\("shared-view"\)/,subject+' must set shared-view before other scripts run');
 }
@@ -38,7 +38,7 @@ test('Should I Fix ?public=1 is standalone, branded, and lacks Partner menu, too
 test('Should I Fix Partner view retains the full toolbar and TCP',async()=>{
  const html=await loader('should-i-fix','https://example.test/PWA/consolidated-v1/should-i-fix/');
  assert.match(html,/specialist-features-v1\.js/);
- assert.match(html,/specialist-suite-menu-v2\.61\.3\.js/);
+ assert.match(html,/specialist-suite-menu-v2\.62\.2\.js/);
  assert.match(html,/unified-status-v2\.59\.0\.js/);
 });
 test('EV public, Cloud token and portable links are all protected',async()=>{
@@ -54,7 +54,7 @@ test('EV Partner view retains the full toolbar',async()=>{
  assert.match(html,/unified-status-v2\.59\.0\.js/);
 });
 test('even if a future loader accidentally injects Partner scripts, public links are rejected in each module',()=>{
- for(const file of ['specialist-features-v1.js','unified-status-v2.59.0.js','specialist-suite-menu-v2.61.3.js']){
+ for(const file of ['specialist-features-v1.js','unified-status-v2.59.0.js','specialist-suite-menu-v2.62.2.js']){
    const source=read(file);
    assert.match(source,/public=1/,file);
  }

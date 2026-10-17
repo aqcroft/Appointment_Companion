@@ -194,7 +194,7 @@ function startCompanion(payload){
   });
 }
 
-function makeLink(name,basket){
+function makeLink(name,basket,verifiedPartnerId){
   name=cleanName(name);
   if(!name)return null;
   window.dispatchEvent(new CustomEvent('ac:ev-share-name',{detail:{name:name}}));
@@ -203,6 +203,8 @@ function makeLink(name,basket){
   url.searchParams.delete('s');
   url.searchParams.delete('ac_launch');
   url.searchParams.delete('ac_return');
+  url.searchParams.delete('pid');
+  if(verifiedPartnerId)url.searchParams.set('pid',verifiedPartnerId);
   var slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
   if(slug)url.searchParams.set('for',slug);
   // Use new p2 links for the dual-mode tool while leaving old p links intact.
@@ -286,10 +288,13 @@ function showCopyableLink(link){
 }
 async function shareCurrent(){
   try{
+    var identity=window.AppointmentCompanionShareIdentity;
+    if(!identity||typeof identity.resolve!=='function')throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
+    var verifiedPartnerId=await identity.resolve();
     var choice=await chooseShareOptions();
     if(!choice||choice.cancelled)return;
     if($('shareCustomerName'))$('shareCustomerName').value=choice.name;
-    var link=makeLink(choice.name,choice.basket);
+    var link=makeLink(choice.name,choice.basket,verifiedPartnerId);
     if(!link){showToast('Could not create the customer link');return}
     // Windows browsers may expose Web Share but leave its promise pending.
     // Only launch the native share sheet on touch phones/tablets.
@@ -311,7 +316,7 @@ async function shareCurrent(){
     showCopyableLink(link);
   }catch(err){
     console.error('EV share error:',err);
-    showToast('Sharing needs attention - try again.');
+    window.alert((err&&err.message)||'Partner verification failed. No link was shared.');
   }
 }
 
@@ -328,7 +333,7 @@ function prepareShared(raw){
 
     /* Portable #p2 links and cloud ?s links must load the SAME latest customer contact modal. */
     /* Hand the optional basket to the shared customer contact treatment. */
-    window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||'')};
+    window.__AppointmentCompanionEvSharedSnapshot={customer_name:name,basket_url:safeHttps(p.b||''),partner_id:new URL(location.href).searchParams.get('pid')||''};
     loadScript('consolidated-v1/ev-customer-contact-v2.55.27.js?v=20261009-v2.55.26-actualtick1').catch(function(){});
 
     // One shared presentation across portable and Cloud customer links.

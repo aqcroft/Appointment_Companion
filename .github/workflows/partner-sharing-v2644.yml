@@ -1,0 +1,20 @@
+name: Verified UW Partner shares v2.64.4
+on:
+  push:
+    branches:
+      - main
+      - fix/verified-uw-partner-share-20261017
+  pull_request:
+    paths:
+      - 'PWA/consolidated-v1/**'
+      - '.github/workflows/partner-sharing-v2644.yml'
+jobs:
+  verified-sharing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Test verified UW Partner shares
+        run: node --test PWA/consolidated-v1/tests/partner-share-identity-v2.64.4.test.cjs

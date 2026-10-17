@@ -1,4 +1,4 @@
-/* Appointment Companion v2.64.3 - associate each mobile SIM price with its selected plan.
+/* Appointment Companion v2.64.4 - verified UW Partner identity for customer shares.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,14 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.64.3',
-    date: '16 October 2026',
-    summary: 'Mobile SIM prices above the selected tariff',
+    version: 'v2.64.4',
+    date: '17 October 2026',
+    summary: 'Verified Partner details in shared tools',
     changes: [
-      'Place each SIM monthly price directly above its selected Go Unlimited or Go Essentials button.',
-      'Move the price between tariff columns immediately on selection, without repeating or recalculating the displayed amount.',
-      'Keep both tariff buttons side by side on phones and desktop, with reserved price-row height.',
-      'Customer profiles, Cloud saving, tariff prices and savings calculations remain unchanged.'
+      'Should I Fix, EV and Partner Earnings now verify the signed-in UW Partner ID before preparing customer links.',
+      'EV portable links also carry the verified Partner ID so recipient contact details can load.',
+      'Old device login IDs cannot silently create unbranded shares; the Partner is prompted to reconnect using their UW ID.',
+      'Customer records, tariffs, prices and calculations remain unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;

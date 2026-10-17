@@ -9,7 +9,6 @@
   function active(selector) { return document.querySelector(selector + '.on'); }
   function safeHttps(value) { try { var u = new URL(String(value || '').trim()); return u.protocol === 'https:' ? u.href : ''; } catch (_) { return ''; } }
   function firstName(value) { return String(value || '').trim().split(/\s+/)[0] || ''; }
-  function creatorPartnerId() { try { var a=JSON.parse(sessionStorage.getItem('apptCloudPilotAuthSession')||'null'); if(!(a&&a.partner_id&&a.workspace_key))a=JSON.parse(localStorage.getItem('apptCloudPilotAuthDeviceV1')||'null'); return a&&a.partner_id&&a.workspace_key?String(a.partner_id).trim():''; }catch(_){return '';} }
   function state() { var vehicle = active('#vehiclePills .vpill'), service = active('#serviceButtons button'), period = active('#periodToggle button'), stress = active('#stressButtons button'), actual = $('e7ActualWrap') ? !$('e7ActualWrap').hidden : false; return { schema_version: 1, tool_version: '16C', vehicle_efficiency_mi_kwh: vehicle ? Number(vehicle.dataset.eff) : 3.2, vehicle_icon: vehicle ? String(vehicle.dataset.icon || '') : '🚙', annual_mileage: num('miles'), home_usage_kwh: num('houseKwh'), uw_services: service ? Number(service.dataset.tier) + 1 : 3, region: num('region'), ev_offpeak_pct: num('evTimingSlider'), e7_offpeak_pct: num('e7TimingSlider'), e7_actual: actual, e7_day_kwh: actual ? num('e7DayActualInput') : null, e7_night_kwh: actual ? num('e7NightActualInput') : null, meter_mode: document.documentElement.classList.contains('ac-metered-mode') ? 'meter' : 'estimate', meter_source: document.querySelector('[data-ac-source].on')?.dataset.acSource || 'ev', usage_origin: global.AppointmentCompanionEvUsageOrigin?global.AppointmentCompanionEvUsageOrigin.get():'bill_estimate', consider_e7: !!($('acE7ConsideringToggle')&&$('acE7ConsideringToggle').checked), consider_e7_day_kwh: num('acE7CurrentDay'), consider_e7_night_kwh: num('acE7CurrentNight'), vat_percent: document.querySelector('[data-ac-vat].on')?.dataset.acVat || '5', meter_peak_kwh: $('acMeterPeak')&&$('acMeterPeak').value!==''?num('acMeterPeak'):null, meter_offpeak_kwh: $('acMeterNight')&&$('acMeterNight').value!==''?num('acMeterNight'):null, away_pct: num('awayPct'), away_rate_p_kwh: num('awayRate'), efficiency_override_mi_kwh: num('effOverride'), known_ev_kwh: num('knownEvKwh'), dual_fuel: $('dualFuel') ? !!$('dualFuel').checked : true, period: period ? period.dataset.period : 'month', stress_pct: stress ? Number(stress.dataset.stress || 0) : 0 }; }
   function toast(message) { var el = $('shareToast'); if (!el) return; el.textContent = message; el.classList.add('show'); setTimeout(function () { el.classList.remove('show'); }, 2400); }
   async function copy(text) { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text); global.prompt('Copy this link:', text); }
@@ -60,15 +59,18 @@
       var name = String(c.customerName || row && row.customer_name || launch.extra && launch.extra.customer && launch.extra.customer.customer_name || '').trim();
       if (!name) { name = String(global.prompt('Who is this EV summary for?', '') || '').trim(); if (!name) throw new Error('Add the customer name before sharing.'); }
       var first = firstName(name);
+      var identity = global.AppointmentCompanionShareIdentity;
+      if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
+      var verifiedPartnerId = await identity.resolve();
       var choice = await chooseBasket(basketCandidate(row, c));
       if (!choice || choice.cancelled) return;
       var e = c.energy || {};
-      var snapshot = { schema_version: 1, view_type: 'ev', partner_id: creatorPartnerId(), customer_name: name, electricityUsageTotalKwh: e.electricityUsageTotalKwh != null ? e.electricityUsageTotalKwh : num('houseKwh'), electricityProfile: e.electricityProfile || 'standard', electricityUsageDayKwh: e.electricityUsageDayKwh, electricityUsageNightKwh: e.electricityUsageNightKwh, ev_state: state() };
+      var snapshot = { schema_version: 1, view_type: 'ev', partner_id: verifiedPartnerId, customer_name: name, electricityUsageTotalKwh: e.electricityUsageTotalKwh != null ? e.electricityUsageTotalKwh : num('houseKwh'), electricityProfile: e.electricityProfile || 'standard', electricityUsageDayKwh: e.electricityUsageDayKwh, electricityUsageNightKwh: e.electricityUsageNightKwh, ev_state: state() };
       if (choice.basket) snapshot.basket_url = choice.basket;
       // Capture a portable URL directly from the live calculator. It remains
       // usable when the profile is device-only or Cloud reconciliation is queued.
       var portableMaker = global.AppointmentCompanionEvPortableLink;
-      var portable = typeof portableMaker === 'function' ? portableMaker(name, choice.basket) : '';
+      var portable = typeof portableMaker === 'function' ? portableMaker(name, choice.basket, verifiedPartnerId) : '';
       var url = portable, usedCloud = false;
       var linkedId = String((row && row.customer_id) || launch.customer_id ||
         (launch.extra && launch.extra.customer && launch.extra.customer.customer_id) || '');
@@ -115,7 +117,9 @@
       document.body.appendChild(overlay);
       overlay.querySelector('button').onclick=function(){overlay.remove()};
       var input=overlay.querySelector('#acEvCloudCopyUrl');input.focus();input.select();
-    } catch (error) { toast('Share failed - ' + ((error && error.message) || String(error))); }
+    } catch (error) { var message = (error && error.message) || String(error);
+      console.warn('EV share unavailable:', message);
+      global.alert(message + '\n\nNo customer link was shared.'); }
     finally { sharing = false; if (button) button.disabled = false; }
   }
 

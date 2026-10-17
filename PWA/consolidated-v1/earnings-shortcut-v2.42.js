@@ -1,4 +1,4 @@
-/* Appointment Companion v2.46.14 - Partner Earnings shortcut with authenticated Partner identity handoff. */
+/* Appointment Companion v2.64.4 - verified UW Partner identity handoff to Earnings. */
 (function () {
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
@@ -55,20 +55,14 @@
   }
 
   async function openEarnings() {
-    var partnerId = currentPartnerId();
-    if (!partnerId) {
-      try {
-        var bridge = window.AppointmentCompanionPartnerProfile;
-        if (bridge && typeof bridge.hydrate === 'function') await bridge.hydrate();
-      } catch (_) {}
-      partnerId = currentPartnerId();
+    try {
+      var identity = window.AppointmentCompanionShareIdentity;
+      if (!identity || typeof identity.resolve !== 'function') throw new Error('Partner verification is not ready. Refresh Appointment Companion.');
+      var partnerId = await identity.resolve();
+      window.location.assign(earningsUrl(partnerId));
+    } catch (error) {
+      window.alert((error && error.message) || 'Unable to verify your UW Partner ID for Earnings.');
     }
-    var url = earningsUrl(partnerId);
-    if (!url) {
-      alert('Your Partner identity is still loading. Please reconnect Companion or open ☰ → My profile, then try Partner Earnings again.');
-      return;
-    }
-    window.location.assign(url);
   }
 
   function install() {
