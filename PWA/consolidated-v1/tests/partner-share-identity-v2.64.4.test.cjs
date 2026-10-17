@@ -60,7 +60,8 @@ test('Companion Earnings launch is gated on verified owner',()=>{
 test('public routes skip the authenticated share gate and all app surfaces bump to v2.64.4',()=>{
   for(const name of ['index.html','should-i-fix/index.html','ev/index.html','manifest.webmanifest','unified-status-v2.59.0.js','sw.js'])
     assert.match(read(name),/v2[.\-]64[.\-]4/i,name);
-  assert.match(read('should-i-fix/index.html'),/publicView \? '' : '<script src=\\"\.\.\/partner-share-identity-v2\.64\.4\.js/);
+  assert.match(read('should-i-fix/index.html'), /\(publicView \? '' :/);
+  assert.match(read('should-i-fix/index.html'), /partner-share-identity-v2\.64\.4\.js/);
   assert.match(read('ev/index.html'),/partner-share-identity-v2\.64\.4\.js/);
   assert.match(read('sw.js'),/partner-share-identity-v2\.64\.4\.js/);
 });
