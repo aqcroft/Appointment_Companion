@@ -160,17 +160,17 @@ test('Cloud connection failures make Customers red, without adding a fourth indi
 });
 
 
-test('Customer green prioritises current confirmed local plus Cloud record',()=>{
+test('Customer green requires completed Cloud check and confirmed current sync',()=>{
   const h=harness();
   h.status.setCloud({connection:'verified',profile:'loaded',
     customerIds:['cloud-id'],customerCount:1});
-  h.status.setSync({mode:'synced',conflicts:0,pending:0,
-    localOnly:2,localIds:['cloud-id'],
-    currentCloudId:'cloud-id',currentRevisionSynced:true,currentConflict:false});
+  const synced={mode:'synced',checked:true,conflicts:0,pending:0,
+    localOnly:2,localIds:['cloud-id'],currentNeedsCloud:true,
+    currentSynced:true,currentCloudId:'cloud-id',currentRevisionSynced:true,currentConflict:false};
+  h.status.setSync(synced);
   assert.equal(h.status.dimensions().map(d=>d.state).join(','),'green,green,green');
   assert.equal(h.status.overallStatus().state,'green');
-  h.status.setCloud({connection:'verified',profile:'loaded',
-    customerIds:['different-id'],customerCount:1});
+  h.status.setSync({...synced,currentSynced:false,currentRevisionSynced:false});
   assert.equal(h.status.dimensions()[1].state,'amber',
-    'The Cloud must actually confirm the current customer ID');
+    'Cloud sync must actually confirm the current customer revision');
 });
