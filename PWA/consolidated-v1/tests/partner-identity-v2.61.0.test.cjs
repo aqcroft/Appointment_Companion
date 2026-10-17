@@ -72,15 +72,15 @@ test('Neutral components and modal layering have no Adrian contact fallback',()=
   assert.match(fix,/\.sif-profile\{position:fixed;top:12px;right:12px;z-index:1200/);
   assert.match(branding,/installDrag\(wrap,'\.sif-profile-photo'\)/);
   assert.match(branding,/installDrag\(wrap,'\.ac-ev-profile-photo'\)/);
-  assert.match(gate,/a\.workspace_key/);
-  assert.match(adapter,/a\.workspace_key/);
+  assert.match(gate,/await identity\.resolve\(\)/);
+  assert.match(adapter,/await identity\.resolve\(\)/);
   assert.match(ev,/global\.__AC_EV_PARTNER_QUOTE/);
   for(const file of ['public-partner-branding-v1.js','ev-customer-contact-v2.55.27.js','fix-share-gate-v1.js','ev-share-adapter-v2.55.3.js'])new vm.Script(read(file));
   const match=fix.match(/<script>([\s\S]*?)<\/script>/);assert.ok(match);new vm.Script(match[1]);
 });
-test('All Companion entrypoints, manifest, status and cache retain the v2.61 release family',()=>{
+test('All Companion entrypoints, manifest, status and cache use the v2.64.4 release',()=>{
   for(const name of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js','sw.js']){
-    const src=read(name);assert.match(src,/v2[.\-]61[.\-]\d+/i,name);
+    const src=read(name);assert.match(src,/v2[.\-]64[.\-]4/i,name);
   }
 });
 console.log('Partner identity and modal layering v2.61.0 regression checks complete');
