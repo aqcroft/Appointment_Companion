@@ -1,3 +1,11 @@
+## v2.65.1 - 17 October 2026 - Verify Should I Fix tariffs before displaying savings
+
+- The customer and Partner calculators no longer display or share savings computed from older embedded fallback rates when the live UW tariff service is unavailable.
+- Live checks automatically retry once and offer a manual retry if unavailable. A selected region/tariff without verified live rates also hides the result.
+- The personalised share button requires verified tariff data. Existing links also withhold savings until the current live feed is verified.
+- Addresses the reported East Midlands electricity-only case: a fallback £92 was visible in the PWA, then the shared view updated to £49 when current tariffs loaded (including a different live contract end date).
+- Forecast scenario and customer usage remain unchanged. The shared result remains a live, recalculated comparison, not a frozen tariff quotation.
+
 ## v2.64.4 - 17 October 2026 - Verified UW Partner IDs in shared tools
 
 - Should I Fix and EV shares must verify the creating Partner's authenticated UW-issued ID and corresponding public Cloud profile before producing a recipient link.
