@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#7a42c8">
-<title>First-time bill payer | Appointment Companion Preview v1.2.0</title>
+<title>First-time bill payer | Appointment Companion Preview v1.3.0</title>
 <style>
 :root{--purple:#7a42c8;--pink:#d855a5;--ink:#28194c;--muted:#786e88;--line:#e5deef;--green:#18805b;--warm:#fffbe8}
 *{box-sizing:border-box}
@@ -43,6 +43,18 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .referral-choice[aria-pressed=true],.house-choice[aria-pressed=true]{background:var(--purple);color:#fff;border-color:var(--purple)}
 .house-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .house-choice{font:800 13px system-ui;min-height:42px;background:white;border:1.5px solid #c8b9d8;border-radius:9px;cursor:pointer;padding:7px}
+.basket-services{padding:13px 12px}
+.basket-services h2{margin-bottom:8px}
+.basket-toggle-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.basket-service{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:72px;border:2px solid var(--s-border);border-radius:12px;background:var(--s-light);color:var(--s-ink);font:800 12px/1.16 system-ui,sans-serif;cursor:pointer;padding:7px 4px;text-align:center}
+.basket-service .symbol{font-size:22px;line-height:1.08}
+.basket-service[aria-pressed=true]{background:var(--s-active);color:#fff;border-color:var(--s-strong);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.basket-service[aria-pressed=true]::after{content:'✓';position:absolute;top:3px;right:5px;font-size:11px;background:rgba(255,255,255,.25);border-radius:50%;width:16px;height:16px;line-height:16px}
+.basket-service.energy{--s-light:#e3f7f9;--s-ink:#056377;--s-border:#9cdee7;--s-active:#0588a4;--s-strong:#05657d}
+.basket-service.broadband{--s-light:#e8f9ec;--s-ink:#186b42;--s-border:#a1d9b6;--s-active:#28865b;--s-strong:#17663f}
+.basket-service.mobile{--s-light:#fde8f2;--s-ink:#942559;--s-border:#efb7d4;--s-active:#e44b9c;--s-strong:#9e1c65}
+.basket-service.card{--s-light:#efe7fb;--s-ink:#654093;--s-border:#c9afea;--s-active:#9561d7;--s-strong:#5e2d9e}
+.basket-services .hint{margin-top:8px}
 .service-option{border:1px solid #ede2f7;border-radius:10px;padding:9px;margin-bottom:8px;background:#fcfaff}
 .service-option:nth-child(1){border-color:#bde0e3;background:#f4fcfd}
 .service-option:nth-child(2){border-color:#bfe1d2;background:#f5fcf7}
@@ -91,14 +103,14 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .btn.outline{background:white;color:var(--purple);border:1px solid var(--purple)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
 .changelog{font-size:11px;padding:8px 0;color:var(--muted)}
-@media(max-width:420px){.sc-hero .big{font-size:46px}.wrap{padding:10px 8px 40px}.sc-body{padding:13px 12px 8px}.two{gap:6px}}
+@media(max-width:420px){.basket-toggle-row{grid-template-columns:repeat(2,minmax(0,1fr))}.sc-hero .big{font-size:46px}.wrap{padding:10px 8px 40px}.sc-body{padding:13px 12px 8px}.two{gap:6px}}
 </style>
 </head>
 <body>
 <main class="wrap">
 <div class="heading">
 <div><div class="kicker">Appointment Companion / Design preview</div><h1>🏡 First-time bill payer</h1><div class="mini">No previous bills or supplier comparisons required</div></div>
-<div class="preview-tag">Preview v1.2.0</div>
+<div class="preview-tag">Preview v1.3.0</div>
 </div>
 <div class="notice"><b>Isolated preview.</b> Example UW prices and selected promotions are illustrative. For actual prices and eligibility, use the official UW quote basket. Nothing here is saved to customer profiles or Cloud.</div>
 <section class="panel qualification" aria-label="Customer and household">
@@ -118,17 +130,30 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 </div>
 <input type="hidden" id="home" value="homeowner">
 </section>
+<section class="panel basket-services">
+<h2>🛒 Services in their UW basket</h2>
+<div class="basket-toggle-row" role="group" aria-label="Toggle services in the UW basket">
+<button type="button" class="basket-service energy" data-toggle-service="hasEnergy" aria-pressed="true"><span class="symbol" aria-hidden="true">⚡🔥</span><span>Energy</span></button>
+<button type="button" class="basket-service broadband" data-toggle-service="hasBroadband" aria-pressed="true"><span class="symbol" aria-hidden="true">🛜</span><span>Broadband</span></button>
+<button type="button" class="basket-service mobile" data-toggle-service="hasMobile" aria-pressed="true"><span class="symbol" aria-hidden="true">📱</span><span>Mobile <span id="simBadge">2 SIMs</span></span></button>
+<button type="button" class="basket-service card" data-toggle-service="hasCard" aria-pressed="true"><span class="symbol" aria-hidden="true">💳</span><span>Cashback Card</span></button>
+</div>
+<p class="hint" id="basketQualifyingCount">4 qualifying UW services · Cashback Card is an add-on</p>
+<div class="hidden" aria-hidden="true">
+<input id="hasEnergy" type="checkbox" checked><input id="hasBroadband" type="checkbox" checked><input id="hasMobile" type="checkbox" checked><input id="hasCard" type="checkbox" checked>
+</div>
+</section>
 <section class="panel">
 <details class="config" open>
-<summary>🛒 Services in their UW basket</summary>
+<summary>⚙️ Selected service details</summary>
 <div class="config-body">
 <div class="two">
-<div class="service-option">
-<label class="checkline"><input id="hasEnergy" type="checkbox" checked> ⚡🔥 Energy</label>
+<div class="service-option" id="energyServiceSettings">
+<h3>⚡🔥 Energy</h3>
 <div id="energyBox" class="field"><label for="energy">UW price / month</label><input id="energy" type="number" min="0" step=".01" value="165"></div>
 </div>
-<div class="service-option">
-<label class="checkline"><input id="hasBroadband" type="checkbox" checked> 🛜 Broadband</label>
+<div class="service-option" id="broadbandServiceSettings">
+<h3>🛜 Broadband</h3>
 <div id="bbBox">
 <div class="field"><label for="broadband">UW price / month</label><input id="broadband" type="number" min="0" step=".01" value="30"></div>
 <details class="offer-detail"><summary>🎁 Broadband free months</summary>
@@ -137,8 +162,8 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 </details>
 </div>
 </div>
-<div class="service-option">
-<label class="checkline"><input id="hasMobile" type="checkbox" checked> 📱 Mobile SIM(s)</label>
+<div class="service-option" id="mobileServiceSettings">
+<h3>📱 Mobile SIM(s)</h3>
 <div id="mobileBox">
 <div class="two">
 <div class="field"><label for="simCount">Number</label><select id="simCount"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></div>
@@ -149,7 +174,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 </details>
 </div>
 </div>
-<div class="service-option"><label class="checkline"><input id="hasCard" type="checkbox" checked> 💳 Cashback Card</label><div class="mini" id="cardBox">£3/month (first 3 months free)</div></div>
+<div class="service-option" id="cashbackServiceSettings"><h3>💳 Cashback Card</h3><div class="mini" id="cardBox">£3/month (first 3 months free)</div></div>
 </div>
 <div id="cashPanel" class="cash-panel">
 <div class="cash-head"><h3>💳 Cashback assumptions</h3><strong id="cashbackSummary">£14/m net</strong></div>
@@ -192,7 +217,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 </section>
 <div class="actions"><button id="copy" class="btn" type="button">📋 Copy summary</button><button id="reset" class="btn outline" type="button">↺ Reset preview</button></div>
 <p id="copyStatus" class="hint" role="status"></p>
-<details class="changelog"><summary>About this prototype / changelog</summary><p><b>v1.2.0 - 22nd Oct 2026:</b> Moved referral and homeowner/tenant questions immediately after customer name, matching the live Companion. Referral and property status now use prominent buttons; broadband and mobile promotions sit inside their service settings. <b>v1.1.0 - 22nd Oct 2026:</b> Summary card styled after the live Appointment Companion. Normal ongoing monthly cost remains prominent, with collapsible breakdowns. Removed annual-cost totals. Replaced editable cashback amount with £500-£2,500 slider and Low / Average / Top earner choices matching the main Companion. Added optional first-year effective monthly average.</p><p><b>v1.0.0:</b> Initial first-time bill payer prototype. Standalone only, with no customer saving, Cloud, partner sign-in or live tariff feed.</p></details>
+<details class="changelog"><summary>About this prototype / changelog</summary><p><b>v1.3.0 - 22nd Oct 2026:</b> Coloured service toggles added to the top basket panel. Selected services show their pricing and offers below; switching one off hides its details without clearing values. <b>v1.2.0 - 22nd Oct 2026:</b> Moved referral and homeowner/tenant questions immediately after customer name, matching the live Companion. Referral and property status now use prominent buttons; broadband and mobile promotions sit inside their service settings. <b>v1.1.0 - 22nd Oct 2026:</b> Summary card styled after the live Appointment Companion. Normal ongoing monthly cost remains prominent, with collapsible breakdowns. Removed annual-cost totals. Replaced editable cashback amount with £500-£2,500 slider and Low / Average / Top earner choices matching the main Companion. Added optional first-year effective monthly average.</p><p><b>v1.0.0:</b> Initial first-time bill payer prototype. Standalone only, with no customer saving, Cloud, partner sign-in or live tariff feed.</p></details>
 </main>
 <script>
 (function(){
@@ -207,13 +232,20 @@ const config={cashback:{referenceSpend:1000,refMedAnnual:215,refHighAnnual:456,l
 function replaceRows(host,records){$(host).replaceChildren(...records.map(r=>row(r[0],r[1],r[2])));}
 function render(){
 const energyOn=$('hasEnergy').checked,bbOn=$('hasBroadband').checked,mobileOn=$('hasMobile').checked,cardOn=$('hasCard').checked;
-$('energyBox').classList.toggle('hidden',!energyOn);$('bbBox').classList.toggle('hidden',!bbOn);$('mobileBox').classList.toggle('hidden',!mobileOn);$('cardBox').classList.toggle('hidden',!cardOn);$('cashPanel').classList.toggle('hidden',!cardOn);
+document.querySelectorAll('[data-toggle-service]').forEach(b=>b.setAttribute('aria-pressed',String($(b.dataset.toggleService).checked)));
+$('energyServiceSettings').classList.toggle('hidden',!energyOn);
+$('broadbandServiceSettings').classList.toggle('hidden',!bbOn);
+$('mobileServiceSettings').classList.toggle('hidden',!mobileOn);
+$('cashbackServiceSettings').classList.toggle('hidden',!cardOn);
+$('cashPanel').classList.toggle('hidden',!cardOn);
 document.querySelectorAll('[data-route]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.route===$('route').value)));
 document.querySelectorAll('[data-home]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.home===$('home').value)));
 const sims=mobileOn?n('simCount'):0,unlim=$('simPlan').value==='unlimited',costPerSim=unlim?13:6;
 const energy=energyOn?n('energy'):0,broadband=bbOn?n('broadband'):0,mobile=sims*costPerSim;
 const count=Math.min(4,Number(energyOn)+Number(bbOn)+(sims?(unlim?Math.min(2,sims):1):0));
 const types=Number(energyOn)+Number(bbOn)+Number(sims>0);
+$('basketQualifyingCount').textContent=count+' qualifying UW service'+(count===1?'':'s')+' · Cashback Card is an add-on';
+$('simBadge').textContent=sims?sims+' SIM'+(sims===1?'':'s'):'SIMs';
 const spending=n('spend');
 $('spendLabel').textContent=gbp(spending);
 const cap=config.cashback.lowCaps[count]||5;
@@ -262,6 +294,7 @@ ids.forEach(id=>{const el=$(id);el.addEventListener('input',render);el.addEventL
 document.querySelectorAll('.tier').forEach(b=>b.addEventListener('click',()=>{tier=b.dataset.tier;render()}));
 document.querySelectorAll('[data-route]').forEach(b=>b.addEventListener('click',()=>{$('route').value=$('route').value===b.dataset.route?'none':b.dataset.route;render()}));
 document.querySelectorAll('[data-home]').forEach(b=>b.addEventListener('click',()=>{$('home').value=b.dataset.home;render()}));
+document.querySelectorAll('[data-toggle-service]').forEach(b=>b.addEventListener('click',()=>{const el=$(b.dataset.toggleService);el.checked=!el.checked;render()}));
 $('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);$('copyStatus').textContent='Summary copied.'}catch(_){$('copyStatus').textContent='Clipboard unavailable in this browser. Please use a browser with clipboard permission.'}});
 $('reset').addEventListener('click',()=>{ids.forEach(id=>{const el=$(id);if(el.type==='checkbox')el.checked=el.defaultChecked;else if(el.tagName==='SELECT'){const ix=[...el.options].findIndex(o=>o.defaultSelected);el.selectedIndex=ix<0?0:ix}else el.value=el.defaultValue});tier='med';render()});
 render();
