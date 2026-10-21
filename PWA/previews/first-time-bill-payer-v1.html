@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#7a42c8">
+<title>First-time bill payer - Appointment Companion preview v1.0.0</title>
+<style>
+:root{--ink:#27164d;--purple:#7a42c8;--line:#e2d9ed;--muted:#706880;--green:#146e46;--bg:#faf8ff}
+*{box-sizing:border-box}body{margin:0;background:#f8f5fc;color:var(--ink);font:15px/1.48 system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px 15px 52px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+h1{font-size:23px;line-height:1.16;margin:3px 0}h2{font-size:17px;margin:0 0 13px}
+.eyebrow{font-size:11px;letter-spacing:.085em;text-transform:uppercase;font-weight:900;color:#70618c}
+.preview{padding:7px 11px;border-radius:18px;border:1px solid #d0bce9;color:#563094;background:#efe5fc;font-size:11px;font-weight:800}
+.card{background:white;border:1px solid var(--line);border-radius:15px;box-shadow:0 2px 10px #311b6310;padding:18px;margin:13px 0}
+.flex{display:flex;justify-content:space-between;gap:12px;align-items:center}.controls{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.field{display:flex;flex-direction:column;gap:4px;margin:6px 0}
+label{font-size:12px;font-weight:750;color:#49365d}
+input,select{font:inherit;color:var(--ink);width:100%;border:1px solid #cbc2d6;padding:10px;border-radius:10px;background:white;min-height:44px}
+input[type=checkbox]{width:18px;min-height:auto;accent-color:var(--purple)}
+input:focus,select:focus,button:focus-visible{outline:3px solid #c4a8f7;outline-offset:2px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{border:1px solid #ad9fc1;color:#352253;border-radius:10px;padding:9px 11px;background:white;cursor:pointer;font:700 13px system-ui}
+.pill.active{background:var(--purple);color:white;border-color:var(--purple)}
+.checkline{display:flex;align-items:center;gap:8px;padding:9px;background:#faf7fd;border:1px solid #ede4f7;border-radius:11px;font-weight:750}
+.checkline label{font-size:14px;color:var(--ink);cursor:pointer}
+.hint{font-size:12px;color:var(--muted);line-height:1.45;margin:5px 0 0}
+.subtle{font-size:13px;color:var(--muted)}
+.current{background:#f5f0ff;border-color:#cfb8ef}
+.hero{font-size:43px;letter-spacing:-1.8px;font-weight:900;line-height:1.1;margin:6px 0}
+.hero small{font-size:16px;letter-spacing:0}
+.band{background:white;border-radius:11px;border:1px solid #e2d5f2;padding:12px 13px;margin:12px 0}
+.rows{display:flex;flex-direction:column}
+.money-row{display:flex;justify-content:space-between;align-items:baseline;gap:13px;padding:8px 0;border-bottom:1px solid #eee8f3}
+.money-row:last-child{border-bottom:0}.money-row b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.total{border-top:2px solid #d0c1e1;padding-top:11px;font-weight:850;font-size:17px}
+.plus{color:var(--green)}.mark{font-size:12px;color:#72529b;font-weight:800}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{border:1px solid #e7ddef;border-radius:12px;padding:12px;background:white}
+.stat strong{display:block;font-size:22px}.stat span{font-size:11px;color:var(--muted)}
+.notice{background:#fefbf2;border:1px solid #e8d5ad;border-radius:10px;padding:12px;font-size:12px;color:#574526}
+.actions{display:flex;flex-wrap:wrap;gap:9px}
+button.primary{border:0;border-radius:11px;background:var(--purple);color:white;font:800 14px system-ui;padding:12px 15px;cursor:pointer}
+button.secondary{border:1px solid var(--line);border-radius:11px;background:white;color:var(--ink);font:750 14px system-ui;padding:12px 15px;cursor:pointer}
+.hide{display:none!important}
+footer{font-size:12px;color:var(--muted);margin:25px 0}
+@media(max-width:560px){.wrap{padding:11px 9px 35px}.card{padding:14px}.controls{grid-template-columns:1fr}.hero{font-size:38px}.stat-row{grid-template-columns:1fr 1fr}header{align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div><div class="eyebrow">Appointment Companion / Design preview</div><h1>🏡 First-time bill payer</h1><div class="subtle">No previous bills needed. Build a UW package from scratch.</div></div><span class="preview">ISOLATED PREVIEW v1.0.0</span></header>
+<div class="notice"><b>Prototype only.</b> The prices below are editable examples, not live UW tariff quotations. Use the UW quote basket for real prices and to confirm promotional eligibility. This page neither saves nor sends customer information.</div>
+<section class="card">
+<h2>👤 Customer and appointment</h2>
+<div class="controls"><div class="field"><label for="customer">Customer name (optional)</label><input id="customer" placeholder="New-home customer"></div><div class="field"><label for="home">Property status</label><select id="home"><option value="homeowner">🏠 Homeowner</option><option value="tenant">🏘️ Tenant</option></select></div></div>
+<div class="hint">This mode deliberately has no current-cost, previous-supplier or exit-fee comparison.</div>
+</section>
+<section class="card">
+<h2>🛒 Build the normal UW package</h2>
+<div class="controls">
+<div><div class="checkline"><input id="hasEnergy" type="checkbox" checked><label for="hasEnergy">⚡🔥 Energy</label></div><div class="field" id="energyInput"><label for="energy">Normal quoted cost (£/m)</label><input type="number" id="energy" min="0" step=".01" value="165"></div></div>
+<div><div class="checkline"><input id="hasBroadband" type="checkbox" checked><label for="hasBroadband">🛜 Broadband</label></div><div class="field" id="bbInput"><label for="broadband">Normal quoted cost (£/m)</label><input type="number" id="broadband" min="0" step=".01" value="30"></div></div>
+<div><div class="checkline"><input id="hasMobile" type="checkbox" checked><label for="hasMobile">📱 Mobile SIMs</label></div><div class="controls" id="mobileInputs"><div class="field"><label for="simCount">SIMs</label><select id="simCount"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></div><div class="field"><label for="simPlan">Example plan for each SIM</label><select id="simPlan"><option value="unlimited" selected>Go Unlimited (£13)</option><option value="essentials">Go Essentials (£6)</option></select></div></div></div>
+<div><div class="checkline"><input id="hasCard" type="checkbox" checked><label for="hasCard">💳 Cashback Card</label></div><div id="cardInput" class="field"><label for="cashback">Estimated monthly cashback (£, before fee)</label><input type="number" id="cashback" min="0" step="1" value="15"><div class="hint">The usual £3/m card fee stays in the normal bill.</div></div></div>
+</div></section>
+<section class="card">
+<h2>🎁 Introductory benefits and referral route</h2>
+<div class="controls">
+<div class="field"><label for="route">Referral / partnership route</label><select id="route"><option value="none">No additional referral benefit</option><option value="friend" selected>🤝 Refer a Friend</option><option value="league">👕 National League</option><option value="connector">🟣 Connector self-referral</option></select><p class="hint">Only one route can apply; qualifying conditions matter.</p></div>
+<div class="field"><label for="bbFree">Free broadband months (only if eligible)</label><select id="bbFree"><option value="0">No introductory broadband offer</option><option value="3">3 months free</option><option value="6" selected>6 months free</option></select><p class="hint">Select only what the real UW basket confirms.</p></div>
+<div class="checkline"><input type="checkbox" checked id="mobileOffer"><label for="mobileOffer">📱 3 months free on additional eligible Go Unlimited SIM(s)</label></div>
+<div class="checkline"><input type="checkbox" checked disabled id="cardOffer"><label for="cardOffer">💳 First 3 months of card fee free (£9 value)</label></div>
+</div></section>
+<section class="card current" aria-live="polite">
+<div class="eyebrow">Your normal ongoing monthly UW cost</div>
+<div class="hero" id="ongoing">£209<small>/m</small></div>
+<p class="hint">Full standard service prices, with no introductory free months or welcome bonuses deducted. Estimated cashback is shown separately as an ongoing offset.</p>
+<div class="band"><div id="normalRows" class="rows"></div></div>
+<div class="stat-row"><div class="stat"><strong id="normalGross">£224</strong><span>Usual monthly charges, incl. any card fee</span></div><div class="stat"><strong class="plus" id="cashbackVal">−£15</strong><span>Estimated monthly cashback, not guaranteed</span></div></div>
+</section>
+<section class="card" aria-live="polite">
+<div class="flex"><h2 style="margin:0">🎉 Benefits in your first 12 months</h2><span class="mark" id="typeCount">3 qualifying service types</span></div>
+<p class="hint">These benefits are shown separately. They make the early bills or overall first year more attractive, but do not reduce the normal monthly headline above.</p>
+<div class="rows" id="benefitRows" style="margin-top:12px"></div>
+<div class="money-row total"><span>First-year introductory benefits / value</span><b class="plus" id="benefitsTotal">£428</b></div>
+<div class="notice" id="nonCashNote" style="margin-top:12px">Cash credits, conditional discounts and non-cash benefits are not necessarily interchangeable.</div>
+</section>
+<section class="card">
+<h2>📅 What this means for year one</h2>
+<div class="stat-row"><div class="stat"><strong id="annualBefore">£2,508</strong><span>12 × normal ongoing cost after estimated cashback</span></div><div class="stat"><strong id="annualAfter">£2,080</strong><span>Illustrative first-year effective cost after benefits*</span></div></div>
+<p class="hint">*Illustrative only: assumes the chosen offer terms apply for the stated months, consistent cashback each month, no changes in consumption or tariff pricing, and that cash-equivalent benefits are received. An in-kind shirt is deliberately excluded from the effective cost deduction.</p>
+<div class="notice" style="margin-top:12px">💡 Your first few bills could be lower because of introductory promotions. This illustration always leads with the <b>full, ongoing monthly cost</b>, so customers can budget for the normal amount first.</div>
+</section>
+<section class="card">
+<div class="actions"><button class="primary" id="copy">📋 Copy example summary</button><button class="secondary" id="reset">↺ Reset sample</button></div>
+<p class="hint" id="copyStatus" aria-live="polite"></p>
+<details><summary>About this preview and changelog</summary><p class="hint"><b>v1.0.0 - 21st Oct 2026:</b> Introduced First-time bill payer concept with full normal UW cost first, configurable service package, conditional promotional values, referral routes, cashback as an estimated ongoing offset, and no invented comparison. Standalone prototype only - no Cloud, customer saving, partner login or live tariff feed.</p></details>
+</section>
+<footer>Appointment Companion design branch. No changes to the live Companion journey, customer profiles, authentication, calculation engine or customer-facing shares.</footer>
+</div>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const ids=['customer','home','hasEnergy','energy','hasBroadband','broadband','hasMobile','simCount','simPlan','hasCard','cashback','route','bbFree','mobileOffer'];
+const n=id=>Math.max(0,Number($(id).value)||0);
+const money=v=>'£'+Number(v).toLocaleString('en-GB',{minimumFractionDigits:Number.isInteger(v)?0:2,maximumFractionDigits:2});
+const row=(label,value,green=false)=>'<div class="money-row"><span>'+label+'</span><b'+(green?' class="plus"':'')+'>'+money(value)+'</b></div>';
+const welcomeByTypes={0:0,1:0,2:50,3:150,4:250};
+let summary='';
+function render(){
+ const en=$('hasEnergy').checked,bb=$('hasBroadband').checked,mob=$('hasMobile').checked,card=$('hasCard').checked;
+ const sims=mob?n('simCount'):0,unlim=$('simPlan').value==='unlimited';
+ const simRate=unlim?13:6;
+ const energy=en?n('energy'):0,broadband=bb?n('broadband'):0,mobiles=sims*simRate;
+ const cardFee=card?3:0,cashback=card?n('cashback'):0;
+ const gross=energy+broadband+mobiles+cardFee,net=gross-cashback;
+ const typeCount=Number(en)+Number(bb)+Number(sims>0);
+ const connectorCount=Math.min(4,Number(en)+Number(bb)+(sims?(unlim?Math.min(2,sims):1):0));
+ const welcome=welcomeByTypes[typeCount]||0;
+ const route=$('route').value, homeowner=$('home').value==='homeowner';
+ const friend=route==='friend'&&homeowner&&typeCount>=2?50:0;
+ const shirt=route==='league'&&typeCount>=2?65:0;
+ const connector=route==='connector'&&homeowner?({2:50,3:125,4:150}[connectorCount]||0):0;
+ const broadbandFree=bb?n('bbFree')*broadband:0;
+ const simFree=(mob&&unlim&&$('mobileOffer').checked)?Math.max(0,sims-1)*3*13:0;
+ const freeCard=card?9:0;
+ const total=welcome+friend+shirt+connector+broadbandFree+simFree+freeCard;
+ const countText=typeCount+' qualifying service type'+(typeCount===1?'':'s')+' for Welcome Bonus';
+ $('energyInput').classList.toggle('hide',!en);$('bbInput').classList.toggle('hide',!bb);$('mobileInputs').classList.toggle('hide',!mob);$('cardInput').classList.toggle('hide',!card);
+ $('ongoing').innerHTML=money(net)+'<small>/m</small>';
+ $('normalRows').innerHTML=(en?row('⚡🔥 Energy',energy):'')+(bb?row('🛜 Broadband',broadband):'')+(mob?row('📱 '+sims+' mobile SIM'+(sims===1?'':'s'),mobiles):'')+(card?row('💳 Cashback Card fee',cardFee):'')+(card?'<div class="money-row"><span>💳 Estimated cashback</span><b class="plus">−'+money(cashback)+'</b></div>':'')+'<div class="money-row total"><span>Effective ongoing monthly cost</span><b>'+money(net)+'</b></div>';
+ $('normalGross').textContent=money(gross);$('cashbackVal').textContent=card?'−'+money(cashback):'£0';
+ $('typeCount').textContent=countText;
+ const benefits=[];
+ if(welcome)benefits.push(['💷 Welcome Bonus ('+typeCount+' service types)',welcome]);
+ if(friend)benefits.push(['🤝 Refer a Friend credit',friend]);
+ if(shirt)benefits.push(['👕 National League shirt / shop voucher (non-cash)',shirt]);
+ if(connector)benefits.push(['🟣 Connector self-referral commission*',connector]);
+ if(broadbandFree)benefits.push(['🛜 '+n('bbFree')+' free broadband months',broadbandFree]);
+ if(simFree)benefits.push(['📱 3 months free on '+(sims-1)+' additional Unlimited SIM'+(sims===2?'':'s'),simFree]);
+ if(freeCard)benefits.push(['💳 First 3 card fees waived',freeCard]);
+ $('benefitRows').innerHTML=benefits.length?benefits.map(b=>row(b[0],b[1],true)).join(''):'<p class="hint">Select qualifying services and promotions to see their benefits.</p>';
+ $('benefitsTotal').textContent=money(total);
+ $('annualBefore').textContent=money(net*12);
+ $('annualAfter').textContent=money(net*12-(total-shirt));
+ $('nonCashNote').textContent=shirt?'The '+money(shirt)+' club shirt/shop benefit is included in the total benefits value but is NOT deducted from your estimated bill cost. Connector self-referral commission is only relevant when separately eligible.':'Introductory offers and referral routes are conditional; cashback is an estimate and is not guaranteed. *Connector commission is only relevant when separately eligible.';
+ summary=['Appointment Companion - first-time bill payer (illustrative)',
+ $('customer').value.trim()?'Prepared for '+$('customer').value.trim():'',
+ 'Normal ongoing UW cost: '+money(net)+'/month (full prices, estimated cashback offset)',
+ 'Usual charges: '+money(gross)+'/month; estimated cashback: '+money(cashback)+'/month',
+ 'First-year introductory benefits/value: '+money(total),
+ ...benefits.map(b=>b[0]+': '+money(b[1])),
+ 'Illustrative 12-month effective cost excluding in-kind shirt value: '+money(net*12-(total-shirt)),
+ 'Not a formal quote. Confirm eligibility and prices in the UW basket.'].filter(Boolean).join('\n');
+}
+ids.forEach(id=>{const el=$(id);el.addEventListener('input',render);el.addEventListener('change',render)});
+$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);$('copyStatus').textContent='Summary copied.'}catch(e){const t=document.createElement('textarea');t.value=summary;document.body.appendChild(t);t.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}t.remove();$('copyStatus').textContent=ok?'Summary copied.':'Clipboard unavailable - open this preview in a browser with clipboard permission.'}});
+$('reset').addEventListener('click',()=>{for(const id of ids){const e=$(id);if(e.tagName==='INPUT'&&e.type==='checkbox'){e.checked=e.defaultChecked}else if(e.tagName==='INPUT'){e.value=e.defaultValue}else if(e.tagName==='SELECT'){e.selectedIndex=[...e.options].findIndex(o=>o.defaultSelected);if(e.selectedIndex<0)e.selectedIndex=0}}$('customer').value='';render()});
+render();
+})();
+</script>
+</body></html>
