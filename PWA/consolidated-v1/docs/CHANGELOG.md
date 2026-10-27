@@ -1,3 +1,10 @@
+## v2.66.2 - 27 October 2026 - Distinct customer modes and tidier Should I Fix navigation
+
+- Replace **Current tariffs / Existing customer** with **Prospective customers / Existing customers** on the PWA specialist screen.
+- Centre the compact, equal-width two-button selector above the comparison card instead of stretching it across the desktop browser width.
+- Hide the generic prospective-customer Share panel within the historical renewal calculator, leaving only its dedicated verified customer-share controls. The original prospective calculator and customer sharing remain unchanged.
+- Update the Appointment Companion in-app version/About notes, manifest, cache key and versioned mode-switch script. Preserve historical tariff rates and user data.
+
 ## v2.66.1 - 27 October 2026 - Correct PWA existing-customer partner mode
 
 - Opening Existing customer inside the PWA now uses the partner-only `?existing=1` view of the historical renewal calculator. The previous `?renew=1` parameter is reserved for customer sharing and hid the tariff selection controls.
