@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.1 - historical fixed renewals available in Should I Fix.
+/* Appointment Companion v2.66.2 - clearer separate prospective/existing customer modes.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,15 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.1',
+    version: 'v2.66.2',
     date: '27 October 2026',
-    summary: 'Existing customer fixed renewal comparison in Should I Fix',
+    summary: 'Separate prospective and existing customers in Should I Fix',
     changes: [
-      'Should I Fix now includes Current tariffs and Existing customer modes inside Appointment Companion.',
-      'Existing customer comparisons use the verified historical Fixed tariff archive and Apps Script v18 feed.',
-      'Select the expiring and offered tariff using three quick choices or the full tariff list.',
-      'Annual usage and region are carried over from the appointment where available; the monthly payment can be entered directly.',
-      'The original calculator, shared customer views and tariff verification guards remain unchanged.'
+      'Should I Fix now has a compact, centred Prospective customers / Existing customers switch.',
+      'Existing customers see only the dedicated renewal sharing controls, not the prospective customer Share card.',
+      'Prospective customers continue to use the original live tariff calculator and verified sharing safeguards.',
+      'Historical renewal rates still load automatically from the verified Apps Script v18 tariff archive.',
+      'Region and annual usage are transferred from the appointment when available; public share routes remain separate.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
