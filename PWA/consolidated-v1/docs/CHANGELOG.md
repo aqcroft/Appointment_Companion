@@ -1,3 +1,10 @@
+## v2.66.4 - 27 October 2026 - One customer switch with persistent entries
+- Retain two separately mounted calculators and toggle visibility instead of iframe reloading, preserving manual input whilst switching.
+- Remove the obsolete in-calculator customer switch and redundant prospective header only in the Companion partner embedded mode; public and standalone views are unchanged.
+- Keep the single Prospective customers / Existing customers control above the relevant inputs.
+- Use ShouldIFix v2.79.2 for the renewal results with compact tappable cards, dynamic forecast colours, a quarterly cost breakdown and clear wording.
+- Refresh release/About notes, PWA version, manifest, service-worker cache and tests.
+
 ## v2.66.3 - 27 October 2026 - Should I Fix mode navigation layout
 
 - Align **Prospective customers / Existing customers** buttons with the 728px comparison column on desktop and mobile.
