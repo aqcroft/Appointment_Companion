@@ -10,7 +10,7 @@ const manifest=JSON.parse(read("manifest.webmanifest"));
 const status=read("unified-status-v2.59.0.js");
 const news=read("docs/CHANGELOG.md");
 
-assert.match(mode,/AppointmentCompanion v2\.66\.0/);
+assert.match(mode,/Appointment Companion v2\.66\.0/);
 assert(mode.includes("Existing customer"));
 assert(shell.includes("mode-toggle-v2.66.0.js"));
 assert(shell.includes("if (!publicView) html = html.replace"));
