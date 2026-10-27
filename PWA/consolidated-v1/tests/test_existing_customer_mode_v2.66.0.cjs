@@ -2,7 +2,7 @@
 const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root="PWA/consolidated-v1/";
 const read=path=>fs.readFileSync(root+path,"utf8");
-const mode=read("should-i-fix/mode-toggle-v2.66.2.js");
+const mode=read("should-i-fix/mode-toggle-v2.66.3.js");
 const shell=read("should-i-fix/index.html");
 const main=read("index.html");
 const sw=read("sw.js");
@@ -13,19 +13,21 @@ const news=read("docs/CHANGELOG.md");
 assert.match(mode,/Appointment Companion v2\.66\.2/);
 assert(mode.includes("Prospective customers</button>"));
 assert(mode.includes("Existing customers</button>"));
-assert(mode.includes("max-width:550px"),"Mode buttons must follow calculator column rather than full viewport");
-assert(shell.includes("mode-toggle-v2.66.2.js"));
+assert(mode.includes("max-width:728px"),"Mode buttons must match calculator column");
+assert(mode.includes("width:calc(100% - 32px)"));
+assert(mode.includes("next === 'existing' ? 'none' : ''"));
+assert(shell.includes("mode-toggle-v2.66.3.js"));
 assert(shell.includes("if (!publicView) html = html.replace"));
 assert(shell.includes("https://aqcroft.github.io/ShouldIFix/Oct2026.html"),"Original calculator must remain intact");
 assert(shell.includes("fix-share-gate-v1.js"),"Existing share gate must remain in place");
 assert(shell.includes('function onFrameReady(){if(new URL(frame.src,location.href).searchParams.get("existing")==="1")return;'),"Prospective donor enhancements must not run inside the existing customer renewal iframe");
 assert(shell.includes("public-partner-branding-v1.js"),"Existing customer branding must remain");
-assert(main.includes("Appointment Companion v2.66.2"));
-assert(sw.includes("v2-66-2-customer-modes"));
-assert(sw.includes("./should-i-fix/mode-toggle-v2.66.2.js"));
-assert.equal(manifest.name,"Appointment Companion v2.66.2");
-assert(status.includes("version: 'v2.66.2'"));
-assert(news.startsWith("## v2.66.2"));
+assert(main.includes("Appointment Companion v2.66.3"));
+assert(sw.includes("v2-66-3-mode-alignment"));
+assert(sw.includes("./should-i-fix/mode-toggle-v2.66.3.js"));
+assert.equal(manifest.name,"Appointment Companion v2.66.3");
+assert(status.includes("version: 'v2.66.3'"));
+assert(news.startsWith("## v2.66.3"));
 
 function fakePage(query){
  const buttons=[{dataset:{fixMode:"current"},pressed:null,setAttribute(k,v){if(k==="aria-pressed")this.pressed=v;}},
@@ -35,12 +37,13 @@ function fakePage(query){
  querySelectorAll(){return buttons;},addEventListener(name,fn){clicks[name]=fn;}};
  const title={textContent:"📈 Should I Fix?"};
  const bar={querySelector(){return title;},insertAdjacentElement(){fakePage.inserted=true;}};
+ const note={style:{display:""}};
  const frame={src:"https://aqcroft.github.io/ShouldIFix/Oct2026.html?v=legacy&r=11&e=3079&g=12092&pid=SECRET-DO-NOT-FORWARD",title:"calculator"};
  let created=0,historyHref="";
  const document={
-  title:"Should I Fix? v2.66.2",
+  title:"Should I Fix? v2.66.3",
   documentElement:{classList:{contains:()=>false}},
-  getElementById(id){return id==="fixFrame"?frame:null;},
+  getElementById(id){return id==="fixFrame"?frame:id==="usageNote"?note:null;},
   querySelector(s){return s===".bar"?bar:null;},
   createElement(tag){created++;if(tag==="style")return{textContent:"",id:""};if(tag==="nav")return ui;throw Error("Unexpected DOM element "+tag);},
   head:{appendChild(){}}
@@ -50,11 +53,12 @@ function fakePage(query){
  addEventListener(){}};
  globals.window=globals;
  vm.createContext(globals);vm.runInContext(mode,globals);
- return{globals,frame,buttons,ui,created,title,get historyHref(){return historyHref;}};
+ return{globals,frame,note,buttons,ui,created,title,get historyHref(){return historyHref;}};
 }
 const start=fakePage("?mode=existing");
 assert(start.globals.AppointmentCompanionFixModes,"Partner selector must exist");
 assert.equal(start.buttons[1].pressed,"true");
+assert.equal(start.note.style.display,"none");
 assert(start.frame.src.startsWith("https://aqcroft.github.io/ShouldIFix/renewal-builder-v1.html?"));
 const selected=new URL(start.frame.src);
 assert.equal(selected.searchParams.get("r"),"11");
@@ -67,6 +71,7 @@ assert(!selected.searchParams.has("demo"),"Real historic rates, never demo mode"
 start.globals.AppointmentCompanionFixModes.setMode("current",true);
 assert(start.frame.src.includes("Oct2026.html"),"Old calculator restored without changing its URL");
 assert.equal(start.buttons[0].pressed,"true");
+assert.equal(start.note.style.display,"");
 assert(!new URL(start.historyHref).searchParams.has("mode"));
 start.globals.AppointmentCompanionFixModes.setMode("existing",true);
 assert.equal(new URL(start.historyHref).searchParams.get("mode"),"existing");
@@ -74,4 +79,4 @@ const publicPage=fakePage("?public=1");
 assert.equal(publicPage.globals.AppointmentCompanionFixModes,undefined,"No mode switch on customer share routes");
 assert.equal(publicPage.created,0);
 assert(publicPage.frame.src.includes("Oct2026.html"));
-console.log("PASS: Distinct prospective and existing customer modes, compact UI, kWh transfer, public isolation and v2.66.2 PWA cache.");
+console.log("PASS: Distinct prospective and existing customer modes, compact UI, kWh transfer, public isolation and v2.66.3 PWA cache.");

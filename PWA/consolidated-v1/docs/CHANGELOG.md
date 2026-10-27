@@ -1,3 +1,10 @@
+## v2.66.3 - 27 October 2026 - Should I Fix mode navigation layout
+
+- Align **Prospective customers / Existing customers** buttons with the 728px comparison column on desktop and mobile.
+- Centre button text, clarify active state, and hide the prospective-only **Standalone calculator** header note for existing customers.
+- Preserve both calculators, historical tariff feed, customer data, existing sharing, and previous links.
+- Update app/About version, cache key, asset token, manifest and tests to **v2.66.3**.
+
 ## v2.66.2 - 27 October 2026 - Distinct customer modes and tidier Should I Fix navigation
 
 - Replace **Current tariffs / Existing customer** with **Prospective customers / Existing customers** on the PWA specialist screen.

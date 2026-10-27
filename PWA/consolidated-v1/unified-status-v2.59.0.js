@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.2 - clearer separate prospective/existing customer modes.
+/* Appointment Companion v2.66.3 - clearer separate prospective/existing customer modes.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,12 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.2',
+    version: 'v2.66.3',
     date: '27 October 2026',
-    summary: 'Separate prospective and existing customers in Should I Fix',
+    summary: 'Clearer Should I Fix customer-mode selector and renewal screen',
     changes: [
-      'Should I Fix now has a compact, centred Prospective customers / Existing customers switch.',
-      'Existing customers see only the dedicated renewal sharing controls, not the prospective customer Share card.',
+      'Prospective customers and Existing customers now have equal-width buttons aligned with the calculator card.',
+      'The renewal screen no longer shows the misleading Standalone calculator header note.',
+      'Existing customers keep their dedicated renewal sharing controls, not the prospective Share card.',
       'Prospective customers continue to use the original live tariff calculator and verified sharing safeguards.',
       'Historical renewal rates still load automatically from the verified Apps Script v18 tariff archive.',
       'Region and annual usage are transferred from the appointment when available; public share routes remain separate.'
