@@ -46,7 +46,7 @@
     var original = new URL(legacySrc, global.location.href).searchParams;
     ['r', 'e', 'g'].forEach(function (key) {
       var value = original.get(key);
-      if (value && /^\\d+(?:\\.\\d+)?$/.test(value)) url.searchParams.set(key, value);
+      if (value !== null && value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0) url.searchParams.set(key, value);
     });
     return url.href;
   }
