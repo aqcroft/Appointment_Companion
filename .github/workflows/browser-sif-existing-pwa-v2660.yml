@@ -1,0 +1,37 @@
+name: Browser verify main PWA existing-customer Should I Fix v2.66.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.0.cjs
+      - .github/workflows/browser-sif-existing-pwa-v2660.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright and use runner Chrome
+        run: |
+          npm install --no-save playwright@1.58.2
+          CHROME="$(command -v google-chrome || command -v chromium)"
+          test -n "$CHROME"
+          echo "CI_BROWSER_PATH=$CHROME" >> "$GITHUB_ENV"
+      - name: Verify real PWA Should I Fix views in mobile browser
+        run: |
+          mkdir -p test-artifacts
+          node PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.0.cjs
+      - name: Retain screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-companion-should-i-fix-v2660
+          path: test-artifacts/*.png
+          retention-days: 7
+          if-no-files-found: ignore
