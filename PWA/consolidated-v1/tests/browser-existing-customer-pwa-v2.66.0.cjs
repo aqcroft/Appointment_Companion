@@ -22,7 +22,7 @@ async function ready(page){
     await page.locator('button[data-fix-mode="existing"]').click();
     await page.waitForFunction(()=>document.querySelector("#fixFrame")?.src.includes("renewal-builder-v1.html"));
     const after=await frame.getAttribute("src");
-    assert(after.includes("renew=1"),"Existing option loads real renewal mode");
+    assert(after.includes("existing=1"),"Existing option loads real renewal mode");
     assert(!after.includes("demo=1"),"Do not use synthetic demo tariff rates");
     assert.equal(await page.locator('button[data-fix-mode="existing"]').getAttribute("aria-pressed"),"true");
     const frameContext=page.frameLocator("#fixFrame");
@@ -34,16 +34,16 @@ async function ready(page){
     await page.locator('button[data-fix-mode="current"]').click();
     await page.waitForFunction(()=>document.querySelector("#fixFrame")?.src.includes("/ShouldIFix/Oct2026.html"));
     assert.equal(await page.locator('button[data-fix-mode="current"]').getAttribute("aria-pressed"),"true");
-    await page.screenshot({path:"test-artifacts/main-pwa-sif-modes-v2.66.0.png",fullPage:true});
+    await page.screenshot({path:"test-artifacts/main-pwa-sif-modes-v2.66.1.png",fullPage:true});
     const customer=await browser.newPage({viewport:{width:390,height:844}});
     await customer.goto(pageUrl+"?public=1",{waitUntil:"domcontentloaded",timeout:60000});
     await customer.waitForTimeout(3000);
     assert.equal(await customer.locator("#acFixCustomerMode").count(),0,"Never expose partner switcher in shared customer view");
     await customer.close();
     assert(!errors.length,"PWA browser JS errors: "+errors.join("; "));
-    console.log("PASS: PWA v2.66.0 loads both calculators, switches back safely and hides modes in public customer views.");
+    console.log("PASS: PWA v2.66.1 loads both calculators, switches back safely and hides modes in public customer views.");
   }catch(e){
-    await page.screenshot({path:"test-artifacts/main-pwa-sif-failure-v2.66.0.png",fullPage:true}).catch(()=>{});
+    await page.screenshot({path:"test-artifacts/main-pwa-sif-failure-v2.66.1.png",fullPage:true}).catch(()=>{});
     console.error("Browser integration failed:",e.stack||e);
     console.error("Page errors:",errors);
     process.exitCode=1;
