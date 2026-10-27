@@ -1,4 +1,4 @@
-/* Appointment Companion v2.65.2 - verified live tariffs required for Should I Fix savings.
+/* Appointment Companion v2.66.0 - historical fixed renewals available in Should I Fix.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,16 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.65.2',
-    date: '17 October 2026',
-    summary: 'Should I Fix now prevents unverified or outdated tariff savings',
+    version: 'v2.66.0',
+    date: '27 October 2026',
+    summary: 'Existing customer fixed renewal comparison in Should I Fix',
     changes: [
-      'Should I Fix now reads one approved forecast file for its calculations, MSE source table and default scenario.',
-      'Forecast updates are proposed by Friday GitHub checks and require manual pull request approval.',
-      'Future default customer links follow approved forecasts, whilst explicitly chosen scenarios remain fixed.',
-      'The built-in +25% snapshot is retained if the forecast feed is unavailable.',
-      'Should I Fix savings are only shown when live UW fixed tariff rates are verified. Failed checks can be retried.',
-      'The actual basket-sharing gate now checks live tariff verification before and after selecting the basket.'
+      'Should I Fix now includes Current tariffs and Existing customer modes inside Appointment Companion.',
+      'Existing customer comparisons use the verified historical Fixed tariff archive and Apps Script v18 feed.',
+      'Select the expiring and offered tariff using three quick choices or the full tariff list.',
+      'Annual usage and region are carried over from the appointment where available; the monthly payment can be entered directly.',
+      'The original calculator, shared customer views and tariff verification guards remain unchanged.'
     ]
   });
   global.AppointmentCompanionRelease = meta;
