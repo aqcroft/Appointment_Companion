@@ -1,3 +1,11 @@
+## v2.66.0 - 27 October 2026 - Existing customer Should I Fix inside main PWA
+
+- Add a partner-only **Current tariffs / Existing customer** choice to the existing Should I Fix specialist page. Historical fixed renewal stays inside the same PWA panel rather than requiring a separate standalone launch.
+- The verified Apps Script v18 renewal feed reads historical fixed tariffs (including 2026 April rate versions) and current offers; the comparison itself has three likely tariff buttons, full selection dropdowns, and a simplified four-step input.
+- Carry the current appointment's region and annual electricity/gas kWh to the existing-customer calculator where available.
+- Preserve the Oct2026 calculator unchanged for Current tariffs, and suppress the mode switch in `?public=1` shared links. No partner details or customer names are passed to the historical calculator.
+- Update main PWA version, release notes, service worker shell cache and cache-busting tokens to v2.66.0. Historical data remains online-only.
+
 ## v2.65.2 - 17 October 2026 - Guard the actual customer sharing flow
 
 - The personalised Should I Fix basket-share gate clones the original button, so the first live-tariff safeguard was insufficient. The actual gate now checks live tariff verification before opening and again after the optional basket step, alongside the existing Partner identity checks.
