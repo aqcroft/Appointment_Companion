@@ -1,0 +1,37 @@
+name: Should I Fix existing-customer PWA integration checks
+on:
+  push:
+    branches:
+      - feature/should-i-fix-existing-customer-pwa-v2.66.0
+    paths:
+      - PWA/consolidated-v1/should-i-fix/**
+      - PWA/consolidated-v1/tests/test_existing_customer_mode_v2.66.0.cjs
+      - PWA/consolidated-v1/index.html
+      - PWA/consolidated-v1/sw.js
+      - PWA/consolidated-v1/manifest.webmanifest
+      - PWA/consolidated-v1/unified-status-v2.59.0.js
+      - .github/workflows/test-sif-existing-customer-pwa.yml
+  pull_request:
+    paths:
+      - PWA/consolidated-v1/should-i-fix/**
+      - PWA/consolidated-v1/tests/test_existing_customer_mode_v2.66.0.cjs
+      - PWA/consolidated-v1/index.html
+      - PWA/consolidated-v1/sw.js
+      - PWA/consolidated-v1/manifest.webmanifest
+      - PWA/consolidated-v1/unified-status-v2.59.0.js
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test PWA mode switch, share isolation, release and cache
+        run: |
+          node --check PWA/consolidated-v1/should-i-fix/mode-toggle-v2.66.0.js
+          node --check PWA/consolidated-v1/unified-status-v2.59.0.js
+          node --check PWA/consolidated-v1/sw.js
+          node PWA/consolidated-v1/tests/test_existing_customer_mode_v2.66.0.cjs
