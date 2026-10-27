@@ -17,6 +17,9 @@ async function ready(page){
     assert.equal(await buttons.count(),2,"Prospective and Existing customer choices are present");
     assert.equal(await buttons.nth(0).innerText(),"Prospective customers");
     assert.equal(await buttons.nth(1).innerText(),"Existing customers");
+    assert.equal(await page.evaluate(()=>window.AppointmentCompanionFixModes?.version),"v2.66.2",
+      "The live PWA must have loaded the new mode-switch module");
+
     const smallNav=await page.locator("#acFixCustomerMode").boundingBox();
     assert(smallNav&&smallNav.width<390,"Mobile mode selector must have side margins");
     assert.equal(await page.locator('button[data-fix-mode="current"]').getAttribute("aria-pressed"),"true");
