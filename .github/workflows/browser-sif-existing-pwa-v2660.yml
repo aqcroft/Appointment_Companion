@@ -1,10 +1,10 @@
-name: Browser verify main PWA existing-customer Should I Fix v2.66.0
+name: Browser verify PWA distinct customer views v2.66.2
 on:
   push:
     branches: [main]
     paths:
-      - PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.0.cjs
-      - .github/workflows/browser-sif-existing-pwa-v2660.yml
+      - PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.2.cjs
+      - .github/workflows/browser-sif-existing-pwa-v2662.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,12 +26,12 @@ jobs:
       - name: Verify real PWA Should I Fix views in mobile browser
         run: |
           mkdir -p test-artifacts
-          node PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.0.cjs
+          node PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.2.cjs
       - name: Retain screenshot evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: main-companion-should-i-fix-v2660
+          name: main-companion-should-i-fix-v2662
           path: test-artifacts/*.png
           retention-days: 7
           if-no-files-found: ignore
