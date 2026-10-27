@@ -51,6 +51,8 @@ async function ready(page){
     assert(desktopNav&&desktopNav.width>=710&&desktopNav.width<=733,"Desktop nav must match calculator width");
     assert(Math.abs(desktopNav.x+(desktopNav.width/2)-750)<5,"Desktop nav must be horizontally centred");
     await page.screenshot({path:"test-artifacts/main-pwa-sif-existing-v2.66.4-desktop.png",fullPage:true});
+    await frameContext.locator("#renewalBudgetMonthly").fill("155");
+    const enteredBudget=await frameContext.locator("#renewalBudgetMonthly").inputValue();
     const childData=await frameContext.locator("#renewalLiveStatus").innerText();
     console.log("Historical iframe loaded:",childData);
     await page.locator('button[data-fix-mode="current"]').click();
@@ -61,6 +63,12 @@ async function ready(page){
       "Prospective-only sharing must still appear when switched back");
 
     assert.equal(await renewalFrame.getAttribute("src"),after,"Renewal iframe URL must remain unchanged");
+    await page.locator('button[data-fix-mode="existing"]').click();
+    assert.equal(await frameContext.locator("#renewalBudgetMonthly").inputValue(),enteredBudget,
+      "Manually entered budget must survive switching away from the existing-customer mode");
+    assert.equal(await page.frameLocator("#fixFrame").locator("#comparisonSwitch").isVisible(),false,
+      "Embedded prospective tool must not expose the old second customer-mode switch");
+    await page.locator('button[data-fix-mode="current"]').click();
     await page.screenshot({path:"test-artifacts/main-pwa-sif-modes-v2.66.4.png",fullPage:true});
     const customer=await browser.newPage({viewport:{width:390,height:844}});
     await customer.goto(pageUrl+"?public=1",{waitUntil:"domcontentloaded",timeout:60000});

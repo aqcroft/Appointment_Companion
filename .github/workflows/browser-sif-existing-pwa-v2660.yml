@@ -1,9 +1,10 @@
-name: Browser verify PWA distinct customer views v2.66.2
+name: Browser verify PWA distinct customer views v2.66.4
 on:
   push:
     branches: [main]
     paths:
       - PWA/consolidated-v1/tests/browser-existing-customer-pwa-v2.66.0.cjs
+      - PWA/consolidated-v1/should-i-fix/**
       - .github/workflows/browser-sif-existing-pwa-v2660.yml
   workflow_dispatch:
 permissions:
@@ -31,7 +32,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: main-companion-should-i-fix-v2662
+          name: main-companion-should-i-fix-v2664
           path: test-artifacts/*.png
           retention-days: 7
           if-no-files-found: ignore
