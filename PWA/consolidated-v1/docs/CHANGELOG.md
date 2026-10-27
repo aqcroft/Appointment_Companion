@@ -1,3 +1,9 @@
+## v2.66.1 - 27 October 2026 - Correct PWA existing-customer partner mode
+
+- Opening Existing customer inside the PWA now uses the partner-only `?existing=1` view of the historical renewal calculator. The previous `?renew=1` parameter is reserved for customer sharing and hid the tariff selection controls.
+- Bump title, About version, manifest, EV cache token, mode-switch module and PWA service-worker cache to v2.66.1.
+- Preserve the existing customer sharing and original current-tariff calculator without calculation engine changes.
+
 ## v2.66.0 - 27 October 2026 - Existing customer Should I Fix inside main PWA
 
 - Add a partner-only **Current tariffs / Existing customer** choice to the existing Should I Fix specialist page. Historical fixed renewal stays inside the same PWA panel rather than requiring a separate standalone launch.

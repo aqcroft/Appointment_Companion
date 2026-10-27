@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.0 - historical fixed renewals available in Should I Fix.
+/* Appointment Companion v2.66.1 - historical fixed renewals available in Should I Fix.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,7 +8,7 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.0',
+    version: 'v2.66.1',
     date: '27 October 2026',
     summary: 'Existing customer fixed renewal comparison in Should I Fix',
     changes: [
