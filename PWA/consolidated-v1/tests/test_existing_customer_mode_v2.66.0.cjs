@@ -18,6 +18,7 @@ assert(shell.includes("mode-toggle-v2.66.2.js"));
 assert(shell.includes("if (!publicView) html = html.replace"));
 assert(shell.includes("https://aqcroft.github.io/ShouldIFix/Oct2026.html"),"Original calculator must remain intact");
 assert(shell.includes("fix-share-gate-v1.js"),"Existing share gate must remain in place");
+assert(shell.includes('function onFrameReady(){if(new URL(frame.src,location.href).searchParams.get("existing")==="1")return;'),"Prospective donor enhancements must not run inside the existing customer renewal iframe");
 assert(shell.includes("public-partner-branding-v1.js"),"Existing customer branding must remain");
 assert(main.includes("Appointment Companion v2.66.2"));
 assert(sw.includes("v2-66-2-customer-modes"));
