@@ -80,7 +80,7 @@ test('Neutral components and modal layering have no Adrian contact fallback',()=
 });
 test('All Companion entrypoints, manifest, status and cache use the v2.66.1 release',()=>{
   for(const name of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js','sw.js']){
-    const src=read(name);assert.match(src,/v2[.\-]66[.\-]0/i,name);
+    const src=read(name);assert.match(src,/v2[.\-]66[.\-]1/i,name);
   }
 });
 console.log('Partner identity and modal layering v2.61.0 regression checks complete');
