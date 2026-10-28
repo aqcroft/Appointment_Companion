@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.6 - clearer separate prospective/existing customer modes.
+/* Appointment Companion v2.66.7 - clearer separate prospective/existing customer modes.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,11 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.6',
+    version: 'v2.66.7',
     date: '27 October 2026',
-    summary: 'One unified Should I Fix version and simpler tariff choices',
+    summary: 'Responsive Should I Fix renewal chart and quarterly forecast',
     changes: [
-      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.6.',
+      'Existing-customer chart and quarterly breakdown now fit the mobile viewport without sideways scrolling.',
+      'Five price-cap quarters and three tariff rows mirror the clean prospective comparison layout.',
+      'Colour-coded cost totals remain visible; detailed chart methodology is behind How these estimates work.',
+      'The historical rate feed, customer sharing guard and manual rate options remain unchanged.',
+      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.7.',
       'Existing-customer tariff shortcuts are now 66 / 65 / Choose and 100 / 99 / Choose, each with a manual-rate settings cog.',
       'Tariff details are available on demand; lengthy selection confirmations are hidden without removing the archive or calculations.',
       'Manually entered renewal rates remain on-screen scenarios only and cannot generate verified customer-sharing links.',

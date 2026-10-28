@@ -1,3 +1,9 @@
+## v2.66.7 - 28 October 2026 - Responsive existing-customer energy forecast
+- Show the existing-customer forecast and all five price-cap quarters in one responsive chart/table arrangement, matching the prospect calculator's compact design.
+- Remove 690px forced horizontal scrolling and cropped chart labels. Retain cost projections, 12-month totals, and dynamic red/amber/green ranks.
+- Put detailed forecast explanation behind How these estimates work. Keep Budget Plan/payment and previous-year reference lines.
+- Maintain identical v2.66.7 user-facing version numbers for Appointment Companion and Should I Fix. Update cache, manifest, About and regression checks.
+
 ## v2.66.6 - 28 October 2026 - Unified version and simpler renewal tariff rows
 - Present one user-facing app version, v2.66.6, across Appointment Companion and embedded Should I Fix. Standalone Should I Fix uses the same version label.
 - Offer two short tariff-picker rows: expiring Fixed 66, Fixed 65, Choose; email offer Fixed 100, Fixed 99, Choose.
