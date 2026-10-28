@@ -1,4 +1,4 @@
-name: Browser verify PWA distinct customer views v2.66.7
+name: Browser verify PWA distinct customer views v2.66.8
 on:
   push:
     branches: [main]

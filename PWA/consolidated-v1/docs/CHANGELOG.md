@@ -1,3 +1,9 @@
+## v2.66.8 - 28 October 2026 - Aligned forecast and distinct traffic-light lines
+- Match month coordinates and quarter column edges in Existing Customers by generating them from one shared calendar geometry. Preserve different quarter lengths and a legible final short quarter.
+- Draw one red, one amber and one green tariff line by projected cost ranking, avoiding duplicated red confirmed/forecast segments. Use neutral January forecast text.
+- Leave monthly projections, seasonal usage weighting, previous costs, Budget Plan, historical rates, sharing and persistent calculator state unchanged.
+- Keep the in-app Companion and Should I Fix version as v2.66.8; refresh About, manifest, cache and test references.
+
 ## v2.66.7 - 28 October 2026 - Responsive existing-customer energy forecast
 - Show the existing-customer forecast and all five price-cap quarters in one responsive chart/table arrangement, matching the prospect calculator's compact design.
 - Remove 690px forced horizontal scrolling and cropped chart labels. Retain cost projections, 12-month totals, and dynamic red/amber/green ranks.

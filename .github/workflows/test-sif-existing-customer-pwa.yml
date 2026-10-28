@@ -33,7 +33,7 @@ jobs:
           node-version: '24'
       - name: Test PWA mode switch, share isolation, release and cache
         run: |
-          node --check PWA/consolidated-v1/should-i-fix/mode-toggle-v2.66.7.js
+          node --check PWA/consolidated-v1/should-i-fix/mode-toggle-v2.66.8.js
           node --check PWA/consolidated-v1/unified-status-v2.59.0.js
           node --check PWA/consolidated-v1/sw.js
           node PWA/consolidated-v1/tests/test_existing_customer_mode_v2.66.0.cjs
