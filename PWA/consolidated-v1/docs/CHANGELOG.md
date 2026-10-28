@@ -1,3 +1,10 @@
+## v2.66.6 - 28 October 2026 - Unified version and simpler renewal tariff rows
+- Present one user-facing app version, v2.66.6, across Appointment Companion and embedded Should I Fix. Standalone Should I Fix uses the same version label.
+- Offer two short tariff-picker rows: expiring Fixed 66, Fixed 65, Choose; email offer Fixed 100, Fixed 99, Choose.
+- Show manual-rate inputs behind the cog on each row, preserving explicit verification and preventing shared customer links for manually supplied offered rates.
+- Hide redundant status chatter whilst preserving historical tariff data, selection details, forecast maths, customer sharing and persistent mode-specific inputs.
+- Refresh app/About version, manifest, service-worker cache and regression checks.
+
 ## v2.66.5 - 27 October 2026 - Renewal comparisons made easier to read
 - Use separately deployed ShouldIFix v2.79.5 with Fixed 99/100 renewal buttons and a full-list tariff chooser.
 - Improve historical April 2026 labels and show modelled monthly gas/electricity costs in the three tappable option modals, with fixed base tariff rates and cautionary variable estimates.
