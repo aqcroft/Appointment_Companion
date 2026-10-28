@@ -37,7 +37,10 @@ async function ready(page){
     const frameContext=page.frameLocator("#acRenewalFrame");
     await frameContext.locator("#renewalEndingPicks button").first().waitFor({state:"visible",timeout:85000});
     assert(await frameContext.locator("#renewalEndingPicks button").count()>=3,"Old tariff quick options");
-    assert(await frameContext.locator("#renewalSuitePicks button").count()>=3,"Offered tariff quick options");
+    const renewalNames=await frameContext.locator("#renewalSuitePicks button b").allTextContents();
+    assert.equal(renewalNames.length,2,"Exactly two email-offer shortcuts");
+    assert(renewalNames.some(n=>/\\b99$/.test(n))&&renewalNames.some(n=>/\\b100$/.test(n)),
+      "Quick tariff shortcuts must be 99 and 100, not 98");
     assert.equal(await frameContext.locator("#sifEditorShareCard").count(),0,
       "Prospective-only Share card must NEVER be injected into existing customer view");
     assert.equal(await frameContext.locator("#sifProfileToggle").count(),0,
