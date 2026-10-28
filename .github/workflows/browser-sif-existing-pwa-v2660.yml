@@ -1,4 +1,4 @@
-name: Browser verify PWA distinct customer views v2.66.10
+name: Browser verify PWA distinct customer views v2.66.11
 on:
   push:
     branches: [main]
@@ -32,7 +32,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: main-companion-should-i-fix-v26610
+          name: main-companion-should-i-fix-v26611
           path: test-artifacts/*.png
           retention-days: 7
           if-no-files-found: ignore
