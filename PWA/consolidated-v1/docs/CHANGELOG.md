@@ -1,3 +1,10 @@
+## v2.66.10 - 28 October 2026 - Full-month prospective chart and cleaner existing-customer legend
+- Display full-month-equivalent energy costs in the prospective chart for both first and last partial months; retain the original switch-period calculations, quarterly figures and savings.
+- Show a discreet note explaining the chart/financial-period distinction in the shared underlying Should I Fix calculator.
+- Move fully vertical, highest-to-lowest traffic-light labels inside the existing renewal chart's left axis gutter without shrinking or realigning the plot or quarterly table.
+- Subtly tint all three tappable hero cards, preserve the grey previous-tariff line, remove the non-usage Budget Plan chart line and dash the public fixed tariff where tariffs overlap.
+- Version the standalone and embedded tools together and refresh the PWA shell, EV title, manifest, cache, About and existing regression tests. No profile, tariff-rate or sharing changes.
+
 ## v2.66.9 - 28 October 2026 - Cleaner renewal chart and unified standalone journey
 - Keep the three tappable renewal tariff summary cards untouched; display a compact left-side chart key sorted from most expensive (red) through amber to cheapest (green), with perpendicular monthly cost labels.
 - Preserve chart-to-quarter column alignment and responsive sizing, and retain Budget Plan and previous-cost references in the chart and its expandable explanation.
