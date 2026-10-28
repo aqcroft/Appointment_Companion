@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.4 - clearer separate prospective/existing customer modes.
+/* Appointment Companion v2.66.5 - clearer separate prospective/existing customer modes.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.4',
+    version: 'v2.66.5',
     date: '27 October 2026',
-    summary: 'One Should I Fix mode switch; entries preserved',
+    summary: 'Clearer customer renewals and fuel breakdowns',
     changes: [
+      'Existing-customer quick offers now include only Fixed 99 and 100, with a separate tariff chooser.',
+      'Historical fixed labels distinguish the April 2026 rate version.',
+      'Tap a result card for modelled gas/electricity averages, fixed base rates and variable forecast cautions.',
+      'Quarterly prices align beneath the forecast graph, and the main prospective headline is restored.',
       'Only one Prospective customers / Existing customers switch appears in the integrated Should I Fix tool.',
       'Switching modes preserves entered customer details, without reloading either calculator.',
       'The renewal screen no longer shows the misleading Standalone calculator header note.',

@@ -1,3 +1,10 @@
+## v2.66.5 - 27 October 2026 - Renewal comparisons made easier to read
+- Use separately deployed ShouldIFix v2.79.5 with Fixed 99/100 renewal buttons and a full-list tariff chooser.
+- Improve historical April 2026 labels and show modelled monthly gas/electricity costs in the three tappable option modals, with fixed base tariff rates and cautionary variable estimates.
+- Restore a three-row price-cap quarter strip directly aligned with the forecast chart, matching the main Should I Fix vocabulary.
+- Restore the prospective calculator gradient headline within Companion, without duplicating mode controls.
+- Preserve existing cost maths, shared-customer safeguards, historical data and persistent mode-specific inputs. Update version, About, cache and manifest.
+
 ## v2.66.4 - 27 October 2026 - One customer switch with persistent entries
 - Retain two separately mounted calculators and toggle visibility instead of iframe reloading, preserving manual input whilst switching.
 - Remove the obsolete in-calculator customer switch and redundant prospective header only in the Companion partner embedded mode; public and standalone views are unchanged.
