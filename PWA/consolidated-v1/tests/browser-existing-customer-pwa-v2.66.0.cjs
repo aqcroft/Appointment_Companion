@@ -36,7 +36,10 @@ async function ready(page){
     assert.equal(await page.locator("#usageNote").evaluate(el=>getComputedStyle(el).display),"none");
     const frameContext=page.frameLocator("#acRenewalFrame");
     await frameContext.locator("#renewalEndingPicks button").first().waitFor({state:"visible",timeout:85000});
-    assert(await frameContext.locator("#renewalEndingPicks button").count()>=3,"Old tariff quick options");
+    assert.equal(await frameContext.locator("#renewalEndingPicks button").count(),2,
+      "Expiring tariff quick buttons must be 66 and 65 only");
+    assert.deepEqual(await frameContext.locator("#renewalEndingPicks button b").allTextContents(),
+      ["Fixed Saver 66","Fixed Saver 65"]);
     const renewalNames=await frameContext.locator("#renewalSuitePicks button b").allTextContents();
     assert.equal(renewalNames.length,2,"Exactly two email-offer shortcuts");
     assert(renewalNames.some(n=>/\b99$/.test(n))&&renewalNames.some(n=>/\b100$/.test(n)),
