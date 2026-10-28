@@ -1,3 +1,9 @@
+## v2.66.12 - 28 October 2026 - Simpler tariff comparison and clearer colours
+- Remove the now-redundant Current monthly payment / Budget Plan input from the existing-customer setup. Keep hidden compatibility support for old bp= customer links without using those payments in tariff-cost calculations.
+- Remove non-essential share boilerplate, the success-only Ready to share message, What are my options heading, region/usage description and obsolete chart legend narrative. Keep verification failure warnings and the expandable methodology.
+- Use brighter, clearly distinct red/crimson, orange and green for the hero cards, chart and ranked legend. Retain the grey previous-tariff line, red/amber/green order, quarterly alignment and published forecasts.
+- Keep the new full-calendar-month prospective chart display, existing share/partner controls, calculated savings and seasonal factors unchanged. Update launcher, cache, version, About and tests.
+
 ## v2.66.11 - 28 October 2026 - Stacked and consistent chart keys
 - Show existing-customer tariff names and average monthly costs vertically down the left chart gutter, ordered red (most expensive), amber, then green (cheapest), with both elements in matching colours. Abbreviate the chart's Double Gold variable label to Variable without affecting actual tariff identities.
 - Show a matching-colour, estimated full-calendar-month monthly equivalent for the prospective Fixed, Tracker and Variable tariff series in their existing purple, orange and blue chart colours.
