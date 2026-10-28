@@ -10,7 +10,7 @@ const manifest=JSON.parse(read("manifest.webmanifest"));
 const status=read("unified-status-v2.59.0.js");
 const news=read("docs/CHANGELOG.md");
 
-assert.match(mode,/Appointment Companion v2\.66\.4/);
+assert.match(mode,/Appointment Companion v2\.66\.5/);
 assert(mode.includes("Prospective customers</button>"));
 assert(mode.includes("Existing customers</button>"));
 assert(mode.includes("max-width:728px"),"Mode buttons must match calculator column");
