@@ -1,3 +1,9 @@
+## v2.66.11 - 28 October 2026 - Stacked and consistent chart keys
+- Show existing-customer tariff names and average monthly costs vertically down the left chart gutter, ordered red (most expensive), amber, then green (cheapest), with both elements in matching colours. Abbreviate the chart's Double Gold variable label to Variable without affecting actual tariff identities.
+- Show a matching-colour, estimated full-calendar-month monthly equivalent for the prospective Fixed, Tracker and Variable tariff series in their existing purple, orange and blue chart colours.
+- Preserve all chart/table month alignment, historic tariff references, pro-rated financial totals, seasonal weighting, public customer links and the three tappable existing-customer hero cards.
+- Align the main PWA, standalone and shared calculator to one v2.66.11 release with refreshed cache/manifest/About metadata and regression tests.
+
 ## v2.66.10 - 28 October 2026 - Full-month prospective chart and cleaner existing-customer legend
 - Display full-month-equivalent energy costs in the prospective chart for both first and last partial months; retain the original switch-period calculations, quarterly figures and savings.
 - Show a discreet note explaining the chart/financial-period distinction in the shared underlying Should I Fix calculator.
