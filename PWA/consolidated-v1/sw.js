@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appointment-companion-consolidated-v2-66-11-stacked-keys-20261028';
+const CACHE_NAME = 'appointment-companion-consolidated-v2-66-12-minimal-renewal-20261028';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './pwa-register.js', './tariff-fetch-v1.js', './tariff-health-v2.42.js', './notification-preferences-v1.js',
   './canonical-state-v1.js', './canonical-controls-v1.js', './customer-region-v2.55.20.js', './customer-region-v2.56.3.js', './service-ui-polish-v1.js', './compact-extras-v1.js', './spring-clean-v2.js', './release-v2.3.js', './release-v2.4.js', './release-v2.41.js', './release-v2.42.js', './persistence-guard-v2.42.js', './local-customer-store-v2.js',
@@ -8,7 +8,7 @@ const SHELL = [
   './ev/', './ev/index.html', './assets/uw-ev-interest-ticked-v1.svg', './ev-share-adapter-v1.js', './ev-share-compat-v1.js', './ev-share-view-v1.js', './ev-customer-contact-v1.js', './ev-return-v1.js',
   './specialist-launcher-v2.57.0.js', './spring-clean-v2.57.0.js', './ev-tap-rates-v2.57.0.js', './share-app-v2.57.0.js', './release-v2.57.0.js',
   './getting-started-v2.58.0.js', './release-v2.58.0.js', './release-v2.58.1.js', './release-v2.58.2.js', './unified-status-v2.59.0.js', './menu-flat-v2.62.2.js', './partner-settings-ux-v2.60.3.js', './specialist-suite-menu-v2.62.2.js',
-  './should-i-fix/', './should-i-fix/index.html', './should-i-fix/mode-toggle-v2.66.11.js',
+  './should-i-fix/', './should-i-fix/index.html', './should-i-fix/mode-toggle-v2.66.12.js',
   '../cloud/companion_cloud_pilot.html', '../cloud/uw-connector.webp', '../cloud/winwin-referral.webp', '../cloud/tariff-status.js', '../cloud/device-identity-v1.js', '../cloud/companion-bridge-v1.js',
   '../cloud-test/should-i-fix-pilot-v2.html',
   '../cloud-client-v1.js', '../partner-profile-v1.js', '../../local-first/shell-pilot-v1.js', '../../local-first/ev-bridge-pilot-v1.js',

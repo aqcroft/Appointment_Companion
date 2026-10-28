@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.11 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.66.12 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.11',
+    version: 'v2.66.12',
     date: '28 October 2026',
-    summary: 'Colour-coded, vertically stacked tariff legends',
+    summary: 'Cleaner renewal comparison and more vibrant tariff colours',
     changes: [
+      'Removed the redundant Current monthly payment / Budget Plan question; actual tariff calculations use usage and rates, not payment instalments.',
+      'Existing-customer results now lead directly with three colour-coded options and the chart, without the extra heading, narrative or routine Ready to share message.',
+      'Brightened and separated the red, orange and green line, key and hero card colours while preserving sharing safeguards and previous-tariff reference.',
       'Existing-customer chart legend is now stacked red, amber and green by cost; names and monthly equivalents use matching colours.',
       'The previous variable Double Gold chart label is shortened to Variable; close-priced fixes remain separately identified.',
       'Prospective chart legend shows the corresponding average full-month cost for Fixed, Tracker and Variable in their established line colours.',
@@ -29,7 +32,7 @@
       'Five price-cap quarters and three tariff rows mirror the clean prospective comparison layout.',
       'Colour-coded cost totals remain visible; detailed chart methodology is behind How these estimates work.',
       'The historical rate feed, customer sharing guard and manual rate options remain unchanged.',
-      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.11.',
+      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.12.',
       'Existing-customer tariff shortcuts are now 66 / 65 / Choose and 100 / 99 / Choose, each with a manual-rate settings cog.',
       'Tariff details are available on demand; lengthy selection confirmations are hidden without removing the archive or calculations.',
       'Manually entered renewal rates remain on-screen scenarios only and cannot generate verified customer-sharing links.',
