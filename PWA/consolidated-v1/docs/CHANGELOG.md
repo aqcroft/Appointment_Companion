@@ -1,3 +1,10 @@
+## v2.66.9 - 28 October 2026 - Cleaner renewal chart and unified standalone journey
+- Keep the three tappable renewal tariff summary cards untouched; display a compact left-side chart key sorted from most expensive (red) through amber to cheapest (green), with perpendicular monthly cost labels.
+- Preserve chart-to-quarter column alignment and responsive sizing, and retain Budget Plan and previous-cost references in the chart and its expandable explanation.
+- Route the standalone Should I Fix existing-customer option to the same historical tariff-selector builder used within Appointment Companion, rather than the legacy manual-entry path.
+- Maintain the verified forecast feed, historical tariff source, comparison mathematics, existing customer share links and partner-only controls.
+- Refresh the combined app version, About details, service-worker cache, manifest and regression checks.
+
 ## v2.66.8 - 28 October 2026 - Aligned forecast and distinct traffic-light lines
 - Match month coordinates and quarter column edges in Existing Customers by generating them from one shared calendar geometry. Preserve different quarter lengths and a legible final short quarter.
 - Draw one red, one amber and one green tariff line by projected cost ranking, avoiding duplicated red confirmed/forecast segments. Use neutral January forecast text.

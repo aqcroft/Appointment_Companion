@@ -2,7 +2,7 @@
 const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
 const root="PWA/consolidated-v1/";
 const read=path=>fs.readFileSync(root+path,"utf8");
-const mode=read("should-i-fix/mode-toggle-v2.66.8.js");
+const mode=read("should-i-fix/mode-toggle-v2.66.9.js");
 const shell=read("should-i-fix/index.html");
 const main=read("index.html");
 const sw=read("sw.js");
@@ -10,24 +10,24 @@ const manifest=JSON.parse(read("manifest.webmanifest"));
 const status=read("unified-status-v2.59.0.js");
 const news=read("docs/CHANGELOG.md");
 
-assert.match(mode,/Appointment Companion v2\.66\.8/);
+assert.match(mode,/Appointment Companion v2\.66\.9/);
 assert(mode.includes("Prospective customers</button>"));
 assert(mode.includes("Existing customers</button>"));
 assert(mode.includes("max-width:728px"),"Mode buttons must match calculator column");
 assert(mode.includes("width:calc(100% - 32px)"));
 assert(mode.includes("next === 'existing' ? 'none' : ''"));
-assert(shell.includes("mode-toggle-v2.66.8.js"));
+assert(shell.includes("mode-toggle-v2.66.9.js"));
 assert(shell.includes("if (!publicView) html = html.replace"));
 assert(shell.includes("https://aqcroft.github.io/ShouldIFix/Oct2026.html"),"Original calculator must remain intact");
 assert(shell.includes("fix-share-gate-v1.js"),"Existing share gate must remain in place");
 assert(shell.includes('function onFrameReady(){if(new URL(frame.src,location.href).searchParams.get("existing")==="1")return;'),"Prospective donor enhancements must not run inside the existing customer renewal iframe");
 assert(shell.includes("public-partner-branding-v1.js"),"Existing customer branding must remain");
-assert(main.includes("Appointment Companion v2.66.8"));
-assert(sw.includes("v2-66-8-aligned-quarter-grid"));
-assert(sw.includes("./should-i-fix/mode-toggle-v2.66.8.js"));
-assert.equal(manifest.name,"Appointment Companion v2.66.8");
-assert(status.includes("version: 'v2.66.8'"));
-assert(news.startsWith("## v2.66.8"));
+assert(main.includes("Appointment Companion v2.66.9"));
+assert(sw.includes("v2-66-9-renewal-key"));
+assert(sw.includes("./should-i-fix/mode-toggle-v2.66.9.js"));
+assert.equal(manifest.name,"Appointment Companion v2.66.9");
+assert(status.includes("version: 'v2.66.9'"));
+assert(news.startsWith("## v2.66.9"));
 
 function fakePage(query){
  const buttons=[{dataset:{fixMode:"current"},pressed:null,setAttribute(k,v){if(k==="aria-pressed")this.pressed=v;}},
@@ -41,7 +41,7 @@ function fakePage(query){
  const frame={style:{},setAttribute(){},removeAttribute(){},insertAdjacentElement(where,el){fakePage.renewalFrame=el;},src:"https://aqcroft.github.io/ShouldIFix/Oct2026.html?v=legacy&r=11&e=3079&g=12092&pid=SECRET-DO-NOT-FORWARD",title:"calculator"};
  let created=0,historyHref="";
  const document={
-  title:"Should I Fix? v2.66.8",
+  title:"Should I Fix? v2.66.9",
   documentElement:{classList:{contains:()=>false}},
   getElementById(id){return id==="fixFrame"?frame:id==="usageNote"?note:null;},
   querySelector(s){return s===".bar"?bar:null;},
@@ -82,4 +82,4 @@ const publicPage=fakePage("?public=1");
 assert.equal(publicPage.globals.AppointmentCompanionFixModes,undefined,"No mode switch on customer share routes");
 assert.equal(publicPage.created,0);
 assert(publicPage.frame.src.includes("Oct2026.html"));
-console.log("PASS: Distinct prospective and existing customer modes, compact UI, kWh transfer, public isolation and v2.66.8 PWA cache.");
+console.log("PASS: Distinct prospective and existing customer modes, compact UI, kWh transfer, public isolation and v2.66.9 PWA cache.");
