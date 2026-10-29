@@ -10,10 +10,10 @@ async function ready(page){
     assert(response?.ok(),"Specialist page must load");
     await page.locator("#acFixCustomerMode").waitFor({state:"visible",timeout:55000});
     const version=await page.evaluate(()=>window.AppointmentCompanionFixModes?.version);
-    if(version==="v2.66.12")return;
+    if(version==="v2.66.13")return;
     await page.waitForTimeout(3000);
   }
-  throw new Error("GitHub Pages has not yet published the v2.66.12 mode switch");
+  throw new Error("GitHub Pages has not yet published the v2.66.13 mode switch");
 }
 (async()=>{
   const browser=await chromium.launch({headless:true,executablePath:process.env.CI_BROWSER_PATH||undefined});
@@ -25,7 +25,7 @@ async function ready(page){
     assert.equal(await buttons.count(),2,"Prospective and Existing customer choices are present");
     assert.equal(await buttons.nth(0).innerText(),"Prospective customers");
     assert.equal(await buttons.nth(1).innerText(),"Existing customers");
-    assert.equal(await page.evaluate(()=>window.AppointmentCompanionFixModes?.version),"v2.66.12",
+    assert.equal(await page.evaluate(()=>window.AppointmentCompanionFixModes?.version),"v2.66.13",
       "The live PWA must have loaded the new mode-switch module");
 
     const smallNav=await page.locator("#acFixCustomerMode").boundingBox();
@@ -64,7 +64,7 @@ async function ready(page){
     const desktopNav=await page.locator("#acFixCustomerMode").boundingBox();
     assert(desktopNav&&desktopNav.width>=710&&desktopNav.width<=733,"Desktop nav must match calculator width");
     assert(Math.abs(desktopNav.x+(desktopNav.width/2)-750)<5,"Desktop nav must be horizontally centred");
-    await page.screenshot({path:"test-artifacts/main-pwa-sif-existing-v2.66.12-desktop.png",fullPage:true});
+    await page.screenshot({path:"test-artifacts/main-pwa-sif-existing-v2.66.13-desktop.png",fullPage:true});
     assert.equal(await frameContext.locator("#renewalBudgetMonthly").getAttribute("type"),"hidden",
       "Redundant Budget Plan question must no longer be visible");
     assert.equal(await frameContext.getByText("Current monthly payment",{exact:true}).count(),0,
@@ -87,16 +87,16 @@ async function ready(page){
     assert.equal(await page.frameLocator("#fixFrame").locator("#comparisonSwitch").isVisible(),false,
       "Embedded prospective tool must not expose the old second customer-mode switch");
     await page.locator('button[data-fix-mode="current"]').click();
-    await page.screenshot({path:"test-artifacts/main-pwa-sif-modes-v2.66.12.png",fullPage:true});
+    await page.screenshot({path:"test-artifacts/main-pwa-sif-modes-v2.66.13.png",fullPage:true});
     const customer=await browser.newPage({viewport:{width:390,height:844}});
     await customer.goto(pageUrl+"?public=1",{waitUntil:"domcontentloaded",timeout:60000});
     await customer.waitForTimeout(3000);
     assert.equal(await customer.locator("#acFixCustomerMode").count(),0,"Never expose partner switcher in shared customer view");
     await customer.close();
     assert(!errors.length,"PWA browser JS errors: "+errors.join("; "));
-    console.log("PASS: v2.66.12 centred prospective/existing controls on desktop/mobile, no legacy renewals injection, normal prospective sharing and public isolation.");
+    console.log("PASS: v2.66.13 centred prospective/existing controls on desktop/mobile, no legacy renewals injection, normal prospective sharing and public isolation.");
   }catch(e){
-    await page.screenshot({path:"test-artifacts/main-pwa-sif-failure-v2.66.12.png",fullPage:true}).catch(()=>{});
+    await page.screenshot({path:"test-artifacts/main-pwa-sif-failure-v2.66.13.png",fullPage:true}).catch(()=>{});
     console.error("Browser integration failed:",e.stack||e);
     console.error("Page errors:",errors);
     process.exitCode=1;
