@@ -1,3 +1,10 @@
+## v2.66.13 - 29 October 2026 - Chart/quarter forecast alignment and clearer cost figures
+- Existing-customer chart labels each forecast quarter: Confirmed, January, April, July and October, rather than only the January cap scenario.
+- Add subtle quarter dividers taken from the exact same chart/quarterly-table positions as the existing-customer cost table, matching the prospective-customer chart treatment.
+- Change quarter energy-cost amounts to dark neutral text. Savings alone remain green, extra costs red; row labels and cheapest-quarter underline use neutral colours.
+- Preserve the historical reference line, red/orange/green cards, tariff series, monthly cost equivalents, price-cap forecasts, seasonal weighting, pro-rated totals, sharing and historical tariff selector.
+- Refresh the single Appointment Companion / Should I Fix version, cache, About and regression checks.
+
 ## v2.66.12 - 28 October 2026 - Simpler tariff comparison and clearer colours
 - Remove the now-redundant Current monthly payment / Budget Plan input from the existing-customer setup. Keep hidden compatibility support for old bp= customer links without using those payments in tariff-cost calculations.
 - Remove non-essential share boilerplate, the success-only Ready to share message, What are my options heading, region/usage description and obsolete chart legend narrative. Keep verification failure warnings and the expandable methodology.
