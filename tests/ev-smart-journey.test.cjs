@@ -20,11 +20,11 @@ async function main(){
   assert.equal(await p.locator('.ac-toolstrip').count(),0,'Public calculator has no Partner toolbar');
   await p.locator('.evw-primary').click();
   await p.getByText('What do you drive now?',{exact:false}).waitFor();
-  await p.getByRole('button',{name:/Diesel/}).click();
+  await p.locator('.evw-overlay .evw-choice').filter({hasText:'Diesel'}).click();
   await p.getByText('About how many miles per year?',{exact:false}).waitFor();
   await p.locator('.evw-primary').click();
-  await p.getByRole('button',{name:/Family SUV/}).click();
-  await p.getByRole('button',{name:/Medium/}).click();
+  await p.locator('.evw-overlay .evw-choice').filter({hasText:'Family SUV'}).click();
+  await p.locator('.evw-overlay .evw-choice').filter({hasText:'Medium'}).click();
   await p.getByText('Checking live UW rates',{exact:false}).waitFor({state:'visible',timeout:18000});
   await p.evaluate(()=>{
     const fixture={meter:false,miles:10000,efficiency:3.2,evHomePct:10,services:3,
@@ -37,7 +37,7 @@ async function main(){
   assert.equal(await p.locator('.evw-price').count(),2,'Exactly two main costs');
   assert.match(await p.locator('.evw-saving').innerText(),/Estimated annual saving/);
   await p.getByRole('button',{name:/Continue - check UW options/}).click();
-  await p.getByRole('button',{name:/Not with UW/}).click();
+  await p.locator('.evw-overlay .evw-choice').filter({hasText:'Not with UW'}).click();
   assert.equal(await p.locator('.evw-price').count(),2);
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
   await p.close();
