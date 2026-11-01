@@ -173,5 +173,6 @@ function start(){if(!$('region')||!$('serviceButtons')||!$('acMeterModeCard'))re
  stage=0;while(stage<5&&given[steps[stage]])stage++;
  if(state.fuel==='EV'&&stage>=2)stage=5;
  mount();return true}
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',start);else if(!start()){let n=0;const t=setInterval(()=>{if(start()||++n>100)clearInterval(t)},100)}
+function boot(){if(start())return;let n=0;const t=setInterval(()=>{if(start()||++n>150)clearInterval(t)},100)}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot);else boot();
 })();
