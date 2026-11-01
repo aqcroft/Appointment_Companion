@@ -17,6 +17,7 @@ async function main(){
   // A public visitor only answers what is unknown, in the right order.
   let p=await pageFor(base+'?local=1');
   await p.locator('#acEvUwStatusDialog').waitFor({state:'visible',timeout:16000});
+  assert.equal(await p.locator('.ac-toolstrip').count(),0,'Public calculator has no Partner toolbar');
   await p.locator('[data-uw-status="existing"]').click();
   await p.locator('#acEvSituationDialog').waitFor({state:'visible',timeout:8000});
   await p.locator('[data-ev-situation="estimate"]').click();
@@ -55,6 +56,8 @@ async function main(){
   await p.waitForFunction(()=>document.querySelector('#acMeterPeak')?.value==='2275',{timeout:16000});
   assert.equal(await p.locator('#acEvUwStatusDialog').count(),0);
   assert.equal(await p.locator('#acEvSituationDialog').count(),0);
+  await p.locator('#acEvSmartHelp').waitFor({state:'visible',timeout:12000});
+  assert.match(await p.locator('#acEvSmartHelp').innerText(),/Adrian is already your UW contact/);
   await p.close();
 
   // Old links retain their established start screen and require a click.
