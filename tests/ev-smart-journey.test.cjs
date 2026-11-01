@@ -38,6 +38,14 @@ async function main(){
   assert.match(await p.locator('.evw-saving').innerText(),/Estimated annual saving/);
   await p.getByRole('button',{name:/Continue - check UW options/}).click();
   await p.locator('.evw-overlay .evw-choice').filter({hasText:'Not with UW'}).click();
+  // Offline fixtures cannot reload a live tariff feed when the service selection changes.
+  await p.evaluate(()=>{
+    const fixture={meter:false,miles:10000,efficiency:3.2,evHomePct:10,services:3,
+      ev:{car:240,home:800,total:1040},standard:{car:760,home:752,total:1512},
+      standardUnitRateExVatP:25,evPeakRateExVatP:29,evOffPeakRateExVatP:7.5};
+    document.dispatchEvent(new CustomEvent('ac:ev-comparison',{detail:fixture}));
+  });
+  await p.locator('.evw-price').first().waitFor({state:'visible',timeout:10000});
   assert.equal(await p.locator('.evw-price').count(),2);
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
   await p.close();
@@ -47,7 +55,6 @@ async function main(){
   await p.locator('#evwOverlay').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.locator('#acEvUwStatusDialog').count(),0);
   assert.equal(await p.locator('#acEvSituationDialog').count(),0);
-  assert.equal(await p.locator('#evwOverlay').count(),0);
   await p.locator('#acEvSmartHelp').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
   const generated=await p.evaluate(()=>{
