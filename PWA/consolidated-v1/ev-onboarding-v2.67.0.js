@@ -75,7 +75,7 @@
    var emoji=element('span','ac-v253-emoji',choice.icon);emoji.setAttribute('aria-hidden','true');
    var t=element('span');t.appendChild(element('strong',null,choice.title));t.appendChild(element('small',null,choice.sub));
    btn.appendChild(emoji);btn.appendChild(t);btn.appendChild(element('span','ac-arrow','›'));
-   btn.addEventListener('click',function(){setUwStatus(choice.value);close();open()});
+   btn.addEventListener('click',function(){setUwStatus(choice.value);close();if(!window.__AC_EV_SITUATION_SELECTED)open()});
    pane.appendChild(btn);
   });
   overlay.appendChild(pane);document.body.appendChild(overlay);dialog=overlay;
