@@ -10,7 +10,7 @@ miles:Math.min(30000,Math.max(1000,Number(p.get('miles'))||10000)),
 eff:[3.8,3.2,2.8,2.5].includes(Number(p.get('eff')))?Number(p.get('eff')):3.2,
 home:['low','medium','high','custom'].includes(p.get('home'))?p.get('home'):null,
 kwh:Number(p.get('kwh'))>0?Number(p.get('kwh')):2500,
-uw:['existing','exploring'].includes(p.get('uw'))?p.get('uw'):null,tier:[0,1,2].includes(Number(p.get('tier')))?Number(p.get('tier')):2,day:null,night:null};
+uw:['existing','exploring'].includes(p.get('uw'))?p.get('uw'):null,tier:p.has('tier')&&[0,1,2].includes(Number(p.get('tier')))?Number(p.get('tier')):2,day:null,night:null};
 const given={region:p.has('region'),fuel:p.has('fuel'),miles:p.has('miles'),eff:p.has('eff'),home:p.has('home'),uw:p.has('uw'),tier:p.has('tier')};
 const steps=['region','fuel','miles','eff','home','meter','result','uw','tier','done'];
 const $q=s=>d.querySelector(s);
@@ -28,6 +28,8 @@ function apply(){
  applying=true;
  try{
   emit('region',state.region,'change');
+  click('#serviceButtons button[data-tier="'+state.tier+'"]');
+  const dual=$('dualFuel');if(dual&&dual.checked){dual.checked=false;dual.dispatchEvent(new Event('change',{bubbles:true}))}
   if(state.fuel==='EV'){
    click('#acMeterModeCard [data-ac-mode="meter"]');
    if(Number.isFinite(state.day)&&Number.isFinite(state.night)){emit('acMeterPeak',state.day);emit('acMeterNight',state.night)}
@@ -37,8 +39,6 @@ function apply(){
    emit('miles',state.miles);
    if(state.home)click('#usagePills button[data-use="'+state.home+'"]');
    if(state.home==='custom')emit('houseKwh',state.kwh);
-   click('#serviceButtons button[data-tier="'+state.tier+'"]');
-   const dual=$('dualFuel');if(dual&&dual.checked){dual.checked=false;dual.dispatchEvent(new Event('change',{bubbles:true}))}
   }
  }finally{applying=false}
 }
@@ -170,7 +170,8 @@ d.head.appendChild(st);
 d.addEventListener('ac:ev-core-ready',()=>{hasCore=true;setTimeout(apply,0)});
 d.addEventListener('ac:ev-comparison',e=>{model=e.detail;if(overlay&&(stage===6||stage===9))setTimeout(()=>{if(overlay)draw()},0)});
 function start(){if(!$('region')||!$('serviceButtons')||!$('acMeterModeCard'))return false;
- stage=given.region?1:0;if(given.fuel){stage=2;while(stage<5&&given[steps[stage]])stage++;if(state.fuel==='EV')stage=5}
+ stage=0;while(stage<5&&given[steps[stage]])stage++;
+ if(state.fuel==='EV'&&stage>=2)stage=5;
  mount();return true}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',start);else if(!start()){let n=0;const t=setInterval(()=>{if(start()||++n>100)clearInterval(t)},100)}
 })();
