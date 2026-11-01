@@ -19,8 +19,8 @@ jobs:
           node-version: '24'
       - name: Confirm live GitHub Pages preview and JS assets
         run: |
-          root=https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev-preview-v2670
-          for path in /index.html /ev-onboarding-v2.67.0.js /ev-sharing-v2.67.0.js /ev-share-adapter-v2.67.0.js /ev-next-steps-v2.67.0.js; do
+          root=https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev-preview-v2680
+          for path in /index.html /ev-onboarding-v2.68.0.js /ev-sharing-v2.67.0.js /ev-tradeoff-fuel-v2.68.0.js /ev-guided-windowshop-v2.68.0.js /ev-share-adapter-v2.67.0.js /ev-next-steps-v2.67.0.js; do
             curl --fail --silent --show-error --retry 8 --retry-delay 4 --retry-connrefused "${root}${path}" -o /tmp/ev-preview-asset
             test -s /tmp/ev-preview-asset
           done
