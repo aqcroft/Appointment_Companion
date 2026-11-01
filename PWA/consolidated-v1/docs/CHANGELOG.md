@@ -1,3 +1,10 @@
+## v2.67.0 - 1 November 2026 - EV smart customer journeys (feature branch only)
+- Add a two-question public journey: existing UW customer or exploring UW, followed by already owns or is considering an EV. Answers supplied on a link are not requested again.
+- Add optional relationship-first next steps for existing UW customers and an invitation to contact Adrian for non-customers. Clearly distinguish UW tariff illustrations from verified savings against a customer's existing tariff.
+- Extend Appointment Companion EV sharing with a blank or pre-filled editable link. New smart links open directly into the calculator, never update the source customer profile and keep recipient names out of link payloads.
+- Preserve old portable and Cloud share links; keep the existing calculation engine and live tariff source unchanged.
+- Add browser regression tests. This branch is not a production release; do not merge without review.
+
 ## v2.66.13 - 29 October 2026 - Chart/quarter forecast alignment and clearer cost figures
 - Existing-customer chart labels each forecast quarter: Confirmed, January, April, July and October, rather than only the January cap scenario.
 - Add subtle quarter dividers taken from the exact same chart/quarterly-table positions as the existing-customer cost table, matching the prospective-customer chart treatment.
