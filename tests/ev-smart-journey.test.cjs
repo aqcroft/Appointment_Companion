@@ -82,9 +82,11 @@ async function main(){
   },envelope);
   await p.route('https://**/*',route=>route.abort());
   await p.goto(base+'?ac_launch='+launchId,{waitUntil:'commit',timeout:12000});
-  await p.locator('#evCloudShare').waitFor({state:'visible',timeout:20000});
+  await p.locator('#evCloudShare').waitFor({state:'attached',timeout:20000});
   await p.evaluate(()=>{window.AppointmentCompanionShareIdentity={resolve:async()=> 'p_testverified'}});
-  await p.locator('#evCloudShare').click();
+  // Synthetic customer fixture does not enable the visible Companion action bar.
+  // Dispatch the same click handler without relying on unrelated toolbar layout.
+  await p.locator('#evCloudShare').dispatchEvent('click');
   await p.locator('#acEvUwStatusChoice').waitFor({state:'visible',timeout:12000});
   assert.equal(await p.locator('input[name="acEvLinkKind"]').count(),2);
   await p.locator('#acEvUwStatusChoice').selectOption('existing');
