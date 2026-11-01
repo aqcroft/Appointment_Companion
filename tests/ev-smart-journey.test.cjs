@@ -14,25 +14,42 @@ async function main(){
    await page.goto(url,{waitUntil:'commit',timeout:12000});
    return page;
   }
-  // A public visitor only answers what is unknown, in the right order.
+  // Public visitor: region -> current fuel -> miles -> EV type -> home -> results.
   let p=await pageFor(base+'?local=1');
-  await p.locator('#acEvUwStatusDialog').waitFor({state:'visible',timeout:16000});
+  await p.locator('#evwRegion').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.locator('.ac-toolstrip').count(),0,'Public calculator has no Partner toolbar');
-  await p.locator('[data-uw-status="existing"]').click();
-  await p.locator('#acEvSituationDialog').waitFor({state:'visible',timeout:8000});
-  await p.locator('[data-ev-situation="estimate"]').click();
-  await p.locator('#acEvSmartHelp').waitFor({state:'visible',timeout:10000});
-  assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'existing');
-  assert.match(await p.locator('#acEvSmartHelp').innerText(),/not a confirmed saving against your own current tariff/i);
+  await p.locator('.evw-primary').click();
+  await p.getByText('What do you drive now?',{exact:false}).waitFor();
+  await p.getByRole('button',{name:/Diesel/}).click();
+  await p.getByText('About how many miles per year?',{exact:false}).waitFor();
+  await p.locator('.evw-primary').click();
+  await p.getByRole('button',{name:/Family SUV/}).click();
+  await p.getByRole('button',{name:/Medium/}).click();
+  await p.getByText('Checking live UW rates',{exact:false}).waitFor({state:'visible',timeout:18000});
+  await p.evaluate(()=>{
+    const fixture={meter:false,miles:10000,efficiency:3.2,evHomePct:10,services:3,
+      ev:{car:240,home:800,total:1040},standard:{car:760,home:752,total:1512},
+      standardUnitRateExVatP:25,evPeakRateExVatP:29,evOffPeakRateExVatP:7.5};
+    window.__AC_EV_TRADEOFF=fixture;
+    document.dispatchEvent(new CustomEvent('ac:ev-comparison',{detail:fixture}));
+  });
+  await p.locator('.evw-price').first().waitFor({state:'visible',timeout:10000});
+  assert.equal(await p.locator('.evw-price').count(),2,'Exactly two main costs');
+  assert.match(await p.locator('.evw-saving').innerText(),/Estimated annual saving/);
+  await p.getByRole('button',{name:/Continue - check UW options/}).click();
+  await p.getByRole('button',{name:/Not with UW/}).click();
+  assert.equal(await p.locator('.evw-price').count(),2);
+  assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
   await p.close();
 
-  // An explicitly supplied UW status and EV answer skip both introductions.
+  // Explicit UW answers need no duplicate status dialogs.
   p=await pageFor(base+'?local=1&uw=exploring&ev=meter');
-  await p.locator('#acEvSmartHelp').waitFor({state:'visible',timeout:16000});
+  await p.locator('#evwOverlay').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.locator('#acEvUwStatusDialog').count(),0);
   assert.equal(await p.locator('#acEvSituationDialog').count(),0);
+  assert.equal(await p.locator('#evwOverlay').count(),0);
+  await p.locator('#acEvSmartHelp').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
-  assert.match(await p.locator('#acEvSmartHelp').innerText(),/Adrian Croft/);
   const generated=await p.evaluate(()=>{
     let events=0;
     document.addEventListener('ac:ev-share-name',()=>events++);
