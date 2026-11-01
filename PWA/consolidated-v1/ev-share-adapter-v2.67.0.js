@@ -25,14 +25,14 @@
     return new Promise(function (resolve) {
       var overlay = document.createElement('div'); overlay.className = 'ac-ev-share-gate';
       var safeExisting = safeHttps(existing);
-      overlay.innerHTML = '<div class="ac-ev-share-gate-card" role="dialog" aria-modal="true"><h3>📤 Share EV comparison</h3><p>If this EV comparison is part of a wider UW quote, including the basket link takes the customer straight back to their quote.</p><label for="acEvBasketGate">UW basket / quote link <span style="font-weight:600">(optional)</span></label><input id="acEvBasketGate" type="url" inputmode="url" value="' + safeExisting.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" placeholder="https://..."><div class="hint">The saved basket is filled in automatically when one is available.</div><div class="ac-ev-share-gate-error" id="acEvGateError"></div><div class="ac-ev-share-gate-actions"><button type="button" class="primary" data-choice="include">Include basket and share</button><button type="button" data-choice="plain">Share without basket</button><button type="button" data-choice="cancel">Cancel</button></div></div>';
+      overlay.innerHTML = '<div class="ac-ev-share-gate-card" role="dialog" aria-modal="true"><h3>📤 Share EV comparison</h3><p>If this EV comparison is part of a wider UW quote, including the basket link takes the customer straight back to their quote.</p><label for="acEvBasketGate">UW basket / quote link <span style="font-weight:600">(optional)</span></label><input id="acEvBasketGate" type="url" inputmode="url" value="' + safeExisting.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" placeholder="https://..."><div class="hint">The saved basket is filled in automatically when one is available.</div><div class="ac-ev-share-gate-error" id="acEvGateError"></div><div class="ac-ev-share-gate-actions"><button type="button" data-choice="include">Include basket and share</button><button type="button" class="primary" data-choice="plain">Share EV calculator (no basket)</button><button type="button" data-choice="cancel">Cancel</button></div></div>';
       // Snapshot control is intentionally separate from the optional quote link.
       var options = document.createElement('div');
       options.innerHTML = '<label for="acEvUwStatusChoice">Is this customer already with UW?</label>'+
         '<select id="acEvUwStatusChoice" style="width:100%;padding:10px;border-radius:9px;border:1px solid #dad5e7"><option value="">Choose an answer</option><option value="existing">Yes - already a UW customer</option><option value="exploring">No - considering UW</option></select>'+
         '<label>What would you like to share?</label>'+
         '<label style="font-weight:600"><input type="radio" name="acEvLinkKind" value="prefilled" checked> Current figures (fully editable)</label>'+
-        '<label style="font-weight:600"><input type="radio" name="acEvLinkKind" value="blank"> Blank calculator (keep known answers)</label>'+
+        '<label style="font-weight:600"><input type="radio" name="acEvLinkKind" value="blank"> Fresh calculator (keep known answers)</label>'+
         '<div class="hint" id="acEvLinkPreview">Includes the current EV scenario, region, home usage, mileage and other calculator settings. No customer contact details.</div>';
       overlay.querySelector('.ac-ev-share-gate-card').insertBefore(options, overlay.querySelector('.ac-ev-share-gate-card').firstChild.nextSibling);
       var statusSelect=overlay.querySelector('#acEvUwStatusChoice');
@@ -41,7 +41,7 @@
       options.addEventListener('change',function(){
         var blank=overlay.querySelector('input[name="acEvLinkKind"]:checked').value==='blank';
         overlay.querySelector('#acEvLinkPreview').textContent=blank?
-          'Starts with blank figures, but skips the UW customer and EV questions if known.':
+          'Starts with general estimates, but skips UW and EV questions where known.':
           'Includes current mileage, region, home consumption and EV settings. No customer contact details.';
       });
       function done(value) {
