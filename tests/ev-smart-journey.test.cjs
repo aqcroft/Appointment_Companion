@@ -40,7 +40,7 @@ async function main(){
   p=await pageFor(base+'?local=1#p2='+Buffer.from(JSON.stringify(smart)).toString('base64url'));
   await p.waitForFunction(()=>document.documentElement.classList.contains('shared-started'),{timeout:16000});
   assert.equal(await p.locator('#personalSplash').evaluate(el=>getComputedStyle(el).display),'none');
-  await p.locator('#acMeterPeak').waitFor({timeout:16000});
+  await p.locator('#acMeterPeak').waitFor({state:'attached',timeout:16000});
   await p.waitForFunction(()=>document.querySelector('#acMeterPeak')?.value==='2275',{timeout:16000});
   assert.equal(await p.locator('#acEvUwStatusDialog').count(),0);
   assert.equal(await p.locator('#acEvSituationDialog').count(),0);
