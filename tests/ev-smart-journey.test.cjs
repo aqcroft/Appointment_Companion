@@ -32,6 +32,17 @@ async function main(){
   assert.equal(await p.locator('#acEvSituationDialog').count(),0);
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.evUwStatus),'exploring');
   assert.match(await p.locator('#acEvSmartHelp').innerText(),/Adrian Croft/);
+  const generated=await p.evaluate(()=>{
+    let events=0;
+    document.addEventListener('ac:ev-share-name',()=>events++);
+    const link=window.AppointmentCompanionEvPortableLink('Example Customer','', 'p_test',
+      {smart:true,uwStatus:'existing',partnerRelationship:'adrian'});
+    const encoded=new URL(link).hash.slice(4);
+    const decoded=JSON.parse(atob(encoded.replace(/-/g,'+').replace(/_/g,'/')));
+    return {events,publicName:new URL(link).searchParams.get('for'),sm:decoded.sm,uws:decoded.uws,name:decoded.n,partner:decoded.pr};
+  });
+  assert.deepEqual(generated,{events:0,publicName:null,sm:1,uws:'existing',name:'you',partner:'adrian'},
+   'Smart share does not disclose names or mutate linked profile names');
   await p.close();
 
   // New smart snapshots open the editable calculator without a splash.
