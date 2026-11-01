@@ -54,7 +54,11 @@
   if(value==='existing'){
    box.appendChild(el('p',null,'Explore how different UW electricity options affect the total cost of charging your EV and powering your home.'));
    box.appendChild(el('p','ac-ev-notice','These are illustrative UW tariff comparisons, not a confirmed saving against your own current tariff. Check your existing tariff, eligibility and any terms before switching.'));
-   box.appendChild(el('p',null,'If you would like help with your own tariff, which best describes you?'));
+   if(window.__AC_EV_KNOWN_PARTNER==='adrian'){
+    box.appendChild(el('p',null,'Adrian is already your UW contact. If you would like to review these options together, you can get in touch directly.'));
+    box.appendChild(booking());
+   }else{
+    box.appendChild(el('p',null,'If you would like help with your own tariff, which best describes you?'));
    var choices=el('div','ac-ev-smart-choices');
    [
     ['own','Adrian is my UW Partner'],
@@ -75,6 +79,7 @@
    });
    box.appendChild(choices);
    var output=el('div','ac-ev-smart-selection');output.id='acEvSmartSelection';output.hidden=true;box.appendChild(output);
+   }
   }else{
    box.appendChild(el('p',null,'Curious whether Utility Warehouse could be a good fit for your household? Adrian Croft is a local UW Authorised Partner and can help you explore the options. No obligation.'));
    box.appendChild(booking());
