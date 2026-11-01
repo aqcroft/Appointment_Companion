@@ -1,3 +1,17 @@
+## v2.68.0 - 1 November 2026 - Results-first public EV window shopping (development)
+- Region, current petrol/diesel or EV, annual mileage, vehicle efficiency and low/medium/high/actual home electricity now lead into a two-cost comparison and an annual saving estimate.
+- Quick figures use the same existing petrol/diesel and tariff calculation engines. The EV cost includes charging, household overnight savings, higher daytime costs and standing/discount effects, with details available on expansion.
+- Prospective UW customers see the best illustrative three-service EV rates first, without assuming a gas discount. UW customer status is asked after the quick result; existing customers can specify other qualifying services to refresh the result.
+- Already-electric visitors instead use actual day/night usage for a UW tariff comparison, without pretending that they are switching from petrol/diesel.
+- Linked customer and personalised smart share flows remain unchanged. Feature remains on a development branch, preview-only until approved.
+
+## v2.67.0 - 1 November 2026 - EV smart customer journeys (feature branch only)
+- Add a two-question public journey: existing UW customer or exploring UW, followed by already owns or is considering an EV. Answers supplied on a link are not requested again.
+- Add optional relationship-first next steps for existing UW customers and an invitation to contact Adrian for non-customers. Clearly distinguish UW tariff illustrations from verified savings against a customer's existing tariff.
+- Extend Appointment Companion EV sharing with a blank or pre-filled editable link. New smart links open directly into the calculator, never update the source customer profile and keep recipient names out of link payloads.
+- Preserve old portable and Cloud share links; keep the existing calculation engine and live tariff source unchanged.
+- Add browser regression tests. This branch is not a production release; do not merge without review.
+
 ## v2.66.13 - 29 October 2026 - Chart/quarter forecast alignment and clearer cost figures
 - Existing-customer chart labels each forecast quarter: Confirmed, January, April, July and October, rather than only the January cap scenario.
 - Add subtle quarter dividers taken from the exact same chart/quarterly-table positions as the existing-customer cost table, matching the prospective-customer chart treatment.
