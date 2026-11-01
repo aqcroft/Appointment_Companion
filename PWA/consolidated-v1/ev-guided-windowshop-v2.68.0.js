@@ -170,8 +170,7 @@ d.head.appendChild(st);
 d.addEventListener('ac:ev-core-ready',()=>{hasCore=true;setTimeout(apply,0)});
 d.addEventListener('ac:ev-comparison',e=>{model=e.detail;if(overlay&&(stage===6||stage===9))setTimeout(()=>{if(overlay)draw()},0)});
 function start(){if(!$('region')||!$('serviceButtons')||!$('acMeterModeCard'))return false;
- stage=0;while(stage<5&&given[steps[stage]])stage++;
- if(state.fuel==='EV'&&stage>=2)stage=5;
+ stage=0;while(stage<6&&(given[steps[stage]]||!visibleStep(steps[stage])))stage++;
  mount();return true}
 function boot(){if(start())return;let n=0;const t=setInterval(()=>{if(start()||++n>150)clearInterval(t)},100)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot);else boot();
