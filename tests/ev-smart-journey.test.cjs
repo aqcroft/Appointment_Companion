@@ -63,6 +63,44 @@ async function main(){
   await p.locator('#personalSplashOk').waitFor({state:'visible',timeout:16000});
   assert.equal(await p.evaluate(()=>document.documentElement.classList.contains('shared-started')),false);
   await p.close();
+  // A linked customer should see the new sharing choices, and sharing must
+  // not turn an existing saved name into the generic name used by public links.
+  p=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  p.on('pageerror',e=>errors.push(e.message));
+  const launchId='launch_ev_smart_test';
+  const envelope={
+   bridge_version:1,launch_id:launchId,target_tool_id:'ev',
+   created_at:new Date().toISOString(),expires_at:new Date(Date.now()+3600000).toISOString(),
+   customer_id:'test-customer-id',appointment_state:{customerName:'Alice Example',inputs:{region:11,electricityUsageTotalKwh:2500}},
+   origin:{tool_id:'appointment',url:base,scroll_y:0},
+   extra:{local_id:'test-ev-local',customer:{customer_id:'test-customer-id',customer_name:'Alice Example',region:11,electricity_usage_kwh:2500}}
+  };
+  await p.addInitScript(data=>{
+   sessionStorage.setItem('apptCompanionLaunchV1:'+data.launch_id,JSON.stringify(data));
+   sessionStorage.setItem('apptCompanionActiveLaunchV1',data.launch_id);
+   Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__acEvClipboard=value}}});
+  },envelope);
+  await p.route('https://**/*',route=>route.abort());
+  await p.goto(base+'?ac_launch='+launchId,{waitUntil:'commit',timeout:12000});
+  await p.locator('#evCloudShare').waitFor({state:'visible',timeout:20000});
+  await p.evaluate(()=>{window.AppointmentCompanionShareIdentity={resolve:async()=> 'p_testverified'}});
+  await p.locator('#evCloudShare').click();
+  await p.locator('#acEvUwStatusChoice').waitFor({state:'visible',timeout:12000});
+  assert.equal(await p.locator('input[name="acEvLinkKind"]').count(),2);
+  await p.locator('#acEvUwStatusChoice').selectOption('existing');
+  await p.locator('input[name="acEvLinkKind"][value="blank"]').check();
+  await p.locator('[data-choice="plain"]').click();
+  await p.waitForFunction(()=>Boolean(window.__acEvClipboard)||Boolean(document.querySelector('#acEvCloudCopyUrl')),{timeout:12000});
+  const shared=await p.evaluate(()=>{
+   const text=window.__acEvClipboard||document.querySelector('#acEvCloudCopyUrl')?.value||'';
+   const url=text.split(/\s+/).find(x=>x.startsWith('http'))||text;
+   return {uw:new URL(url).searchParams.get('uw'),hasName:new URL(url).searchParams.has('for'),stored:window.AppointmentCompanionBridge?.getWorkingRecord()?.customer_name||''};
+  });
+  assert.equal(shared.uw,'existing');
+  assert.equal(shared.hasName,false,'Blank link has no recipient name in URL');
+  assert.notEqual(shared.stored,'you','Sharing cannot overwrite a linked customer name');
+  await p.close();
+
   assert.deepEqual(errors,[],'No uncaught JS exceptions');
   console.log('EV smart customer journeys and legacy links passed');
  }finally{await browser.close()}
