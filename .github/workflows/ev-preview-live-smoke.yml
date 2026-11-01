@@ -1,0 +1,32 @@
+name: Hosted EV preview mobile smoke
+on:
+  push:
+    branches: [feature/ev-smart-customer-journeys-20261101]
+    paths:
+      - 'tests/ev-preview-live.test.cjs'
+      - '.github/workflows/ev-preview-live-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Confirm live GitHub Pages preview and JS assets
+        run: |
+          root=https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev-preview-v2670
+          for path in /index.html /ev-onboarding-v2.67.0.js /ev-sharing-v2.67.0.js /ev-share-adapter-v2.67.0.js /ev-next-steps-v2.67.0.js; do
+            curl --fail --silent --show-error --retry 8 --retry-delay 4 --retry-connrefused "${root}${path}" -o /tmp/ev-preview-asset
+            test -s /tmp/ev-preview-asset
+          done
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Verify hosted phone-sized experiences
+        run: timeout 180s node tests/ev-preview-live.test.cjs
