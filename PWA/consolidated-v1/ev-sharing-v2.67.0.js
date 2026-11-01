@@ -197,7 +197,8 @@ function startCompanion(payload){
 function makeLink(name,basket,verifiedPartnerId,context){
   name=cleanName(name);
   if(!name)return null;
-  window.dispatchEvent(new CustomEvent('ac:ev-share-name',{detail:{name:name}}));
+  // Never rewrite a linked customer profile merely to generate a privacy-safe link.
+  if(!(context&&context.smart))window.dispatchEvent(new CustomEvent('ac:ev-share-name',{detail:{name:name}}));
   var data=capture(name,basket);
   // Smart links are editable independent snapshots; keep customer names out of URLs.
   if(context&&context.smart){
