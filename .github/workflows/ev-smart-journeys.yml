@@ -7,6 +7,9 @@ on:
     paths:
       - 'PWA/consolidated-v1/ev/index.html'
       - 'PWA/consolidated-v1/ev-onboarding-v2.67.0.js'
+      - 'PWA/consolidated-v1/ev-onboarding-v2.68.0.js'
+      - 'PWA/consolidated-v1/ev-guided-windowshop-v2.68.0.js'
+      - 'PWA/consolidated-v1/ev-tradeoff-fuel-v2.68.0.js'
       - 'PWA/consolidated-v1/ev-sharing-v2.67.0.js'
       - 'PWA/consolidated-v1/ev-share-adapter-v2.67.0.js'
       - 'PWA/consolidated-v1/ev-next-steps-v2.67.0.js'
@@ -27,6 +30,9 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check PWA/consolidated-v1/ev-onboarding-v2.67.0.js
+          node --check PWA/consolidated-v1/ev-onboarding-v2.68.0.js
+          node --check PWA/consolidated-v1/ev-guided-windowshop-v2.68.0.js
+          node --check PWA/consolidated-v1/ev-tradeoff-fuel-v2.68.0.js
           node --check PWA/consolidated-v1/ev-sharing-v2.67.0.js
           node --check PWA/consolidated-v1/ev-share-adapter-v2.67.0.js
           node --check PWA/consolidated-v1/ev-next-steps-v2.67.0.js
