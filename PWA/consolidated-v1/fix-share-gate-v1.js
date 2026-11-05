@@ -42,7 +42,7 @@
       ? win.ShouldIFixForecastScenario():null;
     if(manual&&manual.mode==='unit'&&
        [30,31,32,33,34,35].includes(Number(manual.elec))&&
-       [10,11,12,13].includes(Number(manual.gas))){
+       [10,10.5,11,11.5,12,13].includes(Number(manual.gas))){
       out.um='1';out.ue=Number(manual.elec);out.ug=Number(manual.gas);
     }
     if (out.t === 'custom') {

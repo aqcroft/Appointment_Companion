@@ -12,7 +12,7 @@
     date: '5 November 2026',
     summary: 'January unit-rate forecast scenarios',
     changes: [
-      'Should I Fix can switch from percentage forecasts to independent January electricity and gas unit-rate scenarios.',
+      'Should I Fix can switch from percentage forecasts to independent January electricity and gas unit-rate scenarios, including 10.5p and 11.5p gas selections.',
       'Shared unit-rate scenarios retain their settings in the public calculator.',
       'Open the existing MSE forecast review workflow from More options in Appointment Companion or Should I Fix. Sign in to GitHub and select Run workflow; new forecasts still require approval.',
       'Fixed the existing toolbar Earnings button bypassing Partner verification and omitting your Partner ID.',

@@ -1,6 +1,6 @@
 ## v2.66.16 - 5 November 2026 - January forecast unit-rate scenarios (draft)
 
-- Coordinate with ShouldIFix PR #15 to add gas/electricity rate-based January stress tests, alongside existing percentage scenarios.
+- Coordinate with ShouldIFix PR #15 to add gas/electricity rate-based January stress tests, alongside existing percentage scenarios. Gas has six buttons: 10p, 10.5p, 11p, 11.5p, 12p and 13p; electricity has six buttons: 30p to 35p.
 - Include unit-mode share parameters um/ue/ug in the public calculator iframe; preserve chosen selections in personalised partner shares.
 - Align main Companion, EV and Should I Fix version, cache and About. No tariff or customer data changes.
 - Draft must be browser/syntax tested and merged with ShouldIFix PR #15.
