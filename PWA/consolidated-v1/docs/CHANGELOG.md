@@ -1,3 +1,11 @@
+## v2.66.18 - 5th November 2026 - Fuel-aware forecast scenarios without a toggle
+
+- Show the January percentage row and relevant gas/electricity unit-rate rows together in Should I Fix, with a clear indicator of which method is in use.
+- Selecting a percentage activates the percentage model; tapping a pence rate activates the unit-rate model. The extra mode toggle is removed.
+- Electricity-only profiles hide gas pence options, gas-only profiles hide electricity pence, and dual-fuel profiles show all three rows.
+- Preserve November's MSE forecasts, the six unit-rate choices per fuel, winter weighting, aligned charts, partner/customer sharing and existing calculations.
+- Keep Companion, Should I Fix and EV on the same v2.66.18 version; increment embedded source and PWA cache keys.
+
 ## v2.66.17 - 5 November 2026 - Correct MSE forecast parity
 
 - Both standalone and integrated Should I Fix use the approved 2 November forecast: January +28.8%, April +6.4%, July -9.3%, with percentage choices 28.8%, 30% and 35%.

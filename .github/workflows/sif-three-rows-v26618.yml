@@ -1,0 +1,24 @@
+name: Should I Fix three-row PWA integration v2.66.18
+on:
+  pull_request:
+    paths:
+      - PWA/consolidated-v1/should-i-fix/index.html
+      - PWA/consolidated-v1/tests/forecast-three-rows-v2.66.18.test.cjs
+      - .github/workflows/sif-three-rows-v26618.yml
+  push:
+    branches: [main]
+    paths:
+      - PWA/consolidated-v1/should-i-fix/index.html
+      - PWA/consolidated-v1/tests/forecast-three-rows-v2.66.18.test.cjs
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fuel-aware forecast sharing and version
+        run: node --test PWA/consolidated-v1/tests/forecast-three-rows-v2.66.18.test.cjs
