@@ -25,7 +25,7 @@ test('Should I Fix has the shortcut but EV and public views do not',()=>{
 });
 test('combined version is visible in main, specialist, About and manifest',()=>{
   for(const item of ['index.html','should-i-fix/index.html','ev/index.html','unified-status-v2.59.0.js','manifest.webmanifest']){
-    assert.ok(read(item).includes('v2.66.17'),item);
+    assert.ok(read(item).includes('v2.66.18'),item);
   }
-  assert.ok(read('sw.js').includes('v2-66-17-forecast-parity'));
+  assert.ok(read('sw.js').includes('v2-66-18-three-rows'));
 });
