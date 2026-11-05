@@ -1025,10 +1025,9 @@ const CONFIG = {
   nationalLeague: { amount: 65, minServices: 2, homeownerOnly: false },
   connectorCommission: { 2: 50, 3: 125, 4: 150 },
 
-  // Broadband packages, April increases, and free-months offer
+  // Broadband packages and free-months offer
   broadband: {
     freeMonths: 6,            // City Fibre homeowner offer
-    uwAprilIncrease: 4,       // £/m UW + all providers increase every April (net saving unchanged; only affects 6-months-free value if April falls in free period)
     wholeHomeWifi: 5,         // £/m add-on
     packages: [
       { label: '900', price: 35 },
@@ -1450,14 +1449,6 @@ document.addEventListener('input', e => {
   calc();
 });
 
-/* Months until next April (April = month index 3). In April itself the
-   increase has just happened, so treat next April as 12 months away. */
-function monthsUntilApril() {
-  const m = new Date().getMonth();
-  if (m === 3) return 12;
-  return m < 3 ? 3 - m : (12 - m) + 3;
-}
-
 /* Current mobile pricing/rules, aligned with v3.03. */
 function priceSims(includedSims) {
   return (includedSims || []).map(s => {
@@ -1661,11 +1652,6 @@ function compute(previewSims = 0) {
   const uwTotalBase = uwEnergy + uwBb + uwMob + insuranceTotal + manualAdjustUw;
   const monthlySaving = currentTotal - uwTotalBase;
 
-  // April increases are ~£4 on both UW and current providers — they cancel in the net saving.
-  // We only need monthsUntilApril for the 6-months-free straddle calculation.
-  const mba = monthsUntilApril();
-  const uwInc = CONFIG.broadband.uwAprilIncrease;
-
   // --- cashback (medium scenario drives the headline, as v1) ---
   // UW's own marketing rounds cashback DOWN to whole pounds (e.g. £14.83 -> £14),
   // so we match that here at source — keeps every downstream figure a whole number
@@ -1690,13 +1676,10 @@ function compute(previewSims = 0) {
   if (state.services.broadband && $('bbFreeMonthsToggle').checked &&
       (state.services.energy || mobilePresent)) {
     const fm = CONFIG.broadband.freeMonths;
-    // Use exact (unrounded) UW price for the free-months value
-    // but account for April if it falls within the 6 free months.
-    // Rounded to whole pounds here so the displayed figure and the value
-    // used in year1/benefitsTotal always match exactly.
-    bbFree = Math.round(mba >= fm
-      ? fm * uwBbRaw
-      : mba * uwBbRaw + (fm - mba) * (uwBbRaw + uwInc));
+    // Conservative, easy-to-explain benefit: free months at the quoted monthly
+    // broadband price, excluding any later April price increase.
+    // Round once so displayed value and year-one benefits remain consistent.
+    bbFree = Math.round(fm * uwBbRaw);
   }
 
   // --- introductory free months on additional Go Unlimited SIMs ---
