@@ -27,6 +27,7 @@
       '#acShareAppMenuButton',
       '#acGsMenu',
       '[data-cloud-action="admin"]',
+      '#acForecastWatchLink',
       '#acFlatOutreachLink'
     ]}
   ];
@@ -87,6 +88,19 @@
     a.textContent='🤝  Relationship follow-up';
     return a;
   }
+  // Static GitHub Pages must never store an Actions API credential.
+  function forecastWatchLink() {
+    var a=document.getElementById('acForecastWatchLink');
+    if(a)return a;
+    a=document.createElement('a');a.id='acForecastWatchLink';
+    a.className='pill cloud-menu-item ac-flat-outreach ac-flat-forecast';
+    a.href='https://github.com/aqcroft/ShouldIFix/actions/workflows/mse-forecast-review.yml';
+    a.target='_blank';a.rel='noopener noreferrer';
+    a.title='Opens GitHub Actions. Choose Run workflow (GitHub access required); forecast changes still need approval.';
+    a.setAttribute('aria-label','Open manual MSE forecast check in GitHub');
+    a.textContent='🔄  Open forecast checker';
+    return a;
+  }
   function organise() {
     if(!menu)return;
     var obsolete=['#acRelationshipFollowupLink','#acV22StatusBlock','#acMenuRootActions','#acMenuBack'];
@@ -107,7 +121,7 @@
       section.items.forEach(function(sel){add(direct(sel),section.id);});
     });
     add(moreToggle());
-    SECTION[2].items.forEach(function(sel){add(sel==='#acFlatOutreachLink'?outreachLink():direct(sel),'more');});
+    SECTION[2].items.forEach(function(sel){add(sel==='#acFlatOutreachLink'?outreachLink():sel==='#acForecastWatchLink'?forecastWatchLink():direct(sel),'more');});
     // New extensions remain accessible, without being promoted into quick actions.
     Array.from(menu.children).forEach(function(child){
       if(!used.has(child) && child!==direct(deleteSelector) &&

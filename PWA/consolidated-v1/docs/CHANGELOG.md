@@ -1,3 +1,10 @@
+## v2.66.15 - 5 November 2026 - Manual forecast-check shortcut
+
+- Add **🔄 Open forecast checker** under **More options** in the main Appointment Companion menu and the integrated Should I Fix menu.
+- The shortcut opens the existing **Friday and Saturday MSE forecast watch** GitHub Action. An authorised GitHub user still selects **Run workflow**; this does not dispatch automatically, store credentials or bypass the existing forecast approval pull request.
+- Keep this link out of customer-facing shared pages and out of EV's specialist menu. Leave tariff calculations, saved profiles and forecast data unchanged.
+- Align the combined Appointment Companion / Should I Fix / EV release version, in-app About details and service-worker cache.
+
 ## v2.66.14 — 5 November 2026
 
 - Fixed the existing toolbar Earnings button bypassing Partner verification and opening without the signed-in Partner ID.

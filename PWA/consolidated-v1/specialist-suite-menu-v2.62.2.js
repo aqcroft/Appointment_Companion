@@ -32,6 +32,7 @@
     {label:'Share app link',icon:'🔗',action:'share-app'},
     {label:'Getting started',icon:'📲',action:'help'},
     {label:'Admin',icon:'🔐',action:'admin'},
+    {label:'Open forecast checker',icon:'🔄',action:'forecast-check'},
     {label:'Relationship follow-up',icon:'🤝',action:'outreach'}
   ];
 
@@ -57,7 +58,13 @@
   }
 
   function node(label,icon,action,section){
-    var b=document.createElement('button');b.type='button';b.className='ac-suite-action';
+    var b=document.createElement(action==='forecast-check'?'a':'button');
+    if(action==='forecast-check') {
+      b.href='https://github.com/aqcroft/ShouldIFix/actions/workflows/mse-forecast-review.yml';
+      b.target='_blank';b.rel='noopener noreferrer';
+      b.title='Opens GitHub Actions. Choose Run workflow (GitHub access required); forecast changes still need approval.';
+    } else b.type='button';
+    b.className='ac-suite-action';
     b.dataset.acSuiteAction=action;
     if(section)b.dataset.acSuiteSection=section;
     var graphic=document.createElement('span');graphic.className='ac-suite-icon';
@@ -85,7 +92,7 @@
     arrow.className='ac-suite-chevron';arrow.setAttribute('aria-hidden','true');
     arrow.textContent=moreOpen?'⌃':'⌄';more.appendChild(arrow);
     body.appendChild(more);
-    if(moreOpen)EXTRA.forEach(function(item){body.appendChild(node(item.label,item.icon,item.action));});
+    if(moreOpen)EXTRA.forEach(function(item){if(item.action==='forecast-check'&&!/\/should-i-fix\//.test(path))return;body.appendChild(node(item.label,item.icon,item.action));});
     var divider=document.createElement('div');
     divider.className='ac-suite-divider';divider.setAttribute('role','separator');
     body.appendChild(divider);
@@ -161,8 +168,9 @@
       document.body.appendChild(menu);
       menu.addEventListener('click',function(event){
         var btn=event.target.closest('[data-ac-suite-action]');if(!btn)return;
-        event.preventDefault();event.stopPropagation();
         var action=btn.dataset.acSuiteAction;
+        if(action==='forecast-check')return; // Native link opens GitHub without exposing credentials.
+        event.preventDefault();event.stopPropagation();
         if(action==='more'){moreOpen=!moreOpen;render();position();}
         else navigate(action);
       });
