@@ -1,7 +1,14 @@
-/* Appointment Companion v2.64.4 - verified UW Partner identity handoff to Earnings. */
+/* Appointment Companion v2.66.14 - verify identity on existing toolbar Earnings buttons. */
 (function () {
   'use strict';
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view')) return;
+
+  window.AppointmentCompanionRelease = {
+    version: 'v2.66.14',
+    date: '5th Nov 2026',
+    summary: 'Partner Earnings keeps your signed-in Partner identity',
+    changes: ['Fixed the existing toolbar Earnings button bypassing Partner verification.']
+  };
 
   var EARNINGS_URL = 'https://aqcroft.github.io/UW_PET_GH_v2/sep26/earningstool-vfinal-coaching-preview-v22.html';
 
@@ -70,7 +77,17 @@
     if (!strip) return false;
 
     var existing = strip.querySelector('[aria-label="Partner Earnings - First 60 Days"]');
-    if (existing) return true;
+    if (existing) {
+      if (existing.dataset.acEarningsShortcut !== '1') {
+        existing.dataset.acEarningsShortcut = '1';
+        existing.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          openEarnings();
+        }, true);
+      }
+      return true;
+    }
 
     var old = strip.querySelector('#cloudCompanionCard, [aria-label="Cashback Card Companion"]');
     var ev = strip.querySelector('#cloudCompanionEv, [aria-label="EV Companion"]');
