@@ -1,3 +1,10 @@
+## v2.66.16 - 5 November 2026 - January forecast unit-rate scenarios (draft)
+
+- Coordinate with ShouldIFix PR #15 to add gas/electricity rate-based January stress tests, alongside existing percentage scenarios.
+- Include unit-mode share parameters um/ue/ug in the public calculator iframe; preserve chosen selections in personalised partner shares.
+- Align main Companion, EV and Should I Fix version, cache and About. No tariff or customer data changes.
+- Draft must be browser/syntax tested and merged with ShouldIFix PR #15.
+
 ## v2.66.15 - 5 November 2026 - Manual forecast-check shortcut
 
 - Add **🔄 Open forecast checker** under **More options** in the main Appointment Companion menu and the integrated Should I Fix menu.
