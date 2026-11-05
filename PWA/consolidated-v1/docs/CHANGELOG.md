@@ -1,3 +1,8 @@
+## v2.66.14 — 5 November 2026
+
+- Fixed the existing toolbar Earnings button bypassing Partner verification and opening without the signed-in Partner ID.
+- Aligned release labels and refreshed the PWA cache.
+
 ## v2.66.13 - 29 October 2026 - Chart/quarter forecast alignment and clearer cost figures
 - Existing-customer chart labels each forecast quarter: Confirmed, January, April, July and October, rather than only the January cap scenario.
 - Add subtle quarter dividers taken from the exact same chart/quarterly-table positions as the existing-customer cost table, matching the prospective-customer chart treatment.
