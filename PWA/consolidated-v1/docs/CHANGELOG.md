@@ -1,3 +1,10 @@
+## v2.66.17 - 5 November 2026 - Correct MSE forecast parity
+
+- Both standalone and integrated Should I Fix use the approved 2 November forecast: January +28.8%, April +6.4%, July -9.3%, with percentage choices 28.8%, 30% and 35%.
+- Bumped the iframe source and PWA cache to prevent reloading the old hardcoded 25% snapshot or outdated supplier table.
+- Kept all six gas/electricity unit-rate scenarios, shared customer links, existing-customer comparisons and partner verification unchanged.
+- Aligned Companion, Should I Fix, EV, About and manifest to v2.66.17.
+
 ## v2.66.16 - 5 November 2026 - January forecast unit-rate scenarios (draft)
 
 - Coordinate with ShouldIFix PR #15 to add gas/electricity rate-based January stress tests, alongside existing percentage scenarios. Gas has six buttons: 10p, 10.5p, 11p, 11.5p, 12p and 13p; electricity has six buttons: 30p to 35p.
