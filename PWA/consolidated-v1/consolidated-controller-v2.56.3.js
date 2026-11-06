@@ -604,7 +604,7 @@
       var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
       var mode = String(sort && sort.value || 'recent');
       var visible = rows.filter(function (row) {
-        if (row.deleted && !(view==='conflicts' && (row.conflict||row.sync_state==='conflict')) && !(view==='pending' && row.sync_state==='pending_delete')) return false;
+        if (row.deleted && !(view==='pending' && row.sync_state==='pending_delete')) return false;
         if(view==='pending' && !(row.sync_state==='pending'||row.sync_state==='pending_delete') )return false;
         if(view==='pending' && !(row.cloud_id||row.cloud_creation_approved||row.deleted))return false;
         if(view==='conflicts' && !row.conflict && row.sync_state!=='conflict')return false;
@@ -696,8 +696,13 @@
     status('Customer removed. Confirming Cloud deletion…','good');
     if(!(options&&options.deferSync)){
       if(!LOCAL_ONLY&&navigator.onLine&&auth()){
-        var report=await syncNow();
-        if(report&&report.state==='running')scheduleSync(12000,true);
+        try{
+          var report=await syncNow();
+          if(report&&report.state==='running')scheduleSync(12000,true);
+        }catch(error){
+          status('Deleted locally. Cloud deletion is queued until sync succeeds.','');
+          scheduleSync(12000,true);
+        }
       }else scheduleSync(12000,true);
     }
     try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
@@ -731,7 +736,12 @@
   async function conflict(row, remote) { return store.put(Object.assign({}, row, { conflict: { local: comparableLocal(row), cloud: clone(remote), base: clone(row.base_cloud_snapshot), detected_at: new Date().toISOString() }, sync_state: 'conflict' }), { keepRevision: true, keepSyncState: true }); }
   async function adoptRemote(row, remote) { var appt = appointment(remote), specialists = comparableRemote(remote).specialist_state; return store.put(Object.assign({}, row, { customer_name: remote.customer_name || row.customer_name, appointment_state: appt || row.appointment_state, specialist_state: specialists, basket_url: remote.basket_url || appt && appt.canonical && appt.canonical.basketUrl || '', cloud_customer: remote, base_cloud_revision: remoteVersion(remote), base_cloud_snapshot: remote, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', conflict: null }), { keepRevision: true, keepSyncState: true }); }
   async function syncOne(row, credentials) {
-    if (row.deleted) { if (!row.cloud_id) { await store.remove(row.local_id); return null; } await api.deleteCustomer(credentials, row.cloud_id); await store.remove(row.local_id); return null; }
+    if (row.deleted) {
+      if(!row.cloud_id){await store.remove(row.local_id);return null;}
+      try{await api.deleteCustomer(credentials,row.cloud_id);}
+      catch(error){if(!/not found|could not be found|missing customer/i.test(String(error&&error.message||error)))throw error;}
+      await store.remove(row.local_id);return null;
+    }
     if (!row.customer_name || (!row.cloud_id && !row.cloud_creation_approved)) return row;
     if (!row.cloud_id) {
       // A previously lost acknowledgement must never create a second Cloud
@@ -792,6 +802,11 @@
     try {
       var rows = await store.list(true);
       for (var i = 0; i < rows.length; i++) {
+        // Old releases left already-confirmed deletions in conflict state.
+        // Resume their Cloud deletion automatically rather than ask again.
+        if(rows[i].deleted&&(rows[i].conflict||rows[i].sync_state==='conflict')){
+          rows[i]=await store.put(Object.assign({},rows[i],{conflict:null,sync_state:'pending_delete'}),{keepRevision:true,keepSyncState:true});
+        }
         if (rows[i].sync_state !== 'pending' && rows[i].sync_state !== 'pending_delete') continue;
         // An unfinished local draft must never create a permanent Cloud row.
         if (!rows[i].deleted && !rows[i].cloud_id && !rows[i].cloud_creation_approved) continue;
