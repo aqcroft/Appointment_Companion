@@ -149,6 +149,11 @@
     var localSet=new Set(sync.localIds);
     return cloud.customerIds.filter(function(id){return !localSet.has(id);}).length;
   }
+  function onBothCount() {
+    if(!Array.isArray(cloud.customerIds) || !Array.isArray(sync.localIds))return null;
+    var localSet=new Set(sync.localIds);
+    return cloud.customerIds.filter(function(id){return localSet.has(id);}).length;
+  }
   function signal(name, letter, status, large) {
     var lamp = status==='green'?'🟢':status==='red'?'🔴':'🟠';
     return '<span class="ac-us-signal'+(large?' big':'')+'" data-state="'+status+'" title="'+esc(name+': '+status)+
@@ -263,6 +268,7 @@
     var local=demo?'Saved locally':sync.local;
     var cloudOnly=demo?0:cloudOnlyCount();
     var cloudCount=demo?3:cloud.customerCount;
+    var onBoth=demo?3:onBothCount();
     var connection=demo?'verified':cloud.connection;
     var engine=global.AppointmentCompanionConsolidated;
     var recentSync=!demo&&engine&&typeof engine.syncHealth==='function'?engine.syncHealth():null;
@@ -282,7 +288,9 @@
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
       '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><button type="button" data-us-action="device-only">'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+' · View →</button></div>'+
       '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><button type="button" data-us-action="cloud-only">'+esc(cloudOnly==null?'Not checked':cloudOnly)+' · View →</button></div>'+
+      (onBoth==null?'':'<div class="ac-us-minirow"><span>Cloud profiles also on this device</span><strong>'+onBoth+'</strong></div>')+
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
+      (!demo&&lastVerifiedAt&&cloud.connection==='verified'?'<p class="ac-us-note">Cloud checked: '+esc(readable(new Date(lastVerifiedAt).toISOString()))+'. Cloud only = profiles not yet stored on this device, not the total Cloud backup count.</p>':'')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
       (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
       (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-linked profile(s) awaiting a confirmed sync.</p>':'')+
@@ -450,7 +458,7 @@
     paint();showMessage('');
     var closeBtn=document.querySelector('#'+ID+' [data-us-action="close"]');
     if(closeBtn)closeBtn.focus();
-    refreshAll(false);
+    refreshAll(true);
   }
   function close(){
     var m=$(ID);if(m)m.hidden=true;
@@ -501,7 +509,7 @@
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
       var pending=meaningful.filter(function(r){return (r.sync_state==='pending'||r.sync_state==='pending_delete') &&
         (r.cloud_id||r.cloud_creation_approved||r.deleted);});
-      var conflicts=meaningful.filter(function(r){return r.sync_state==='conflict'||r.conflict;});
+      var conflicts=meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&(r.sync_state==='conflict'||r.conflict);});
       var current=engine&&typeof engine.currentRecord==='function'?engine.currentRecord():null;
       if(!current){
         var selected='';
@@ -530,7 +538,7 @@
         count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
         localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id;}).length,
-        localIds:meaningful.filter(function(r){return r.cloud_id;})
+        localIds:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
         current:currentMessage,local:localLabel,currentSynced:currentSynced,
         currentLocalId:current&&current.local_id||'',
