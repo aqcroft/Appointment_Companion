@@ -11,7 +11,7 @@ function segment(start,end){
 }
 const config=segment('const CONFIG = {','/* ============================ /CONFIG');
 const stateDecl=segment('const state = {','let previewExtra = false;');
-const helper=segment('function monthsUntilApril()','/* ---------- boiler comparison mode ---------- */');
+const helper=segment('/* Current mobile pricing/rules, aligned with v3.03. */','/* ---------- boiler comparison mode ---------- */');
 const compute=segment('function compute(previewSims = 0) {','/* Every in-basket service needs BOTH sides');
 function harness(){
  const elements=Object.create(null);
