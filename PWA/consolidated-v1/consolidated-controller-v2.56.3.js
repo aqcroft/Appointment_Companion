@@ -400,6 +400,7 @@
       modal.id = 'localFirstCustomers';
       modal.className = 'basket-prompt';
       modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
+        '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} </style>' +
         '<h3 id="localFirstCustomersTitle">Customers on this device</h3>' +
         '<p class="sub" id="localFirstCustomersNote"></p>' +
         '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
@@ -411,12 +412,13 @@
             '<option value="name-desc">Name Z-A</option>' +
           '</select>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:7px">' +
+        '<div class="ac-customer-toolbar">' +
           '<select id="localFirstCustomerScope" aria-label="Filter customer records by location" style="min-height:36px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px;font:inherit">' +
             '<option value="all">All customer records</option><option value="localOnly">On this device only</option>' +
             '<option value="cloudOnly">In Cloud only</option><option value="pending">Pending Cloud sync</option><option value="conflicts">Sync conflicts</option></select>' +
-          '<button type="button" class="btn-ghost" id="localFirstConflictToggle" data-local-filter-conflicts style="min-height:32px">Show conflicts only</button>' +
+          '<button type="button" class="ac-customer-action" id="localFirstConflictToggle" data-local-filter-conflicts>Show conflicts only</button>' +
         '</div>' +
+        '<div class="ac-customer-bulk" id="localFirstBulkTools"><button type="button" class="ac-customer-action" data-local-upload-all hidden>☁️ Save all to Cloud</button><button type="button" class="ac-customer-action ac-customer-action-danger" data-local-delete-conflicts hidden>🗑️ Delete all conflicts</button></div>' +
         '<p id="localFirstCustomerFeedback" role="status" aria-live="polite" style="font-size:12px;font-weight:600;min-height:18px;margin:5px 0;color:#28643e"></p>' +
         '<div id="localFirstCustomerRows" style="display:grid;gap:8px"></div>' +
         '<div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div>' +
@@ -582,14 +584,14 @@
           '</button>' +
           '<span style="margin:auto 0">'+storageSignals(!row.deleted,cloudPresent,exactlySynced)+'</span>'+
           (onlyHere && !row.cloud_id && !conflict && row.customer_name && !LOCAL_ONLY?
-            '<button type="button" class="btn-ghost" data-local-upload="'+escapeHtml(row.local_id)+'" style="font-size:11px;white-space:nowrap">☁️ Save to Cloud</button>':'')+
+            '<button type="button" class="ac-customer-action" data-local-upload="'+escapeHtml(row.local_id)+'">☁️ Save to Cloud</button>':'')+
           (conflict && row.conflict ? '<details style="flex:1 0 100%;font-size:11px;line-height:1.5;padding:4px 6px"><summary style="cursor:pointer;font-weight:650">Compare device and Cloud versions before choosing</summary>'+
             '<div><b>This device:</b> '+escapeHtml(row.updated_at || 'Date unavailable')+
               '<br>Basket link: '+(row.appointment_state && row.appointment_state.canonical && row.appointment_state.canonical.basketUrl?'saved':'not set')+'</div>'+
             '<div><b>Cloud:</b> '+escapeHtml(row.conflict.cloud && row.conflict.cloud.updated_at || 'Date unavailable')+
               '<br>Basket link: '+(row.conflict.cloud && row.conflict.cloud.basket_url?'saved':'not set')+'</div></details>' : '')+
           (conflict ? '<button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="local">'+(row.deleted?'Confirm deletion':row.conflict&&row.conflict.cloud&&row.conflict.cloud.deleted?'Keep local draft':'Keep mine')+'</button><button class="btn-ghost" type="button" data-local-conflict="' + row.local_id + '" data-choice="cloud">'+(row.deleted?'Restore from Cloud':'Use Cloud')+'</button>' : '') +
-          (row.deleted?'':'<button type="button" class="btn-ghost" style="padding:6px 7px;min-width:34px" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>') +
+          (row.deleted?'':'<button type="button" class="ac-customer-action ac-customer-action-danger" title="Delete customer" aria-label="Delete customer" data-local-delete="' + row.local_id + '">🗑️</button>') +
         '</div>';
       }).join('');
       var remoteVisible=(view==='all'||view==='cloudOnly')?remoteOnly.filter(function(row){
