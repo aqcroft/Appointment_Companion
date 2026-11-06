@@ -583,14 +583,37 @@
     var sort=$('localFirstCustomerSort');
     var wrap=$('localFirstCustomerRows');
     var conflictCount=rows.filter(function(row){return !row.deleted&&(row.conflict||row.sync_state==='conflict');}).length;
-    var uploadCandidates=rows.filter(function(row){return !row.deleted&&!row.conflict&&row.sync_state!=='conflict'&&!row.cloud_id&&String(row.customer_name||'').trim();});
-    var allSave=modal.querySelector('[data-local-upload-all]');
-    if(allSave){allSave.hidden=!uploadCandidates.length||LOCAL_ONLY;allSave.textContent='☁️ Save all to Cloud ('+uploadCandidates.length+')';}
-    var bulkDelete=modal.querySelector('[data-local-delete-conflicts]');
-    if(bulkDelete){bulkDelete.hidden=!conflictCount;bulkDelete.textContent='🗑️ Delete all conflicts ('+conflictCount+')';}
-
+    function scopeCounts(){
+      var active=rows.filter(function(r){return !r.deleted;});
+      return {
+        all:active.length+remoteOnly.length,
+        localOnly:active.filter(function(r){return !r.cloud_id||(cloudIdSet&&!cloudIdSet.has(String(r.cloud_id)));}).length,
+        cloudOnly:cloudRows?remoteOnly.length:null,
+        pending:rows.filter(function(r){
+          return (r.sync_state==='pending'||r.sync_state==='pending_delete')&&(r.cloud_id||r.cloud_creation_approved||r.deleted);
+        }).length,
+        conflicts:active.filter(function(r){return r.conflict||r.sync_state==='conflict';}).length
+      };
+    }
+    function updateBrowserButtons(){
+      var counts=scopeCounts();
+      var labels={all:'All',localOnly:'Device only',cloudOnly:'Cloud only',pending:'To sync',conflicts:'Conflicts'};
+      modal.querySelectorAll('[data-local-scope]').forEach(function(button){
+        var key=button.getAttribute('data-local-scope'),n=counts[key];
+        button.textContent=labels[key]+(n!=null&&(n>0||key==='all')?' ('+n+')':'');
+        button.setAttribute('aria-pressed',String(key===view));
+      });
+      var candidates=rows.filter(function(r){
+        return !r.deleted&&!r.conflict&&r.sync_state!=='conflict'&&!r.cloud_id&&String(r.customer_name||'').trim();
+      });
+      var allSave=modal.querySelector('[data-local-upload-all]');
+      if(allSave){allSave.hidden=!candidates.length||LOCAL_ONLY;allSave.textContent='☁️ Save all to Cloud ('+candidates.length+')';}
+      var deleteConflicts=modal.querySelector('[data-local-delete-conflicts]');
+      if(deleteConflicts){deleteConflicts.hidden=!counts.conflicts;deleteConflicts.textContent='🗑️ Delete all conflicts ('+counts.conflicts+')';}
+    }
 
     function renderRows() {
+      updateBrowserButtons();
       var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
       var mode = String(sort && sort.value || 'recent');
       var visible = rows.filter(function (row) {
@@ -667,6 +690,26 @@
         query?'No customers match that search.':'No saved customers on this device yet.')+'</p>';
     }
 
+    // Keep the modal and its filter selection mounted while customer records
+    // change. A local refresh must never repeat the Cloud list loading screen.
+    modal._setCustomerScope=function(next){
+      if(['all','localOnly','cloudOnly','pending','conflicts'].indexOf(next)<0)return;
+      view=next;modal.dataset.customerScope=next;renderRows();
+    };
+    modal._refreshLocalCustomerRows=async function(){
+      var token=(modal._localRefreshToken||0)+1;modal._localRefreshToken=token;
+      var fresh=await store.list(true);
+      if(token!==modal._localRefreshToken||sequence!==customerBrowserSequence||!modal.classList.contains('open'))return;
+      rows=fresh;
+      recentRows(rows);
+      renderRows();
+      if(note){
+        var missing=cloudIdSet?rows.filter(function(r){return !r.deleted&&r.customer_name&&(!r.cloud_id||!cloudIdSet.has(String(r.cloud_id)));}).length:null;
+        note.textContent=LOCAL_ONLY?'Local-only mode: Cloud sync is paused.':
+          cloudRows?'On this device only: '+missing+' · Cloud only: '+remoteOnly.length+'. Ticks show record presence.':
+          'Customer records updated on this device. Cloud verification is not currently available.';
+      }
+    };
     if (search) search.oninput = renderRows;
     if (sort) sort.onchange = renderRows;
     renderRows();
