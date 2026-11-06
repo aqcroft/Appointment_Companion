@@ -132,7 +132,7 @@ test('the combined customer browser opens before awaiting its Cloud fetch',()=>{
   assert.ok(start>=0&&end>start);
   const body=controller.slice(start,end);
   const openAt=body.indexOf("modal.classList.add('open');");
-  const localAt=body.indexOf('await store.list(true)');
+  const localAt=body.indexOf('await store.list(true)',openAt);
   const cloudAt=body.indexOf('await api.listCustomers(credentials)');
   const busyAt=body.indexOf("modal.setAttribute('aria-busy','true')");
   assert.ok(openAt>=0&&busyAt>=0&&openAt<localAt&&localAt<cloudAt,
