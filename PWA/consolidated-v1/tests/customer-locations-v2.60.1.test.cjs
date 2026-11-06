@@ -234,7 +234,7 @@ test('customer-list actions are visually distinct and expose single-confirm bulk
   assert.match(controller,/data-local-delete-conflicts/);
   assert.match(controller,/Save all to Cloud/);
   assert.match(controller,/Delete all conflicts/);
-  assert.match(controller,/Show all customers/);
+  assert.match(controller,/All customers/);
   assert.match(controller,/uploadAll\.disabled=true/);
   assert.match(controller,/deleteAll\.disabled=true/);
   assert.match(controller,/if\(!global\.confirm\('Permanently delete all /);
@@ -246,7 +246,8 @@ test('one bin confirmation deletes linked conflicting customer locally and in Cl
   const deleted=await h.window.__controllerTest.markDeleted('local-001');
   assert.equal(deleted,true);
   assert.equal(h.stats().confirmed,1,'only one deletion confirmation');
-  assert.equal(h.stats().deletes,1,'Cloud removed once');
+  for(let i=0;i<120&&h.getRow();i++)await Promise.resolve();
+  assert.equal(h.stats().deletes,1,'Cloud removed once in the background');
   assert.equal(h.getRow(),null,'local record removed after server acknowledgement');
 });
 
@@ -269,4 +270,64 @@ test('old already-confirmed deletion migrates and completes without another prom
   assert.equal(h.stats().confirmed,0);
   assert.equal(h.stats().deletes,1);
   assert.equal(h.getRow(),null);
+});
+
+test('customer tab buttons have task counts and do not re-fetch Cloud when switched',()=>{
+  assert.match(controller,/id="localFirstCustomerScopes"/);
+  assert.match(controller,/data-local-scope="all"/);
+  assert.match(controller,/data-local-scope="localOnly"/);
+  assert.match(controller,/data-local-scope="cloudOnly"/);
+  assert.match(controller,/data-local-scope="pending"/);
+  assert.match(controller,/data-local-scope="conflicts"/);
+  assert.match(controller,/button\.setAttribute\('aria-pressed',String\(view===scope\)\)/);
+  assert.match(controller,/button\.textContent=names\[scope\]\+/);
+  const a=controller.indexOf('setScope:function(scope)');
+  const b=controller.indexOf('refreshLocalRows:refreshLocalRows',a);
+  assert.ok(a>=0&&b>a);
+  const switching=controller.slice(a,b);
+  assert.doesNotMatch(switching,/api\.listCustomers|customerBrowser\(/,'filter changes must not trigger Cloud loading');
+  assert.doesNotMatch(controller,/id="localFirstCustomerScope"/,'dropdown no longer exists');
+});
+test('customer deletion keeps the modal open and renders the list from IndexedDB',()=>{
+  const begin=controller.indexOf("var del = event.target.closest('[data-local-delete]')");
+  const end=controller.indexOf("var choice = event.target.closest('[data-local-conflict]')",begin);
+  assert.ok(begin>=0&&end>begin);
+  const deletion=controller.slice(begin,end);
+  assert.match(deletion,/modal\.__acBrowser\.refreshLocalRows\(\)/);
+  assert.doesNotMatch(deletion,/customerBrowser\(/,'delete must not reset the whole customer list');
+  assert.match(controller,/browser\.__acBrowser\.refreshLocalRows\(\)/,'Cloud sync must not reopen conflict views');
+});
+test('Save immediately uploads an existing Cloud customer, even during background checks',async()=>{
+  let resume;
+  const gate=new Promise(resolve=>{resume=resolve;});
+  const row={...makeRow(),cloud_id:'cloud-001',sync_state:'synced',
+    cloud_creation_approved:true,cloud_synced_local_revision:2,base_cloud_revision:'rev-1',
+    cloud_customer:{customer_id:'cloud-001',customer_name:'Synthetic Alice'}};
+  const h=harness({row,cloudPeople:[{customer_id:'cloud-001',customer_name:'Synthetic Alice',cloud_revision:'rev-1'}],
+    listCustomers:async n=>n===1?gate:{customers:[{customer_id:'cloud-001',customer_name:'Synthetic Alice',cloud_revision:'rev-1'}]}});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const background=engine.sync();
+  for(let i=0;i<24&&h.stats().listed<1;i++)await Promise.resolve();
+  assert.equal(h.stats().listed,1);
+  const manual=engine.saveCurrentCloudNow();
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert.equal(h.stats().saves,0,'explicit Save waits for the existing writer');
+  resume({customers:[{customer_id:'cloud-001',customer_name:'Synthetic Alice',cloud_revision:'rev-1'}]});
+  await background;
+  const result=await manual;
+  assert.equal(h.stats().saves,1,'Save writes selected Cloud ID now rather than returning a running sync report');
+  assert.equal(result.confirmed,true);
+  assert.equal(h.getRow().cloud_id,'cloud-001');
+  assert.equal(h.getRow().local_revision,h.getRow().cloud_synced_local_revision);
+});
+test('Save preserves local edits if offline rather than claiming Cloud success',async()=>{
+  const h=harness({online:false});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const result=await engine.saveCurrentCloudNow();
+  assert.equal(result.confirmed,false);
+  assert.equal(result.local,true);
+  assert.equal(h.stats().saves,0);
+  assert.ok(h.getRow().local_revision>=2);
 });
