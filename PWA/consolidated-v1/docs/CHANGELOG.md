@@ -1,3 +1,12 @@
+## v2.66.23 - 6th November 2026 - Customer actions, bulk Cloud backup and one-confirm deletion
+
+- Give Save to Cloud, Show all customers and delete buttons clear, consistent styling that works on desktop and mobile.
+- Add Save all to Cloud for named, device-only customers, using one confirmation, sequential Cloud verification and duplicate-name protection. Existing conflicts are excluded.
+- Add Delete all conflicts with one explicit warning. Individual bin deletions also require only one confirmation. Normal lists hide deletion requests immediately; Cloud acknowledgements finish in the background if necessary.
+- Recover old deletion requests that were incorrectly left as conflicts. A Cloud record already missing is treated as a completed deletion, not an endless conflict.
+- Refresh the Cloud status when opened, show how many Cloud records are also on the device and report the verification time. Exclude deletion tombstones from presence counts.
+- Add regression tests and update the Companion, EV, Should I Fix, About and service-worker cache to v2.66.23. Customer records are not bulk deleted or uploaded by the deployment itself.
+
 ## v2.66.22 - 6th November 2026 - Customer Cloud backup recovery
 
 - Confirmed customer saves are eligible for automatic Cloud backup. Edits stay local-first with a 90-second debounce and 15-minute background checks.
