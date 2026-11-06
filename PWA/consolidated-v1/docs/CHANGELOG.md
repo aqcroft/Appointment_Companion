@@ -1,3 +1,11 @@
+## v2.66.22 - 6th November 2026 - Customer Cloud backup recovery
+
+- Confirmed customer saves are eligible for automatic Cloud backup. Edits stay local-first with a 90-second debounce and 15-minute background checks.
+- Save to Cloud performs a prompt upload and customer-list upload buttons show progress without a delayed browser confirmation.
+- All first Cloud creations check duplicate names; lost acknowledgements can recover only with the same revision and matching full customer snapshot.
+- Unconfirmed drafts are not bulk-uploaded. Existing customer records and Cloud backend are unchanged.
+- Synchronise the Companion, EV, Should I Fix, About and PWA cache version to v2.66.22.
+
 ## v2.66.21 - 6th November 2026 - Restore first-12-month customer summaries
 
 - Remove the stale `mba` reference that caused a JavaScript ReferenceError after the November broadband offer simplification.
