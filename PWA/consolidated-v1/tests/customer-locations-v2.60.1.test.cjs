@@ -119,9 +119,9 @@ test('mobile/laptop/Cloud columns never claim another device is verified',()=>{
 });
 
 test('location browser includes explicit filters and prioritises device-only records',()=>{
-  assert.match(controller,/On this device only/);
-  assert.match(controller,/In Cloud only/);
-  assert.match(controller,/Sync conflicts/);
+  assert.match(controller,/data-local-scope="localOnly"/);
+  assert.match(controller,/data-local-scope="cloudOnly"/);
+  assert.match(controller,/data-local-scope="conflicts"/);
   assert.match(controller,/var difference=priority\(a\)-priority\(b\)/);
   assert.match(controller,/data-local-upload/);
   assert.match(controller,/Save to Cloud/);
@@ -236,7 +236,7 @@ test('customer-list actions are visually distinct and expose single-confirm bulk
   assert.match(controller,/data-local-delete-conflicts/);
   assert.match(controller,/Save all to Cloud/);
   assert.match(controller,/Delete all conflicts/);
-  assert.match(controller,/Show all customers/);
+  assert.match(controller,/data-local-scope="all"/);
   assert.match(controller,/uploadAll\.disabled=true/);
   assert.match(controller,/deleteAll\.disabled=true/);
   assert.match(controller,/if\(!global\.confirm\('Permanently delete all /);
