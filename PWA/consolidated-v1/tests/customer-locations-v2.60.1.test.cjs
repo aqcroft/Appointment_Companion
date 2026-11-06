@@ -23,7 +23,14 @@ function harness(options={}){
   const cloudPeople=options.cloudPeople||[];
   const deviceStore={
     get:async id=>id===row.local_id?clone(row):null,
-    put:async value=>{puts++;row=clone({...row,...value});return clone(row);},
+    put:async value=>{
+      puts++;
+      // A downloaded Cloud-only customer is a second IndexedDB row, never a
+      // replacement for a different local-only profile with the same name.
+      if(!value.local_id && value.cloud_id && value.cloud_id!==row.cloud_id)
+        return clone({local_id:'imported-cloud-'+value.cloud_id,...value});
+      row=clone({...row,...value});return clone(row);
+    },
     list:async()=>[clone(row)],
     remove:async()=>{row=null;},
     findCloud:async id=>row&&row.cloud_id===id?clone(row):null
