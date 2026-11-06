@@ -22,12 +22,12 @@ assert(shell.includes("https://aqcroft.github.io/ShouldIFix/Oct2026.html"),"Orig
 assert(shell.includes("fix-share-gate-v1.js"),"Existing share gate must remain in place");
 assert(shell.includes('function onFrameReady(){if(new URL(frame.src,location.href).searchParams.get("existing")==="1")return;'),"Prospective donor enhancements must not run inside the existing customer renewal iframe");
 assert(shell.includes("public-partner-branding-v1.js"),"Existing customer branding must remain");
-assert(main.includes("Appointment Companion v2.66.25"));
-assert(sw.includes("v2-66-25-financial-precision"));
+assert(main.includes("Appointment Companion v2.67"));
+assert(sw.includes("v2-67-save-switch"));
 assert(sw.includes("./should-i-fix/mode-toggle-v2.66.13.js"));
-assert.equal(manifest.name,"Appointment Companion v2.66.25");
-assert(status.includes("version: 'v2.66.25'"));
-assert(news.startsWith("## v2.66.25"));
+assert.equal(manifest.name,"Appointment Companion v2.67");
+assert(status.includes("version: 'v2.67'"));
+assert(news.startsWith("## v2.67"));
 
 function fakePage(query){
  const buttons=[{dataset:{fixMode:"current"},pressed:null,setAttribute(k,v){if(k==="aria-pressed")this.pressed=v;}},

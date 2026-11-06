@@ -76,11 +76,16 @@
       cloud_creation_approved:!!(current&&current.cloud_creation_approved)
     };
   }
-  // User data is compared without the timestamp generated on every capture.
+  // Compare equivalent saved and live shapes. Saved rows have already been
+  // canonicalised by IndexedDB; raw DOM capture also has app/saved_at metadata.
+  // Treating that metadata as a user edit caused false switch confirmations.
   function stableAppointment(appt) {
     if (!appt) return null;
-    var stable=clone(appt);
+    var value=canonical&&typeof canonical.normaliseAppointment==='function'?
+      canonical.normaliseAppointment(appt):appt;
+    var stable=clone(value);
     delete stable.saved_at;
+    delete stable.app;
     return stable;
   }
   function unchangedDraft(next,row) {
@@ -235,11 +240,11 @@
     modal.id = 'acProfileSwitchGuard';
     modal.className = 'basket-prompt';
     modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="acProfileSwitchTitle" style="max-width:410px">' +
-      '<h3 id="acProfileSwitchTitle">Save and close this customer?</h3>' +
+      '<h3 id="acProfileSwitchTitle">Save changes before switching?</h3>' +
       '<p class="sub" id="acProfileSwitchText"></p>' +
       '<div class="modal-actions" style="display:grid;gap:7px">' +
-        '<button class="btn-share" type="button" data-switch-choice="save">💾 Save locally & switch</button>' +
-        '<button class="btn-ghost" type="button" data-switch-choice="without">Switch without saving again</button>' +
+        '<button class="btn-share" type="button" data-switch-choice="save">💾 Save &amp; switch</button>' +
+        '<button class="btn-ghost" type="button" data-switch-choice="without">Switch without saving changes</button>' +
         '<button class="btn-ghost" type="button" data-switch-choice="stay">Stay here</button>' +
       '</div></div>';
     modal.addEventListener('click', function (event) {
@@ -252,12 +257,22 @@
   }
   function shouldAskBeforeSwitch(targetId) {
     if (!current || !currentId || String(targetId || '') === String(currentId)) return false;
-    try { return meaningful(canonical.capture()); } catch (_) { return meaningful(current.appointment_state); }
+    try {
+      // A profile containing data is not necessarily an unsaved profile.
+      // Compare the live form against its last committed local snapshot.
+      // draft(true) also detects a typed but unconfirmed customer-name change.
+      var live=draft(true);
+      if(!meaningful(live.appointment_state)&&!meaningful(current.appointment_state))return false;
+      return !unchangedDraft(live,current);
+    } catch (_) {
+      // On capture failure, protect any working values rather than switching.
+      return true;
+    }
   }
   function askBeforeSwitch(targetName) {
     var modal = ensureSwitchGuard();
     var currentName = String(current && current.customer_name || 'this customer');
-    $('acProfileSwitchText').textContent = 'Do you want to save and close ' + currentName + ' before opening ' + String(targetName || 'another customer') + '?';
+    $('acProfileSwitchText').textContent = 'Changes to ' + currentName + ' have not been saved yet. Save locally and to Cloud before opening ' + String(targetName || 'another customer') + '?';
     modal.classList.add('open');
     return new Promise(function (resolve) { pendingSwitchResolve = resolve; });
   }
@@ -268,9 +283,16 @@
       clearTimeout(saveTimer);
       var choice = await askBeforeSwitch(row.customer_name);
       if (choice === 'stay') return false;
-      if (choice === 'save') { var stored=await persist(false,false,true); if(!stored)return false; }
+      if (choice === 'save') {
+        // The main Save and Save & switch are the same local-first, targeted
+        // Cloud operation. No more separate local-only switch save.
+        var stored=await saveCurrentCloudNow();
+        if(!stored)return false;
+        var cloudPending=!LOCAL_ONLY&&!isSynced(stored);
+      }
     }
     await loadRecord(row, false);
+    if(cloudPending)status('Previous customer saved locally; Cloud backup is still pending or needs review.','');
     return true;
   }
   async function switchToLocalId(localId) {
@@ -916,11 +938,12 @@
   }
   async function startNewCustomer(fromDelete) {
     clearTimeout(saveTimer);
-    if (!fromDelete && (editedSinceSwitch || shouldAskBeforeSwitch('__new_customer__'))) {
+    if (!fromDelete && shouldAskBeforeSwitch('__new_customer__')) {
       var choice = await askBeforeSwitch('a new customer');
       if (choice === 'stay') return false;
       if (choice === 'save') {
-        try { if(!await persist(false,false,true))return false; } catch(error){status('Could not save this customer: '+((error&&error.message)||'Please retry.'),'bad');return false;}
+        try { if(!await saveCurrentCloudNow())return false; }
+        catch(error){status('Could not save this customer: '+((error&&error.message)||'Please retry.'),'bad');return false;}
       }
     }
     editedSinceSwitch=false;

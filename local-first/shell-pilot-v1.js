@@ -279,7 +279,7 @@
         '<span class="cloud-companion-mini' + (fixUsed ? ' on' : '') + '" title="Should I Fix?">📌</span>' +
         '<span class="cloud-companion-mini' + (evUsed ? ' on' : '') + '" title="EV Companion">🚙</span>' +
       '</span>' +
-      '<button class="cloud-profile-toggle" type="button" data-local-profile-toggle aria-expanded="false" title="Switch customer" aria-label="Show recent customers">⌄</button>';
+      '<button class="cloud-profile-toggle" type="button" data-local-profile-toggle aria-expanded="false" title="View all customers" aria-label="View all customers">⌄</button>';
   }
 
   function buildPanel() {
@@ -433,7 +433,14 @@
       const profileToggle = e.target && e.target.closest ? e.target.closest('[data-local-profile-toggle]') : null;
       if (profileToggle) {
         e.preventDefault();
-        toggleQuickProfiles();
+        // The original tiny dropdown used a separate localStorage recent
+        // cache, which can retain names after a record has been removed or
+        // before Cloud/IndexedDB have reconciled. Open the authoritative
+        // combined customer browser instead of presenting a second list.
+        const controller = window.AppointmentCompanionConsolidated;
+        if (controller && typeof controller.openCustomerBrowser === 'function')
+          controller.openCustomerBrowser();
+        else setStatus('The customer list is starting up. Try again in a moment.');
         return;
       }
       const profileChoice = e.target && e.target.closest ? e.target.closest('[data-local-profile-id]') : null;

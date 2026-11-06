@@ -20,6 +20,7 @@ function makeRow(){
 }
 function harness(options={}){
   let row=options.row?clone(options.row):makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0,deletes=0,timers=[];
+  let formSnapshot=null;
   const cloudPeople=options.cloudPeople||[];
   const deviceStore={
     get:async id=>id===row.local_id?clone(row):null,
@@ -59,7 +60,11 @@ function harness(options={}){
     setItem:()=>{},removeItem:()=>{}};
   const window={
     AppointmentCompanionLocalStore:deviceStore,AppointmentCompanionCloud:service,
-    AppointmentCompanionCanonical:{capture:()=>clone(row.appointment_state),restore:()=>{},normaliseAppointment:clone},
+    AppointmentCompanionCanonical:{
+      capture:()=>clone(formSnapshot||row.appointment_state),
+      restore:saved=>{formSnapshot=clone(saved);},
+      normaliseAppointment:saved=>{const data=clone(saved);if(data){delete data.app;delete data.saved_at;}return data;}
+    },
     confirm:()=>{confirmed++;return allow;},
     addEventListener:()=>{},dispatchEvent:()=>{},
     __AC_LOCAL_ONLY:false
@@ -68,13 +73,13 @@ function harness(options={}){
     getElementById:()=>null,addEventListener:()=>{}};
   const injected=controller.replace(
     '  global.AppointmentCompanionConsolidated =',
-    '  global.__controllerTest = {storageSignals,markDeleted};\n  global.AppointmentCompanionConsolidated =');
+    '  global.__controllerTest = {storageSignals,markDeleted,shouldAskBeforeSwitch};\n  global.AppointmentCompanionConsolidated =');
   assert.notEqual(injected,controller,'Controller test seam must exist');
   vm.runInNewContext(injected,{window,document:doc,navigator:{onLine:options.online!==false,userAgent:'Android Mobile'},
     sessionStorage:authStore,localStorage:authStore,
     setInterval:()=>0,setTimeout:(fn,ms)=>{timers.push(ms);return timers.length;},clearTimeout:()=>{},
     CustomEvent:class{},console,Date,Set,Promise}, {filename:'consolidated-controller-v2.56.3.js'});
-  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed,deletes}),timers};
+  return {window,getRow:()=>clone(row),setForm:snapshot=>{formSnapshot=clone(snapshot);},stats:()=>({saves,reads,confirmed,puts,listed,deletes}),timers};
 }
 
 test('explicit customer Save to Cloud needs acknowledgement and retrieval to report success',async()=>{
@@ -334,4 +339,70 @@ test('explicit Save refuses to overwrite a newer conflicting remote version',asy
   assert.equal(h.getRow().sync_state,'conflict');
   assert.ok(h.getRow().conflict,'both versions remain available for review');
   assert.equal(h.getRow().appointment_state.canonical.customerName,'Synthetic Alice');
+});
+
+test('switching an unchanged saved customer never asks to save again',async()=>{
+  const h=harness();
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  // The real canonical capture adds volatile metadata that IndexedDB removes.
+  const withMetadata={...h.getRow().appointment_state,app:'appointment-companion',
+    saved_at:'2026-11-06T20:50:00Z'};
+  h.setForm(withMetadata);
+  assert.equal(h.window.__controllerTest.shouldAskBeforeSwitch('another-local-id'),false,
+    'equivalent data, despite volatile metadata, should not prompt');
+});
+
+test('a real unsaved name or notes edit asks once, then a Save clears the prompt',async()=>{
+  const h=harness();
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const edited=clone(h.getRow().appointment_state);
+  edited.canonical.privateNotes='A genuine unsaved update';
+  h.setForm({...edited,app:'appointment-companion',saved_at:'2026-11-06T20:51:00Z'});
+  assert.equal(h.window.__controllerTest.shouldAskBeforeSwitch('another-local-id'),true,
+    'real unsaved form content should prompt');
+  const saved=await engine.saveCurrentCloudNow();
+  assert.ok(saved&&saved.local_id,'the same Save operation commits locally first');
+  assert.equal(h.window.__controllerTest.shouldAskBeforeSwitch('another-local-id'),false,
+    'after saving the changed values, switching should not prompt again');
+  const renamed=clone(edited);
+  renamed.canonical.customerName='Synthetic Alice Smith';
+  h.setForm(renamed);
+  assert.equal(h.window.__controllerTest.shouldAskBeforeSwitch('another-local-id'),true,
+    'typed but unconfirmed name must not be discarded without warning');
+});
+
+test('Save and switch reuse targeted Cloud Save rather than a local-only write',()=>{
+  const switchBody=controller.slice(controller.indexOf('  async function requestSwitchRecord('),
+    controller.indexOf('  async function switchToLocalId('));
+  assert.match(switchBody,/await saveCurrentCloudNow\(\)/);
+  assert.doesNotMatch(switchBody,/await persist\(false,false,true\)/);
+  const newCustomer=controller.slice(controller.indexOf('  async function startNewCustomer('),
+    controller.indexOf('  async function saveCurrentCloudNow('));
+  assert.match(newCustomer,/await saveCurrentCloudNow\(\)/);
+  assert.doesNotMatch(newCustomer,/editedSinceSwitch\s*\|\|\s*shouldAskBeforeSwitch/);
+  assert.match(controller,/Save &amp; switch/);
+});
+
+test('customer header shortcut opens the authoritative customer modal, not stale recent cache',()=>{
+  const shell=fs.readFileSync(path.resolve(__dirname,'../../../local-first/shell-pilot-v1.js'),'utf8');
+  const click=shell.slice(shell.indexOf('      if (profileToggle) {'),
+    shell.indexOf('      const profileChoice =',shell.indexOf('      if (profileToggle) {')));
+  assert.match(click,/controller\.openCustomerBrowser\(\)/);
+  assert.doesNotMatch(click,/toggleQuickProfiles\(\)/);
+  assert.match(shell,/title="View all customers" aria-label="View all customers"/);
+});
+
+test('v2.67 is a two-part product version shown without status truncation',()=>{
+  const base=path.resolve(__dirname,'..');
+  const status=fs.readFileSync(path.join(base,'unified-status-v2.59.0.js'),'utf8');
+  const shell=fs.readFileSync(path.join(base,'index.html'),'utf8');
+  const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
+  assert.match(status,/version:\s*'v2\.67'/);
+  assert.match(status,/esc\(meta\.version\)/);
+  assert.doesNotMatch(status,/meta\.version\.replace\(/);
+  assert.match(shell,/<title>Appointment Companion v2\.67<\/title>/);
+  assert.equal(manifest.name,'Appointment Companion v2.67');
+  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.67 /);
 });

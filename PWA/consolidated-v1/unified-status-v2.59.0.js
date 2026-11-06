@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.25 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.67 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,14 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.25',
+    version: 'v2.67',
     date: '6 November 2026',
-    summary: 'Monetary precision in savings and shared summaries',
+    summary: 'Save once, switch smoothly and one customer list',
     changes: [
+      'Previously saved customers switch without an unnecessary Save prompt; genuine unsaved changes still trigger one.',
+      'Save & switch uses the same locally safe, targeted Cloud upload as the main Save button.',
+      'The customer chevron now opens the full list, eliminating a separate stale recent-profile dropdown.',
+      'Product versions use v2.67, v2.68 and onward, displayed consistently in status and About.',
       'Customer savings retain original pennies; displayed customer card amounts round to nearest pound only.',
       'Shared summary snapshots preserve exact service totals and six-month broadband benefits without changing cashback rules.',
       'Customer lists now have five tappable filters with live counts and no Cloud reload when switching.',
@@ -57,7 +61,7 @@
       'Five price-cap quarters and three tariff rows mirror the clean prospective comparison layout.',
       'Colour-coded cost totals remain visible; detailed chart methodology is behind How these estimates work.',
       'The historical rate feed, customer sharing guard and manual rate options remain unchanged.',
-      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.25.',
+      'Should I Fix uses the same visible app version as Appointment Companion: v2.67.',
       'Existing-customer tariff shortcuts are now 66 / 65 / Choose and 100 / 99 / Choose, each with a manual-rate settings cog.',
       'Tariff details are available on demand; lengthy selection confirmations are hidden without removing the archive or calculations.',
       'Manually entered renewal rates remain on-screen scenarios only and cannot generate verified customer-sharing links.',
@@ -698,7 +702,7 @@
     css();
     version.style.display='none';if(rag)rag.style.display='none';
     trigger=document.createElement('button');trigger.id='acUnifiedStatusTrigger';trigger.type='button';
-    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version.replace(/^(v\d+\.\d+)\.\d+$/, '$1'))+'</span>'+
+    trigger.innerHTML='<span class="ac-us-version-top">'+esc(meta.version)+'</span>'+
       '<span class="ac-us-signals" aria-hidden="true">'+signals()+'</span>';
     stack.insertBefore(trigger,version);
     trigger.addEventListener('click',open);

@@ -131,7 +131,7 @@ test('update history begins collapsed and displays last three versions',()=>{
   const html=h.status.appSection();
   assert.match(html,/Last 3 updates/);
   const version=h.win.AppointmentCompanionRelease.version;
-  assert.match(version,/^v\d+\.\d+\.\d+$/);
+  assert.match(version,/^v\d+\.\d+$/);
   assert.ok(html.includes('<span class="ac-us-version">'+version+'</span>'));
 
   assert.doesNotMatch(html,/ac-us-update-history/);
