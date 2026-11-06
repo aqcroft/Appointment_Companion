@@ -585,32 +585,85 @@
       'This device is available. Cloud presence could not be verified'+(cloudError?' ('+cloudError+')':'')+'.';
 
     var search=$('localFirstCustomerSearch');
-    if(search && view!=='all')search.value='';
     var sort=$('localFirstCustomerSort');
     var wrap=$('localFirstCustomerRows');
-    var scopePicker=$('localFirstCustomerScope');if(scopePicker)scopePicker.value=view;
-    var conflictToggle=$('localFirstConflictToggle');
-    var conflictCount=rows.filter(function(row){return !row.deleted&&(row.conflict||row.sync_state==='conflict');}).length;
-    if(conflictToggle){
-      conflictToggle.textContent=view==='conflicts'?'Show all customers':'Show conflicts only';
-      conflictToggle.hidden=!conflictCount && view!=='conflicts';
-    }
-    var uploadCandidates=rows.filter(function(row){return !row.deleted&&!row.conflict&&row.sync_state!=='conflict'&&!row.cloud_id&&String(row.customer_name||'').trim();});
-    var allSave=modal.querySelector('[data-local-upload-all]');
-    if(allSave){allSave.hidden=!uploadCandidates.length||LOCAL_ONLY;allSave.textContent='☁️ Save all to Cloud ('+uploadCandidates.length+')';}
-    var bulkDelete=modal.querySelector('[data-local-delete-conflicts]');
-    if(bulkDelete){bulkDelete.hidden=!conflictCount;bulkDelete.textContent='🗑️ Delete all conflicts ('+conflictCount+')';}
+    var hiddenRemoteIds=new Set();
 
+    function isPendingTask(row){
+      if(!row)return false;
+      if(row.deleted)return row.sync_state==='pending_delete';
+      return !!String(row.customer_name||'').trim()&&!row.conflict&&row.sync_state!=='conflict'&&
+        (!row.cloud_id||row.sync_state==='pending');
+    }
+    function isDeviceOnly(row){
+      return !!row&&!row.deleted&&(!row.cloud_id||(cloudIdSet&&!cloudIdSet.has(String(row.cloud_id))));
+    }
+    function updateBrowserControls(){
+      var active=rows.filter(function(r){return !r.deleted;});
+      var count={
+        all:active.length+remoteOnly.length,
+        localOnly:active.filter(isDeviceOnly).length,
+        cloudOnly:cloudRows?remoteOnly.length:null,
+        pending:rows.filter(isPendingTask).length,
+        conflicts:active.filter(function(r){return !!(r.conflict||r.sync_state==='conflict');}).length
+      };
+      var names={all:'All customers',localOnly:'Device only',cloudOnly:'Cloud only',
+        pending:'Needs syncing',conflicts:'Conflicts'};
+      modal.querySelectorAll('[data-local-scope]').forEach(function(button){
+        var scope=button.getAttribute('data-local-scope'),n=count[scope];
+        button.textContent=names[scope]+(n!=null&&(scope==='all'||n>0)?' ('+n+')':'');
+        button.setAttribute('aria-pressed',String(view===scope));
+      });
+      var candidates=active.filter(function(r){
+        return !r.conflict&&r.sync_state!=='conflict'&&!r.cloud_id&&String(r.customer_name||'').trim();
+      });
+      var uploadAll=modal.querySelector('[data-local-upload-all]');
+      if(uploadAll){uploadAll.hidden=!candidates.length||LOCAL_ONLY;uploadAll.textContent='☁️ Save all to Cloud ('+candidates.length+')';}
+      var deleteAll=modal.querySelector('[data-local-delete-conflicts]');
+      if(deleteAll){deleteAll.hidden=!count.conflicts;deleteAll.textContent='🗑️ Delete all conflicts ('+count.conflicts+')';}
+    }
+    function recalculateRemoteOnly(){
+      if(!cloudRows){remoteOnly=[];return;}
+      var linked=new Set(rows.filter(function(r){return r.cloud_id;}).map(function(r){return String(r.cloud_id);}));
+      remoteOnly=cloudRows.filter(function(r){
+        return r&&r.customer_id&&!linked.has(String(r.customer_id))&&!hiddenRemoteIds.has(String(r.customer_id));
+      });
+    }
+    async function refreshLocalRows(){
+      var fresh=await store.list(true);
+      if(!modal.classList.contains('open')||modal.__acBrowser!==browserInterface)return;
+      rows=Array.isArray(fresh)?fresh:[];
+      if(cloudIdSet)rows.forEach(function(r){
+        if(r.cloud_id&&isSynced(r))cloudIdSet.add(String(r.cloud_id));
+      });
+      recalculateRemoteOnly();
+      updateBrowserControls();
+      renderRows();
+      var note=$('localFirstCustomersNote');
+      if(note)note.textContent='On this device only: '+rows.filter(isDeviceOnly).length+
+        ' · Cloud only: '+(cloudRows?remoteOnly.length:'not checked')+
+        '. Ticks show record presence. Another device cannot be checked remotely.';
+    }
+    var browserInterface={
+      setScope:function(scope){
+        if(['all','localOnly','cloudOnly','pending','conflicts'].indexOf(scope)<0)return;
+        view=scope;modal.dataset.customerScope=scope;
+        updateBrowserControls();renderRows();
+      },
+      refreshLocalRows:refreshLocalRows,
+      hideRemoteId:function(id){if(id)hiddenRemoteIds.add(String(id));}
+    };
+    modal.__acBrowser=browserInterface;
+    updateBrowserControls();
 
     function renderRows() {
       var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
       var mode = String(sort && sort.value || 'recent');
       var visible = rows.filter(function (row) {
         if (row.deleted && !(view==='pending' && row.sync_state==='pending_delete')) return false;
-        if(view==='pending' && !(row.sync_state==='pending'||row.sync_state==='pending_delete') )return false;
-        if(view==='pending' && !(row.cloud_id||row.cloud_creation_approved||row.deleted))return false;
-        if(view==='conflicts' && !row.conflict && row.sync_state!=='conflict')return false;
-        if(view==='localOnly' && row.cloud_id && (!cloudIdSet||cloudIdSet.has(String(row.cloud_id))))return false;
+        if(view==='pending' && !isPendingTask(row))return false;
+        if(view==='conflicts' && !(row.conflict||row.sync_state==='conflict'))return false;
+        if(view==='localOnly' && !isDeviceOnly(row))return false;
         if(view==='cloudOnly')return false;
         if (!query) return true;
         return String(row.customer_name || 'Unnamed').toLocaleLowerCase('en-GB').indexOf(query) !== -1;
