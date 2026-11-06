@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.18 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.66.20 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.18',
+    version: 'v2.66.20',
     date: '5 November 2026',
-    summary: 'Forecast rows together, with fuel-aware rates',
+    summary: 'Exact forecast equivalence and compact desktop view',
     changes: [
+      'Six percentage stress-test buttons and explicit percentage/pence activation, with matching default graph values.',
+      'The approved MSE forecast dynamically calculates full-precision gas/electricity pence defaults, currently displayed as 11.36p and 33.3p.',
+      'Gas and electricity unit-rate stress tests are independent. Desktop Should I Fix uses a compact header without the redundant full-width title strip.',
       'Should I Fix shows percentage and relevant pence options together, without a separate Percentage / Unit rates toggle.',
       'Only the last-selected forecast method is active; electricity-only comparisons hide the gas row and gas-only comparisons hide electricity.',
       'The MSE 28.8% default, quarterly forecasts and the six unit-rate choices per fuel remain available.',
@@ -43,7 +46,7 @@
       'Five price-cap quarters and three tariff rows mirror the clean prospective comparison layout.',
       'Colour-coded cost totals remain visible; detailed chart methodology is behind How these estimates work.',
       'The historical rate feed, customer sharing guard and manual rate options remain unchanged.',
-      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.18.',
+      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.20.',
       'Existing-customer tariff shortcuts are now 66 / 65 / Choose and 100 / 99 / Choose, each with a manual-rate settings cog.',
       'Tariff details are available on demand; lengthy selection confirmations are hidden without removing the archive or calculations.',
       'Manually entered renewal rates remain on-screen scenarios only and cannot generate verified customer-sharing links.',
