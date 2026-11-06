@@ -393,3 +393,16 @@ test('customer header shortcut opens the authoritative customer modal, not stale
   assert.doesNotMatch(click,/toggleQuickProfiles\(\)/);
   assert.match(shell,/title="View all customers" aria-label="View all customers"/);
 });
+
+test('v2.67 is a two-part product version shown without status truncation',()=>{
+  const base=path.resolve(__dirname,'..');
+  const status=fs.readFileSync(path.join(base,'unified-status-v2.59.0.js'),'utf8');
+  const shell=fs.readFileSync(path.join(base,'index.html'),'utf8');
+  const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
+  assert.match(status,/version:\s*'v2\.67'/);
+  assert.match(status,/esc\(meta\.version\)/);
+  assert.doesNotMatch(status,/meta\.version\.replace\(/);
+  assert.match(shell,/<title>Appointment Companion v2\.67<\/title>/);
+  assert.equal(manifest.name,'Appointment Companion v2.67');
+  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.67 /);
+});
