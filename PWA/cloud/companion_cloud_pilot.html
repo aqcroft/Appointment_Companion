@@ -457,8 +457,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
     </div>
     <div id="billCosts" class="hidden" style="margin-bottom: 0.8rem;">
       <div class="row2">
-        <div class="field money"><label>⚡ Electricity annual £</label><input type="number" id="elecAnnualCost" inputmode="numeric" placeholder="0"></div>
-        <div class="field money"><label>🔥 Gas annual £</label><input type="number" id="gasAnnualCost" inputmode="numeric" placeholder="0"></div>
+        <div class="field money"><label>⚡ Electricity annual £</label><input type="number" id="elecAnnualCost" inputmode="decimal" step="0.01" placeholder="0"></div>
+        <div class="field money"><label>🔥 Gas annual £</label><input type="number" id="gasAnnualCost" inputmode="decimal" step="0.01" placeholder="0"></div>
       </div>
       <p class="sub">Monthly used for comparison: £<span id="billMonthlyEq">0</span> (annual ÷ 12)</p>
     </div>
@@ -565,8 +565,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <span class="tag">Current (monthly direct debit)</span>
         <div id="energyCombinedNow">
           <div class="row2">
-            <div class="field money"><label>Monthly cost</label><input type="number" id="currentEnergyMonthly" inputmode="numeric" placeholder="0"></div>
-            <div class="field money"><label>Exit fee</label><input type="number" id="currentEnergyExitFee" inputmode="numeric" placeholder="0"></div>
+            <div class="field money"><label>Monthly cost</label><input type="number" id="currentEnergyMonthly" inputmode="decimal" step="0.01" placeholder="0"></div>
+            <div class="field money"><label>Exit fee</label><input type="number" id="currentEnergyExitFee" inputmode="decimal" step="0.01" placeholder="0"></div>
           </div>
         </div>
         <div id="energySplitNow" class="hidden">
@@ -576,14 +576,14 @@ label.active-tier { color:var(--purple); font-weight:700; }
           </div>
           <div id="splitElecRow">
             <div class="row2">
-              <div class="field money"><label>⚡ Electricity /m</label><input type="number" id="currentElecMonthly" inputmode="numeric" placeholder="0"></div>
-              <div class="field money"><label>Exit fee</label><input type="number" id="currentElecExitFee" inputmode="numeric" placeholder="0"></div>
+              <div class="field money"><label>⚡ Electricity /m</label><input type="number" id="currentElecMonthly" inputmode="decimal" step="0.01" placeholder="0"></div>
+              <div class="field money"><label>Exit fee</label><input type="number" id="currentElecExitFee" inputmode="decimal" step="0.01" placeholder="0"></div>
             </div>
           </div>
           <div id="splitGasRow">
             <div class="row2">
-              <div class="field money"><label>🔥 Gas /m</label><input type="number" id="currentGasMonthly" inputmode="numeric" placeholder="0"></div>
-              <div class="field money"><label>Exit fee</label><input type="number" id="currentGasExitFee" inputmode="numeric" placeholder="0"></div>
+              <div class="field money"><label>🔥 Gas /m</label><input type="number" id="currentGasMonthly" inputmode="decimal" step="0.01" placeholder="0"></div>
+              <div class="field money"><label>Exit fee</label><input type="number" id="currentGasExitFee" inputmode="decimal" step="0.01" placeholder="0"></div>
             </div>
           </div>
         </div>
@@ -592,13 +592,13 @@ label.active-tier { color:var(--purple); font-weight:700; }
         <span class="tag">UW</span>
         <div class="field money">
           <label>Monthly cost <button type="button" id="bundleRatesBtn" class="sandwich-btn" title="Capture bundle rates at each service tier">🥪</button></label>
-          <input type="number" id="uwEnergyMonthly" inputmode="numeric" placeholder="0">
+          <input type="number" id="uwEnergyMonthly" inputmode="decimal" step="0.01" placeholder="0">
         </div>
         <div id="bundleRatePanel" class="hidden" style="margin-top:0.4rem; padding:0.6rem; background:#faf7ff; border-radius:8px; border:1px solid var(--line);">
           <p class="sub" style="margin-bottom:0.5rem; font-weight:600;">Bundle rates — enter as you build your quote</p>
-          <div class="field money"><label id="uwE1Lbl">Energy only</label><input type="number" id="uwEnergyTier1" inputmode="numeric" placeholder="0"></div>
-          <div class="field money"><label id="uwE2Lbl">+ 1 other service</label><input type="number" id="uwEnergyTier2" inputmode="numeric" placeholder="0"></div>
-          <div class="field money" style="margin-bottom:0;"><label id="uwE3Lbl">+ 2 other services</label><input type="number" id="uwEnergyTier3" inputmode="numeric" placeholder="0"></div>
+          <div class="field money"><label id="uwE1Lbl">Energy only</label><input type="number" id="uwEnergyTier1" inputmode="decimal" step="0.01" placeholder="0"></div>
+          <div class="field money"><label id="uwE2Lbl">+ 1 other service</label><input type="number" id="uwEnergyTier2" inputmode="decimal" step="0.01" placeholder="0"></div>
+          <div class="field money" style="margin-bottom:0;"><label id="uwE3Lbl">+ 2 other services</label><input type="number" id="uwEnergyTier3" inputmode="decimal" step="0.01" placeholder="0"></div>
         </div>
         <p id="bundleGateMsg" class="hidden sub" style="color:#b08000; font-weight:600; margin-top:0.5rem;">⚠️ Add both the "+ 1 other service" (this basket) and "+ 2 other services" (with the meal-deal SIM) UW energy rates above, so the shared upgrade compares correctly.</p>
         <p class="sub" style="margin-top:0.35rem;">From uw.co.uk/quote — keyed during the appointment.</p>
@@ -615,8 +615,8 @@ label.active-tier { color:var(--purple); font-weight:700; }
       <div class="side">
         <span class="tag">Current</span>
         <div class="row2">
-          <div class="field money"><label>Monthly cost</label><input type="number" id="currentBroadbandMonthly" inputmode="numeric" placeholder="0"></div>
-          <div class="field money"><label>Exit fee</label><input type="number" id="currentBroadbandExitFee" inputmode="numeric" placeholder="0"></div>
+          <div class="field money"><label>Monthly cost</label><input type="number" id="currentBroadbandMonthly" inputmode="decimal" step="0.01" placeholder="0"></div>
+          <div class="field money"><label>Exit fee</label><input type="number" id="currentBroadbandExitFee" inputmode="decimal" step="0.01" placeholder="0"></div>
         </div>
       </div>
       <div class="side uw">
@@ -1079,9 +1079,14 @@ const CONFIG = {
 /* ============================ /CONFIG =========================== */
 
 const $ = id => document.getElementById(id);
-const num = id => { const el = $(id); return el ? (parseInt(el.value, 10) || 0) : 0; };
-const numF = id => { const el = $(id); return el ? (parseFloat(el.value) || 0) : 0; };
-const ceilF = id => Math.ceil(numF(id));
+// Convert entered monetary amounts into integer pennies before calculations.
+// Keep fractional monthly equivalents of annual figures until final display.
+function toPennies(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+const num = id => { const el = $(id); return el ? toPennies(el.value) / 100 : 0; };
+const numF = num;
 
 const state = {
   services: { energy: false, broadband: false, mobile: false },
@@ -1395,8 +1400,8 @@ function buildSims() {
       '<div class="sim-compare">' +
         '<div class="side">' +
           '<span class="tag">Current</span>' +
-          '<div class="field money"><label>Monthly cost</label><input type="number" inputmode="numeric" data-field="monthlyCost" data-sim="' + key + '" placeholder="0"' + (sim.monthlyCost ? ' value="' + sim.monthlyCost + '"' : '') + '></div>' +
-          '<div class="field money"><label>Exit fee</label><input type="number" inputmode="numeric" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
+          '<div class="field money"><label>Monthly cost</label><input type="number" inputmode="decimal" step="0.01" data-field="monthlyCost" data-sim="' + key + '" placeholder="0"' + (sim.monthlyCost ? ' value="' + sim.monthlyCost + '"' : '') + '></div>' +
+          '<div class="field money"><label>Exit fee</label><input type="number" inputmode="decimal" step="0.01" data-field="exitFee" data-sim="' + key + '" placeholder="0"' + (sim.exitFee ? ' value="' + sim.exitFee + '"' : '') + '></div>' +
         '</div>' +
         '<div class="side uw">' +
           '<span class="tag">UW</span>' +
@@ -1444,7 +1449,7 @@ document.addEventListener('input', e => {
   } else if (field === 'name') {
     state.sims[key].name = e.target.value;
   } else {
-    state.sims[key][field] = parseInt(e.target.value, 10) || 0;
+    state.sims[key][field] = toPennies(e.target.value) / 100;
   }
   calc();
 });
@@ -1562,9 +1567,9 @@ function compute(previewSims = 0) {
       ? (state.splitGas ? num('currentGasMonthly') : 0) + (state.splitElec ? num('currentElecMonthly') : 0)
       : num('currentEnergyMonthly');
     if ($('useBillCosts').checked) {
-      const annualEq = Math.round((num('gasAnnualCost') + num('elecAnnualCost')) / 12);
+      const annualEq = (num('gasAnnualCost') + num('elecAnnualCost')) / 12;
       if (annualEq > 0) currentEnergy = annualEq;
-      $('billMonthlyEq').textContent = annualEq;
+      $('billMonthlyEq').textContent = money(annualEq);
     }
   }
   let uwEnergy = 0;
@@ -1597,7 +1602,7 @@ function compute(previewSims = 0) {
   const uwBbRaw = state.services.broadband ? numF('uwBroadbandMonthly') : 0;
   const dhpCost = state.services.broadband ? (state.dhpPlan || 0) : 0;
   const wifiCost = (state.services.broadband && $('wholeHomeWifiToggle').checked) ? CONFIG.broadband.wholeHomeWifi : 0;
-  const uwBb = Math.ceil(uwBbRaw) + dhpCost + wifiCost; // always round up for customer-facing figures
+  const uwBb = uwBbRaw + dhpCost + wifiCost; // preserve exact quoted price in all calculations
 
   // --- mobile ---
   let currentMob = 0, uwMob = 0, mobExit = 0;
@@ -1679,7 +1684,7 @@ function compute(previewSims = 0) {
     // Conservative, easy-to-explain benefit: free months at the quoted monthly
     // broadband price, excluding any later April price increase.
     // Round once so displayed value and year-one benefits remain consistent.
-    bbFree = Math.round(fm * uwBbRaw);
+    bbFree = fm * uwBbRaw;
   }
 
   // --- introductory free months on additional Go Unlimited SIMs ---
@@ -1786,6 +1791,9 @@ function validateInputs(r) {
 
 /* ---------- render ---------- */
 function money(n) { const v = Math.round(n * 100) / 100; const dp = v % 1 !== 0 ? 2 : 0; return v.toLocaleString('en-GB', { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+// Customer-facing amounts round the complete calculated total, not its parts.
+function cardMoney(n) { return Math.round(Math.abs(Number(n) || 0)).toLocaleString('en-GB'); }
+function cardAmount(n) { return (n < 0 ? '−£' : '£') + cardMoney(n); }
 const basketLink = () => $('basketLink').value.trim();
 const firstName = () => ($('customerName').value.trim().split(/\s+/)[0] || '');
 function cashbackBasisText(tier, spend) {
@@ -1877,7 +1885,7 @@ function calc() {
 
 /* ---------- share card ---------- */
 function saveLine(el, val) {
-  el.textContent = (val < 0 ? '−£' + money(Math.abs(val)) : '£' + money(val));
+  el.textContent = cardAmount(val);
   el.classList.toggle('bad', val < 0);
   el.classList.toggle('good', val > 0);
 }
@@ -1933,7 +1941,7 @@ function renderCard(r) {
   const mdSims = Object.values(state.sims).filter(s => s.include && s.mealDeal);
   const totalMd = mdSims.length + r.previewApplied;
   const mdEmoji = totalMd ? ' ' + '🥪'.repeat(totalMd) : '';
-  const fmt = (v, suf) => (v < 0 ? '−£' + money(Math.abs(v)) : '£' + money(v)) + (suf || '');
+  const fmt = (v, suf) => cardAmount(v) + (suf || '');
   // When previewing, shows "<+/-£delta> <old, struck through, grey>" on one line.
   // invert=true for COST fields (UW monthly, UW energy) where rising = bad/red.
   // nowrap keeps delta+struck on the same line regardless of cell width — prevents layout jitter.
@@ -2025,8 +2033,8 @@ function renderCard(r) {
   const reasons = [];
   if (adjustOn && state.manualAdjustPeriod === 'annual') {
     const parts = [];
-    if (r.manualAdjustCurrent) parts.push('Current £' + money(r.manualAdjustCurrent * 12) + '/yr');
-    if (r.manualAdjustUw) parts.push('UW £' + money(r.manualAdjustUw * 12) + '/yr');
+    if (r.manualAdjustCurrent) parts.push('Current £' + cardMoney(r.manualAdjustCurrent * 12) + '/yr');
+    if (r.manualAdjustUw) parts.push('UW £' + cardMoney(r.manualAdjustUw * 12) + '/yr');
     reasons.push('Entered annually — ' + parts.join(', ') + ', shown as monthly');
   }
   if (r.manualAdjustCurrentReason) reasons.push('Current: ' + r.manualAdjustCurrentReason);
@@ -2042,7 +2050,7 @@ function renderCard(r) {
   if (r.cbOn) {
     // UW column shows cashback as a reduction (negative = good) — inverted vs saveLine's usual logic
     const cbUwVal = -r.cashbackNet;
-    $('scCbUw').textContent = (cbUwVal < 0 ? '−£' + money(Math.abs(cbUwVal)) : '£' + money(cbUwVal));
+    $('scCbUw').textContent = (cbUwVal < 0 ? '−£' + cardMoney(Math.abs(cbUwVal)) : '£' + cardMoney(cbUwVal));
     $('scCbUw').classList.toggle('good', cbUwVal < 0);
     $('scCbUw').classList.toggle('bad', cbUwVal > 0);
     saveLine($('scCbSave'), r.cashbackNet);
@@ -2055,7 +2063,7 @@ function renderCard(r) {
   // upfront & year-one
   $('scBbFreeRow').classList.toggle('hidden', r.bbFree === 0);
   $('scBbFree').textContent = '£' + Math.round(r.bbFree);
-  $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + Math.round(r.uwBbRaw) + ')';
+  $('scBbFreeLabel').textContent = '🛜 ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ £' + money(r.uwBbRaw) + ')';
   $('scWelcomeRow').classList.toggle('hidden', r.welcome === 0);
   $('scWelcomeLabel').textContent = '💷 Welcome Bonus (' + (r.welcome / 50) + 'm @ £50)';
   deltaOld($('scWelcome'), real.welcome, r.welcome);
@@ -2080,7 +2088,7 @@ function renderCard(r) {
     const isRefund = r.oneOff > 0;
     const defLabel = isRefund ? 'One-off refund' : 'One-off charge';
     $('scOneOffLabel').textContent = '💷 ' + (r.oneOffLabel || defLabel);
-    $('scOneOff').textContent = (isRefund ? '£' : '−£') + money(Math.abs(r.oneOff));
+    $('scOneOff').textContent = (isRefund ? '£' : '−£') + cardMoney(Math.abs(r.oneOff));
     $('scOneOff').classList.toggle('good', isRefund);
     $('scOneOff').classList.toggle('bad', !isRefund);
   }
@@ -2092,12 +2100,12 @@ function renderCard(r) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     let msg;
     if (r.refunded && r.exitDeduction === 0) {
-      msg = '↩️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
+      msg = '↩️ £' + cardMoney(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW ✅';
     } else if (r.refunded && r.exitDeduction > 0) {
-      msg = "↩️ £" + money(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + money(r.exitDeduction) + " still to pay, already included above — so you're still better off";
+      msg = "↩️ £" + cardMoney(r.exitFees) + " in exit fees — up to £" + maxR + " refunded by UW<br>£" + cardMoney(r.exitDeduction) + " still to pay, already included above — so you're still better off";
     } else {
       const needed = CONFIG.exitFeeRefund.minServices - r.count;
-      msg = '⚠️ £' + money(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
+      msg = '⚠️ £' + cardMoney(r.exitFees) + ' in exit fees — up to £' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
     }
     $('scExitMsg').innerHTML = msg;
   }
@@ -2105,7 +2113,7 @@ function renderCard(r) {
   // benefits total = everything in this section, including exit fees still to pay.
   // Year-one Savings on Services + this Total = the hero figure, exactly.
   $('scExitDeductionRow').classList.toggle('hidden', r.exitDeduction === 0);
-  $('scExitDeduction').textContent = '−£' + money(r.exitDeduction);
+  $('scExitDeduction').textContent = '−£' + cardMoney(r.exitDeduction);
   const benefitsTotal = r.bbFree + r.welcome + r.referral + r.natLeague + r.connector + r.mobileFreeMonths
     + (r.cbOn ? r.freeMonthsValue : 0)
     + r.oneOff
@@ -2332,7 +2340,7 @@ function buildShareData() {
       cM: r.currentMob, uM: r.uwMob, md: mealDealCount,
       is: r.includedSimsCount,
       cT: r.currentTotal, uT: r.uwTotalBase, sM: r.monthlySaving,
-      ct: r.count, w: r.welcome, rf: r.referral, nl: r.natLeague, cr:r.connector, rr:r.referralRoute, bf: Math.round(r.bbFree),
+      ct: r.count, w: r.welcome, rf: r.referral, nl: r.natLeague, cr:r.connector, rr:r.referralRoute, bf: r.bbFree,
       mf: Math.round(r.mobileFreeMonths), au: r.additionalUnlimited,
       ef: r.exitFees, ed: r.exitDeduction,
       cn: r.cashbackNet, fm: r.freeMonthsValue, cs: r.spend, cbt: state.cbTier,
@@ -3295,7 +3303,7 @@ function b64urlDecode(str) {
 // same #shareCard the in-app modal uses, so output is identical.
 function renderShared(d) {
   const g = (k, def) => (d[k] !== undefined ? d[k] : (def !== undefined ? def : 0));
-  const fmtV = v => (v < 0 ? '\u2212\u00a3' + money(Math.abs(v)) : '\u00a3' + money(v));
+  const fmtV = v => cardAmount(v);
   const setM = (id, v) => { $(id).textContent = fmtV(v); };
   const f = g('f');
   const hasEnergy = !!(f & 1);
@@ -3380,8 +3388,8 @@ function renderShared(d) {
   const reasons = [];
   if (g('map') && adjustOn) {
     const parts = [];
-    if (mac) parts.push('Current £' + money(mac * 12) + '/yr');
-    if (mau) parts.push('UW £' + money(mau * 12) + '/yr');
+    if (mac) parts.push('Current £' + cardMoney(mac * 12) + '/yr');
+    if (mau) parts.push('UW £' + cardMoney(mau * 12) + '/yr');
     reasons.push('Entered annually — ' + parts.join(', ') + ', shown as monthly');
   }
   if (g('macr', '')) reasons.push('Current: ' + g('macr', ''));
@@ -3406,26 +3414,26 @@ function renderShared(d) {
   saveLine($('scBdTotSave'), totSave);
   const bf = g('bf'), w = g('w'), rf = g('rf'), nl = g('nl'), mf = g('mf'), bcf = g('bcf'), ed = g('ed'), fm = g('fm'), au = g('au'), bc = g('bc');
   $('scReferralRow').classList.toggle('hidden', rf === 0);
-  $('scReferral').textContent = '\u00a3' + money(rf);
+  $('scReferral').textContent = '\u00a3' + cardMoney(rf);
   $('scNatLeagueRow').classList.toggle('hidden', nl === 0);
-  $('scNatLeague').textContent = '\u00a3' + money(nl);
+  $('scNatLeague').textContent = '\u00a3' + cardMoney(nl);
   $('scConnectorRow').classList.toggle('hidden', g('cr') === 0);
-  $('scConnector').textContent = '\u00a3' + money(g('cr'));
+  $('scConnector').textContent = '\u00a3' + cardMoney(g('cr'));
   $('scBbFreeRow').classList.toggle('hidden', bf === 0);
-  $('scBbFree').textContent = '\u00a3' + money(bf);
-  $('scBbFreeLabel').textContent = '\ud83d\udedc ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ \u00a3' + Math.round(g('uBr')) + ')';
+  $('scBbFree').textContent = '\u00a3' + cardMoney(bf);
+  $('scBbFreeLabel').textContent = '\ud83d\udedc ' + CONFIG.broadband.freeMonths + 'm free Full Fibre (' + CONFIG.broadband.freeMonths + 'm @ \u00a3' + money(g('uBr')) + ')';
   $('scMobileFreeRow').classList.toggle('hidden', mf === 0);
-  $('scMobileFree').textContent = '\u00a3' + money(mf);
+  $('scMobileFree').textContent = '\u00a3' + cardMoney(mf);
   { const simMo = CONFIG.mobile.plans.unlimitedMax.freeMonths, simRt = CONFIG.mobile.plans.unlimitedMax.monthly;
     $('scMobileFreeLabel').textContent = '\ud83d\udcf1 ' + simMo + 'm free Go Unlimited SIM' + (au > 1 ? 's' : '') + ' (' + (au > 1 ? au + ' \u00d7 ' : '') + simMo + 'm @ \u00a3' + simRt + ')'; }
   $('scWelcomeRow').classList.toggle('hidden', w === 0);
   $('scWelcomeLabel').textContent = '\ud83d\udcb7 Welcome Bonus (' + (w / 50) + 'm @ \u00a350)';
-  $('scWelcome').textContent = '\u00a3' + money(w);
+  $('scWelcome').textContent = '\u00a3' + cardMoney(w);
   $('scCardFeeRow').classList.toggle('hidden', !cbOn);
-  $('scCardFee').textContent = '+\u00a3' + money(fm);
+  $('scCardFee').textContent = '+\u00a3' + cardMoney(fm);
   $('scCardFeeLabel').textContent = '\ud83d\udcb3 ' + CONFIG.cashback.freeMonths + 'm free card fee (' + CONFIG.cashback.freeMonths + 'm @ \u00a3' + CONFIG.cashback.cardFeeMonthly + ')';
   $('scBoilerFreeRow').classList.toggle('hidden', bcf === 0);
-  $('scBoilerFree').textContent = '\u00a3' + money(bcf);
+  $('scBoilerFree').textContent = '\u00a3' + cardMoney(bcf);
   $('scBoilerFreeLabel').textContent = '\ud83d\udee1\ufe0f ' + CONFIG.insurance.freeMonthsLegacy + 'm free Boiler Cover (' + CONFIG.insurance.freeMonthsLegacy + 'm @ \u00a3' + bc + ')';
   const oo = g('oo');
   $('scOneOffRow').classList.toggle('hidden', oo === 0);
@@ -3433,12 +3441,12 @@ function renderShared(d) {
     const isRefund = oo > 0;
     const defLabel = isRefund ? 'One-off refund' : 'One-off charge';
     $('scOneOffLabel').textContent = '\ud83d\udcb7 ' + (g('ool', '') || defLabel);
-    $('scOneOff').textContent = (isRefund ? '\u00a3' : '\u2212\u00a3') + money(Math.abs(oo));
+    $('scOneOff').textContent = (isRefund ? '\u00a3' : '\u2212\u00a3') + cardMoney(Math.abs(oo));
     $('scOneOff').classList.toggle('good', isRefund);
     $('scOneOff').classList.toggle('bad', !isRefund);
   }
   $('scExitDeductionRow').classList.toggle('hidden', ed === 0);
-  $('scExitDeduction').textContent = '\u2212\u00a3' + money(ed);
+  $('scExitDeduction').textContent = '\u2212\u00a3' + cardMoney(ed);
   const ef = g('ef');
   if (ef === 0) {
     $('scExitBlock').classList.add('hidden');
@@ -3447,12 +3455,12 @@ function renderShared(d) {
     const maxR = CONFIG.exitFeeRefund.maxRefund;
     let msg;
     if (refunded && ed === 0) {
-      msg = '\u21a9\ufe0f \u00a3' + money(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + ' refunded by UW \u2705';
+      msg = '\u21a9\ufe0f \u00a3' + cardMoney(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + ' refunded by UW \u2705';
     } else if (refunded && ed > 0) {
-      msg = '\u21a9\ufe0f \u00a3' + money(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + " refunded by UW<br>\u00a3" + money(ed) + " still to pay, already included above \u2014 so you're still better off";
+      msg = '\u21a9\ufe0f \u00a3' + cardMoney(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + " refunded by UW<br>\u00a3" + cardMoney(ed) + " still to pay, already included above \u2014 so you're still better off";
     } else {
       const needed = Math.max(0, CONFIG.exitFeeRefund.minServices - ct);
-      msg = '\u26a0\ufe0f \u00a3' + money(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
+      msg = '\u26a0\ufe0f \u00a3' + cardMoney(ef) + ' in exit fees \u2014 up to \u00a3' + maxR + ' refunded by UW<br>Add ' + needed + ' more service' + (needed === 1 ? '' : 's') + ' to qualify.';
     }
     $('scExitMsg').innerHTML = msg;
   }
