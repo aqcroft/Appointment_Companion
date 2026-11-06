@@ -1,3 +1,10 @@
+## v2.66.21 - 6th November 2026 - Restore first-12-month customer summaries
+
+- Remove the stale `mba` reference that caused a JavaScript ReferenceError after the November broadband offer simplification.
+- Keep six-month free broadband calculated as six times the quoted monthly price, without hypothetical April increases.
+- Protect the main energy + broadband + mobile savings summary with a calculation-level regression test.
+- Update the shared Companion, EV, Should I Fix, About and cache versions to v2.66.21 without changing customer profiles or Cloud sync.
+
 ## v2.66.20 - 6th November 2026 - Exact MSE unit-rate equivalents and compact desktop Should I Fix
 
 - Percentage stress tests use 15%, 20%, 25%, approved MSE (currently 28.8%), 30%, and 35%, with explicit activation buttons for percentage or unit-rate mode.

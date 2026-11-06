@@ -11,10 +11,10 @@ test('Companion Should I Fix embedded calculator loads new 28.8% approved source
 });
 test('All Companion tools show matching release and cache for forecast parity',()=>{
  for(const path of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js']){
-  assert.ok(read(path).includes('v2.66.20'),path);
+  assert.ok(read(path).includes('v2.66.21'),path);
  }
- assert.ok(read('sw.js').includes('v2-66-20-sif-precision'));
- assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.66.20'));
+ assert.ok(read('sw.js').includes('v2-66-21-summary-recovery'));
+ assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.66.21'));
 });
 test('Shared unit-rate buttons remain six options per fuel including halfp gas',()=>{
  const source=read('fix-share-gate-v1.js');
