@@ -26,14 +26,16 @@ function harness(options={}){
     put:async value=>{puts++;row=clone({...row,...value});return clone(row);},
     list:async()=>[clone(row)],
     remove:async()=>{row=null;},
-    findCloud:async()=>null
+    findCloud:async id=>row&&row.cloud_id===id?clone(row):null
   };
   const service={
     listCustomers:async()=>{listed++;return options.listCustomers?options.listCustomers(listed):{customers:cloudPeople};},
     saveCustomer:async(_auth,payload)=>{
       saves++;assert.equal(payload.customer_name,'Synthetic Alice');
-      return {customer:{customer_id:'cloud-001',customer_name:'Synthetic Alice',
-        cloud_revision:'rev-1',updated_at:'2026-10-14T08:00:00Z'}};
+      const saved={customer_id:'cloud-001',customer_name:'Synthetic Alice',
+        client_revision_id:payload.client_revision_id||'',cloud_revision:'rev-1',updated_at:'2026-10-14T08:00:00Z'};
+      if(!cloudPeople.some(p=>p.customer_id===saved.customer_id))cloudPeople.push(clone(saved));
+      return {customer:saved};
     },
     getCustomer:async(_auth,id)=>{reads++;return {customer:{customer_id:id,customer_name:'Synthetic Alice'}};},
     deleteCustomer:async()=>{throw Error('Never delete in this test');}
@@ -44,7 +46,7 @@ function harness(options={}){
     setItem:()=>{},removeItem:()=>{}};
   const window={
     AppointmentCompanionLocalStore:deviceStore,AppointmentCompanionCloud:service,
-    AppointmentCompanionCanonical:{capture:()=>clone(row.appointment_state)},
+    AppointmentCompanionCanonical:{capture:()=>clone(row.appointment_state),restore:()=>{}},
     confirm:()=>{confirmed++;return allow;},
     addEventListener:()=>{},dispatchEvent:()=>{},
     __AC_LOCAL_ONLY:false
@@ -89,7 +91,7 @@ test('same-name Cloud match stops accidental duplicate creation',async()=>{
   const h=harness({cloudPeople:[{customer_id:'already-cloud',customer_name:'Synthetic Alice'}]});
   await assert.rejects(()=>h.window.AppointmentCompanionConsolidated.saveLocalToCloud('local-001'),/already exists in Cloud/);
   assert.equal(h.stats().saves,0);
-  assert.equal(h.stats().confirmed,0);
+  assert.equal(h.stats().confirmed,1,'manual button confirms before Cloud duplicate checks');
 });
 
 test('mobile/laptop/Cloud columns never claim another device is verified',()=>{
@@ -139,7 +141,7 @@ test('manual mobile upload waits for in-flight automatic sync then saves exactly
   const manual=h.window.AppointmentCompanionConsolidated.saveLocalToCloud('local-001');
   for(let i=0;i<5;i++)await Promise.resolve();
   assert.equal(h.stats().saves,0,'manual save waits without creating a competing Cloud write');
-  assert.equal(h.stats().confirmed,0,'confirmation should wait for the active Cloud check');
+  assert.equal(h.stats().confirmed,1,'confirmation happens immediately, before the slow Cloud check');
   releaseBackground({customers:[]});
   await syncJob;
   const result=await manual;
@@ -162,6 +164,40 @@ test('cancelled queued upload never authorises Cloud creation',async()=>{
   assert.match(result.message,/cancelled/);
   assert.equal(h.stats().saves,0);
   assert.equal(h.getRow().cloud_creation_approved,false);
+});
+
+test('a deliberately confirmed customer is locally safe and eligible for automatic Cloud backup',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const saved=await engine.confirmCustomerName();
+  assert.equal(saved.cloud_creation_approved,true);
+  assert.equal(saved.cloud_id,'');
+  assert.equal(h.stats().saves,0,'confirmation must not wait for the network');
+  assert.equal(h.timers.at(-1),12000,'deliberate Save schedules one prompt Cloud attempt');
+  await engine.sync();
+  assert.equal(h.stats().saves,1,'background sync uploads a confirmed named customer');
+  assert.equal(h.getRow().cloud_id,'cloud-001');
+  assert.equal(h.getRow().sync_state,'synced');
+});
+
+test('background Cloud backup refuses to create a duplicate customer name',async()=>{
+  const h=harness({cloudPeople:[{customer_id:'existing',customer_name:'Synthetic Alice'}]});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  await engine.confirmCustomerName();
+  const result=await engine.sync();
+  assert.equal(h.stats().saves,0,'no second Cloud record is written');
+  assert.equal(h.getRow().cloud_id,'');
+  assert.equal(result.state,'incomplete');
+  assert.match(result.error,/already exists in Cloud/);
+});
+
+test('manual Save to Cloud from customer list bypasses delayed native confirmation',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  const result=await engine.saveLocalToCloud('local-001',{confirmed:true});
+  assert.match(result.message,/verified in Cloud/);
+  assert.equal(h.stats().confirmed,0,'one tap is its own explicit authorisation');
+  assert.equal(h.stats().saves,1);
 });
 
 test('background Cloud checks are now spaced out, while explicit action stays available',()=>{
