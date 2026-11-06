@@ -19,7 +19,7 @@ function makeRow(){
     specialist_state:{},basket_url:'https://example.test/synthetic-basket',conflict:null};
 }
 function harness(options={}){
-  let row=makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0,timers=[];
+  let row=options.row?clone(options.row):makeRow(),saves=0,reads=0,confirmed=0,puts=0,listed=0,deletes=0,timers=[];
   const cloudPeople=options.cloudPeople||[];
   const deviceStore={
     get:async id=>id===row.local_id?clone(row):null,
@@ -31,7 +31,7 @@ function harness(options={}){
         return clone({local_id:'imported-cloud-'+value.cloud_id,...value});
       row=clone({...row,...value});return clone(row);
     },
-    list:async()=>[clone(row)],
+    list:async()=>row?[clone(row)]:[],
     remove:async()=>{row=null;},
     findCloud:async id=>row&&row.cloud_id===id?clone(row):null
   };
@@ -45,7 +45,11 @@ function harness(options={}){
       return {customer:saved};
     },
     getCustomer:async(_auth,id)=>{reads++;return {customer:{customer_id:id,customer_name:'Synthetic Alice'}};},
-    deleteCustomer:async()=>{throw Error('Never delete in this test');}
+    deleteCustomer:async(_auth,id)=>{
+      if(!options.allowDelete)throw Error('Never delete in this test');
+      deletes++;const ix=cloudPeople.findIndex(c=>c.customer_id===id);if(ix>=0)cloudPeople.splice(ix,1);
+      return {ok:true};
+    }
   };
   let allow=options.confirm!==false;
   const authStore={getItem:key=>key==='apptCloudPilotAuthSession'?
@@ -62,13 +66,13 @@ function harness(options={}){
     getElementById:()=>null,addEventListener:()=>{}};
   const injected=controller.replace(
     '  global.AppointmentCompanionConsolidated =',
-    '  global.__controllerTest = {storageSignals};\n  global.AppointmentCompanionConsolidated =');
+    '  global.__controllerTest = {storageSignals,markDeleted};\n  global.AppointmentCompanionConsolidated =');
   assert.notEqual(injected,controller,'Controller test seam must exist');
-  vm.runInNewContext(injected,{window,document:doc,navigator:{onLine:true,userAgent:'Android Mobile'},
+  vm.runInNewContext(injected,{window,document:doc,navigator:{onLine:options.online!==false,userAgent:'Android Mobile'},
     sessionStorage:authStore,localStorage:authStore,
     setInterval:()=>0,setTimeout:(fn,ms)=>{timers.push(ms);return timers.length;},clearTimeout:()=>{},
     CustomEvent:class{},console,Date,Set,Promise}, {filename:'consolidated-controller-v2.56.3.js'});
-  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed}),timers};
+  return {window,getRow:()=>clone(row),stats:()=>({saves,reads,confirmed,puts,listed,deletes}),timers};
 }
 
 test('explicit customer Save to Cloud needs acknowledgement and retrieval to report success',async()=>{
@@ -222,4 +226,47 @@ test('background Cloud checks are now spaced out, while explicit action stays av
   assert.match(controller,/lastBackgroundCheckAt < LAST_CHECK_FRESH_MS/);
   assert.match(controller,/document\.hidden\s*\|\|\s*!navigator\.onLine/);
   assert.doesNotMatch(controller,/setInterval\(function \(\) \{ scheduleSync\(0\); \}, 45000\)/);
+});
+
+test('customer-list actions are visually distinct and expose single-confirm bulk actions',()=>{
+  assert.match(controller,/\.ac-customer-action\{/);
+  assert.match(controller,/data-local-upload-all/);
+  assert.match(controller,/data-local-delete-conflicts/);
+  assert.match(controller,/Save all to Cloud/);
+  assert.match(controller,/Delete all conflicts/);
+  assert.match(controller,/Show all customers/);
+  assert.match(controller,/uploadAll\.disabled=true/);
+  assert.match(controller,/deleteAll\.disabled=true/);
+  assert.match(controller,/if\(!global\.confirm\('Permanently delete all /);
+});
+
+test('one bin confirmation deletes linked conflicting customer locally and in Cloud',async()=>{
+  const row={...makeRow(),cloud_id:'cloud-001',sync_state:'conflict',conflict:{local:{},cloud:{customer_id:'cloud-001'}}};
+  const h=harness({row,allowDelete:true,cloudPeople:[{customer_id:'cloud-001',customer_name:'Synthetic Alice'}]});
+  const deleted=await h.window.__controllerTest.markDeleted('local-001');
+  assert.equal(deleted,true);
+  assert.equal(h.stats().confirmed,1,'only one deletion confirmation');
+  assert.equal(h.stats().deletes,1,'Cloud removed once');
+  assert.equal(h.getRow(),null,'local record removed after server acknowledgement');
+});
+
+test('offline deletion clears stale conflict without requiring another confirmation',async()=>{
+  const row={...makeRow(),cloud_id:'cloud-001',sync_state:'conflict',conflict:{local:{},cloud:{customer_id:'cloud-001'}}};
+  const h=harness({row,online:false});
+  await h.window.__controllerTest.markDeleted('local-001');
+  assert.equal(h.stats().confirmed,1);
+  assert.equal(h.stats().deletes,0);
+  assert.equal(h.getRow().deleted,true);
+  assert.equal(h.getRow().conflict,null);
+  assert.equal(h.getRow().sync_state,'pending_delete');
+});
+
+test('old already-confirmed deletion migrates and completes without another prompt',async()=>{
+  const row={...makeRow(),cloud_id:'cloud-001',deleted:true,tombstone:true,
+    sync_state:'conflict',conflict:{local:{},cloud:{customer_id:'cloud-001'}}};
+  const h=harness({row,allowDelete:true,cloudPeople:[{customer_id:'cloud-001',customer_name:'Synthetic Alice'}]});
+  await h.window.AppointmentCompanionConsolidated.sync();
+  assert.equal(h.stats().confirmed,0);
+  assert.equal(h.stats().deletes,1);
+  assert.equal(h.getRow(),null);
 });
