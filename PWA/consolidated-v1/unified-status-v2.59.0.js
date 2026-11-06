@@ -1,4 +1,4 @@
-/* Appointment Companion v2.66.22 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.66.23 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.66.22',
+    version: 'v2.66.23',
     date: '6 November 2026',
-    summary: 'Customer Cloud backup and reliable one-tap save',
+    summary: 'Bulk Cloud backup, clearer customer actions and one-step deletion',
     changes: [
+      'Customer-list upload and delete buttons are clearer, including Save all to Cloud and Delete all conflicts.',
+      'Customer deletion needs one confirmation and pending Cloud deletions no longer appear as unresolved conflicts.',
+      'Cloud status shows updated Cloud totals, device overlap and when Cloud was last checked.',
       'Confirmed saves queue Cloud backups and local edits remain immediately available.',
       'First-time Cloud uploads check duplicate names and manual uploads show progress promptly.',
       'Restored the first-12-month savings card after an obsolete broadband calculation variable caused a ReferenceError.',
@@ -49,7 +52,7 @@
       'Five price-cap quarters and three tariff rows mirror the clean prospective comparison layout.',
       'Colour-coded cost totals remain visible; detailed chart methodology is behind How these estimates work.',
       'The historical rate feed, customer sharing guard and manual rate options remain unchanged.',
-      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.22.',
+      'Should I Fix uses the same visible app version as Appointment Companion: v2.66.23.',
       'Existing-customer tariff shortcuts are now 66 / 65 / Choose and 100 / 99 / Choose, each with a manual-rate settings cog.',
       'Tariff details are available on demand; lengthy selection confirmations are hidden without removing the archive or calculations.',
       'Manually entered renewal rates remain on-screen scenarios only and cannot generate verified customer-sharing links.',
@@ -148,6 +151,11 @@
     if(!Array.isArray(cloud.customerIds) || !Array.isArray(sync.localIds)) return null;
     var localSet=new Set(sync.localIds);
     return cloud.customerIds.filter(function(id){return !localSet.has(id);}).length;
+  }
+  function onBothCount() {
+    if(!Array.isArray(cloud.customerIds) || !Array.isArray(sync.localIds))return null;
+    var localSet=new Set(sync.localIds);
+    return cloud.customerIds.filter(function(id){return localSet.has(id);}).length;
   }
   function signal(name, letter, status, large) {
     var lamp = status==='green'?'🟢':status==='red'?'🔴':'🟠';
@@ -263,6 +271,7 @@
     var local=demo?'Saved locally':sync.local;
     var cloudOnly=demo?0:cloudOnlyCount();
     var cloudCount=demo?3:cloud.customerCount;
+    var onBoth=demo?3:onBothCount();
     var connection=demo?'verified':cloud.connection;
     var engine=global.AppointmentCompanionConsolidated;
     var recentSync=!demo&&engine&&typeof engine.syncHealth==='function'?engine.syncHealth():null;
@@ -282,7 +291,9 @@
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
       '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><button type="button" data-us-action="device-only">'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+' · View →</button></div>'+
       '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><button type="button" data-us-action="cloud-only">'+esc(cloudOnly==null?'Not checked':cloudOnly)+' · View →</button></div>'+
+      (onBoth==null?'':'<div class="ac-us-minirow"><span>Cloud profiles also on this device</span><strong>'+onBoth+'</strong></div>')+
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
+      (!demo&&lastVerifiedAt&&cloud.connection==='verified'?'<p class="ac-us-note">Cloud checked: '+esc(readable(new Date(lastVerifiedAt).toISOString()))+'. Cloud only = profiles not yet stored on this device, not the total Cloud backup count.</p>':'')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
       (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
       (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-linked profile(s) awaiting a confirmed sync.</p>':'')+
@@ -450,7 +461,7 @@
     paint();showMessage('');
     var closeBtn=document.querySelector('#'+ID+' [data-us-action="close"]');
     if(closeBtn)closeBtn.focus();
-    refreshAll(false);
+    refreshAll(true);
   }
   function close(){
     var m=$(ID);if(m)m.hidden=true;
@@ -501,7 +512,7 @@
       var meaningful=rows.filter(function(r){return r&&(String(r.customer_name||'').trim()||r.deleted||r.tombstone);});
       var pending=meaningful.filter(function(r){return (r.sync_state==='pending'||r.sync_state==='pending_delete') &&
         (r.cloud_id||r.cloud_creation_approved||r.deleted);});
-      var conflicts=meaningful.filter(function(r){return r.sync_state==='conflict'||r.conflict;});
+      var conflicts=meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&(r.sync_state==='conflict'||r.conflict);});
       var current=engine&&typeof engine.currentRecord==='function'?engine.currentRecord():null;
       if(!current){
         var selected='';
@@ -530,7 +541,7 @@
         count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
         localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id;}).length,
-        localIds:meaningful.filter(function(r){return r.cloud_id;})
+        localIds:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
         current:currentMessage,local:localLabel,currentSynced:currentSynced,
         currentLocalId:current&&current.local_id||'',
