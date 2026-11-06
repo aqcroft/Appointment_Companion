@@ -1,3 +1,12 @@
+## v2.67 - 6th November 2026 - Save and switch once; one customer list
+
+- Prompt before switching only when the current form differs from its last locally saved profile, including unconfirmed name changes. Previously saved profiles can be opened without another prompt.
+- Make Save & switch use the same local-first, targeted and Cloud-verified Save operation as the main Save button. Offline saves remain locally safe and queued for Cloud backup.
+- Compare normalised form snapshots, excluding transient capture metadata, and use the same dirty check for New customer.
+- The header customer chevron opens the authoritative all-customers modal instead of the potentially stale recent-profile cache.
+- Product version uses exactly two numeric parts (v2.67, v2.68, ...); the top-left badge and About always show the same complete version. Technical module filenames may retain their own historical numbers.
+- No customer data migration, Cloud backend or financial calculation change.
+
 ## v2.66.25 - 6th November 2026 - Financial precision in customer comparisons
 
 - Read electricity, gas, broadband, SIM, annual energy bills, exit fees, manual adjustments and one-offs as pounds and pennies instead of discarding decimal amounts. Keep fractional monthly equivalents of annual figures unrounded in calculations.
