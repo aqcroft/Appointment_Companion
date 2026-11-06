@@ -1,0 +1,24 @@
+name: Appointment Companion financial precision v2.66.25
+on:
+  pull_request:
+    paths:
+      - PWA/cloud/companion_cloud_pilot.html
+      - PWA/consolidated-v1/tests/financial-precision-v2.66.25.test.cjs
+      - .github/workflows/financial-precision-v26625.yml
+  push:
+    branches: [main]
+    paths:
+      - PWA/cloud/companion_cloud_pilot.html
+      - PWA/consolidated-v1/tests/financial-precision-v2.66.25.test.cjs
+permissions:
+  contents: read
+jobs:
+  financial-precision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact-pence calculations and shared summary regression
+        run: node --test PWA/consolidated-v1/tests/financial-precision-v2.66.25.test.cjs
