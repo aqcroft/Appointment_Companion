@@ -31,13 +31,27 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
 .actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;background:var(--ink);color:white}.btn:disabled{opacity:.58;cursor:not-allowed}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.accent{background:var(--accent)}.btn.small{padding:8px 10px;font-size:12px}.btn.good{background:var(--ok)}
 .person{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#e9eaf0;font-weight:900;border:0;padding:0;overflow:hidden}.photoAvatar img{width:100%;height:100%;object-fit:cover}.modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);padding:18px}.modal.open{display:grid;place-items:center}.modalCard{background:#fff;border-radius:18px;width:min(600px,100%);max-height:92vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto}.modalHead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}.modalBody{min-height:60vh;background:#111}.modalBody iframe{width:100%;height:70vh;border:0}.modalFoot{display:flex;gap:8px;padding:12px}.person h3{margin:0;font-size:15px}.meta{font-size:12px;color:var(--muted)}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fff4df;color:#865300}.status.new{background:#edf3ff;color:#345c9c}
 .output{white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.5}.section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}.pipeline-card{cursor:pointer}.pipeline-card:active{transform:scale(.995)}.pipeline-details{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.pipeline-card.open .pipeline-details{display:block}.pipeline-toggle{font-size:12px;color:var(--accent);font-weight:800;margin-top:8px}.pipeline-card.open .pipeline-toggle::after{content:'Hide details ▲'}.pipeline-card:not(.open) .pipeline-toggle::after{content:'Tap to view details ▼'}.draft-edit{width:100%;min-height:120px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;font:inherit;color:var(--ink);line-height:1.5;resize:vertical}.draft-save-note{font-size:12px;color:var(--muted);margin-top:6px}.section-title h3{margin:0}.timeline{display:grid;gap:9px}.event{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.event:first-child{border-top:0}.event .date{font-size:12px;color:var(--muted);font-weight:700}.event strong{font-size:13px}.due{border-left:4px solid #d88400}.footbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(245,245,247,.97);border-top:1px solid var(--line);display:flex;gap:8px}.footbar .btn{flex:1}
+
+.prospect-row{display:block;width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.prospect-row:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.prospect-row .record-cta{font-size:12px;color:var(--accent);font-weight:800;margin-top:10px}
+.record-hint{font-size:12px;color:var(--muted);margin-top:8px}
+.record-section{display:grid;gap:12px}
+.record-history-item{border-top:1px solid var(--line);padding:9px 0}
+.record-history-item summary{cursor:pointer;font-size:13px;font-weight:750}
+.record-history-item .output{margin-top:9px}
+.record-evidence{display:grid;gap:8px}
+.record-evidence a{overflow-wrap:anywhere}
+.record-brief{white-space:pre-wrap;overflow-wrap:anywhere}
+.record-note{font-size:12px;color:var(--muted)}
+
 @media(max-width:560px){.grid2{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:18px}.event{grid-template-columns:68px 1fr}.tabs{gap:5px}.tab{font-size:12px;padding:9px 4px}}
 </style>
 </head>
 <body>
 <div class="app">
 <header>
-  <div class="brand"><div class="brand-lockup"><img class="brand-icon" src="./assets/icon.svg" alt="" width="44" height="44" /><div><h1>Cold Outreach</h1><div class="sub">UW Partner toolkit - Relationship follow-up</div></div></div><span class="pill">v1.2.0</span></div>
+  <div class="brand"><div class="brand-lockup"><img class="brand-icon" src="./assets/icon.svg" alt="" width="44" height="44" /><div><h1>Cold Outreach</h1><div class="sub">UW Partner toolkit - Relationship follow-up</div></div></div><span class="pill">v1.3.0</span></div>
   <div class="tabs">
     <button class="tab active" data-view="new">New prospect</button>
     <button class="tab" data-view="pipeline">Pipeline</button>
@@ -155,9 +169,25 @@ main{padding:16px 14px 100px}.view{display:none}.view.active{display:block}.stac
   <div id="followupList" class="stack"><div class="card muted">Loading follow-ups…</div></div>
 </div>
 </section>
+
+<section class="view" id="record" aria-label="Prospect record">
+  <div class="stack">
+    <div class="card">
+      <div class="section-title">
+        <button class="btn small secondary" type="button" onclick="backFromProspectRecord()" id="recordBackBtn">← Back to Pipeline</button>
+        <button class="btn small secondary" type="button" onclick="loadProspectRecord()">Refresh record</button>
+      </div>
+      <h2 id="recordTitle" style="margin:12px 0 4px">Prospect record</h2>
+      <div class="muted" id="recordSubtitle">All notes, history, evidence and draft outreach in one place.</div>
+      <div id="recordStatusMessage" class="record-hint" role="status"></div>
+    </div>
+    <div id="recordBody" class="stack"><div class="card muted">Select somebody from the Pipeline or Follow-ups.</div></div>
+  </div>
+</section>
+
 <details class="card" style="margin-top:18px" id="aboutOutreach">
-  <summary style="cursor:pointer;font-weight:700">About Cold Outreach - v1.2.0</summary>
-  <p class="muted" style="margin-bottom:6px">14th Oct 2026 - New in-app installation button when Chrome offers it, plus explicit app icon sizes for Android. Original CRM and settings are unchanged.</p>
+  <summary style="cursor:pointer;font-weight:700">About Cold Outreach - v1.3.0</summary>
+  <p class="muted" style="margin-bottom:6px">14th Oct 2026 - Tap any prospect in Pipeline or Follow-ups to open their record, edit next steps, view screenshots and history, and work with drafts. The matching Apps Script update is needed for full record details.</p>
   <p class="muted" style="margin:0 0 6px">Your existing CRM, screenshots, ChatGPT handoffs and connection settings are unchanged. An internet connection is still needed to save or retrieve CRM data.</p>
   <p class="muted" style="margin:0">Install from Chrome's browser menu (Install app / Add to Home screen) or Safari's Share menu (Add to Home Screen).</p>
 </details>
@@ -564,35 +594,31 @@ function statusLabel(p){
   if(p.connection_sent)return 'Waiting for connection';
   return p.status||'New';
 }
+
 async function loadPipeline(){
   const box=document.getElementById('pipelineList');if(!box)return;
   box.innerHTML='<div class="card muted">Loading prospects…</div>';
   try{
     const d=await crmPost({action:'listProspects'});
     const ps=d.prospects||[];
-    if(!ps.length){box.innerHTML='<div class="card muted">No prospects yet.</div>';return}
-    box.innerHTML=ps.map((p,i)=>{
-      const connected=!!p.connected, sent=!!p.connection_sent, dmSent=!!p.first_dm_sent;
-      const next = dmSent ? (p.next_action||'Follow-up as appropriate') : connected ? 'First DM ready' : sent ? 'Waiting for connection acceptance' : (p.next_action||'Review first action');
-      const connectButton = sent && !connected ? `<button class="btn small good" onclick="event.stopPropagation();markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','connected')">✓ They connected</button>` : '';
-      const commentAction = !p.comment_sent ? `<button class="btn small secondary" onclick="event.stopPropagation();markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','comment_sent')">☐ Comment sent</button>` : '<span class="pill">✓ Comment sent</span>';
-      const connectionAction = !p.connection_sent ? `<button class="btn small secondary" onclick="event.stopPropagation();markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','connection_sent')">☐ Connection request sent</button>` : '<span class="pill">✓ Connection request sent</span>';
-      const commentText=tagProspectNameInComment(p.public_comment,p.name);
-      const comment = p.public_comment ? `<div style="margin-top:12px"><div class="section-title"><h3>Public comment</h3><button class="btn small secondary" onclick="event.stopPropagation();copyDraftText('pipelineComment${i}')">Copy</button></div><textarea class="draft-edit" id="pipelineComment${i}" onclick="event.stopPropagation()">${escapeHtml(commentText)}</textarea><div class="actions" style="margin-top:8px"><button class="btn small good" onclick="event.stopPropagation();savePipelineDraft(${i},'Suggested public comment - Draft','pipelineComment${i}')">Save changes to CRM</button></div><div class="draft-save-note" id="pipelineCommentNote${i}">Edit here if you want to tweak the wording. Saving creates a new CRM history entry.</div></div>` : '';
-      const connection = p.connection_instruction ? `<div style="margin-top:12px"><h3>Connection request</h3><div class="output">${escapeHtml(p.connection_instruction)}</div></div>` : '';
-      const dm = p.first_dm ? `<div style="margin-top:12px"><div class="section-title"><h3>First UW DM${connected?'':' - ready for later'}</h3><button class="btn small secondary" onclick="event.stopPropagation();copyDraftText('pipelineDm${i}')">Copy</button></div><textarea class="draft-edit" id="pipelineDm${i}" onclick="event.stopPropagation()">${escapeHtml(p.first_dm)}</textarea><div class="actions" style="margin-top:8px"><button class="btn small good" onclick="event.stopPropagation();savePipelineDraft(${i},'Suggested first DM - Draft','pipelineDm${i}')">Save changes to CRM</button><button class="btn small accent" onclick="event.stopPropagation();copyPipelineDmReworkPrompt(${i})">🔄 Rework DM</button>${connected&&!dmSent?`<button class="btn small good" onclick="event.stopPropagation();markPipelineAction('${encodeURIComponent(p.profile_url)}','${encodeURIComponent(p.name)}','dm_sent')">✓ DM sent</button>`:''}</div><div class="field" style="margin-top:8px"><label>Want ChatGPT to reconsider anything specific?</label><textarea id="pipelineDmReworkNote${i}" onclick="event.stopPropagation()" placeholder="Optional - e.g. too CV-like, too long, feels salesy"></textarea></div><div class="draft-save-note" id="pipelineDmNote${i}">Edit here if you want to tweak the wording. Saving creates a new CRM history entry.</div><div class="draft-save-note" id="pipelineDmReworkStatus${i}">Rework uses the latest Cold Outreach rules and keeps the previous draft in CRM history.</div></div>` : '';
-      const links = `<div class="actions" style="margin-top:10px">${p.source_post?`<a class="btn small secondary" href="${escapeHtml(p.source_post)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open original post</a>`:''}${p.profile_url?`<a class="btn small secondary" href="${escapeHtml(p.profile_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open profile</a>`:''}${p.folder_url?`<a class="btn small secondary" href="${escapeHtml(p.folder_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Files</a>`:''}${connectButton}</div>`;
-      const actions = `<div class="actions" style="margin-top:10px">${commentAction}${connectionAction}</div>`;
-      return `<div class="card pipeline-card" onclick="togglePipelineCard(event,${i})"><div class="section-title"><div><h3>${escapeHtml(p.name)}</h3><div class="meta">${escapeHtml(p.source||'')} · ${escapeHtml(p.track||'')} · ${escapeHtml(p.relationship||'')}</div></div><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted" style="margin-top:8px"><strong>Next:</strong> ${escapeHtml(next)}</div><div class="pipeline-toggle"></div><div class="pipeline-details">${links}${comment}${actions}${connection}${dm}</div></div>`;
-    }).join('');
     window.pipelineProspects=ps;
+    if(!ps.length){box.innerHTML='<div class="card muted">No prospects yet.</div>';return}
+    box.innerHTML=ps.map((p,i)=>prospectRowHtml(p,i,'pipeline')).join('');
   }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
 }
-function togglePipelineCard(event,i){
-  if(event.target.closest('a,button'))return;
-  const card=event.currentTarget;
-  card.classList.toggle('open');
+function prospectRowHtml(p,i,origin){
+  const next=p.first_dm_sent?(p.next_action||'Follow up as appropriate')
+    :p.connected?'First DM ready'
+    :p.connection_sent?'Waiting for connection acceptance'
+    :(p.next_action||'Review first action');
+  return '<button type="button" class="card prospect-row" onclick="openProspectRecord('+i+',\''+origin+'\')">'
+    +'<div class="section-title"><div><h3 style="margin:0">'+escapeHtml(p.name)+'</h3>'
+    +'<div class="meta">'+escapeHtml([p.source,p.track,p.relationship].filter(Boolean).join(' · '))+'</div></div>'
+    +'<span class="status">'+escapeHtml(statusLabel(p))+'</span></div>'
+    +'<div class="muted" style="margin-top:8px"><strong>Next:</strong> '+escapeHtml(next)+'</div>'
+    +'<div class="record-cta">Open prospect record →</div></button>';
 }
+
 function copyPipelineDm(i){navigator.clipboard.writeText((window.pipelineProspects||[])[i]?.first_dm||'')}
 function buildDmReworkPrompt(p,feedback){
   const name=String(p?.name||'This prospect').trim()||'This prospect';
@@ -635,15 +661,194 @@ async function markPipelineAction(profileEnc,nameEnc,actionName){
     await loadPipeline();await loadFollowups();
   }catch(e){alert(e.message)}
 }
+
 async function loadFollowups(){
   const box=document.getElementById('followupList');if(!box)return;
+  box.innerHTML='<div class="card muted">Loading follow-ups…</div>';
   try{
     const d=await crmPost({action:'listProspects'});
     const ps=(d.prospects||[]).filter(p=>p.next_action||p.connection_sent||p.connected);
+    window.followupProspects=ps;
     if(!ps.length){box.innerHTML='<div class="card muted">Nothing needs attention yet.</div>';return}
-    box.innerHTML=ps.map(p=>`<div class="card"><div class="section-title"><h3>${escapeHtml(p.name)}</h3><span class="status">${escapeHtml(statusLabel(p))}</span></div><div class="muted"><strong>Next action:</strong> ${escapeHtml(p.first_dm_sent?(p.next_action||'Follow-up as appropriate'):p.connected?'Send first DM':p.connection_sent?'Waiting for connection acceptance':(p.next_action||'Review'))}</div></div>`).join('');
+    box.innerHTML=ps.map((p,i)=>prospectRowHtml(p,i,'followups')).join('');
   }catch(e){box.innerHTML='<div class="card muted">⚠️ '+escapeHtml(e.message)+'</div>'}
 }
+
+
+let currentRecordProspect=null;
+let recordBackView='pipeline';
+let recordLoaded=false;
+function safeRecordUrl(url){
+  try{const u=new URL(String(url||''));return ['http:','https:'].includes(u.protocol)?u.href:''}
+  catch{return ''}
+}
+function externalRecordLink(url,label){
+  const href=safeRecordUrl(url);
+  return href?'<a class="btn small secondary" href="'+escapeHtml(href)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(label)+'</a>':'';
+}
+function openProspectRecord(index,origin){
+  const ps=origin==='followups'?(window.followupProspects||[]):(window.pipelineProspects||[]);
+  const selected=ps[index];if(!selected)return;
+  recordBackView=origin==='followups'?'followups':'pipeline';
+  currentRecordProspect=Object.assign({},selected);
+  recordLoaded=false;
+  document.getElementById('recordBackBtn').textContent='← Back to '+(recordBackView==='followups'?'Follow-ups':'Pipeline');
+  switchTo('record');
+  renderProspectRecord(currentRecordProspect);
+  loadProspectRecord();
+}
+function backFromProspectRecord(){switchTo(recordBackView)}
+function recordIdentity(){
+  const p=currentRecordProspect||{};
+  return{capture_id:p.capture_id||'',profile_url:p.profile_url||'',prospect_name:p.name||''};
+}
+function recordNotice(text){const el=document.getElementById('recordStatusMessage');if(el)el.textContent=text||''}
+async function loadProspectRecord(){
+  if(!currentRecordProspect)return;
+  const expectedProfile=currentRecordProspect.profile_url;
+  const expectedCapture=currentRecordProspect.capture_id;
+  recordNotice('Loading full CRM record…');
+  try{
+    const d=await crmPostWithRetry(Object.assign({action:'getProspectRecord'},recordIdentity()),1);
+    // Ignore an older request if a different prospect has since been opened.
+    if(!currentRecordProspect||currentRecordProspect.profile_url!==expectedProfile||currentRecordProspect.capture_id!==expectedCapture)return;
+    currentRecordProspect=d.prospect;
+    recordLoaded=true;
+    renderProspectRecord(d.prospect);
+    recordNotice('CRM record loaded ✓');
+  }catch(e){
+    recordLoaded=false;
+    if(/unknown action/i.test(String(e&&e.message||e))){
+      recordNotice('Summary available. To load screenshots, complete history and editable details, deploy the v1.3.0 Apps Script backend.');
+    }else{
+      recordNotice('Could not load full record: '+String(e&&e.message||e));
+    }
+    renderProspectRecord(currentRecordProspect);
+  }
+}
+function renderProspectRecord(p){
+  if(!p)return;
+  document.getElementById('recordTitle').textContent=p.name||'Prospect record';
+  document.getElementById('recordSubtitle').textContent=[p.source,p.track,p.relationship].filter(Boolean).join(' · ')||'Relationship-first outreach';
+  const disabled=recordLoaded?'':' disabled title="Requires the v1.3.0 Apps Script backend"';
+  const links=[externalRecordLink(p.profile_url,'Open profile'),externalRecordLink(p.source_post,'Original post'),externalRecordLink(p.folder_url,'Drive folder')].filter(Boolean).join('');
+  const info=(name,value)=>value?'<div><strong>'+escapeHtml(name)+'</strong><div class="record-brief">'+escapeHtml(value)+'</div></div>':'';
+  const actions=[
+    ['comment_sent','comment_sent','Public comment'],
+    ['connection_sent','connection_sent','Connection request'],
+    ['connected','connected','Connection accepted'],
+    ['first_dm_sent','dm_sent','First DM']
+  ].map(a=>p[a[0]]?'<span class="pill">✓ '+a[2]+'</span>':'<button class="btn small secondary" type="button" onclick="markRecordAction(\''+a[1]+'\')">☐ '+a[2]+' done</button>').join('');
+  const draft=(title,value,id,type)=>{
+    if(!value)return '';
+    return '<div class="record-section"><div class="section-title"><h3>'+title+'</h3>'
+      +'<button class="btn small secondary" type="button" onclick="copyDraftText(\''+id+'\')">Copy</button></div>'
+      +'<textarea class="draft-edit" id="'+id+'">'+escapeHtml(value)+'</textarea>'
+      +'<div class="actions"><button class="btn small good" type="button" onclick="saveRecordDraft(\''+type+'\')">Save edited draft</button></div></div>';
+  };
+  const drafts=draft('Suggested public comment',p.public_comment,'recordDraftComment','comment')
+    +draft('Connection request',p.connection_instruction,'recordDraftConnection','connection')
+    +draft('First UW DM',p.first_dm,'recordDraftDm','dm');
+  const evidence=Array.isArray(p.evidence)?p.evidence:[];
+  const evidenceHtml=evidence.map((e,i)=>'<div>'+escapeHtml((i+1)+'. '+(e.name||'Screenshot'))
+    +' '+externalRecordLink(e.url,'View screenshot')+'</div>').join('');
+  const history=Array.isArray(p.history)?p.history:[];
+  const historyHtml=history.map(h=>{
+    const headline=escapeHtml([h.date,h.type].filter(Boolean).join(' · '));
+    return '<details class="record-history-item"><summary>'+headline+'</summary>'
+      +(h.summary?'<div class="output record-brief">'+escapeHtml(h.summary)+'</div>':'')
+      +(h.notes?'<p class="record-note">'+escapeHtml(h.notes)+'</p>':'')
+      +(h.file_url?'<div class="actions" style="margin-top:8px">'+String(h.file_url).split(' | ').map((url,i)=>externalRecordLink(url,'Open attachment '+(i+1))).join('')+'</div>':'')
+      +'</details>';
+  }).join('');
+  document.getElementById('recordBody').innerHTML=
+    '<div class="card record-section"><div class="section-title"><h3>Prospect & next action</h3><span class="status">'+escapeHtml(statusLabel(p))+'</span></div>'
+    +'<div class="actions">'+links+'</div>'
+    +info('Situation',p.situation)+info('Why this may be relevant',p.why_relevant)
+    +info('Target role',p.target_role)+info('Job preferences',p.job_preferences)
+    +info('Recommended approach',p.recommended_approach)+info('Analysis',p.analysis_summary)
+    +'<div class="grid2"><div class="field"><label for="recordStatus">CRM status</label><input id="recordStatus" value="'+escapeHtml(p.status||'')+'" '+disabled+'></div>'
+    +'<div class="field"><label for="recordFollowupDate">Next follow-up date</label><input id="recordFollowupDate" type="date" value="'+escapeHtml(p.followup_date||'')+'" '+disabled+'></div>'
+    +'<div class="field wide"><label for="recordNextAction">Next action</label><textarea id="recordNextAction" '+disabled+'>'+escapeHtml(p.next_action||'')+'</textarea></div>'
+    +'<div class="field wide"><label for="recordNotes">Your notes</label><textarea id="recordNotes" '+disabled+'>'+escapeHtml(p.notes||'')+'</textarea></div></div>'
+    +'<div class="actions"><button class="btn good" type="button" onclick="saveRecordDetails()" '+disabled+'>Save record changes</button></div>'
+    +'<div class="record-note">The CRM is the source of truth. Changes are saved only when you tap Save.</div></div>'
+    +'<div class="card record-section"><h3>Outreach progress</h3><div class="actions">'+actions+'</div></div>'
+    +'<div class="card record-section"><h3>ChatGPT drafts</h3>'+(drafts||'<p class="muted">No drafts saved yet.</p>')+'</div>'
+    +'<div class="card record-section"><div class="section-title"><h3>Screenshots & evidence</h3><span class="pill">'+(recordLoaded?evidence.length+' image(s)':'Loading')+'</span></div>'
+    +(recordLoaded?(evidenceHtml||'<p class="muted">No screenshots saved.</p>'):'<p class="muted">Full screenshot list requires the updated backend.</p>')
+    +(p.evidence_error?'<p class="muted">'+escapeHtml(p.evidence_error)+'</p>':'')
+    +externalRecordLink(p.folder_url,'Open all files in Drive')+'</div>'
+    +'<div class="card record-section"><h3>Log a conversation / reply</h3>'
+    +'<div class="field"><label for="recordConversationNote">What happened?</label><textarea id="recordConversationNote" placeholder="A reply, something learned, or an agreed next step"></textarea></div>'
+    +'<div class="field"><label for="recordConversationFiles">Optional new screenshots</label><input id="recordConversationFiles" type="file" accept="image/*" multiple></div>'
+    +'<div class="field"><label for="recordConversationDate">Optional follow-up date</label><input id="recordConversationDate" type="date"></div>'
+    +'<button class="btn accent" id="recordHistorySaveBtn" type="button" onclick="addRecordConversation()">Save conversation update</button>'
+    +'<p class="record-note">This appends an entry to Conversation History and can attach new screenshot evidence without overwriting existing drafts.</p></div>'
+    +'<div class="card record-section"><div class="section-title"><h3>Conversation history</h3><span class="pill">'+(recordLoaded?history.length+' entries':'Loading')+'</span></div>'
+    +(recordLoaded?(historyHtml||'<p class="muted">No history recorded yet.</p>'):'<p class="muted">Full history requires the updated backend.</p>')
+    +'</div>';
+}
+async function saveRecordDetails(){
+  if(!currentRecordProspect||!recordLoaded)return;
+  const p=Object.assign({action:'updateProspectRecord'},recordIdentity(),{
+    status:document.getElementById('recordStatus').value,
+    followup_date:document.getElementById('recordFollowupDate').value,
+    next_action:document.getElementById('recordNextAction').value,
+    notes:document.getElementById('recordNotes').value
+  });
+  recordNotice('Saving record changes…');
+  try{await crmPostWithRetry(p,1);await loadProspectRecord();recordNotice('Record changes saved ✓')}
+  catch(e){recordNotice('Could not save changes: '+String(e&&e.message||e))}
+}
+async function markRecordAction(action){
+  if(!currentRecordProspect)return;
+  const p=currentRecordProspect;
+  if(action==='dm_sent'&&!p.connected&&!confirm('Mark the first DM sent even though connection acceptance is not yet recorded?'))return;
+  recordNotice('Updating outreach progress…');
+  try{
+    await crmPostWithRetry({action:'markAction',profile_url:p.profile_url||'',prospect_name:p.name||'',action_name:action},1);
+    await loadProspectRecord();
+  }catch(e){recordNotice('Could not update progress: '+String(e&&e.message||e))}
+}
+async function saveRecordDraft(type){
+  if(!currentRecordProspect)return;
+  const mapping={
+    comment:['recordDraftComment','Suggested public comment - Draft','public_comment'],
+    connection:['recordDraftConnection','Connection request instruction - Draft','connection_instruction'],
+    dm:['recordDraftDm','Suggested first DM - Draft','first_dm']
+  };
+  const m=mapping[type],el=m&&document.getElementById(m[0]);if(!el)return;
+  const content=el.value.trim();if(!content){recordNotice('Draft cannot be blank.');return}
+  recordNotice('Saving draft…');
+  try{
+    await crmPostWithRetry(Object.assign({action:'updateDraft',draft_type:m[1],content:content},recordIdentity()),1);
+    currentRecordProspect[m[2]]=content;
+    await loadProspectRecord();recordNotice('Edited draft saved to CRM history ✓');
+  }catch(e){recordNotice('Could not save draft: '+String(e&&e.message||e))}
+}
+async function addRecordConversation(){
+  if(!currentRecordProspect)return;
+  const note=document.getElementById('recordConversationNote').value.trim();
+  const input=document.getElementById('recordConversationFiles');
+  const files=Array.from(input.files||[]);
+  const followup=document.getElementById('recordConversationDate').value;
+  if(!note&&!files.length){recordNotice('Add a note or screenshot to record an update.');return}
+  const btn=document.getElementById('recordHistorySaveBtn');
+  btn.disabled=true;
+  try{
+    const prepared=[];
+    for(let i=0;i<files.length;i++){
+      recordNotice('Preparing screenshot '+(i+1)+' of '+files.length+'…');
+      const out=await compressImageFile(files[i],1600,.82);
+      prepared.push({name:files[i].name,type:out.type,purpose:'conversation',data_url:out.data_url});
+    }
+    recordNotice('Saving conversation to CRM…');
+    await crmPostWithRetry(Object.assign({action:'addHistory',note:note,followup_date:followup,files:prepared},recordIdentity()),1);
+    await loadProspectRecord();recordNotice('Conversation update saved ✓');
+  }catch(e){recordNotice('Could not save conversation update: '+String(e&&e.message||e));btn.disabled=false}
+}
+
 async function testBackend(){try{await crmPost({action:'health'});document.getElementById('backendState').textContent='✅ CRM connection is working.';}catch(e){document.getElementById('backendState').textContent='⚠️ '+e.message}}
 ['profileLink','sourceLink','prospectNotes','newFiles'].forEach(id=>document.getElementById(id)?.addEventListener('change',unlockProspectSave));
 document.querySelectorAll('[data-choice-group]').forEach(group=>group.addEventListener('click',()=>unlockProspectSave()));

@@ -16,8 +16,14 @@ The Outreach tool has its own independently installable PWA identity, icon and s
 - Data saves, screenshot uploads, pipeline refresh and ChatGPT retrieval need an internet connection.
 - The service worker caches only the local HTML/manifest/icon. It never handles external CRM requests or credentials.
 
+## Prospect records (v1.3.0)
+- Pipeline and Follow-ups entries open the same complete prospect record, with editable next steps, notes and saved drafts.
+- The **v1.3.0 Apps Script backend must also be deployed** for full history, screenshot links and record edits. If the web app still runs an older deployment, the interface keeps a read-only summary with a clear upgrade message.
+- Update the **existing** Apps Script deployment by selecting **Manage deployments → Edit → New version → Deploy**, rather than creating a new URL. The GitHub copy of `backend/Code.gs` is not itself the live web app.
+- The live PWA is unchanged until this branch is merged and the cloud backend is updated. Existing CRM rows, Drive files, workspace key, manifest ID and install scope stay intact.
+
 ## Releases
-- Version: **1.2.0** (14th Oct 2026).
+- Version: **1.3.0** (14th Oct 2026).
 - Release notes: [CHANGELOG.md](CHANGELOG.md).
 - When updating the app, increment the semantic version displayed in the HTML About section, update this changelog, and increment the service worker cache version. Keep the manifest `id`, scope, `start_url`, and current localStorage keys stable to avoid creating a second installed app or losing a device's existing settings.
 - Never widen the Cold Outreach service-worker scope outside `PWA/outreach/`; Appointment Companion must remain unaffected.
