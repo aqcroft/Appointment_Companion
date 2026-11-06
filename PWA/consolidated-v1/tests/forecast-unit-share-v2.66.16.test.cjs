@@ -10,16 +10,16 @@ test('Companion forwards unit-rate scenarios to public customer iframe',()=>{
 });
 test('Companion share guard preserves halfp gas options, 33p electricity, and existing identity controls',()=>{
  const source=read('fix-share-gate-v1.js');
- assert.match(source,/\[10,10\.5,11,11\.5,12,13\]/);
- assert.match(source,/\[30,31,32,33,34,35\]/);
+ assert.match(source,/Number\.isFinite\(Number\(manual\.gas\)\)/);
+ assert.match(source,/Number\.isFinite\(Number\(manual\.elec\)\)/);
  assert.match(source,/out\.um='1'/);
  assert.match(source,/out\.ug=Number\(manual\.gas\)/);
  assert.match(source,/verifiedPartnerId/);
  assert.match(source,/basketUrl/);
 });
-test('App, EV and Should I Fix use one v2.66.18',()=>{
+test('App, EV and Should I Fix use one v2.66.20',()=>{
  for(const file of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js']){
-  assert.match(read(file),/v2\.66\.18/,file);
+  assert.match(read(file),/v2\.66\.20/,file);
  }
- assert.match(read('sw.js'),/v2-66-18-three-rows/);
+ assert.match(read('sw.js'),/v2-66-20-sif-precision/);
 });
