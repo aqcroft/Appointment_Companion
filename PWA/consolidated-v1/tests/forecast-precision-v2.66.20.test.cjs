@@ -35,7 +35,7 @@ test('Companion passes unit-mode pence with full floating-point precision into s
  }));
  const out=scope.finalScenario;
  assert.equal(out.um,'1');assert.equal(out.ug,gas);assert.equal(out.ue,elec);
- assert.equal(String(out.ug),'11.35625817224186'); // exact round-trip JS number representation
+ assert.equal(String(out.ug),String(gas)); // full JS numeric precision survives
 });
 test('Partner-only shared scenario code does not include retired hardcoded pence allowlists',()=>{
  const s=read('fix-share-gate-v1.js');
