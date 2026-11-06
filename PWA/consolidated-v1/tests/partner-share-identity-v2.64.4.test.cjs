@@ -58,7 +58,7 @@ test('Companion Earnings launch is gated on verified owner',()=>{
   assert.match(s,/window\.location\.assign\(earningsUrl\(partnerId\)\)/);
 });
 test('public routes skip authenticated share gate and active app surfaces share the release version',()=>{
-  const match=read('unified-status-v2.59.0.js').match(/version: '(v\d+\.\d+\.\d+)'/);
+  const match=read('unified-status-v2.59.0.js').match(/version: '(v\d+\.\d+)'/);
   assert.ok(match,'release metadata must declare the app version');
   const version=match[1];
   for(const name of ['index.html','should-i-fix/index.html','manifest.webmanifest'])

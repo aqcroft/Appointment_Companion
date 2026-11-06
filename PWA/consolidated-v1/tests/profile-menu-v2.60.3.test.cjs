@@ -40,10 +40,10 @@ test('website and booking inputs work without typing https',()=>{
   assert.equal(p.secureOptionalUrl('http://example.com'),'');
   assert.equal(p.secureOptionalUrl('https://person:password@example.com/'),'');
 });
-test('the toolbar is short but the modal retains the full release',()=>{
+test('the toolbar and modal both display the full two-part product release',()=>{
   const status=read('unified-status-v2.59.0.js');
-  assert.match(status,/version: 'v2\.\d+\.\d+'/);
-  assert.match(status,/meta\.version\.replace/);
+  assert.match(status,/version: 'v2\.\d+'/);
+  assert.doesNotMatch(status,/meta\.version\.replace/);
   assert.match(status,/ac-us-mini|ac-us-letter/);
   assert.match(status,/aria-label/);
   assert.match(status,/ac-toolbtn\[aria-label="Companion menu"\]/);
