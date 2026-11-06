@@ -1,3 +1,11 @@
+## v2.66.25 - 6th November 2026 - Financial precision in customer comparisons
+
+- Read electricity, gas, broadband, SIM, annual energy bills, exit fees, manual adjustments and one-offs as pounds and pennies instead of discarding decimal amounts. Keep fractional monthly equivalents of annual figures unrounded in calculations.
+- Calculate broadband including Whole Home Wi-Fi/home phone and six-month free broadband from the exact quoted rates. Keep existing cashback whole-pound rounding, prices, eligibility and tariff rules.
+- Round customer-facing savings-card amounts to whole pounds only after calculating the totals; display the exact quoted tariff in free-month explanations and preserve detailed amounts in Copy figures.
+- Carry exact service totals and promotional benefits into shared customer snapshots so the local and customer-side summaries agree. Add calculation and shared-card regression tests covering the real £174.52 to £151.39 example, £791 year-one headline, adjustments and mobile exit fees.
+- Synchronise the in-app release, EV, Should I Fix, manifest and service-worker cache to v2.66.25.
+
 ## v2.66.24 - 6th November 2026 - Instant customer filters, targeted Save and smooth deletion
 
 - Replace customer-location dropdown with five tappable filter buttons (All, Device only, Cloud only, To sync, Conflicts) and live category counts. Switching filters never refetches Cloud records.
