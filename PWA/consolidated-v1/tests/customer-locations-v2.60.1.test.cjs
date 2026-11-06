@@ -40,11 +40,13 @@ function harness(options={}){
     saveCustomer:async(_auth,payload)=>{
       saves++;assert.equal(payload.customer_name,'Synthetic Alice');
       const saved={customer_id:'cloud-001',customer_name:'Synthetic Alice',
+        appointment_state_json:clone(payload.appointment_state_json),ev_state_json:clone(payload.ev_state_json),
         client_revision_id:payload.client_revision_id||'',cloud_revision:'rev-1',updated_at:'2026-10-14T08:00:00Z'};
-      if(!cloudPeople.some(p=>p.customer_id===saved.customer_id))cloudPeople.push(clone(saved));
+      const prior=cloudPeople.findIndex(p=>p.customer_id===saved.customer_id);
+      if(prior>=0)cloudPeople[prior]=clone(saved);else cloudPeople.push(clone(saved));
       return {customer:saved};
     },
-    getCustomer:async(_auth,id)=>{reads++;return {customer:{customer_id:id,customer_name:'Synthetic Alice'}};},
+    getCustomer:async(_auth,id)=>{reads++;const known=cloudPeople.find(p=>p.customer_id===id);return {customer:options.dynamicCloudRead&&known?clone(known):{customer_id:id,customer_name:'Synthetic Alice'}};},
     deleteCustomer:async(_auth,id)=>{
       if(!options.allowDelete)throw Error('Never delete in this test');
       deletes++;const ix=cloudPeople.findIndex(c=>c.customer_id===id);if(ix>=0)cloudPeople.splice(ix,1);
@@ -57,7 +59,7 @@ function harness(options={}){
     setItem:()=>{},removeItem:()=>{}};
   const window={
     AppointmentCompanionLocalStore:deviceStore,AppointmentCompanionCloud:service,
-    AppointmentCompanionCanonical:{capture:()=>clone(row.appointment_state),restore:()=>{}},
+    AppointmentCompanionCanonical:{capture:()=>clone(row.appointment_state),restore:()=>{},normaliseAppointment:clone},
     confirm:()=>{confirmed++;return allow;},
     addEventListener:()=>{},dispatchEvent:()=>{},
     __AC_LOCAL_ONLY:false
@@ -269,4 +271,67 @@ test('old already-confirmed deletion migrates and completes without another prom
   assert.equal(h.stats().confirmed,0);
   assert.equal(h.stats().deletes,1);
   assert.equal(h.getRow(),null);
+});
+
+test('customer filters are tappable counted buttons and never reload the browser to switch',()=>{
+  assert.match(controller,/data-local-scope="all"/);
+  assert.match(controller,/data-local-scope="localOnly"/);
+  assert.match(controller,/data-local-scope="cloudOnly"/);
+  assert.match(controller,/data-local-scope="pending"/);
+  assert.match(controller,/data-local-scope="conflicts"/);
+  assert.match(controller,/modal\._setCustomerScope=function/);
+  assert.match(controller,/aria-pressed/);
+  assert.match(controller,/scopeCounts\(\)/);
+  assert.doesNotMatch(controller,/id="localFirstCustomerScope"/);
+  const body=controller.slice(controller.indexOf('  async function customerBrowser(options) {'),
+    controller.indexOf('  async function markDeleted(',controller.indexOf('  async function customerBrowser(options) {')));
+  assert.doesNotMatch(body,/if\(filter\).*customerBrowser/);
+});
+
+test('deletion stays in the same customer modal and queues Cloud work',()=>{
+  const body=controller.slice(controller.indexOf('  async function customerBrowser(options) {'),
+    controller.indexOf('  async function markDeleted(',controller.indexOf('  async function customerBrowser(options) {')));
+  const single=body.slice(body.indexOf("var del = event.target.closest('[data-local-delete]');"),
+    body.indexOf("var choice = event.target.closest('[data-local-conflict]');"));
+  assert.match(single,/deferSync:true/);
+  assert.match(single,/modal\._refreshLocalCustomerRows/);
+  assert.match(single,/scheduleSync\(12000,true\)/);
+  assert.doesNotMatch(single,/await customerBrowser\(/);
+  assert.match(controller,/browser\._refreshLocalCustomerRows\(\)/);
+  assert.doesNotMatch(controller,/dataset\.customerScope==='conflicts'\)customerBrowser/);
+});
+
+test('explicit Save immediately pushes and verifies only the selected linked Cloud customer',async()=>{
+  const local={...makeRow(),cloud_id:'cloud-001',cloud_creation_approved:true,
+    base_cloud_revision:'rev-1',cloud_synced_local_revision:1};
+  const remote={customer_id:'cloud-001',customer_name:'Synthetic Alice',
+    appointment_state_json:clone(local.appointment_state),client_revision_id:'older',
+    cloud_revision:'rev-1',updated_at:'2026-10-14T08:00:00Z'};
+  const h=harness({row:local,cloudPeople:[remote],dynamicCloudRead:true});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const result=await engine.saveCurrentCloudNow();
+  assert.equal(h.stats().saves,1,'Save must write the selected Cloud record even if current snapshot is equivalent');
+  assert.equal(h.getRow().cloud_id,'cloud-001','does not create a second record');
+  assert.equal(h.getRow().sync_state,'synced');
+  assert.equal(result.cloud_synced_local_revision,result.local_revision);
+  assert.ok(h.stats().reads>=2,'Cloud is read before writing and after for verification');
+});
+
+test('explicit Save refuses to overwrite a newer conflicting remote version',async()=>{
+  const local={...makeRow(),cloud_id:'cloud-001',cloud_creation_approved:true,
+    base_cloud_revision:'rev-1',cloud_synced_local_revision:1};
+  const changed=clone(local.appointment_state);
+  changed.canonical.customerName='A different remote version';
+  const remote={customer_id:'cloud-001',customer_name:'Synthetic Alice',
+    appointment_state_json:changed,client_revision_id:'remote-change',
+    cloud_revision:'rev-2',updated_at:'2026-10-14T08:10:00Z'};
+  const h=harness({row:local,cloudPeople:[remote],dynamicCloudRead:true});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  await engine.saveCurrentCloudNow();
+  assert.equal(h.stats().saves,0,'conflicting remote must not be overwritten');
+  assert.equal(h.getRow().sync_state,'conflict');
+  assert.ok(h.getRow().conflict,'both versions remain available for review');
+  assert.equal(h.getRow().appointment_state.canonical.customerName,'Synthetic Alice');
 });
