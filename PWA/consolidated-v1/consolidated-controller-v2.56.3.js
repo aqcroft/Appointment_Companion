@@ -400,7 +400,7 @@
       modal.id = 'localFirstCustomers';
       modal.className = 'basket-prompt';
       modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
-        '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} </style>' +
+        '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait}#localFirstCustomers .ac-customer-action[hidden]{display:none!important} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} </style>' +
         '<h3 id="localFirstCustomersTitle">Customers on this device</h3>' +
         '<p class="sub" id="localFirstCustomersNote"></p>' +
         '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
@@ -430,6 +430,61 @@
         if (event.target === modal || event.target.dataset.localClose !== undefined){modal.classList.remove('open');return;}
         var filter = event.target.closest('[data-local-filter-conflicts]');
         if(filter){await customerBrowser({scope:modal.dataset.customerScope==='conflicts'?'all':'conflicts'});return;}
+        var feedback=$('localFirstCustomerFeedback');
+        var uploadAll=event.target.closest('[data-local-upload-all]');
+        if(uploadAll){
+          event.preventDefault();event.stopPropagation();
+          if(LOCAL_ONLY||!navigator.onLine||!auth()){
+            if(feedback)feedback.textContent='Cloud is offline or not signed in. Profiles remain on this device.';
+            return;
+          }
+          var candidates=(await store.list(true)).filter(function(r){
+            return !r.deleted&&!r.conflict&&r.sync_state!=='conflict'&&!r.cloud_id&&String(r.customer_name||'').trim();
+          });
+          if(!candidates.length){if(feedback)feedback.textContent='No device-only named customers need uploading.';return;}
+          if(!global.confirm('Save '+candidates.length+' customer profile'+(candidates.length===1?'':'s')+' to Cloud? Existing Cloud names will be checked; duplicates will be skipped.'))return;
+          uploadAll.disabled=true;
+          var successes=0,failures=[];
+          for(var batchIndex=0;batchIndex<candidates.length;batchIndex++){
+            var candidate=candidates[batchIndex];
+            if(feedback)feedback.textContent='☁️ Saving '+(batchIndex+1)+' of '+candidates.length+': '+candidate.customer_name+'…';
+            try{
+              var result=await saveLocalToCloud(candidate.local_id,{confirmed:true});
+              if(result&&/saved on this device AND verified in Cloud|Cloud has the customer/.test(result.message||''))successes++;
+              else failures.push(candidate.customer_name+': '+String(result&&result.message||'Cloud confirmation missing'));
+            }catch(error){failures.push(candidate.customer_name+': '+String(error&&error.message||error));}
+          }
+          await customerBrowser({scope:modal.dataset.customerScope});
+          var message='☁️ '+successes+' of '+candidates.length+' customer profiles verified in Cloud.';
+          if(failures.length)message+=' '+failures.length+' need review: '+failures.slice(0,2).join('; ')+(failures.length>2?' (+more)':'');
+          var output=$('localFirstCustomerFeedback');if(output)output.textContent=message;
+          try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
+          return;
+        }
+        var deleteAll=event.target.closest('[data-local-delete-conflicts]');
+        if(deleteAll){
+          event.preventDefault();event.stopPropagation();
+          var conflicts=(await store.list(true)).filter(function(r){return !r.deleted&&(r.conflict||r.sync_state==='conflict');});
+          if(!conflicts.length){if(feedback)feedback.textContent='No outstanding conflicts to delete.';return;}
+          if(!global.confirm('Permanently delete all '+conflicts.length+' conflicting customer profile'+(conflicts.length===1?'':'s')+' from this device AND Cloud where linked? This cannot be undone.'))return;
+          deleteAll.disabled=true;
+          var queued=0;
+          for(var batchDelete=0;batchDelete<conflicts.length;batchDelete++){
+            if(feedback)feedback.textContent='🗑️ Removing '+(batchDelete+1)+' of '+conflicts.length+'…';
+            if(await markDeleted(conflicts[batchDelete].local_id,{confirmed:true,deferSync:true}))queued++;
+          }
+          if(queued){
+            var report=await syncNow();
+            if(report&&report.state==='running')scheduleSync(12000,true);
+          }
+          await customerBrowser({scope:modal.dataset.customerScope});
+          var remaining=(await store.list(true)).filter(function(r){return r.deleted&&r.sync_state==='pending_delete';}).length;
+          var message=queued+' conflicting profile'+(queued===1?'':'s')+' removed from the normal list.'+
+            (remaining?' '+remaining+' Cloud deletion'+(remaining===1?' is':'s are')+' still awaiting confirmation.':' Cloud deletion check complete.');
+          var output=$('localFirstCustomerFeedback');if(output)output.textContent=message;
+          try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
+          return;
+        }
         var upload=event.target.closest('[data-local-upload]');
         if(upload){
           event.preventDefault();event.stopPropagation();
