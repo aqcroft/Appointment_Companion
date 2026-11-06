@@ -8,11 +8,11 @@ test('PWA iframe refreshes to standalone fuel-aware calculator',()=>{
  for(const k of ['"f"','"j"','"um"','"ue"','"ug"'])assert.ok(s.includes(k),k);
  assert.ok(s.includes('fix-share-gate-v1.js'));
 });
-test('Companion, EV and Should I Fix share v2.66.23 release',()=>{
+test('Companion, EV and Should I Fix share v2.66.24 release',()=>{
  for(const f of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js'])
-  assert.ok(read(f).includes('v2.66.23'),f);
- assert.ok(read('sw.js').includes('v2-66-23-customer-bulk'));
- assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.66.23'));
+  assert.ok(read(f).includes('v2.66.24'),f);
+ assert.ok(read('sw.js').includes('v2-66-24-instant-customer-actions'));
+ assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.66.24'));
 });
 test('pence sharing preserves precise reference rates and manual scenarios',()=>{
  const g=read('fix-share-gate-v1.js');
