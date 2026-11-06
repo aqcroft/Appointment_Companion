@@ -400,7 +400,7 @@
       modal.id = 'localFirstCustomers';
       modal.className = 'basket-prompt';
       modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
-        '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait}#localFirstCustomers .ac-customer-action[hidden]{display:none!important} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} </style>' +
+        '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait}#localFirstCustomers .ac-customer-action[hidden]{display:none!important} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} #localFirstCustomers .ac-customer-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 10px} #localFirstCustomers .ac-customer-filter{appearance:none;border:1.5px solid #d9cbea;background:#fff;color:#56327d;border-radius:999px;padding:8px 11px;min-height:36px;max-width:100%;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer} #localFirstCustomers .ac-customer-filter[aria-pressed="true"]{background:#7541bd;color:#fff;border-color:#7541bd} #localFirstCustomers .ac-customer-filter:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} </style>' +
         '<h3 id="localFirstCustomersTitle">Customers on this device</h3>' +
         '<p class="sub" id="localFirstCustomersNote"></p>' +
         '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
@@ -412,24 +412,22 @@
             '<option value="name-desc">Name Z-A</option>' +
           '</select>' +
         '</div>' +
-        '<div class="ac-customer-toolbar">' +
-          '<select id="localFirstCustomerScope" aria-label="Filter customer records by location" style="min-height:36px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px;font:inherit">' +
-            '<option value="all">All customer records</option><option value="localOnly">On this device only</option>' +
-            '<option value="cloudOnly">In Cloud only</option><option value="pending">Pending Cloud sync</option><option value="conflicts">Sync conflicts</option></select>' +
-          '<button type="button" class="ac-customer-action" id="localFirstConflictToggle" data-local-filter-conflicts>Show conflicts only</button>' +
+        '<div class="ac-customer-filters" role="group" aria-label="Filter customer records">' +
+          '<button type="button" class="ac-customer-filter" data-local-scope="all" aria-pressed="true">All</button>' +
+          '<button type="button" class="ac-customer-filter" data-local-scope="localOnly" aria-pressed="false">Device only</button>' +
+          '<button type="button" class="ac-customer-filter" data-local-scope="cloudOnly" aria-pressed="false">Cloud only</button>' +
+          '<button type="button" class="ac-customer-filter" data-local-scope="pending" aria-pressed="false">To sync</button>' +
+          '<button type="button" class="ac-customer-filter" data-local-scope="conflicts" aria-pressed="false">Conflicts</button>' +
         '</div>' +
         '<div class="ac-customer-bulk" id="localFirstBulkTools"><button type="button" class="ac-customer-action" data-local-upload-all hidden>☁️ Save all to Cloud</button><button type="button" class="ac-customer-action ac-customer-action-danger" data-local-delete-conflicts hidden>🗑️ Delete all conflicts</button></div>' +
         '<p id="localFirstCustomerFeedback" role="status" aria-live="polite" style="font-size:12px;font-weight:600;min-height:18px;margin:5px 0;color:#28643e"></p>' +
         '<div id="localFirstCustomerRows" style="display:grid;gap:8px"></div>' +
         '<div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div>' +
       '</div>';
-      modal.addEventListener('change',function(e){
-        if(e.target && e.target.id==='localFirstCustomerScope')customerBrowser({scope:e.target.value});
-      });
       modal.addEventListener('click', async function (event) {
         if (event.target === modal || event.target.dataset.localClose !== undefined){modal.classList.remove('open');return;}
-        var filter = event.target.closest('[data-local-filter-conflicts]');
-        if(filter){await customerBrowser({scope:modal.dataset.customerScope==='conflicts'?'all':'conflicts'});return;}
+        var filter=event.target.closest('[data-local-scope]');
+        if(filter){event.preventDefault();if(modal._setCustomerScope)modal._setCustomerScope(filter.getAttribute('data-local-scope'));return;}
         var feedback=$('localFirstCustomerFeedback');
         var uploadAll=event.target.closest('[data-local-upload-all]');
         if(uploadAll){
@@ -551,8 +549,6 @@
     modal.setAttribute('aria-busy','true');
     var note=$('localFirstCustomersNote');
     var list=$('localFirstCustomerRows');
-    var scopeOnOpen=$('localFirstCustomerScope');
-    if(scopeOnOpen)scopeOnOpen.value=view;
     if(note)note.textContent='Checking customer records on this device and in Cloud…';
     if(list)list.innerHTML='<p class="sub" role="status" aria-live="polite" style="padding:12px 4px">⏳ Loading customers…</p>';
     var rows;
@@ -586,13 +582,7 @@
     if(search && view!=='all')search.value='';
     var sort=$('localFirstCustomerSort');
     var wrap=$('localFirstCustomerRows');
-    var scopePicker=$('localFirstCustomerScope');if(scopePicker)scopePicker.value=view;
-    var conflictToggle=$('localFirstConflictToggle');
     var conflictCount=rows.filter(function(row){return !row.deleted&&(row.conflict||row.sync_state==='conflict');}).length;
-    if(conflictToggle){
-      conflictToggle.textContent=view==='conflicts'?'Show all customers':'Show conflicts only';
-      conflictToggle.hidden=!conflictCount && view!=='conflicts';
-    }
     var uploadCandidates=rows.filter(function(row){return !row.deleted&&!row.conflict&&row.sync_state!=='conflict'&&!row.cloud_id&&String(row.customer_name||'').trim();});
     var allSave=modal.querySelector('[data-local-upload-all]');
     if(allSave){allSave.hidden=!uploadCandidates.length||LOCAL_ONLY;allSave.textContent='☁️ Save all to Cloud ('+uploadCandidates.length+')';}
