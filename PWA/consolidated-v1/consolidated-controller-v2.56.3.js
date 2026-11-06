@@ -427,7 +427,7 @@
         if(e.target && e.target.id==='localFirstCustomerScope')customerBrowser({scope:e.target.value});
       });
       modal.addEventListener('click', async function (event) {
-        if (event.target === modal || event.target.dataset.localClose !== undefined) modal.classList.remove('open');
+        if (event.target === modal || event.target.dataset.localClose !== undefined){modal.classList.remove('open');return;}
         var filter = event.target.closest('[data-local-filter-conflicts]');
         if(filter){await customerBrowser({scope:modal.dataset.customerScope==='conflicts'?'all':'conflicts'});return;}
         var upload=event.target.closest('[data-local-upload]');
@@ -455,8 +455,14 @@
         }
         var del = event.target.closest('[data-local-delete]');
         if (del) {
-          await markDeleted(del.dataset.localDelete);
-          await customerBrowser({scope:modal.dataset.customerScope});
+          event.preventDefault();event.stopPropagation();
+          var removed=await markDeleted(del.dataset.localDelete);
+          if(removed){
+            await customerBrowser({scope:modal.dataset.customerScope});
+            var notice=$('localFirstCustomerFeedback');
+            if(notice)notice.textContent='🗑️ Customer removed from the list. Any Cloud deletion will finish automatically.';
+          }
+          return;
         }
         var choice = event.target.closest('[data-local-conflict]');
         if (choice) {
@@ -527,11 +533,17 @@
     var wrap=$('localFirstCustomerRows');
     var scopePicker=$('localFirstCustomerScope');if(scopePicker)scopePicker.value=view;
     var conflictToggle=$('localFirstConflictToggle');
+    var conflictCount=rows.filter(function(row){return !row.deleted&&(row.conflict||row.sync_state==='conflict');}).length;
     if(conflictToggle){
       conflictToggle.textContent=view==='conflicts'?'Show all customers':'Show conflicts only';
-      var conflictCount=rows.filter(function(row){return row.conflict||row.sync_state==='conflict';}).length;
       conflictToggle.hidden=!conflictCount && view!=='conflicts';
     }
+    var uploadCandidates=rows.filter(function(row){return !row.deleted&&!row.conflict&&row.sync_state!=='conflict'&&!row.cloud_id&&String(row.customer_name||'').trim();});
+    var allSave=modal.querySelector('[data-local-upload-all]');
+    if(allSave){allSave.hidden=!uploadCandidates.length||LOCAL_ONLY;allSave.textContent='☁️ Save all to Cloud ('+uploadCandidates.length+')';}
+    var bulkDelete=modal.querySelector('[data-local-delete-conflicts]');
+    if(bulkDelete){bulkDelete.hidden=!conflictCount;bulkDelete.textContent='🗑️ Delete all conflicts ('+conflictCount+')';}
+
 
     function renderRows() {
       var query = String(search && search.value || '').trim().toLocaleLowerCase('en-GB');
@@ -615,7 +627,27 @@
     renderRows();
     modal.removeAttribute('aria-busy');
   }
-  async function markDeleted(localId) { var row = await store.get(localId); if (!row || !global.confirm('Delete ' + (row.customer_name || 'this customer') + '? Cloud deletion will finish after reconnecting.')) return; await store.put(Object.assign({}, row, { deleted: true, tombstone: true, deletion_requested_at: new Date().toISOString(), sync_state: 'pending_delete' })); if (localId === currentId) await startNewCustomer(true); scheduleSync(50); status('Removed from this device. Linked Cloud deletion is pending acknowledgement.', ''); }
+  async function markDeleted(localId,options) {
+    var row=await store.get(localId);
+    if(!row||row.deleted)return false;
+    if(!(options&&options.confirmed)&&!global.confirm('Permanently delete '+(row.customer_name||'this customer')+' from this device and Cloud where linked? This cannot be undone.'))return false;
+    // One confirmation only: clear stale conflict and hide the record.
+    // A tombstone stays until Cloud acknowledges deletion, so offline is safe.
+    var marked=await store.put(Object.assign({},row,{
+      deleted:true,tombstone:true,conflict:null,
+      sync_state:'pending_delete',deletion_requested_at:new Date().toISOString()
+    }),{keepSyncState:true});
+    if(localId===currentId)await startNewCustomer(true);
+    status('Customer removed. Confirming Cloud deletion…','good');
+    if(!(options&&options.deferSync)){
+      if(!LOCAL_ONLY&&navigator.onLine&&auth()){
+        var report=await syncNow();
+        if(report&&report.state==='running')scheduleSync(12000,true);
+      }else scheduleSync(12000,true);
+    }
+    try{global.dispatchEvent(new CustomEvent('ac:cloud-sync-state-changed'));}catch(_){}
+    return !!marked;
+  }
   async function resolveConflict(localId, choice) {
     var row = await store.get(localId); if (!row || !row.conflict) return; var conflict = row.conflict, history = (row.conflict_history || []).concat([{ resolved_at: new Date().toISOString(), choice: choice, conflict: clone(conflict) }]).slice(-5);
     if (choice === 'cloud') { if (conflict.cloud && conflict.cloud.deleted) { await store.remove(localId); if (currentId === localId) await startNewCustomer(true); return; } var remote = conflict.cloud || {}; var appt = appointment(remote); row = await store.put(Object.assign({}, row, { deleted:false,tombstone:false,deletion_requested_at:'', customer_name: remote.customer_name || row.customer_name, appointment_state: appt || row.appointment_state, specialist_state: remote.ev_state || remote.ev_state_json ? Object.assign({}, row.specialist_state, { ev: remote.ev_state || remote.ev_state_json }) : row.specialist_state, cloud_customer: remote, base_cloud_revision: remoteVersion(remote), base_cloud_snapshot: remote, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', conflict: null, conflict_history: history }), { keepRevision: true, keepSyncState: true }); }
