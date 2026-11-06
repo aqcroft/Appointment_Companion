@@ -835,7 +835,20 @@
       if (!row.base_cloud_revision && localChanged) return conflict(row, remote);
     }
     var saved = (await api.saveCustomer(credentials, cloudPayload(row))).customer; if (!saved) throw new Error('Cloud did not acknowledge the saved customer.');
-    return store.put(Object.assign({}, row, { cloud_id: saved.customer_id, customer_name: saved.customer_name || row.customer_name, cloud_customer: saved, base_cloud_revision: remoteVersion(saved) || 'ack:' + (row.client_revision_id || row.local_revision), base_cloud_snapshot: saved, cloud_synced_local_revision: row.local_revision, sync_state: 'synced', tombstone: false, conflict: null }), { keepRevision: true, keepSyncState: true });
+    // If the user edited the appointment while Cloud was responding, preserve
+    // the newer local changes and queue another pass instead of overwriting them
+    // with the older snapshot just acknowledged by Cloud.
+    var latest=await store.get(row.local_id);
+    if(!latest||latest.deleted)return latest;
+    var newerLocalEdits=Number(latest.local_revision)!==Number(row.local_revision);
+    return store.put(Object.assign({},newerLocalEdits?latest:row,{
+      cloud_id:saved.customer_id,customer_name:newerLocalEdits?latest.customer_name:(saved.customer_name||row.customer_name),
+      cloud_customer:saved,
+      base_cloud_revision:remoteVersion(saved)||'ack:'+(row.client_revision_id||row.local_revision),
+      base_cloud_snapshot:saved,
+      cloud_synced_local_revision:row.local_revision,
+      sync_state:newerLocalEdits?'pending':'synced',tombstone:false,conflict:null
+    }),{keepRevision:true,keepSyncState:true});
   }
   async function hydrate(credentials) {
     var listing = await api.listCustomers(credentials), metas = Array.isArray(listing.customers) ? listing.customers : [], ids = {}, locals = await store.list(true); metas.forEach(function (meta) { if (meta.customer_id) ids[String(meta.customer_id)] = true; });
