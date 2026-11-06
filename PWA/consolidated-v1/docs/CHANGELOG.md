@@ -1,3 +1,11 @@
+## v2.66.24 - 6th November 2026 - Instant customer filters, targeted Save and smooth deletion
+
+- Replace customer-location dropdown with five tappable filter buttons (All, Device only, Cloud only, To sync, Conflicts) and live category counts. Switching filters never refetches Cloud records.
+- Delete confirmed customers from the current list immediately with no intermediate loading screens. Cloud deletion remains safely queued, and background sync refreshes the open list without rebuilding the modal.
+- Make explicit Save on the current customer a targeted Cloud push, waiting for any existing synchronisation and verifying the acknowledged revision. Background sync remains low-frequency.
+- Preserve version-conflict protection: Save never silently overwrites a newer conflicting Cloud record. Offline work still saves locally.
+- Update app, specialist entry points, About, tests and PWA cache consistently to v2.66.24, including synthetic sync regression tests.
+
 ## v2.66.23 - 6th November 2026 - Customer actions, bulk Cloud backup and one-confirm deletion
 
 - Give Save to Cloud, Show all customers and delete buttons clear, consistent styling that works on desktop and mobile.
