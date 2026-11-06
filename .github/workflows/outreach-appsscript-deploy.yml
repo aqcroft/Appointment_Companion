@@ -1,0 +1,108 @@
+name: Cold Outreach - deploy existing Apps Script backend
+
+# Intentionally fail-closed. Manual runs default to preflight-only.
+# Auto-deploy on changes to Code.gs must be separately enabled after the first verified deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Actually update the existing web-app deployment (false = preflight only)"
+        required: true
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "PWA/outreach/backend/Code.gs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: outreach-appsscript-production
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.OUTREACH_DEPLOY_AUTOMATIC == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLASPRC_JSON: ${{ secrets.OUTREACH_CLASPRC_JSON }}
+      CLASP_SANDBOX_USER: cold-outreach-sandbox
+      OUTREACH_SCRIPT_ID: '1-Zsoj5dlXs6H4yuZa8vFLoZ5YlZmaZsCJgF9vKg9mlSW_NGoN7fRko7_'
+      OUTREACH_DEPLOYMENT_ID: 'AKfycbwNIZ3mN64tQKEqTv-8fMyqJjRuipXDI7w9-KomJU9X1_JeTeHxzhFjJbJeJbsq1q8_Uw'
+      PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify local backend syntax
+        shell: bash
+        run: |
+          cp PWA/outreach/backend/Code.gs /tmp/outreach-backend-syntax-check.js
+          node --check /tmp/outreach-backend-syntax-check.js
+      - name: Set up clasp and verify existing project
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$CLASPRC_JSON" || -z "$OUTREACH_SCRIPT_ID" || -z "$OUTREACH_DEPLOYMENT_ID" ]]; then
+            echo "::error::Missing authentication or script/deployment ID. See PWA/outreach/backend/GITHUB_DEPLOY_SETUP.md."
+            exit 1
+          fi
+          npm install --global @google/clasp@3.4.1
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          chmod 600 "$HOME/.clasprc.json"
+          node - <<'NODE'
+          const fs = require("fs");
+          const creds = JSON.parse(fs.readFileSync(process.env.HOME + "/.clasprc.json", "utf8"));
+          if (!creds?.tokens?.[process.env.CLASP_SANDBOX_USER]) {
+            throw new Error("The GitHub secret does not contain the required Cold Outreach sandbox account profile.");
+          }
+          if (Object.keys(creds.tokens).some(k => k !== process.env.CLASP_SANDBOX_USER)) {
+            throw new Error("The GitHub secret must contain ONLY the Cold Outreach sandbox account profile.");
+          }
+          console.log("Sandbox-only clasp profile verified (no credentials shown).");
+          NODE
+          mkdir -p "$RUNNER_TEMP/outreach-script"
+          node -e "require('fs').writeFileSync(process.argv[1],JSON.stringify({scriptId:process.argv[2]}))" \
+            "$RUNNER_TEMP/outreach-script/.clasp.json" "$OUTREACH_SCRIPT_ID"
+          cd "$RUNNER_TEMP/outreach-script"
+          clasp pull --user "$CLASP_SANDBOX_USER"
+          if [[ ! -f appsscript.json ]]; then
+            echo "::error::Remote Apps Script manifest could not be retrieved. Aborting without changes."
+            exit 1
+          fi
+          # The existing live project, rather than an empty local folder, is our starting point.
+          # Preserve all other script/HTML files and the real live appsscript.json manifest.
+          if [[ -f Code.js && ! -f Code.gs ]]; then
+            TARGET_FILE=Code.js
+          elif [[ -f Code.gs && ! -f Code.js ]]; then
+            TARGET_FILE=Code.gs
+          else
+            echo "::error::Exactly one Code.js or Code.gs must exist in the live project. Investigate manually."
+            exit 1
+          fi
+          echo "Existing Code file found: $TARGET_FILE"
+          echo "Source SHA256 (current live HEAD): $(sha256sum "$TARGET_FILE" | cut -d' ' -f1)"
+          echo "Source SHA256 (GitHub version): $(sha256sum "$GITHUB_WORKSPACE/PWA/outreach/backend/Code.gs" | cut -d' ' -f1)"
+          # Confirm that deployment ID belongs to this exact project before touching anything.
+          clasp list-deployments --user "$CLASP_SANDBOX_USER" > "$RUNNER_TEMP/outreach-deployments.txt"
+          if ! grep -Fq -- "$OUTREACH_DEPLOYMENT_ID" "$RUNNER_TEMP/outreach-deployments.txt"; then
+            echo "::error::Existing deployment ID is not associated with the supplied Script ID. Aborting."
+            exit 1
+          fi
+          if [[ "$PUBLISH_REQUESTED" != "true" ]]; then
+            echo "Preflight passed - NO remote files or deployments changed."
+            echo "### Cold Outreach backend preflight passed - no changes published" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cp "$GITHUB_WORKSPACE/PWA/outreach/backend/Code.gs" "$TARGET_FILE"
+          clasp push --force --user "$CLASP_SANDBOX_USER"
+          # Update the existing deployment rather than creating a new URL.
+          clasp update-deployment "$OUTREACH_DEPLOYMENT_ID" --user "$CLASP_SANDBOX_USER" \
+            --description "Cold Outreach GitHub ${GITHUB_SHA:0:12}"
+          echo "### Existing Cold Outreach Apps Script deployment updated" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub commit: ${GITHUB_SHA:0:12}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Only the existing deployment ID was updated; no new web-app URL was created." >> "$GITHUB_STEP_SUMMARY"
