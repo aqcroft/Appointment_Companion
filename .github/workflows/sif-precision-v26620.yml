@@ -1,0 +1,28 @@
+name: Should I Fix precise forecast and desktop layout v2.66.20
+on:
+  pull_request:
+    paths:
+      - PWA/consolidated-v1/should-i-fix/index.html
+      - PWA/consolidated-v1/fix-share-gate-v1.js
+      - PWA/consolidated-v1/tests/forecast-precision-v2.66.20.test.cjs
+      - .github/workflows/sif-precision-v26620.yml
+  push:
+    branches: [main]
+    paths:
+      - PWA/consolidated-v1/should-i-fix/index.html
+      - PWA/consolidated-v1/fix-share-gate-v1.js
+      - PWA/consolidated-v1/tests/forecast-precision-v2.66.20.test.cjs
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax, precise share values and desktop header
+        run: |
+          node --check PWA/consolidated-v1/fix-share-gate-v1.js
+          node --test PWA/consolidated-v1/tests/forecast-precision-v2.66.20.test.cjs

@@ -40,9 +40,10 @@
     if(Math.abs(jan-approved)>.001)out.j=jan;
     var manual=win&&typeof win.ShouldIFixForecastScenario==='function'
       ? win.ShouldIFixForecastScenario():null;
+    // Keep exact (not displayed rounded) default prices in public links.
     if(manual&&manual.mode==='unit'&&
-       [30,31,32,33,34,35].includes(Number(manual.elec))&&
-       [10,10.5,11,11.5,12,13].includes(Number(manual.gas))){
+       Number.isFinite(Number(manual.elec))&&Number(manual.elec)>=15&&Number(manual.elec)<=60&&
+       Number.isFinite(Number(manual.gas))&&Number(manual.gas)>=4&&Number(manual.gas)<=20){
       out.um='1';out.ue=Number(manual.elec);out.ug=Number(manual.gas);
     }
     if (out.t === 'custom') {

@@ -1,3 +1,12 @@
+## v2.66.20 - 6th November 2026 - Exact MSE unit-rate equivalents and compact desktop Should I Fix
+
+- Percentage stress tests use 15%, 20%, 25%, approved MSE (currently 28.8%), 30%, and 35%, with explicit activation buttons for percentage or unit-rate mode.
+- Reference pence buttons are calculated dynamically from the approved MSE forecast, showing about 11.36p gas and 33.3p electricity today. The full underlying precision keeps the default graph and savings identical between methods.
+- Unit-rate stress tests keep gas/electricity projections independent in every quarter, including electricity-only and gas-only comparisons.
+- Preserve full-precision selected pence rates in shared customer links, with existing identity, basket and tariff verification.
+- Hide the redundant full-width Should I Fix donor title/status bar only on desktop in the PWA wrapper; retain mobile Back and main toolbar.
+- Align app, EV, Should I Fix, About, manifest and service-worker cache with v2.66.20. Keep the already deployed v2.66.19 Business Buzz functionality.
+
 ## v2.66.18 - 5th November 2026 - Fuel-aware forecast scenarios without a toggle
 
 - Show the January percentage row and relevant gas/electricity unit-rate rows together in Should I Fix, with a clear indicator of which method is in use.
