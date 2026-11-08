@@ -554,7 +554,7 @@
         detail:conflicts.length?'Some customers have Cloud sync conflicts':
           pending.length?'Some customers are waiting to sync':
           currentNeedsCloud&&!currentSynced?'Current customer awaiting Cloud sync or verification':
-          'Local records checked. Intentionally local drafts do not require Cloud sync.',
+          'Local records checked. Older device-only records require review before Cloud migration.',
         count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
         localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id&&!r.cloud_creation_approved;}).length,
