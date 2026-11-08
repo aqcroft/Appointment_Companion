@@ -1,4 +1,4 @@
-/* Appointment Companion v2.69 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.70 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,12 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.69',
+    version: 'v2.70',
     date: '8 November 2026',
-    summary: 'Confirm a name once; automatic Cloud customer backup',
+    summary: 'Cleaner customer list and always-visible close control',
     changes: [
+      'Customer rows no longer show redundant basket link and email icons.',
+      'An accessible close × remains visible at the top of the customer list when scrolling.',
       'Confirmed customer names create one saved record with automatic Cloud synchronisation.',
       'Blank working appointments are recoverable without creating unnamed database customers.',
       'Customer locations show this device plus Cloud, without uncheckable remote device columns.',
