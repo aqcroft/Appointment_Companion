@@ -397,17 +397,17 @@ test('customer header shortcut opens the authoritative customer modal, not stale
   assert.match(shell,/title="View all customers" aria-label="View all customers"/);
 });
 
-test('v2.69 is a two-part product version shown without status truncation',()=>{
+test('v2.70 is a two-part product version shown without status truncation',()=>{
   const base=path.resolve(__dirname,'..');
   const status=fs.readFileSync(path.join(base,'unified-status-v2.59.0.js'),'utf8');
   const shell=fs.readFileSync(path.join(base,'index.html'),'utf8');
   const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
-  assert.match(status,/version:\s*'v2\.69'/);
+  assert.match(status,/version:\s*'v2\.70'/);
   assert.match(status,/esc\(meta\.version\)/);
   assert.doesNotMatch(status,/meta\.version\.replace\(/);
-  assert.match(shell,/<title>Appointment Companion v2\.69<\/title>/);
-  assert.equal(manifest.name,'Appointment Companion v2.69');
-  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.69 /);
+  assert.match(shell,/<title>Appointment Companion v2\.70<\/title>/);
+  assert.equal(manifest.name,'Appointment Companion v2.70');
+  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.70 /);
 });
 
 test('Most recent uses actual Cloud last update, not the time the mobile imported it',()=>{
@@ -511,6 +511,34 @@ test('standalone EV and Should I Fix preserve their no-customer public paths',()
   const fix=fs.readFileSync(path.join(root,'should-i-fix/index.html'),'utf8');
   assert.match(ev,/publicView/);
   assert.match(fix,/publicView/);
-  assert.match(ev,/EV Companion v2\.69/);
-  assert.match(fix,/Should I Fix\? v2\.69/);
+  assert.match(ev,/EV Companion v2\.70/);
+  assert.match(fix,/Should I Fix\? v2\.70/);
+});
+
+test('customer rows omit link and email badges but retain basket/share data',()=>{
+  const start=controller.indexOf('  function customerJourneyIcons(row) {');
+  const end=controller.indexOf('  var pendingSwitchResolve =',start);
+  assert.ok(start>=0&&end>start);
+  const icons=controller.slice(start,end);
+  assert.doesNotMatch(icons,/mini\('🔗'/);
+  assert.doesNotMatch(icons,/mini\('✉️'/);
+  assert.match(icons,/mini\('💳'/);
+  assert.match(icons,/mini\('📌'/);
+  assert.match(icons,/mini\('🚙'/);
+  assert.match(controller,/basket_url/,'data and customer basket links remain stored');
+  assert.match(controller,/lastQuoteSharedAt|basketLink/,'existing sharing data remains available to the appointment');
+});
+
+test('customer browser offers a sticky, accessible top-right close control',()=>{
+  const start=controller.indexOf('  async function customerBrowser(options) {');
+  const end=controller.indexOf('  async function markDeleted(',start);
+  assert.ok(start>=0&&end>start);
+  const modal=controller.slice(start,end);
+  assert.match(modal,/ac-customer-modal-head/);
+  assert.match(modal,/position:sticky;top:-1px/);
+  assert.match(modal,/aria-label="Close customer list"/);
+  assert.match(modal,/data-local-close>Close/,'existing bottom close button remains');
+  assert.match(modal,/event\.target\.closest\('\[data-local-close\]'\)/);
+  assert.match(modal,/event\.key==='Escape'/);
+  assert.match(modal,/event\.target === modal/,'backdrop closing remains');
 });
