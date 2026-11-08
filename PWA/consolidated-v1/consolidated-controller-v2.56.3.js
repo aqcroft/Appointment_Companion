@@ -248,8 +248,6 @@
     var simCount = Number(summary.sims || 0);
     if (!simCount && (selected.mobile || legacyServices.mobile)) simCount = Math.max(1, Number(mobile.simCount || (ui.state && ui.state.simCount) || 1));
     var cover = !!(summary.insurance || selected.insurance || selected.boiler || selected.homeCover || legacyServices.insurance || legacyServices.boiler || legacyServices.homeCover);
-    var basket = !!(summary.basketLink || row.basket_url || canonical.basketUrl);
-    var shared = !!(summary.quoteShared || canonical.lastQuoteSharedAt);
     var fix = !!(specialists.fix || specialists.should_i_fix || specialists['should-i-fix']);
     var ev = !!specialists.ev;
     var cashback = summary.cashback != null ? !!summary.cashback : (ui.state ? ui.state.includeCashback !== false : true);
@@ -265,8 +263,6 @@
       mini('📱', simCount >= 2, 'Mobile SIM 2') +
       mini('🛠️', cover, 'Boiler Cover') +
       mini('💳', cashback, 'Cashback Card') +
-      mini('🔗', basket, 'UW basket linked') +
-      mini('✉️', shared, 'Summary shared') +
       '<span aria-hidden="true" style="width:1px;height:18px;background:rgba(38,22,79,.20);margin:0 2px"></span>' +
       mini('📌', fix, 'Should I Fix?') +
       mini('🚙', ev, 'EV Companion') +
@@ -480,7 +476,10 @@
       modal.className = 'basket-prompt';
       modal.innerHTML = '<div class="basket-prompt-card" role="dialog" aria-modal="true" aria-labelledby="localFirstCustomersTitle" style="width:min(100%,720px);max-height:calc(100dvh - 30px);overflow:auto">' +
         '<style> #localFirstCustomers .ac-customer-action{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1.5px solid #7a42c8;border-radius:9px;background:#f4effc;color:#482477;min-height:34px;min-width:0;padding:7px 10px;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 1px 2px #2a1b4920} #localFirstCustomers .ac-customer-action:hover{background:#e9ddfa} #localFirstCustomers .ac-customer-action:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} #localFirstCustomers .ac-customer-action:disabled{opacity:.55;cursor:wait}#localFirstCustomers .ac-customer-action[hidden]{display:none!important} #localFirstCustomers .ac-customer-action-danger{border-color:#a83d52;background:#fff2f3;color:#922841} #localFirstCustomers .ac-customer-action-danger:hover{background:#ffe5e9} #localFirstCustomers .ac-customer-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0} #localFirstCustomers .ac-customer-toolbar select{flex:1 1 225px} #localFirstCustomers .ac-customer-toolbar button{flex:0 0 auto;max-width:100%} #localFirstCustomers .ac-customer-bulk{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 9px} #localFirstCustomers [data-local-upload]{font-size:11px;min-height:32px;padding:6px 9px} #localFirstCustomers [data-local-delete]{min-width:34px;min-height:34px;padding:5px 8px;font-size:17px} #localFirstCustomers .ac-customer-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 10px} #localFirstCustomers .ac-customer-filter{appearance:none;border:1.5px solid #d9cbea;background:#fff;color:#56327d;border-radius:999px;padding:8px 11px;min-height:36px;max-width:100%;font:750 12px/1.25 system-ui,sans-serif;white-space:nowrap;cursor:pointer} #localFirstCustomers .ac-customer-filter[aria-pressed="true"]{background:#7541bd;color:#fff;border-color:#7541bd} #localFirstCustomers .ac-customer-filter:focus-visible{outline:3px solid #9b7bce;outline-offset:2px} </style>' +
-        '<h3 id="localFirstCustomersTitle">Customers</h3>' +
+        '<div class="ac-customer-modal-head" style="position:sticky;top:-1px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;background:#fff;border-bottom:1px solid var(--line)">' +
+           '<h3 id="localFirstCustomersTitle" style="margin:0">Customers</h3>' +
+           '<button type="button" data-local-close aria-label="Close customer list" title="Close customer list" style="display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #d9cbea;border-radius:12px;background:#fff;color:#62417f;font:800 24px/1 system-ui;cursor:pointer">×</button>' +
+         '</div>' +
         '<p class="sub" id="localFirstCustomersNote"></p>' +
         '<div id="localFirstCustomerTools" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:10px 0 12px">' +
           '<input type="search" id="localFirstCustomerSearch" placeholder="🔎 Search profiles…" autocomplete="off" aria-label="Search customer profiles" style="width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;background:#fff;color:inherit">' +
@@ -503,7 +502,7 @@
         '<div class="modal-actions"><button class="btn-ghost" type="button" data-local-close>Close</button></div>' +
       '</div>';
       modal.addEventListener('click', async function (event) {
-        if (event.target === modal || event.target.dataset.localClose !== undefined){modal.classList.remove('open');return;}
+        if (event.target === modal || event.target.closest('[data-local-close]')){modal.classList.remove('open');return;}
         var filter=event.target.closest('[data-local-scope]');
         if(filter){event.preventDefault();if(modal._setCustomerScope)modal._setCustomerScope(filter.getAttribute('data-local-scope'));return;}
         var feedback=$('localFirstCustomerFeedback');
@@ -641,6 +640,12 @@
           if(!global.confirm(explanation+'\n\nReview both versions before proceeding. Cancel keeps the conflict unresolved.'))return;
           await resolveConflict(choice.dataset.localConflict,choice.dataset.choice);
           await customerBrowser({scope:modal.dataset.customerScope});
+        }
+      });
+      modal.addEventListener('keydown',function(event){
+        if(event.key==='Escape' && modal.classList.contains('open')){
+          event.preventDefault();
+          modal.classList.remove('open');
         }
       });
       document.body.appendChild(modal);
