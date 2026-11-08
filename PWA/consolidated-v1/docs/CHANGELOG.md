@@ -1,3 +1,12 @@
+## v2.68 - 8th November 2026 - Cross-device recency and one-tap Cloud refresh
+
+- Sort all customer profiles by their real last-edited date across mobile, laptop and Cloud, rather than pushing device-only drafts above newer Cloud profiles.
+- Merge Cloud-only records into the same sorted list rather than appending them after device records.
+- Preserve original Cloud timestamps when importing or updating customer records on a second device; unsynchronised local edits retain their own local edit time.
+- Add **Sync all Cloud customers now** to the customer browser, distinct from **Save all to Cloud**. A manual check waits for any active background sync, refreshes Cloud records and reports problems.
+- Preserve intentionally local drafts, avoid duplicate Cloud creation and retain existing conflict review safeguards.
+- Increase the visible release number to v2.68 in the app, status, specialist pages and PWA cache.
+
 ## v2.67 - 6th November 2026 - Save and switch once; one customer list
 
 - Prompt before switching only when the current form differs from its last locally saved profile, including unconfirmed name changes. Previously saved profiles can be opened without another prompt.
