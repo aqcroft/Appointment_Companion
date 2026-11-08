@@ -304,7 +304,14 @@
     return modal;
   }
   function shouldAskBeforeSwitch(targetId) {
-    if (!current || !currentId || String(targetId || '') === String(currentId)) return false;
+    if(!current || !currentId){
+      // Unconfirmed names and working notes are still valuable. A temporary
+      // recovery snapshot is not permission to discard them while switching.
+      var typed=$('customerName'),pendingName=typed&&String(typed.value||'').trim();
+      try{return !!pendingName||meaningful(canonical.capture());}
+      catch(_){return !!pendingName;}
+    }
+    if(String(targetId||'')===String(currentId))return false;
     try {
       // A profile containing data is not necessarily an unsaved profile.
       // Compare the live form against its last committed local snapshot.
