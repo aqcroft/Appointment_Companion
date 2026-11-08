@@ -1,13 +1,13 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-test('v2.69 across main, EV, specialist, About, manifest and cache; retain v2.66.19 release',()=>{
+test('v2.70 across main, EV, specialist, About, manifest and cache; retain v2.66.19 release',()=>{
  for(const p of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js']){
-   assert.ok(read(p).includes('v2.69'),p);
+   assert.ok(read(p).includes('v2.70'),p);
  }
- assert.match(read('sw.js'),/v2-69-confirmed-name-sync-20261108/);
+ assert.match(read('sw.js'),/v2-70-list-clarity-20261108/);
  assert.match(read('index.html'),/release-v2\.66\.19\.js/);
- assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.69'));
+ assert.ok(read('docs/CHANGELOG.md').startsWith('## v2.70'));
 });
 test('desktop-only donor title bar is hidden; mobile back and public views remain intact',()=>{
  const shell=read('should-i-fix/index.html');
