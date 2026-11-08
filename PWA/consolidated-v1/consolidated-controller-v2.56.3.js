@@ -773,7 +773,7 @@
               '<span style="display:block;min-width:0;overflow:hidden">' + customerJourneyIcons(row) + '</span>' +
             '</span>' +
           '</button>' +
-          '<span style="margin:auto 0">'+storageSignals(!row.deleted,cloudPresent,exactlySynced,conflict)+'</span>'+
+          '<span style="margin:auto 0">'+storageSignals(!row.deleted,row.cloud_creation_approved&&!row.cloud_id?'pending':cloudPresent,exactlySynced,conflict)+'</span>'+
           (isCloudDraft(row) && !conflict && row.customer_name && !LOCAL_ONLY?
             '<button type="button" class="ac-customer-action" data-local-upload="'+escapeHtml(row.local_id)+'">☁️ Move to Cloud</button>':'')+
           (conflict && row.conflict ? '<details style="flex:1 0 100%;font-size:11px;line-height:1.5;padding:4px 6px"><summary style="cursor:pointer;font-weight:650">Compare device and Cloud versions before choosing</summary>'+
@@ -803,6 +803,10 @@
       var fresh=await store.list(true);
       if(token!==modal._localRefreshToken||sequence!==customerBrowserSequence||!modal.classList.contains('open'))return;
       rows=fresh;
+      // A completed background download must not leave a duplicate Cloud-only
+      // row on screen until the next modal opening.
+      var linkedNow=new Set(rows.filter(function(r){return !!r.cloud_id;}).map(function(r){return String(r.cloud_id);}));
+      remoteOnly=cloudRows?cloudRows.filter(function(r){return r&&r.customer_id&&!linkedNow.has(String(r.customer_id));}):[];
       recentRows(rows);
       renderRows();
       if(note){
