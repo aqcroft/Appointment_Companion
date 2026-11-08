@@ -34,7 +34,8 @@ function harness(options={}){
     },
     list:async()=>row?[clone(row)]:[],
     remove:async()=>{row=null;},
-    findCloud:async id=>row&&row.cloud_id===id?clone(row):null
+    findCloud:async id=>row&&row.cloud_id===id?clone(row):null,
+    makeId:()=> 'new-local-customer-id'
   };
   const service={
     listCustomers:async()=>{listed++;return options.listCustomers?options.listCustomers(listed):{customers:cloudPeople};},
@@ -73,7 +74,7 @@ function harness(options={}){
     getElementById:()=>null,addEventListener:()=>{}};
   const injected=controller.replace(
     '  global.AppointmentCompanionConsolidated =',
-    '  global.__controllerTest = {storageSignals,markDeleted,shouldAskBeforeSwitch};\n  global.AppointmentCompanionConsolidated =');
+    '  global.__controllerTest = {storageSignals,markDeleted,shouldAskBeforeSwitch,startNewCustomer};\n  global.AppointmentCompanionConsolidated =');
   assert.notEqual(injected,controller,'Controller test seam must exist');
   vm.runInNewContext(injected,{window,document:doc,navigator:{onLine:options.online!==false,userAgent:'Android Mobile'},
     sessionStorage:authStore,localStorage:authStore,
@@ -112,26 +113,28 @@ test('same-name Cloud match stops accidental duplicate creation',async()=>{
   assert.equal(h.stats().confirmed,1,'manual button confirms before Cloud duplicate checks');
 });
 
-test('mobile/laptop/Cloud columns never claim another device is verified',()=>{
+test('customer locations show only the current phone and verified Cloud',()=>{
   const h=harness(),html=h.window.__controllerTest.storageSignals(true,'yes',true);
-  assert.match(html,/📱/);assert.match(html,/💻/);assert.match(html,/☁️/);
-  assert.match(html,/Another computer cannot be checked/);
-  assert.match(html,/Confirmed in Cloud and current revision synchronised/);
-  assert.equal((html.match(/class="ac-location-cell"/g)||[]).length,3);
-  assert.equal((html.match(/border-radius:50%/g)||[]).length,3);
-  assert.doesNotMatch(html,/<\/span><b style=/);
+  assert.match(html,/📱/);assert.doesNotMatch(html,/💻/);assert.match(html,/☁️/);
+  assert.match(html,/Latest local revision verified in Cloud/);
+  assert.equal((html.match(/class="ac-location-cell"/g)||[]).length,2);
+  assert.equal((html.match(/border-radius:50%/g)||[]).length,2);
   assert.match(html,/aria-label/);
+  const waiting=h.window.__controllerTest.storageSignals(true,'pending',false);
+  assert.match(waiting,/Waiting to synchronise/);
+  const conflicted=h.window.__controllerTest.storageSignals(true,'yes',false,true);
+  assert.match(conflicted,/Cloud conflict/);
 });
 
 test('customer browser provides filters and sorts Cloud and local records together',()=>{
-  assert.match(controller,/data-local-scope="localOnly"/);
-  assert.match(controller,/data-local-scope="cloudOnly"/);
+  assert.match(controller,/data-local-scope="legacy"/);
+  assert.match(controller,/data-local-scope="pending"/);
   assert.match(controller,/data-local-scope="conflicts"/);
   assert.match(controller,/customerActivityStamp\(a\), bTime=customerActivityStamp\(b\)/);
   assert.doesNotMatch(controller,/var difference=priority\(a\)-priority\(b\)/);
   assert.match(controller,/visible=visible\.concat\(remoteOnly\.filter/);
   assert.match(controller,/data-local-upload/);
-  assert.match(controller,/Save to Cloud/);
+  assert.match(controller,/Move to Cloud/);
 });
 
 test('the combined customer browser opens before awaiting its Cloud fetch',()=>{
@@ -240,7 +243,7 @@ test('customer-list actions are visually distinct and expose single-confirm bulk
   assert.match(controller,/\.ac-customer-action\{/);
   assert.match(controller,/data-local-upload-all/);
   assert.match(controller,/data-local-delete-conflicts/);
-  assert.match(controller,/Save all to Cloud/);
+  assert.match(controller,/Move older device records to Cloud/);
   assert.match(controller,/Delete all conflicts/);
   assert.match(controller,/data-local-scope="all"/);
   assert.match(controller,/uploadAll\.disabled=true/);
@@ -281,8 +284,7 @@ test('old already-confirmed deletion migrates and completes without another prom
 
 test('customer filters are tappable counted buttons and never reload the browser to switch',()=>{
   assert.match(controller,/data-local-scope="all"/);
-  assert.match(controller,/data-local-scope="localOnly"/);
-  assert.match(controller,/data-local-scope="cloudOnly"/);
+  assert.match(controller,/data-local-scope="legacy"/);
   assert.match(controller,/data-local-scope="pending"/);
   assert.match(controller,/data-local-scope="conflicts"/);
   assert.match(controller,/modal\._setCustomerScope=function/);
@@ -395,17 +397,17 @@ test('customer header shortcut opens the authoritative customer modal, not stale
   assert.match(shell,/title="View all customers" aria-label="View all customers"/);
 });
 
-test('v2.68 is a two-part product version shown without status truncation',()=>{
+test('v2.69 is a two-part product version shown without status truncation',()=>{
   const base=path.resolve(__dirname,'..');
   const status=fs.readFileSync(path.join(base,'unified-status-v2.59.0.js'),'utf8');
   const shell=fs.readFileSync(path.join(base,'index.html'),'utf8');
   const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
-  assert.match(status,/version:\s*'v2\.68'/);
+  assert.match(status,/version:\s*'v2\.69'/);
   assert.match(status,/esc\(meta\.version\)/);
   assert.doesNotMatch(status,/meta\.version\.replace\(/);
-  assert.match(shell,/<title>Appointment Companion v2\.68<\/title>/);
-  assert.equal(manifest.name,'Appointment Companion v2.68');
-  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.68 /);
+  assert.match(shell,/<title>Appointment Companion v2\.69<\/title>/);
+  assert.equal(manifest.name,'Appointment Companion v2.69');
+  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.69 /);
 });
 
 test('Most recent uses actual Cloud last update, not the time the mobile imported it',()=>{
@@ -431,7 +433,7 @@ test('Most recent uses actual Cloud last update, not the time the mobile importe
 
 test('Sync all Cloud customers is separate from opt-in draft uploads',async()=>{
   assert.match(controller,/data-local-sync-all/);
-  assert.match(controller,/Sync all Cloud customers now/);
+  assert.match(controller,/Sync all customers now/);
   assert.match(controller,/data-local-upload-all/);
   assert.match(controller,/await syncCloudCustomersNow\(\)/);
   const h=harness();
@@ -457,4 +459,58 @@ test('manual full Cloud refresh waits for an ongoing background check',async()=>
   const result=await manual;
   assert.equal(result.state,'completed');
   assert.ok(h.stats().listed>=2,'manual action performs its own fresh check after waiting');
+});
+
+test('a fresh appointment never creates an unnamed customer row',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  assert.equal(await engine.persist(false,false,false),null);
+  assert.equal(h.stats().puts,0,'autofill before naming must not write a customer row');
+  assert.equal(engine.currentRecord(),null);
+  assert.match(controller,/if\(!commit && !current\)\{/);
+  assert.match(controller,/rememberWorking\(\);\s*paint\(null,false\);/);
+  assert.match(controller,/installCustomerNameTick\(\)/);
+  assert.match(controller,/id='acConfirmCustomerName'/);
+});
+
+test('name confirmation creates one ID; subsequent field saves update it',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  const created=await engine.confirmCustomerName();
+  assert.equal(created.local_id,'new-local-customer-id');
+  assert.equal(created.cloud_creation_approved,true,'confirmation authorises background Cloud backup');
+  assert.equal(h.stats().puts,1,'one row created');
+  assert.equal(h.stats().saves,0,'Cloud network does not block local creation');
+  const revised=await engine.persist(false,false,false);
+  assert.equal(revised.local_id,created.local_id);
+  assert.equal(h.stats().puts,1,'unchanged form does not create a second row');
+  assert.equal(h.timers.at(-1),12000);
+});
+
+test('starting a new customer keeps the existing one but creates no blank database record',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  await engine.load(h.getRow(),true);
+  const before=h.stats().puts;
+  const fresh=await h.window.__controllerTest.startNewCustomer(true);
+  assert.equal(fresh,true);
+  assert.equal(h.stats().puts,before,'new blank appointment must not be an IndexedDB row');
+  assert.equal(engine.currentRecord(),null);
+  assert.match(controller,/Only name confirmation/);
+});
+
+test('old named device-only records remain reviewable, never silently uploaded',async()=>{
+  const h=harness(),engine=h.window.AppointmentCompanionConsolidated;
+  const result=await engine.syncCloudCustomersNow();
+  assert.equal(result.state,'completed');
+  assert.equal(h.stats().saves,0);
+  assert.match(controller,/isCloudDraft\(r\)&&!r\.conflict/);
+  assert.match(controller,/view!=='legacy'/);
+});
+
+test('standalone EV and Should I Fix preserve their no-customer public paths',()=>{
+  const root=path.resolve(__dirname,'..');
+  const ev=fs.readFileSync(path.join(root,'ev/index.html'),'utf8');
+  const fix=fs.readFileSync(path.join(root,'should-i-fix/index.html'),'utf8');
+  assert.match(ev,/publicView/);
+  assert.match(fix,/publicView/);
+  assert.match(ev,/EV Companion v2\.69/);
+  assert.match(fix,/Should I Fix\? v2\.69/);
 });

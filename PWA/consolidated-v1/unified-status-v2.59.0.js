@@ -1,4 +1,4 @@
-/* Appointment Companion v2.68 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.69 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,15 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.68',
+    version: 'v2.69',
     date: '8 November 2026',
-    summary: 'Newest customer profiles first, with full Cloud refresh',
+    summary: 'Confirm a name once; automatic Cloud customer backup',
     changes: [
+      'Confirmed customer names create one saved record with automatic Cloud synchronisation.',
+      'Blank working appointments are recoverable without creating unnamed database customers.',
+      'Customer locations show this device plus Cloud, without uncheckable remote device columns.',
+      'All customers, Needs sync and Conflicts are streamlined filters, with a separate review for older device-only records.',
+      'Standalone EV and Should I Fix tools continue to work without customer records.',
       'Most recent orders local and Cloud customers by their actual last edit, with no device-only priority.',
       'New Cloud imports preserve original update timestamps rather than appearing newly edited on download.',
       'Sync all Cloud customers now checks and refreshes every Cloud record; local drafts stay local and conflicts are flagged.',
@@ -301,11 +306,11 @@
       '<p class="ac-us-note">'+esc(demo?'Cloud connected':cloud.message || 'Cloud status not yet checked')+'</p>'+
       '<p class="ac-us-note">'+esc(explanation)+'</p>'+
       (customerCount==null?'':'<div class="ac-us-minirow"><span>Customer profiles on this device</span><strong>'+customerCount+'</strong></div>')+
-      '<div class="ac-us-minirow"><span>On device only (not in Cloud)</span><button type="button" data-us-action="device-only">'+esc(demo?0:deviceOnlyCount()==null?'Checking…':deviceOnlyCount())+' · View →</button></div>'+
-      '<div class="ac-us-minirow"><span>In Cloud only (not on this device)</span><button type="button" data-us-action="cloud-only">'+esc(cloudOnly==null?'Not checked':cloudOnly)+' · View →</button></div>'+
+      (!demo&&sync.localOnly>0?'<div class="ac-us-minirow"><span>Older device records for review</span><button type="button" data-us-action="device-only">'+esc(sync.localOnly)+' · View →</button></div>':'')+
+      (!demo&&cloudOnly>0?'<p class="ac-us-note">'+esc(cloudOnly)+' Cloud customer(s) are not yet on this device. Use Sync all customers now.</p>':'')+
       (onBoth==null?'':'<div class="ac-us-minirow"><span>Cloud profiles also on this device</span><strong>'+onBoth+'</strong></div>')+
       (cloudCount==null?'':'<div class="ac-us-minirow"><span>Total customers in Cloud</span><strong>'+cloudCount+'</strong></div>')+
-      (!demo&&lastVerifiedAt&&cloud.connection==='verified'?'<p class="ac-us-note">Cloud checked: '+esc(readable(new Date(lastVerifiedAt).toISOString()))+'. Cloud only = profiles not yet stored on this device, not the total Cloud backup count.</p>':'')+
+      (!demo&&lastVerifiedAt&&cloud.connection==='verified'?'<p class="ac-us-note">Cloud checked: '+esc(readable(new Date(lastVerifiedAt).toISOString()))+'.</p>':'')+
       (current?'<p class="ac-us-note">'+esc(current)+'</p>':'')+
       (sync.conflicts && !demo?'<p class="ac-us-error">'+sync.conflicts+' sync conflict(s) need attention. Please review both versions before deciding which to keep.</p>':'')+
       (sync.pending && !demo?'<p class="ac-us-note">'+sync.pending+' Cloud-linked profile(s) awaiting a confirmed sync.</p>':'')+
@@ -314,9 +319,9 @@
       (!sync.conflicts && sync.pending && !demo?'<button type="button" data-us-action="pending-customers">Review '+sync.pending+' pending →</button>':'')+
       (!sync.conflicts && !demo?'<button type="button" data-us-action="all-customers">View customer records →</button>':'')+
       (canSaveCurrent && engine && typeof engine.saveLocalToCloud==='function'?
-        '<button type="button" data-us-action="save-current-cloud">☁️ Save current customer to Cloud</button>':'')+
+        '<button type="button" data-us-action="save-current-cloud">☁️ Move older record to Cloud</button>':'')+
       (!demo?'<button type="button" data-us-action="sync-customers"'+(manualCustomerSyncRunning?' disabled aria-disabled="true"':'')+'>'+
-        (manualCustomerSyncRunning?'Synchronising…':'Sync customers now')+'</button>':'')+
+        (manualCustomerSyncRunning?'Synchronising…':'🔄 Sync all customers now')+'</button>':'')+
       '<div class="ac-us-minirow"><span>Local device save</span><span>'+esc(local)+'</span></div>';
     var customerTraffic=dimensions().find(function(d){return d.key==='customer';}).state;
     var customerBadge=demo?'synced':
@@ -434,7 +439,7 @@
       else if(a==='device-only' || a==='cloud-only'){
         var browser=global.AppointmentCompanionConsolidated;
         if(browser&&typeof browser.openCustomerBrowser==='function'){
-          close();browser.openCustomerBrowser({scope:a==='device-only'?'localOnly':'cloudOnly'});
+          close();browser.openCustomerBrowser({scope:a==='device-only'?'legacy':'pending'});
         }
       }
       else if(a==='review-customers'){
@@ -541,7 +546,7 @@
         if(current.sync_state==='conflict'||current.conflict)currentMessage='Current customer: sync conflict';
         else if(currentNeedsCloud&&!currentSynced)currentMessage='Current customer: awaiting Cloud verification or sync';
         else if(currentSynced)currentMessage='Current customer: synced to Cloud';
-        else currentMessage='Current customer: intentionally saved on this device';
+        else currentMessage='Current customer: older device record awaiting review';
       }
       sync={
         mode:conflicts.length?'conflict':pending.length?'pending':currentNeedsCloud&&!currentSynced?'pending':'synced',
@@ -549,10 +554,10 @@
         detail:conflicts.length?'Some customers have Cloud sync conflicts':
           pending.length?'Some customers are waiting to sync':
           currentNeedsCloud&&!currentSynced?'Current customer awaiting Cloud sync or verification':
-          'Local records checked. Intentionally local drafts do not require Cloud sync.',
+          'Local records checked. Older device-only records require review before Cloud migration.',
         count:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim();}).length,
         pending:pending.length,conflicts:conflicts.length,
-        localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id;}).length,
+        localOnly:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&String(r.customer_name||'').trim()&&!r.cloud_id&&!r.cloud_creation_approved;}).length,
         localIds:meaningful.filter(function(r){return !r.deleted&&!r.tombstone&&r.cloud_id;})
           .map(function(r){return String(r.cloud_id);}),
         current:currentMessage,local:localLabel,currentSynced:currentSynced,
@@ -650,15 +655,15 @@
     if(manualCustomerSyncRunning)return;
     if(demo){showMessage('Preview - no live synchronisation attempted.');return;}
     var engine=global.AppointmentCompanionConsolidated;
-    if(!engine||typeof engine.syncNow!=='function'){
+    if(!engine||typeof engine.syncCloudCustomersNow!=='function'){
       showMessage('Customer sync is not ready. Reopen the Companion and try again.');return;
     }
     if(!navigator.onLine){showMessage('Offline. Local records are safe; reconnect to sync.');return;}
     if(global.__AC_LOCAL_ONLY){showMessage('Local-only mode: Cloud sync is paused.');return;}
     manualCustomerSyncRunning=true;
-    paint();showMessage('Synchronising Cloud-linked customers. Keep the app open…');
+    paint();showMessage('Checking Cloud and uploading any confirmed pending changes…');
     try {
-      var outcome=await engine.syncNow();
+      var outcome=await engine.syncCloudCustomersNow();
       if(outcome&&outcome.state==='running'){
         showMessage('A background customer sync is already running. Please wait for it to finish.');
         return;
@@ -667,7 +672,7 @@
       var reason=outcome&&outcome.error?String(outcome.error).slice(0,150):'';
       if(sync.conflicts)showMessage('Sync checked. '+sync.conflicts+' conflict(s) need review. No automatic conflict resolution was applied.');
       else if(sync.pending)showMessage('Sync checked. '+sync.pending+' profile(s) still pending.'+(reason?' '+reason:' Review pending for details.'));
-      else showMessage('Customer sync verified. No Cloud-linked profiles remain pending.');
+      else showMessage('Cloud customer sync checked. Older device records, if any, still need your approval to migrate.');
     } catch(err) {
       showMessage('Could not complete customer sync: '+String(err&&err.message||err).slice(0,180));
     } finally {

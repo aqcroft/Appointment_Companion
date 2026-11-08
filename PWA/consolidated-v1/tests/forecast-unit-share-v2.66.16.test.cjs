@@ -17,9 +17,9 @@ test('Companion share guard preserves halfp gas options, 33p electricity, and ex
  assert.match(source,/verifiedPartnerId/);
  assert.match(source,/basketUrl/);
 });
-test('App, EV and Should I Fix use one v2.68',()=>{
+test('App, EV and Should I Fix use one v2.69',()=>{
  for(const file of ['index.html','ev/index.html','should-i-fix/index.html','manifest.webmanifest','unified-status-v2.59.0.js']){
-  assert.match(read(file),/v2\.68/,file);
+  assert.match(read(file),/v2\.69/,file);
  }
- assert.match(read('sw.js'),/v2-68-cloud-order-sync/);
+ assert.match(read('sw.js'),/v2-69-confirmed-name-sync/);
 });

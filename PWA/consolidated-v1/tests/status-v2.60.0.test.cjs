@@ -101,18 +101,18 @@ test('T, C, P each have independent traffic lights, with Cloud included under Cu
   assert.match(html,/data-us-action="review-customers"/);
 });
 
-test('local-only drafts are amber, not conflicts, and cloud-only records can be counted',()=>{
+test('older device records remain recoverable without falsely reporting a Cloud conflict',()=>{
   const h=harness();
   h.status.setCloud({connection:'verified',profile:'loaded',customerIds:['id1','id2'],customerCount:2});
   h.status.setSync({mode:'local',count:2,conflicts:0,pending:0,localOnly:1,localIds:['id1'],current:'',local:'Saved'});
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
-  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
-  assert.match(html,/In Cloud only \(not on this device\)<\/span><button[^>]*>1 · View/);
+  assert.match(html,/Older device records for review<\/span><button[^>]*>1 · View/);
+  assert.match(html,/1 Cloud customer\(s\) are not yet on this device/);
   assert.doesNotMatch(html,/sync conflict\(s\) need attention/);
 });
 
-test('Cloud customer drafts are not falsely counted as queued uploads',async()=>{
+test('unapproved older device records are not falsely counted as queued uploads',async()=>{
   const h=harness();
   h.win.AppointmentCompanionConsolidated={
     list:async()=>[{local_id:'draft1',customer_name:'Synthetic draft',sync_state:'pending',
@@ -123,7 +123,7 @@ test('Cloud customer drafts are not falsely counted as queued uploads',async()=>
   assert.equal(h.status.dimensions()[1].state,'amber');
   const html=h.status.customerSection();
   assert.doesNotMatch(html,/Cloud-enabled profile\(s\) waiting to sync/);
-  assert.match(html,/On device only \(not in Cloud\)<\/span><button[^>]*>1 · View/);
+  assert.match(html,/Older device records for review<\/span><button[^>]*>1 · View/);
 });
 
 test('update history begins collapsed and displays last three versions',()=>{

@@ -1,3 +1,14 @@
+## v2.69 - 8th November 2026 - Confirmed names, reliable local saves and one Cloud workflow
+
+- A new Appointment Companion customer is only created when their name is confirmed using the ✓ control (or an explicit named Save). The customer receives one durable ID; every later change updates that same record.
+- Until the name is confirmed, form content is held as a recoverable temporary session snapshot, not an IndexedDB customer or Cloud row.
+- Once confirmed, automatic device saves and background Cloud synchronisation are enabled. The explicit Save button still performs a targeted Cloud verification; offline saves remain local and queue automatically.
+- Customer lists now show just this phone/computer and Cloud, with accurate saved/pending/conflict indicators. A Cloud tick requires the current revision to match the verified Cloud listing.
+- Simplify customer filters to All customers, Needs sync and Conflicts as needed. An Older device records filter appears only for pre-existing unapproved local records.
+- Sync all customers now is the primary two-way action; legacy device records are preserved with explicit, duplicate-safe migration and never silently bulk-uploaded.
+- Standalone EV Companion and Should I Fix continue to work without creating or naming an Appointment Companion customer.
+- Keep product version/manifest/cache/embedded specialist pages and About in step at v2.69.
+
 ## v2.68 - 8th November 2026 - Cross-device recency and one-tap Cloud refresh
 
 - Sort all customer profiles by their real last-edited date across mobile, laptop and Cloud, rather than pushing device-only drafts above newer Cloud profiles.
