@@ -1,3 +1,11 @@
+## v2.70 - 8th November 2026 - Simpler customer-list indicators and close control
+
+- Remove the redundant linked-basket and email-sharing icons only from customer rows; retain service and specialist indicators and underlying link/share data.
+- Add a sticky, clearly labelled close × at the top-right of the customer-list modal so it remains accessible while scrolling on mobile.
+- Keep the existing bottom Close button, backdrop tap and desktop Escape key support.
+- Update version metadata, integrated specialist entry points, PWA cache, and regression checks to v2.70.
+- Name-first full-screen gating is a separate proposed UX change and is **not** included in this release.
+
 ## v2.69 - 8th November 2026 - Confirmed names, reliable local saves and one Cloud workflow
 
 - A new Appointment Companion customer is only created when their name is confirmed using the ✓ control (or an explicit named Save). The customer receives one durable ID; every later change updates that same record.
