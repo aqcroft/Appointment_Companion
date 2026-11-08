@@ -123,14 +123,15 @@ test('mobile/laptop/Cloud columns never claim another device is verified',()=>{
   assert.match(html,/aria-label/);
 });
 
-test('location browser includes explicit filters and prioritises device-only records',()=>{
+test('customer browser provides filters and sorts Cloud and local records together',()=>{
   assert.match(controller,/data-local-scope="localOnly"/);
   assert.match(controller,/data-local-scope="cloudOnly"/);
   assert.match(controller,/data-local-scope="conflicts"/);
-  assert.match(controller,/var difference=priority\(a\)-priority\(b\)/);
+  assert.match(controller,/customerActivityStamp\(a\), bTime=customerActivityStamp\(b\)/);
+  assert.doesNotMatch(controller,/var difference=priority\(a\)-priority\(b\)/);
+  assert.match(controller,/visible=visible\.concat\(remoteOnly\.filter/);
   assert.match(controller,/data-local-upload/);
   assert.match(controller,/Save to Cloud/);
-  assert.match(controller,/remoteVisible\.map/);
 });
 
 test('the combined customer browser opens before awaiting its Cloud fetch',()=>{
@@ -394,15 +395,66 @@ test('customer header shortcut opens the authoritative customer modal, not stale
   assert.match(shell,/title="View all customers" aria-label="View all customers"/);
 });
 
-test('v2.67 is a two-part product version shown without status truncation',()=>{
+test('v2.68 is a two-part product version shown without status truncation',()=>{
   const base=path.resolve(__dirname,'..');
   const status=fs.readFileSync(path.join(base,'unified-status-v2.59.0.js'),'utf8');
   const shell=fs.readFileSync(path.join(base,'index.html'),'utf8');
   const manifest=JSON.parse(fs.readFileSync(path.join(base,'manifest.webmanifest'),'utf8'));
-  assert.match(status,/version:\s*'v2\.67'/);
+  assert.match(status,/version:\s*'v2\.68'/);
   assert.match(status,/esc\(meta\.version\)/);
   assert.doesNotMatch(status,/meta\.version\.replace\(/);
-  assert.match(shell,/<title>Appointment Companion v2\.67<\/title>/);
-  assert.equal(manifest.name,'Appointment Companion v2.67');
-  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.67 /);
+  assert.match(shell,/<title>Appointment Companion v2\.68<\/title>/);
+  assert.equal(manifest.name,'Appointment Companion v2.68');
+  assert.match(fs.readFileSync(path.join(base,'docs/CHANGELOG.md'),'utf8'),/^## v2\.68 /);
+});
+
+test('Most recent uses actual Cloud last update, not the time the mobile imported it',()=>{
+  const start=controller.indexOf('  function isSynced(');
+  const end=controller.indexOf('  function paint(',start);
+  const stamp=vm.runInNewContext(controller.slice(start,end)+'\ncustomerActivityStamp');
+  const olderCloud={cloud_id:'cloud-old',sync_state:'synced',local_revision:0,
+    cloud_synced_local_revision:0,updated_at:'2026-11-08T12:00:00Z',
+    cloud_customer:{updated_at:'2026-11-01T09:00:00Z'}};
+  const nirmal={cloud_id:'cloud-new',sync_state:'synced',local_revision:0,
+    cloud_synced_local_revision:0,updated_at:'2026-11-08T12:00:05Z',
+    cloud_customer:{updated_at:'2026-11-08T07:46:00Z'}};
+  const localDraft={cloud_id:'',sync_state:'draft',updated_at:'2026-11-08T08:30:00Z'};
+  assert.equal(stamp(olderCloud),'2026-11-01T09:00:00Z');
+  const ordered=[olderCloud,nirmal,localDraft].sort((a,b)=>stamp(b).localeCompare(stamp(a)));
+  assert.deepEqual(ordered,[localDraft,nirmal,olderCloud]);
+  const locallyEdited={...nirmal,sync_state:'pending',local_revision:1,
+    updated_at:'2026-11-08T13:00:00Z'};
+  assert.equal(stamp(locallyEdited),'2026-11-08T13:00:00Z');
+  assert.match(controller,/updatedAt: remote\.updated_at \|\| remote\.created_at/);
+  assert.match(controller,/updatedAt: full\.updated_at \|\| full\.created_at/);
+});
+
+test('Sync all Cloud customers is separate from opt-in draft uploads',async()=>{
+  assert.match(controller,/data-local-sync-all/);
+  assert.match(controller,/Sync all Cloud customers now/);
+  assert.match(controller,/data-local-upload-all/);
+  assert.match(controller,/await syncCloudCustomersNow\(\)/);
+  const h=harness();
+  const result=await h.window.AppointmentCompanionConsolidated.syncCloudCustomersNow();
+  assert.equal(result.state,'completed');
+  assert.equal(h.stats().saves,0,'explicitly local drafts must not upload during Cloud refresh');
+  assert.ok(h.stats().listed>=1,'a fresh Cloud list is checked');
+});
+
+test('manual full Cloud refresh waits for an ongoing background check',async()=>{
+  let release;
+  const slow=new Promise(resolve=>{release=resolve;});
+  const h=harness({listCustomers:async n=>n===1?slow:{customers:[]}});
+  const engine=h.window.AppointmentCompanionConsolidated;
+  const background=engine.sync();
+  for(let i=0;i<15&&h.stats().listed===0;i++)await Promise.resolve();
+  assert.equal(h.stats().listed,1);
+  const manual=engine.syncCloudCustomersNow();
+  for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(h.stats().listed,1,'does not start a second concurrent Cloud read');
+  release({customers:[]});
+  await background;
+  const result=await manual;
+  assert.equal(result.state,'completed');
+  assert.ok(h.stats().listed>=2,'manual action performs its own fresh check after waiting');
 });
