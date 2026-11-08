@@ -1,4 +1,4 @@
-/* Appointment Companion v2.67 - unified renewal chart and standalone tariff selection.
+/* Appointment Companion v2.68 - unified renewal chart and standalone tariff selection.
    Read-only reporting. Real Cloud checks run only when the modal is opened/refreshed.
    All status dimensions are independent: a green tariff light is NOT Cloud health.
    A dedicated fixture mode runs the EXACT SAME modal UI without reading live data.
@@ -8,10 +8,13 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.67',
-    date: '6 November 2026',
-    summary: 'Save once, switch smoothly and one customer list',
+    version: 'v2.68',
+    date: '8 November 2026',
+    summary: 'Newest customer profiles first, with full Cloud refresh',
     changes: [
+      'Most recent orders local and Cloud customers by their actual last edit, with no device-only priority.',
+      'New Cloud imports preserve original update timestamps rather than appearing newly edited on download.',
+      'Sync all Cloud customers now checks and refreshes every Cloud record; local drafts stay local and conflicts are flagged.',
       'Previously saved customers switch without an unnecessary Save prompt; genuine unsaved changes still trigger one.',
       'Save & switch uses the same locally safe, targeted Cloud upload as the main Save button.',
       'The customer chevron now opens the full list, eliminating a separate stale recent-profile dropdown.',
