@@ -31,5 +31,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser preview regression
         run: node tests/ev-v271-preview.test.cjs
+      - name: Hosted phone preview with live tariffs
+        env:
+          EV_PREVIEW_URL: https://aqcroft.github.io/Appointment_Companion/PWA/consolidated-v1/ev-preview-v2710/
+          EV_PREVIEW_LIVE_TARIFFS: '1'
+        run: node tests/ev-v271-preview.test.cjs
       - name: Verified Partner identity regression
         run: node PWA/consolidated-v1/tests/partner-share-identity-v2.64.4.test.cjs

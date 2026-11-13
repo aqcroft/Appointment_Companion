@@ -7,11 +7,13 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const base = process.env.EV_PREVIEW_URL || 'http://example.test/PWA/consolidated-v1/ev-preview-v2710/';
 const appOrigin = new URL(base).origin;
+const liveTariffs = process.env.EV_PREVIEW_LIVE_TARIFFS === '1';
 
 async function localOnly(page) {
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.origin === appOrigin && url.hostname !== 'example.test') return route.continue();
+    if (liveTariffs && ['script.google.com', 'script.googleusercontent.com'].includes(url.hostname)) return route.continue();
     if (url.hostname !== 'example.test') return route.abort();
     let file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
     if (!file.startsWith(root + path.sep)) return route.fulfill({ status: 403, body: 'blocked' });
@@ -34,6 +36,10 @@ async function main() {
     assert.equal(response.status(), 200);
     await page.locator('#evwRegion').waitFor({ state: 'visible', timeout: 20000 });
     assert.match(await page.locator('#acEvPreviewRibbon').innerText(), /PREVIEW v2\.71/);
+    if (liveTariffs) {
+      await page.waitForFunction(() => window.AppointmentCompanionTariffsV242?.state()?.status === 'green', null, { timeout: 30000 });
+      await page.waitForFunction(() => Number.isFinite(window.AppointmentCompanionEvFuelComparison?.get('D')?.evAnnual), null, { timeout: 30000 });
+    }
 
     // Blank prospective visitor -> mileage + efficiency kWh -> home -> overnight.
     await page.locator('.evw-primary').click();
@@ -49,8 +55,7 @@ async function main() {
     await page.locator('#evwOverlay input[type=range]').fill('15');
     assert.match(await page.locator('#evwOverlay .evw-hint').last().innerText(), /2125\.00 kWh daytime.*375\.00 kWh overnight.*2,500 kWh\/year/);
 
-    // Pin an offline tariff fixture so journey and summary assertions are deterministic.
-    await page.evaluate(() => {
+    if (!liveTariffs) await page.evaluate(() => {
       window.AppointmentCompanionEvFuelComparison = { get: fuel => ({
         currentAnnual: fuel === 'D' ? 1800 : 1600, evAnnual: 1200, savingAnnual: fuel === 'D' ? 600 : 400,
         chargingAnnual: 900, homeDifferenceAnnual: 300
@@ -62,17 +67,22 @@ async function main() {
       document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
     });
     await page.locator('.evw-primary').click();
-    await page.waitForTimeout(500);
-    await page.evaluate(() => {
-      const fixture = { meter: false, miles: 10000, efficiency: 3.2, evHomePct: 15, services: 3,
-        ev: { car: 900, home: 300, total: 1200 }, standard: { car: 0, home: 2100, total: 2100 },
-        standardUnitRateExVatP: 25, evPeakRateExVatP: 29, evOffPeakRateExVatP: 7.5 };
-      window.__AC_EV_TRADEOFF = fixture;
-      document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
-    });
+    if (!liveTariffs) {
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const fixture = { meter: false, miles: 10000, efficiency: 3.2, evHomePct: 15, services: 3,
+          ev: { car: 900, home: 300, total: 1200 }, standard: { car: 0, home: 2100, total: 2100 },
+          standardUnitRateExVatP: 25, evPeakRateExVatP: 29, evOffPeakRateExVatP: 7.5 };
+        window.__AC_EV_TRADEOFF = fixture;
+        document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
+      });
+    }
     await page.locator('.evw-price').first().waitFor({ state: 'visible' });
     assert.equal(await page.locator('.evw-price').count(), 2);
-    assert.match(await page.locator('.evw-saving').innerText(), /£50[\s\S]*£600/);
+    if (liveTariffs) {
+      assert.doesNotMatch(await page.locator('.evw-price').allInnerTexts().then(t => t.join(' ')), /£—/);
+      assert.doesNotMatch(await page.locator('.evw-saving').innerText(), /£—/);
+    } else assert.match(await page.locator('.evw-saving').innerText(), /£50[\s\S]*£600/);
     await page.locator('.evw-kwh summary').click();
     const breakdown = await page.locator('.evw-kwh').innerText();
     assert.match(breakdown, /Home before EV charging[\s\S]*2,500 kWh\/year/);
@@ -82,8 +92,13 @@ async function main() {
     assert.match(await page.locator('.evw-note').innerText(), /No gas discount/i);
     await page.locator('details summary').filter({ hasText: 'See the full cost breakdown' }).click();
     assert.ok(await page.locator('.evw-detail').count() >= 5);
-    assert.match(await page.locator('.evw-detail').filter({ hasText: 'Net household electricity difference' }).innerText(), /£25\.00/);
-    assert.match(await page.locator('.evw-detail').filter({ hasText: 'EV energy cost including household effect' }).innerText(), /£100\.00/);
+    if (liveTariffs) {
+      assert.doesNotMatch(await page.locator('.evw-detail').filter({ hasText: 'Net household electricity difference' }).innerText(), /£—/);
+      assert.doesNotMatch(await page.locator('.evw-detail').filter({ hasText: 'EV energy cost including household effect' }).innerText(), /£—/);
+    } else {
+      assert.match(await page.locator('.evw-detail').filter({ hasText: 'Net household electricity difference' }).innerText(), /£25\.00/);
+      assert.match(await page.locator('.evw-detail').filter({ hasText: 'EV energy cost including household effect' }).innerText(), /£100\.00/);
+    }
     assert.ok(await page.getByText('Estimated annual saving').count());
 
     // Enquiry requires consent plus a name and at least one contact route.
@@ -121,7 +136,7 @@ async function main() {
     assert.equal(portable.url.includes('Private%20Test%20Name'), false);
     assert.equal(await demo.evaluate(() => window.AppointmentCompanionLocalStore.database.name), 'apptCompanionPreviewV271');
     assert.deepEqual(errors, []);
-    console.log('EV v2.71 mobile journey, usage transparency, consent and isolated demo checks passed');
+    console.log('EV v2.71 mobile journey, usage transparency, consent and isolated demo checks passed' + (liveTariffs ? ' with live tariff feed' : ' with deterministic tariff fixture'));
   } finally {
     await browser.close();
   }
