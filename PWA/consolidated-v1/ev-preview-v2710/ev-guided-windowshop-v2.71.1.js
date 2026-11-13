@@ -4,7 +4,7 @@
 const d=document,p=new URL(location.href).searchParams;
 if(p.has('ac_launch')||p.has('s')||/^(p|p2)=/.test(location.hash.slice(1)))return;
 const $=id=>d.getElementById(id);
-let screen=null,stage=0,model=null,applying=false,hasCore=false,overlay=null,isEditing=false;
+let screen=null,stage=0,model=null,applying=false,hasCore=false,overlay=null,isEditing=false,priorBodyOverflow='',priorRootOverflow='';
 let state={region:p.get('region')||'11',fuel:['P','D','EV'].includes(p.get('fuel'))?p.get('fuel'):null,
 miles:Math.min(30000,Math.max(1000,Number(p.get('miles'))||10000)),
 eff:[3.8,3.2,2.8,2.5].includes(Number(p.get('eff')))?Number(p.get('eff')):3.2,
@@ -61,7 +61,7 @@ function input(label,value,fn,attrs){
 function annualKwh(value){return Number(value).toLocaleString('en-GB',{maximumFractionDigits:2})+' kWh/year'}
 function energySummary(m){
  const section=node('section','evw-kwh');section.setAttribute('aria-label','Annual electricity use');
- section.appendChild(node('h3','','Your annual electricity'));
+ section.appendChild(node('h3','','Electricity use'));
  if(state.fuel==='EV'){
   const day=Number(m.meterPeak)||0,night=Number(m.meterNight)||0,total=Number(m.meterTotal)||day+night;
   const tiles=node('div','evw-energy-primary');
@@ -83,7 +83,7 @@ function energySummary(m){
   const tile=node('div','evw-energy-stat');tile.appendChild(node('span','',label));const strong=node('strong','',annualKwh(value));strong.id=index===0?'evwCarKwh':'evwHomeKwh';tile.appendChild(strong);tiles.appendChild(tile);
  });
  section.appendChild(tiles);
- [['Household at night ('+state.overnight+'%)',homeNight],['EV charging at night (assumed)',carNight],['Total overnight electricity',totalNight],['Home + EV for the year',home+ev]].forEach(([label,value],index)=>{
+ [['Household at night ('+state.overnight+'%)',homeNight],['Car charging overnight',carNight],['Total overnight electricity',totalNight],['Home + EV for the year',home+ev]].forEach(([label,value],index)=>{
   const row=node('div','evw-detail'+(index===2?' evw-energy-total':''));row.id=['evwHouseNight','evwCarNight','evwTotalNight','evwCombinedKwh'][index];row.appendChild(node('span','',label));row.appendChild(node('b','',annualKwh(value)));section.appendChild(row);
  });
  section.appendChild(node('p','evw-hint','EV use is estimated from annual miles ÷ the selected car efficiency. The tariff comparison assumes car charging uses the overnight window; household night use uses the share you selected.'));
@@ -119,7 +119,7 @@ function summary(){
   const totalRow=node('div','evw-detail evw-subtotal');totalRow.appendChild(node('span','','EV energy cost including household effect'));totalRow.appendChild(node('b','',fmt2(b/12)));costDetails.appendChild(totalRow);
   costDetails.appendChild(node('p','evw-hint','Energy costs only. Excludes vehicle purchase, insurance, maintenance and depreciation.'));
  }
- heading(state.fuel==='EV'?'Your electricity comparison':'Your EV and home electricity','A clear view of the energy first, then the tariff comparison.');
+ heading(state.fuel==='EV'?'Your electricity comparison':'Your EV + home estimate','Annual electricity, overnight total and tariff costs.');
  screen.appendChild(energySummary(m));
  const grid=node('div','evw-grid');
  [[labelA,a],[labelB,b]].forEach(([t,n])=>{
@@ -225,16 +225,17 @@ function draw(){
  }
  card.appendChild(node('p','evw-foot','Independent UW Partner calculator • no contact details needed • estimates only.'));
 }
-function close(){overlay.remove();overlay=null;let btn=$('evwReopen');if(!btn){const hero=$q('.hero');if(hero){btn=button('🔎 Review my quick EV comparison',()=>{mount();stage=10;draw()},'evw-secondary');btn.id='evwReopen';hero.insertAdjacentElement('beforebegin',btn)}}}
+function close(){overlay.remove();overlay=null;d.body.style.overflow=priorBodyOverflow;d.documentElement.style.overflow=priorRootOverflow;let btn=$('evwReopen');if(!btn){const hero=$q('.hero');if(hero){btn=button('🔎 Review my quick EV comparison',()=>{mount();stage=10;draw()},'evw-secondary');btn.id='evwReopen';hero.insertAdjacentElement('beforebegin',btn)}}}
 function mount(){
  if(overlay)return;
+ priorBodyOverflow=d.body.style.overflow;priorRootOverflow=d.documentElement.style.overflow;d.body.style.overflow='hidden';d.documentElement.style.overflow='hidden';
  overlay=node('div','evw-overlay');overlay.id='evwOverlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
  overlay.appendChild(node('div','evw-card'));d.body.appendChild(overlay);
  draw();
 }
 const st=node('style');st.textContent=[
  '.evw-overlay{position:fixed;inset:0;z-index:22000;overflow-y:auto;box-sizing:border-box;padding:12px;background:#f1f4f3;color:#233038;font:15px/1.45 system-ui,sans-serif}',
- '.evw-overlay *{box-sizing:border-box}.evw-card{max-width:490px;min-height:calc(100dvh - 24px);margin:auto;background:white;border-radius:18px;padding:22px 17px;box-shadow:0 12px 34px #0001}',
+ '.evw-overlay *{box-sizing:border-box}.evw-card{max-width:490px;margin:auto;background:white;border-radius:18px;padding:22px 17px;box-shadow:0 12px 34px #0001}',
  '.evw-eyebrow{font-size:11px;font-weight:850;color:#23756b;margin-bottom:12px}.evw-progress{height:5px;background:#e8eeeb;border-radius:9px;overflow:hidden;margin-bottom:24px}.evw-progress span{display:block;height:100%;background:#008d7e}',
  '.evw-progress-wrap{margin:0 0 22px}.evw-step-label{font-size:10px;letter-spacing:.09em;font-weight:850;color:#607570;margin-bottom:7px}.evw-progress{margin-bottom:0}.evw-back{display:block;margin:-7px 0 11px;padding:4px 0;text-decoration:none;font-size:12px}',
  '.evw-card h2{font-size:23px;line-height:1.2;letter-spacing:-.035em;margin:0 0 8px}.evw-hint{font-size:13px;color:#62747b;margin:0 0 17px}.evw-choice{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:64px;margin:9px 0;padding:13px;border:1.5px solid #d3e3df;border-radius:13px;background:#f9fcfb;color:#263c3d;text-align:left;font:750 15px system-ui;cursor:pointer}.evw-choice small{display:block;font-size:11px;font-weight:500;margin-top:5px}',
@@ -242,7 +243,7 @@ const st=node('style');st.textContent=[
  '.evw-back{background:none;border:0;color:#527075;text-decoration:underline;padding:12px 3px;font:650 13px system-ui}.evw-foot{font-size:11px;color:#7d8b8d}.evw-card select,.evw-card input[type=number]{display:block;width:100%;padding:10px;border:1.5px solid #cad5d4;border-radius:10px;background:white;min-height:46px;color:#263c3d;font:650 15px system-ui}.evw-card input[type=range]{width:100%;accent-color:#008678;margin:17px 0 26px}.evw-value{text-align:center;font-size:29px;font-weight:900;margin:18px 0;color:#06665b}',
  '.evw-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:17px 0 12px}.evw-price{background:#f0f5f3;text-align:center;border-radius:13px;padding:15px 7px}.evw-price span{font-size:12px;font-weight:750}.evw-price strong{display:block;font-size:clamp(24px,7vw,35px);letter-spacing:-1px;margin:6px 0}.evw-price small{font-size:11px;color:#617179}.evw-saving{background:#e1f6eb;color:#086e50;text-align:center;border-radius:13px;padding:14px}.evw-saving span{display:block;font-size:13px;font-weight:800}.evw-saving strong{display:block;font-size:34px;font-weight:900}',
  '.evw-note{background:#f4f7f5;color:#53666a;border-radius:9px;padding:11px;font-size:12px}.evw-card details{border:1px solid #dbe5e1;padding:11px;border-radius:10px;margin:13px 0}.evw-card summary{font-size:13px;font-weight:800;cursor:pointer}.evw-detail{display:flex;justify-content:space-between;gap:8px;margin:9px 0;font-size:12px}.evw-detail b{text-align:right}.evw-subtotal{border-top:1px solid #dbe5e1;padding-top:8px;font-weight:800}.evw-card label{font-size:13px;font-weight:800;margin:10px 0 5px;display:block}.evw-usage-live{margin:0 0 12px;padding:9px;border-radius:9px;background:#eaf6f2;color:#006c60;font-weight:800;text-align:center}.evw-book{display:flex;align-items:center;justify-content:center;margin:12px 0;padding:12px;border:1px solid #9fcbc1;border-radius:11px;color:#006b62;font-weight:800;text-decoration:none}.evw-consent{display:flex!important;align-items:flex-start;gap:6px;font-weight:600!important;font-size:11px!important}.evw-consent input{width:20px!important;min-height:20px!important;margin:0}',
- '.evw-kwh{margin:2px 0 16px;padding:15px 13px;border:1px solid #cfe1dc;border-radius:15px;background:#f7fbfa}.evw-kwh h3{margin:0 0 12px;color:#23403d;font-size:16px;letter-spacing:-.02em}.evw-energy-primary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.evw-energy-stat{min-width:0;padding:12px 8px;border-radius:11px;background:white;border:1px solid #e1ebe8}.evw-energy-stat span{display:block;color:#53666a;font-size:11px;font-weight:800}.evw-energy-stat strong{display:block;margin-top:5px;color:#006d61;font-size:clamp(17px,5vw,22px);line-height:1.2;letter-spacing:-.04em;white-space:nowrap}.evw-energy-total{margin:10px 0 0;padding-top:10px;border-top:1px solid #cfe1dc;color:#064f47;font-size:13px;font-weight:850}.evw-kwh .evw-hint{margin:12px 0 0;font-size:11px}.evw-edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.evw-edit-button{min-height:40px;border:1px solid #c8ded8;border-radius:9px;background:#f7fbfa;color:#17645b;font:750 12px system-ui}.evw-price{background:#f5f7f7}.evw-saving{padding:11px}.evw-saving strong{font-size:29px}',
+ '.evw-kwh{margin:2px 0 16px;padding:15px 13px;border:1px solid #cfe1dc;border-radius:15px;background:#f7fbfa}.evw-kwh h3{margin:0 0 12px;color:#23403d;font-size:16px;letter-spacing:-.02em}.evw-energy-primary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.evw-energy-stat{min-width:0;padding:12px 8px;border-radius:11px;background:white;border:1px solid #e1ebe8}.evw-energy-stat span{display:block;color:#53666a;font-size:11px;font-weight:800}.evw-energy-stat strong{display:block;margin-top:5px;color:#006d61;font-size:clamp(14px,4.1vw,18px);line-height:1.2;letter-spacing:-.045em;white-space:nowrap}.evw-energy-total{margin:10px 0 0;padding-top:10px;border-top:1px solid #cfe1dc;color:#064f47;font-size:13px;font-weight:850}.evw-kwh .evw-hint{margin:12px 0 0;font-size:11px}.evw-edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.evw-edit-button{min-height:40px;border:1px solid #c8ded8;border-radius:9px;background:#f7fbfa;color:#17645b;font:750 12px system-ui}.evw-price{background:#f5f7f7}.evw-saving{padding:11px}.evw-saving strong{font-size:29px}',
  '#evwReopen{max-width:580px;margin:10px auto}.evw-card button:focus-visible,.evw-card select:focus-visible,.evw-card input:focus-visible{outline:3px solid #ecbe54;outline-offset:2px}'
  ].join('');
 d.head.appendChild(st);
