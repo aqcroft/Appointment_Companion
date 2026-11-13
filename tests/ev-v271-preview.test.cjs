@@ -135,7 +135,55 @@ async function main() {
     assert.equal(portable.payload.vat, '5');
     assert.equal(portable.url.includes('Private%20Test%20Name'), false);
     assert.equal(await demo.evaluate(() => window.AppointmentCompanionLocalStore.database.name), 'apptCompanionPreviewV271');
+
+    await demo.evaluate(() => {
+      window.__previewNativeShareCalls = 0;
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.__previewCopiedLink = text; } } });
+      Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { window.__previewNativeShareCalls++; } });
+      window.AppointmentCompanionShareIdentity = { resolve: async () => 'p_verified_test' };
+    });
+    await demo.locator('#evCloudShare').dispatchEvent('click');
+    await demo.locator('#acEvUwStatusChoice').waitFor({ state: 'visible' });
+    await demo.locator('#acEvUwStatusChoice').selectOption('existing');
+    await demo.locator('input[name="acEvLinkKind"][value="prefilled"]').check();
+    await demo.locator('[data-choice="plain"]').click();
+    await demo.waitForFunction(() => Boolean(window.__previewCopiedLink));
+    const linkedShare = await demo.evaluate(() => {
+      const url = window.__previewCopiedLink.split(/\s+/).find(item => item.startsWith('http'));
+      const parsed = new URL(url);
+      const payload = JSON.parse(atob(parsed.hash.slice(4).replace(/-/g, '+').replace(/_/g, '/')));
+      return { partner: parsed.searchParams.get('pid'), payload, nativeShares: window.__previewNativeShareCalls };
+    });
+    assert.equal(linkedShare.partner, 'p_verified_test');
+    assert.equal(linkedShare.payload.n, 'you');
+    assert.equal(linkedShare.payload.uws, 'existing');
+    assert.equal(linkedShare.payload.sm, 1);
+    assert.equal(linkedShare.nativeShares, 0, 'Preview cannot launch a real customer communication');
     assert.deepEqual(errors, []);
+
+    // Already-electric path uses the two actual readings and adds no estimated EV demand.
+    const existing = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    existing.setDefaultTimeout(8000);
+    existing.on('pageerror', error => errors.push(error.message));
+    await localOnly(existing);
+    await existing.goto(base + '?local=1&region=11&fuel=EV', { waitUntil: 'domcontentloaded' });
+    await existing.locator('#evwOverlay input[type=number]').first().waitFor({ state: 'visible' });
+    await existing.locator('#evwOverlay input[type=number]').nth(0).fill('2275');
+    await existing.locator('#evwOverlay input[type=number]').nth(1).fill('4800');
+    await existing.locator('#evwOverlay .evw-primary').click();
+    await existing.waitForTimeout(500);
+    await existing.evaluate(() => {
+      const fixture = { meter: true, meterSource: 'ev', meterTotal: 7075, evHomePct: 10,
+        ev: { total: 1900 }, standard: { total: 2200 }, economy7: { total: 2050 } };
+      window.__AC_EV_TRADEOFF = fixture;
+      document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
+    });
+    await existing.locator('.evw-price').first().waitFor({ state: 'visible' });
+    assert.equal(await existing.locator('.evw-kwh').count(), 0, 'Actual EV readings do not gain estimated EV kWh');
+    assert.match(await existing.locator('.evw-note').innerText(), /No extra EV usage has been added/);
+    assert.match(await existing.locator('.evw-price').allInnerTexts().then(rows => rows.join(' ')), /Standard UW[\s\S]*UW EV tariff/);
+    assert.deepEqual(errors, []);
+    await existing.close();
     console.log('EV v2.71 mobile journey, usage transparency, consent and isolated demo checks passed' + (liveTariffs ? ' with live tariff feed' : ' with deterministic tariff fixture'));
   } finally {
     await browser.close();
@@ -143,3 +191,4 @@ async function main() {
 }
 
 main().catch(error => { console.error(error.stack || error); process.exitCode = 1; });
+
