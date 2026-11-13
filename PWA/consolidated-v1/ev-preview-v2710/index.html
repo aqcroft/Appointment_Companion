@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PREVIEW | UW EV Companion v2.71</title>
+  <title>PREVIEW | UW EV Companion v2.71.1</title>
   <meta name="description" content="Independent UK EV tariff calculator by Adrian Croft, an Authorised Utility Warehouse Partner. Compare home EV charging costs, Economy 7, standard electricity and UW EV tariffs using mileage, vehicle efficiency, home usage and regional rates.">
   <meta name="robots" content="noindex,nofollow,noarchive">
 
@@ -80,8 +80,8 @@
   <script>
   (async function () {
     try {
-      var version = '20261113-v2.71-consolidated-ev-preview1';
-      var appVersion = (version.match(/v\d+\.\d+/) || ['v2.71'])[0];
+      var version = '20261113-v2.71.1-consolidated-ev-preview2';
+      var appVersion = (version.match(/v\d+\.\d+(?:\.\d+)?/) || ['v2.71.1'])[0];
       window.__AC_EV_PREVIEW_VERSION = appVersion;
       var params = new URL(location.href).searchParams;
       if (params.get('demo') === '1') {
@@ -155,7 +155,7 @@
       inject += '<script src="consolidated-v1/ev-usage-origin-v2.55.0.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-mode-ui-v2.55.11.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-preview-v2710/ev-next-steps-v2.71.js?v=' + version + '"><\/script>';
-      inject += '<script src="consolidated-v1/ev-preview-v2710/ev-guided-windowshop-v2.71.js?v=' + version + '"><\/script>';
+      inject += '<script src="consolidated-v1/ev-preview-v2710/ev-guided-windowshop-v2.71.1.js?v=' + version + '"><\/script>';
        inject += '<script src="consolidated-v1/ev-fixed-compare-polish-v2.55.27.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-shared-header-v2.55.16.js?v=' + version + '"><\/script>';
       inject += '<script src="consolidated-v1/ev-hero-controls-v2.55.17.js?v=' + version + '"><\/script>';
@@ -164,7 +164,7 @@
       if (!publicView) inject += '<script src="consolidated-v1/release-v2.55.27.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.56.0.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.56.1.js?v=' + version + '"><\/script><script src="consolidated-v1/release-v2.56.2.js?v=' + version + '"><\/script>';
       if (!publicView) inject += '<script src="consolidated-v1/release-v2.57.0.js?v=' + version + '"><\/script>';
       if (!publicView && linked) inject += '<script src="consolidated-v1/unified-status-v2.59.0.js?v=' + version + '"><\/script><script src="consolidated-v1/specialist-suite-menu-v2.62.2.js?v=' + version + '"><\/script>';
-      if (!publicView) inject += '<script src="consolidated-v1/ev-preview-v2710/release-v2.71.js?v=' + version + '"><\/script>';
+      if (!publicView) inject += '<script src="consolidated-v1/ev-preview-v2710/release-v2.71.1.js?v=' + version + '"><\/script>';
       html = html.replace(/<body>/i, '<body><div role="status" id="acEvPreviewRibbon" style="width:min(100%,760px);margin:0 auto;padding:7px 10px;background:#fff2c9;color:#5c450e;border:1px solid #edd381;text-align:center;font:800 12px system-ui;position:relative;z-index:20000;box-sizing:border-box">🧪 PREVIEW ' + appVersion + ' - test figures only · <a href="?local=1&amp;demo=1">Open safe test customer</a> · Cloud writes and real customer shares are off</div>');
       html = html.replace(/<\/body>/i, inject + '</body>');
       document.open(); document.write(html); document.close();
@@ -175,3 +175,4 @@
   </script>
 </body>
 </html>
+
