@@ -5,11 +5,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const base = 'http://example.test/PWA/consolidated-v1/ev-preview-v2710/';
+const base = process.env.EV_PREVIEW_URL || 'http://example.test/PWA/consolidated-v1/ev-preview-v2710/';
+const appOrigin = new URL(base).origin;
 
 async function localOnly(page) {
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
+    if (url.origin === appOrigin && url.hostname !== 'example.test') return route.continue();
     if (url.hostname !== 'example.test') return route.abort();
     let file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
     if (!file.startsWith(root + path.sep)) return route.fulfill({ status: 403, body: 'blocked' });
