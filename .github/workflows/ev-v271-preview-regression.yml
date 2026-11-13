@@ -1,0 +1,35 @@
+name: EV v2.71 preview regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'PWA/consolidated-v1/ev-preview-v2710/**'
+      - 'tests/ev-v271-preview.test.cjs'
+      - 'PWA/consolidated-v1/tests/partner-share-identity-v2.64.4.test.cjs'
+      - '.github/workflows/ev-v271-preview-regression.yml'
+  push:
+    branches: [feature/ev-journey-v2-71]
+    paths:
+      - 'PWA/consolidated-v1/ev-preview-v2710/**'
+      - 'tests/ev-v271-preview.test.cjs'
+      - 'PWA/consolidated-v1/tests/partner-share-identity-v2.64.4.test.cjs'
+      - '.github/workflows/ev-v271-preview-regression.yml'
+permissions:
+  contents: read
+jobs:
+  mobile-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser runner
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser preview regression
+        run: node tests/ev-v271-preview.test.cjs
+      - name: Verified Partner identity regression
+        run: node PWA/consolidated-v1/tests/partner-share-identity-v2.64.4.test.cjs
