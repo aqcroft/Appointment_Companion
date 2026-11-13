@@ -35,22 +35,23 @@ async function main() {
     const response = await page.goto(base + '?local=1', { waitUntil: 'domcontentloaded' });
     assert.equal(response.status(), 200);
     await page.locator('#evwRegion').waitFor({ state: 'visible', timeout: 20000 });
-    assert.match(await page.locator('#acEvPreviewRibbon').innerText(), /PREVIEW v2\.71/);
+    assert.match(await page.locator('#acEvPreviewRibbon').innerText(), /PREVIEW v2\.71\.1/);
     if (liveTariffs) {
       await page.waitForFunction(() => window.AppointmentCompanionTariffsV242?.state()?.status === 'green', null, { timeout: 30000 });
       await page.waitForFunction(() => Number.isFinite(window.AppointmentCompanionEvFuelComparison?.get('D')?.evAnnual), null, { timeout: 30000 });
     }
 
-    // Blank prospective visitor -> mileage + efficiency kWh -> home -> overnight.
+    // The car is chosen before the mileage screen reveals its kWh estimate.
     await page.locator('.evw-primary').click();
     await page.locator('.evw-choice').filter({ hasText: 'Diesel' }).click();
+    assert.equal(await page.locator('.evw-usage-live').count(), 0, 'Do not show car kWh before a car type is selected');
+    const suv = page.locator('.evw-choice').filter({ hasText: 'Family SUV' });
+    assert.doesNotMatch(await suv.innerText(), /kWh\/year/);
+    await suv.click();
     const mileage = page.locator('#evwOverlay input[type=range]');
     await mileage.fill('10000');
     assert.match(await page.locator('.evw-usage-live').innerText(), /3125\.00 kWh\/year/);
     await page.locator('.evw-primary').click();
-    const suv = page.locator('.evw-choice').filter({ hasText: 'Family SUV' });
-    assert.match(await suv.innerText(), /3125\.00 kWh\/year/);
-    await suv.click();
     await page.locator('.evw-choice').filter({ hasText: 'Medium' }).click();
     await page.locator('#evwOverlay input[type=range]').fill('15');
     assert.match(await page.locator('#evwOverlay .evw-hint').last().innerText(), /2125\.00 kWh daytime.*375\.00 kWh overnight.*2,500 kWh\/year/);
@@ -66,7 +67,7 @@ async function main() {
       window.__AC_EV_TRADEOFF = fixture;
       document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
     });
-    await page.locator('.evw-primary').click();
+    await page.getByRole('button', { name: 'Show my results' }).click();
     if (!liveTariffs) {
       await page.waitForTimeout(500);
       await page.evaluate(() => {
@@ -83,14 +84,15 @@ async function main() {
       assert.doesNotMatch(await page.locator('.evw-price').allInnerTexts().then(t => t.join(' ')), /£—/);
       assert.doesNotMatch(await page.locator('.evw-saving').innerText(), /£—/);
     } else assert.match(await page.locator('.evw-saving').innerText(), /£50[\s\S]*£600/);
-    await page.locator('.evw-kwh summary').click();
-    const breakdown = await page.locator('.evw-kwh').innerText();
-    assert.match(breakdown, /Home before EV charging[\s\S]*2,500 kWh\/year/);
-    assert.match(breakdown, /Additional EV demand[\s\S]*3,125 kWh\/year/);
-    assert.match(breakdown, /Combined household \+ EV[\s\S]*5,625 kWh\/year/);
+    assert.match(await page.locator('#evwCarKwh').innerText(), /3,125 kWh\/year/);
+    assert.match(await page.locator('#evwHomeKwh').innerText(), /2,500 kWh\/year/);
+    assert.match(await page.locator('#evwHouseNight').innerText(), /375 kWh\/year/);
+    assert.match(await page.locator('#evwCarNight').innerText(), /3,125 kWh\/year/);
+    assert.match(await page.locator('#evwTotalNight').innerText(), /3,500 kWh\/year/);
+    assert.match(await page.locator('#evwCombinedKwh').innerText(), /5,625 kWh\/year/);
     assert.match(await page.locator('.evw-note').innerText(), /Assumes 15% household night usage, a three-service UW EV bundle/i);
     assert.match(await page.locator('.evw-note').innerText(), /No gas discount/i);
-    await page.locator('details summary').filter({ hasText: 'See the full cost breakdown' }).click();
+    await page.locator('details summary').filter({ hasText: 'See how the monthly costs are worked out' }).click();
     assert.ok(await page.locator('.evw-detail').count() >= 5);
     if (liveTariffs) {
       assert.doesNotMatch(await page.locator('.evw-detail').filter({ hasText: 'Net household electricity difference' }).innerText(), /£—/);
@@ -173,13 +175,16 @@ async function main() {
     await existing.locator('#evwOverlay .evw-primary').click();
     await existing.waitForTimeout(500);
     await existing.evaluate(() => {
-      const fixture = { meter: true, meterSource: 'ev', meterTotal: 7075, evHomePct: 10,
+      const fixture = { meter: true, meterSource: 'ev', meterPeak: 2275, meterNight: 4800, meterTotal: 7075, evHomePct: 10,
         ev: { total: 1900 }, standard: { total: 2200 }, economy7: { total: 2050 } };
       window.__AC_EV_TRADEOFF = fixture;
       document.dispatchEvent(new CustomEvent('ac:ev-comparison', { detail: fixture }));
     });
     await existing.locator('.evw-price').first().waitFor({ state: 'visible' });
-    assert.equal(await existing.locator('.evw-kwh').count(), 0, 'Actual EV readings do not gain estimated EV kWh');
+    assert.equal(await existing.locator('#evwTotalNight').count(), 0, 'Actual EV readings do not gain a fabricated car/house split');
+    assert.match(await existing.locator('#evwMeterDayKwh').innerText(), /2,275 kWh\/year/);
+    assert.match(await existing.locator('#evwMeterNightKwh').innerText(), /4,800 kWh\/year/);
+    assert.match(await existing.locator('#evwMeterTotalKwh').innerText(), /7,075 kWh\/year/);
     assert.match(await existing.locator('.evw-note').innerText(), /No extra EV usage has been added/);
     assert.match(await existing.locator('.evw-price').allInnerTexts().then(rows => rows.join(' ')), /Standard UW[\s\S]*UW EV tariff/);
     assert.deepEqual(errors, []);
