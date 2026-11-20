@@ -132,7 +132,7 @@
         '<script src="../consolidated-v1/partner-settings-ux-v2.60.3.js?v=' + version + '"><\/script>' +
         '<script src="../consolidated-v1/release-v2.66.19.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.66.21.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.66.22.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.66.23.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.66.24.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.66.25.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.67.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.68.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.69.js?v=' + version + '"><\/script><script src="../consolidated-v1/release-v2.70.js?v=' + version + '"><\/script>';
       html = html.replace(/<\/body>/i, inject + '</body>');
-      html = html.replace(/<\/body>/i, '<script src="../consolidated-v1/release-v2.71.js?v=' + version + '"><\\/script></body>');
+      html = html.replace(/<\/body>/i, '<script src="../consolidated-v1/release-v2.71.js?v=' + version + '"><\/script></body>');
       document.open(); document.write(html); document.close();
     } catch (error) {
       document.getElementById('loader').textContent = '❌ Appointment Companion could not load: ' + ((error && error.message) || String(error));
