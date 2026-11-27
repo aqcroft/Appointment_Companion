@@ -8,7 +8,7 @@
   if (document.documentElement.classList.contains('view-mode') || document.documentElement.classList.contains('shared-view') || /(?:^|[?&])public=1(?:&|$)/.test(String((global.location && global.location.search) || ''))) return;
   var demo = !!global.__AC_UNIFIED_STATUS_PREVIEW;
   var meta = Object.freeze({
-    version: 'v2.70',
+    version: 'v2.72',
     date: '8 November 2026',
     summary: 'Cleaner customer list and always-visible close control',
     changes: [

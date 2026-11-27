@@ -1,0 +1,19 @@
+name: Announced January cap sharing
+on:
+  pull_request:
+    paths:
+      - PWA/consolidated-v1/fix-share-gate-v1.js
+      - PWA/consolidated-v1/should-i-fix/index.html
+      - PWA/consolidated-v1/tests/announced-cap-share.test.cjs
+      - .github/workflows/announced-cap-share.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test PWA/consolidated-v1/tests/announced-cap-share.test.cjs
