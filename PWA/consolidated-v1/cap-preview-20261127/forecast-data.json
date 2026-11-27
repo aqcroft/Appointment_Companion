@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "revision": "mse-2026-11-02-manual-review",
+  "source": {
+    "publisher": "MoneySavingExpert",
+    "url": "https://www.moneysavingexpert.com/utilities/energy-price-cap-prediction/",
+    "week_start": "2026-11-02",
+    "article_updated": "2026-11-03"
+  },
+  "benchmark": {
+    "electricity_kwh": 2500,
+    "gas_kwh": 9500,
+    "payment": "Direct Debit"
+  },
+  "periods": [
+    {
+      "key": "oct2026",
+      "label": "1 Oct to 31 Dec 2026",
+      "status": "confirmed",
+      "average": {
+        "change_pct": 3.6,
+        "annual_gbp": 1723
+      }
+    },
+    {
+      "key": "jan2027",
+      "label": "1 Jan to 31 March 2027",
+      "status": "forecast",
+      "average": {
+        "change_pct": 28.8,
+        "annual_gbp": 2219
+      }
+    },
+    {
+      "key": "apr2027",
+      "label": "1 Apr to 30 June 2027",
+      "status": "forecast",
+      "average": {
+        "change_pct": 6.4,
+        "annual_gbp": 2361
+      }
+    },
+    {
+      "key": "jul2027",
+      "label": "1 Jul to 30 Sep 2027",
+      "status": "forecast",
+      "average": {
+        "change_pct": -9.3,
+        "annual_gbp": 2140
+      }
+    }
+  ],
+  "suppliers": [
+    {
+      "name": "EDF",
+      "predicted_on": "2026-11-02",
+      "values": [
+        {
+          "change_pct": 3.6,
+          "annual_gbp": 1723
+        },
+        {
+          "change_pct": 27.3,
+          "annual_gbp": 2193
+        },
+        {
+          "change_pct": 8,
+          "annual_gbp": 2369
+        },
+        {
+          "change_pct": -10,
+          "annual_gbp": 2132
+        }
+      ]
+    },
+    {
+      "name": "British Gas",
+      "predicted_on": "2026-11-02",
+      "values": [
+        {
+          "change_pct": 3.6,
+          "annual_gbp": 1723
+        },
+        {
+          "change_pct": 30.6,
+          "annual_gbp": 2250
+        },
+        {
+          "change_pct": 4.2,
+          "annual_gbp": 2345
+        },
+        null
+      ]
+    },
+    {
+      "name": "E.on Next",
+      "predicted_on": "2026-11-02",
+      "values": [
+        {
+          "change_pct": 3.6,
+          "annual_gbp": 1723
+        },
+        {
+          "change_pct": 28.6,
+          "annual_gbp": 2215
+        },
+        {
+          "change_pct": 6.9,
+          "annual_gbp": 2368
+        },
+        {
+          "change_pct": -7.8,
+          "annual_gbp": 2184
+        }
+      ]
+    }
+  ],
+  "notes": "Manually verified on 5 November 2026 from MoneySavingExpert's forecast table (article updated 3 November 2026, week beginning 2 November identified in table footnote) and separate MSE fixing guide; the forecast table's heading remains dated 25 Oct. The detailed table displays £2,189 for the January average, which conflicts with +28.8%, the three supplier annual totals (£2,193, £2,250, £2,215; average £2,219), and MSE's fixing guide (£2,219). £2,219 is retained here as the mathematically consistent January annual benchmark. July published average is recorded as stated, not independently extrapolated. These are indicative cap forecasts, not regional p/kWh predictions or confirmed Ofgem rates. Source access via GitHub Actions still returns HTTP 403. Approved figure changes require manual PR review."
+}
