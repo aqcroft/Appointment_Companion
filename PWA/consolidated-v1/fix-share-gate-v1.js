@@ -34,6 +34,7 @@
       t: tariff ? tariff.dataset.tariff : 'saver',
       sp: Number(win.__sifStressPct) || 0
     };
+    if(win&&typeof win.latestCapModel==='function'&&win.latestCapModel()&&win.Cap2027)out.cr=win.Cap2027.data.revision;
     // Preserve non-default percentage or unit-rate stress tests in public shares.
     var jan = num(doc.getElementById('janRise'));
     var approved = num(doc.getElementById('forecastDefault'));
