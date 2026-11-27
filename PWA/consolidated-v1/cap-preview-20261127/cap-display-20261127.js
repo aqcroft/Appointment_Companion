@@ -15,6 +15,10 @@
     document.querySelectorAll('.forecast-unit-row button[title]').forEach(el=>{el.title='Published January national reference; full precision retained';});
     const outlook=document.querySelector('.outlook-note');
     if(outlook)outlook.textContent='January confirmed. April +2.5% (£2,222); July −8.5% (£2,034). MSE forecast week beginning 23 November 2026, checked 27 November.';
+    const janCaption=document.querySelectorAll('.outlook-grid .outlook-cell span')[1];
+    if(janCaption)janCaption.textContent='Jan-Mar 2027 confirmed';
+    const choice=document.querySelector('#forecastChoiceSource span');
+    if(choice)choice.textContent='See the January announcement and the latest MSE April and July consensus.';
     const cells=document.querySelectorAll('.outlook-grid .outlook-cell b');
     ['+3.6%','Confirmed','+2.5% forecast','−8.5% forecast'].forEach((v,i)=>{if(cells[i])cells[i].textContent=v;});
     const p=document.getElementById('forecastPanelSource');
